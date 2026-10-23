@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { createReadStream, lstatSync } from 'node:fs'
+import { createReadStream, lstatSync, opendirSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 
 export const magic = Buffer.from('VACS2')
 export const sourceMetadataPath = 'source-input-metadata'
@@ -13,6 +14,13 @@ function encodedHeader(value) {
 }
 
 export async function* archiveChunks(entries, identity, deadline, sourceMetadataBytes) {
+  const expectedChildren = new Map()
+  for (const entry of entries) {
+    const parent = dirname(entry.path)
+    const children = expectedChildren.get(parent) ?? new Map()
+    children.set(basename(entry.path), entry.type)
+    expectedChildren.set(parent, children)
+  }
   yield magic
   yield* encodedHeader(identity)
   for (const entry of entries) {
@@ -40,6 +48,45 @@ export async function* archiveChunks(entries, identity, deadline, sourceMetadata
           after.mtimeNs.toString() !== entry.mtimeNs) {
         throw new Error(`Android state changed during compression: ${entry.path}`)
       }
+    } else if (entry.type === 'directory') {
+      const after = lstatSync(entry.source, { bigint: true })
+      if (!after.isDirectory() || after.mtimeNs.toString() !== entry.mtimeNs ||
+          (after.mode & 0o777n) !== BigInt(entry.mode)) {
+        throw new Error(`Android state directory changed during compression: ${entry.path}`)
+      }
+    }
+  }
+  for (const entry of entries) {
+    if (entry.type !== 'directory') continue
+    if (Date.now() > deadline) throw new Error('Android state directory verification timed out')
+    const after = lstatSync(entry.source, { bigint: true })
+    if (!after.isDirectory() || after.mtimeNs.toString() !== entry.mtimeNs ||
+        (after.mode & 0o777n) !== BigInt(entry.mode)) {
+      throw new Error(`Android state directory changed during compression: ${entry.path}`)
+    }
+    if (entry.path !== '.build' && !entry.path.startsWith('.build/')) continue
+    const expected = expectedChildren.get(entry.path) ?? new Map()
+    const seen = new Set()
+    const directory = opendirSync(entry.source)
+    try {
+      let child
+      while ((child = directory.readSync()) !== null) {
+        if (Date.now() > deadline || seen.size >= entries.length) {
+          throw new Error('Android state directory verification exceeded bounds')
+        }
+        const childStat = lstatSync(join(entry.source, child.name))
+        const kind = childStat.isDirectory() ? 'directory' : childStat.isFile() ? 'file' :
+          childStat.isSymbolicLink() ? 'symlink' : 'special'
+        if (seen.has(child.name) || expected.get(child.name) !== kind) {
+          throw new Error(`Android state directory membership changed: ${entry.path}`)
+        }
+        seen.add(child.name)
+      }
+    } finally {
+      directory.closeSync()
+    }
+    if (seen.size !== expected.size) {
+      throw new Error(`Android state directory membership changed: ${entry.path}`)
     }
   }
   if (Date.now() > deadline) throw new Error('Android source metadata compression timed out')

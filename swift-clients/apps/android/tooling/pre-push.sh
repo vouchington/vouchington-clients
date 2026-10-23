@@ -147,14 +147,18 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
   source "$SCRIPT_DIR/expose-job-scoped-swift-toolchain.sh"
 fi
 
-if ! java -version >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
-  JAVA_HOME="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-  export JAVA_HOME
-fi
+# Direct Skip/Swift phases use the pinned Swift Android SDK and explicit NDK.
+# Java and the Java Android SDK are needed only by Gradle/test-library phases.
+if [[ "$phase" != app-native-dependency && "$phase" != app-native-producer ]]; then
+  if ! java -version >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
+    JAVA_HOME="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
+    export JAVA_HOME
+  fi
 
-if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/Android/sdk" ]]; then
-  ANDROID_HOME="$HOME/Library/Android/sdk"
-  export ANDROID_HOME
+  if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/Android/sdk" ]]; then
+    ANDROID_HOME="$HOME/Library/Android/sdk"
+    export ANDROID_HOME
+  fi
 fi
 
 if [[ "$phase" == app-native-producer ]]; then

@@ -584,43 +584,11 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Select Xcode 26.6 for Android host SwiftPM tests
-        working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -688,43 +656,11 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Select Xcode 26.6 for Android host SwiftPM tests
-        working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -2423,8 +2359,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-image-preview-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2449,6 +2386,16 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-image-preview-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-image-preview-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-maui:
     name: .NET MAUI Windows
     needs: verify
@@ -2474,8 +2421,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2533,6 +2481,16 @@ jobs:
           -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-maui-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-language-model-surface:
     name: .NET Windows language-model surface
     needs: verify
@@ -2558,8 +2516,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-language-model-surface-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2584,6 +2543,16 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false --logger "console;verbosity=detailed"
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-language-model-surface-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-language-model-surface-nuget-cache.outputs.cache-primary-key }}
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: ${{ !cancelled() }}

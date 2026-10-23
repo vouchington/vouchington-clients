@@ -28,13 +28,21 @@ and exports the existing UI LCOV artifact. Both shards are required by the aggre
 
 The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
 package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
-Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
+Swift Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
 exact run, attempt, and candidate revision. The native producer invokes the same full-product Skip
 command directly, with the original working directory, environment, compiler flags, JNI output and scratch paths. A digest of the
 generated task and its path resolvers rejects generator drift before this invocation. This avoids
 Gradle startup and configuration in that shard. The app consumer still runs the original Gradle
 Swift package task, builds both APKs, verifies the native ABI, and passes those exact APKs to the
 cookie restart job.
+
+The two direct Swift producer phases provision the pinned Swift Android SDK and NDK without
+installing the Java Android SDK or selecting Xcode for host tests. They execute Skip prebuild
+and Swift cross-compilation; the APK consumer owns Gradle, platform/build-tools setup, APK and
+ABI validation. The handoff preserves verified file and directory nanosecond timestamps, modes,
+and complete child-name/type graphs, including canonical tracked Android source directories.
+It validates exact candidate/run/attempt identity, hashes, tracked bytes and directory membership
+before replaying genuine producer metadata; incompatible formats and drift fail closed.
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.

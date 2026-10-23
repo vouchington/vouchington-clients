@@ -100,6 +100,27 @@ exit "\${FAIL_APP:-0}"
   }
 }
 
+test('direct Swift phases never probe Java or Homebrew', async () => {
+  const f = await fixture()
+  try {
+    const bin = join(f.root, '.build/artifacts/skip/skip/skip.artifactbundle/bin')
+    for (const command of ['java', 'brew']) {
+      await writeFile(
+        join(bin, command),
+        '#!/bin/sh\nprintf "unexpected Java probe\\n" >&2\nexit 99\n',
+      )
+      await chmod(join(bin, command), 0o755)
+    }
+    for (const phase of ['app-native-dependency', 'app-native-producer']) {
+      const result = f.run(['--phase', phase], { RUNNER_TEMP: f.root })
+      assert.equal(result.status, 0, result.stderr)
+      assert.doesNotMatch(result.stderr, /unexpected Java probe/u)
+    }
+  } finally {
+    await f.clean()
+  }
+})
+
 test('APK phase needs no Android test runner and never packages test libraries', async () => {
   const f = await fixture()
   try {

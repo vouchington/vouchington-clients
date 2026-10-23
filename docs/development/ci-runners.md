@@ -46,6 +46,12 @@ still perform the same locked restore and tests on a cache miss; they do not upl
 multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
 toolchain reuse.
 
+The three Windows NuGet caches use the same main-only save policy, after each job's tests or app
+build succeeds. Their exact keys, package paths, and workload-specific restore prefixes stay the
+same. A PR with new dependencies may restore a main prefix and download the missing packages,
+but it does not save a branch-local cache copy. This reduces competing cache writes; it does not
+guarantee that a cache remains available or that a job gets faster.
+
 ## pnpm
 
 pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or
