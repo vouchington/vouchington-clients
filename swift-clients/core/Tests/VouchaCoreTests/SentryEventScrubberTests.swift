@@ -35,6 +35,7 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertEqual(event.headers["Authorization"], SentryEventScrubber.filteredValue)
         XCTAssertEqual(event.headers["X-App-Attest-Assertion"], SentryEventScrubber.filteredValue)
         XCTAssertEqual(event.headers["Accept"], "application/json")
+        XCTAssertEqual(event.headers["Referer"], "https://voucha.ai/reset")
         XCTAssertEqual(event.cookies, SentryEventScrubber.filteredValue)
         XCTAssertNil(event.body)
         XCTAssertNil(event.extras["chat"])
@@ -126,7 +127,8 @@ final class SentryEventScrubberTests: XCTestCase {
                 "Authorization": "Bearer mcp-token",
                 "X-App-Attest-Assertion": "assertion",
                 "Cookie": "dt=device; st=session",
-                "Accept": "application/json"
+                "Accept": "application/json",
+                "Referer": "https://voucha.ai/reset?otp=123456"
             ],
             cookies: "dt=device; st=session",
             body: "{\"chat\":\"hello\"}",

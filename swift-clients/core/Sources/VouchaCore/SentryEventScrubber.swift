@@ -131,7 +131,7 @@ public enum SentryEventScrubber {
     private static func scrubHeaders(_ headers: [String: String]) -> [String: String] {
         var result: [String: String] = [:]
         for (name, value) in headers {
-            result[name] = isCredentialHeader(name) ? filteredValue : value
+            result[name] = isCredentialHeader(name) ? filteredValue : retainedValue(name, value)
         }
         return result
     }
