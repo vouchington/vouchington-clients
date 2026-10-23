@@ -16,6 +16,32 @@ const jobBlock = (workflow, job) => {
   const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
   return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
 }
+const stepBlock = (job, step) => {
+  const start = job.indexOf(`      - name: ${step}\n`)
+  assert.notEqual(start, -1, `missing step ${step}`)
+  const remainder = job.slice(start)
+  const nextStep = remainder.slice(1).search(/\n {6}- name:/u)
+  return remainder.slice(0, nextStep === -1 ? remainder.length : nextStep + 1)
+}
+
+it('uses the same explicit Release Turnstile key in both Catalyst build phases', async () => {
+  const workflow = await readWorkflow()
+  for (const [job, step] of [
+    ['dotnet-maui-compile', 'Build managed Mac Catalyst CoreBuild closure'],
+    ['dotnet-maui', 'Build MAUI Mac Catalyst app'],
+  ]) {
+    const build = stepBlock(jobBlock(workflow, job), step)
+    assert.match(
+      build,
+      /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj/u,
+    )
+    assert.deepEqual(
+      [...build.matchAll(/-p:VouchaTurnstileSiteKey=([^\s]+)/gu)].map(match => match[1]),
+      ['0x4AAAAAAAAexample'],
+      `${job} must supply the existing public CI key to its Release build`,
+    )
+  }
+})
 
 it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
   const [action, workflow] = await Promise.all([readAction(), readWorkflow()])
