@@ -186,4 +186,15 @@ final class CredentialContractTests: XCTestCase {
         let list = Endpoint.myOAuthGrants(after: "opaque+/=cursor")
         XCTAssertEqual(list.queryItems.first { $0.name == "after" }?.value, "opaque+/=cursor")
     }
+
+    func testAudienceCatalogKeepsApiKeyAndAdministratorFlags() {
+        let audience = ScopeCatalogAudience(
+            audience: "user", acceptsApiKeys: true, requiresAdministrator: false
+        )
+        let catalog = ScopeCatalogResponse(audiences: [audience], scopes: [])
+        XCTAssertEqual(catalog.audiences.first?.audience, "user")
+        XCTAssertEqual(catalog.audiences.first?.acceptsApiKeys, true)
+        XCTAssertEqual(catalog.audiences.first?.requiresAdministrator, false)
+        XCTAssertTrue(catalog.scopes.isEmpty)
+    }
 }
