@@ -956,7 +956,13 @@ jobs:
           VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
           ANDROID_BUILD_PHASE: app-consumer
+          GRADLE_USER_HOME: ${{ runner.temp }}/android-gradle-cold-probe
         run: |
+          if [[ -e "$GRADLE_USER_HOME" || -L "$GRADLE_USER_HOME" ]]; then
+            echo 'Cold Gradle home probe path already exists; refusing a warm build.' >&2
+            exit 1
+          fi
+          echo "Cold Gradle home probe: $GRADLE_USER_HOME"
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
       - name: Package exact candidate Android app and instrumentation APKs

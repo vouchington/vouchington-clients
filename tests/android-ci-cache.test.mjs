@@ -51,6 +51,16 @@ test('Android caches restore on all runs and save only one completed main phase'
     /inputs\.save-cache == 'true' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.archives\.outputs\.cache-hit != 'true'/u,
   )
   assert.match(app, /id: android-gradle-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u)
+  const appBuild = app
+    .split('      - name: Build the selected Android validation phase\n')[1]
+    .split('      - name: Package exact candidate Android app and instrumentation APKs\n')[0]
+  assert.match(appBuild, /GRADLE_USER_HOME: \$\{\{ runner\.temp \}\}\/android-gradle-cold-probe/u)
+  assert.match(appBuild, /\[\[ -e "\$GRADLE_USER_HOME" \|\| -L "\$GRADLE_USER_HOME" \]\]/u)
+  assert.match(
+    appBuild,
+    /mise exec -- bash swift-clients\/apps\/android\/tooling\/pre-push\.sh --phase "\$ANDROID_BUILD_PHASE"/u,
+  )
+  assert.doesNotMatch(producer, /android-gradle-cold-probe/u)
   assert.match(
     app,
     /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-gradle-cache\.outputs\.cache-hit != 'true'/u,
