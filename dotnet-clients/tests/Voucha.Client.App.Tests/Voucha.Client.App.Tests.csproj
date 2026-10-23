@@ -188,6 +188,7 @@
     <Compile Include="../../src/Voucha.Client.App/UiLocalizedValueConverter.cs" Link="UiLocalizedValueConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/UiLocaleVersion.cs" Link="UiLocaleVersion.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPageViews.cs" Link="Pages/IntegrityPageViews.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityFlagQueuePageBase.cs" Link="Pages/IntegrityFlagQueuePageBase.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/BookmarkCollectionPaginationFooter.cs" Link="Pages/BookmarkCollectionPaginationFooter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPage.cs" Link="Pages/ReportIntegrityPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPage.Render.cs" Link="Pages/ReportIntegrityPage.Render.cs" />
