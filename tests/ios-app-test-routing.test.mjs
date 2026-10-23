@@ -99,6 +99,7 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     assert.match(spawnGate, /xcrun", "simctl", "install"/u)
     assert.match(spawnGate, /xcrun", "simctl", "launch"/u)
     assert.match(spawnGate, /xcrun", "simctl", "terminate"/u)
+    assert.match(spawnGate, /if not pid\.isdigit\(\)/u)
     assert.match(spawnGate, /Installed app did not start a process/u)
     assert.match(spawnGate, /Spawn gate exceeded 150s; continuing to xcodebuild/u)
     for (const [job, launchName] of [

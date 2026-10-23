@@ -37,15 +37,16 @@ def main() -> int:
     try:
         log("install")
         run(["xcrun", "simctl", "install", simulator_id, app], deadline, check=True)
-        bundle_id = subprocess.check_output(
+        bundle_id = run(
             [
                 "/usr/libexec/PlistBuddy",
                 "-c",
                 "Print :CFBundleIdentifier",
                 str(Path(app) / "Info.plist"),
             ],
-            text=True,
-        ).strip()
+            deadline,
+            check=True,
+        ).stdout.strip()
         if bundle_id != BUNDLE_ID:
             print(
                 f"::error::Refusing to launch an unexpected bundle id: {bundle_id}",
