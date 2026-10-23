@@ -2,10 +2,13 @@ import Foundation
 import VouchaModels
 
 enum SettingsCredentialsTestData {
-    static let catalog = Data(
-        #"{"scopes":[{"scope":"feed:read","resource":"feed","action":"read","audience":"api","requires":null,"description_key":null,"surfaces":["api-key"]},{"scope":"data:read","resource":"data","action":"read","audience":"user","requires":null,"description_key":null,"surfaces":["api-key","oauth"]},{"scope":"data:write","resource":"data","action":"write","audience":"user","requires":"data:read","description_key":null,"surfaces":["api-key","oauth"]}]}"#
-            .utf8
-    )
+    static let catalog = catalogData(scopes: catalogScopes)
+
+    static func catalogData(scopes: String) -> Data {
+        Data("""
+        {"scopes":\(scopes),\(publishedAudiencePolicy)}
+        """.utf8)
+    }
 
     static func grants(_ ids: [String], hasMore: Bool = false, lastUsed: Bool = false) -> Data {
         let rows = ids.map { id in
@@ -21,4 +24,20 @@ enum SettingsCredentialsTestData {
         "end_cursor":\(hasMore ? "\"grant-next+/=\"" : "null"),"start_cursor":null}}
         """.utf8)
     }
+
+    private static let catalogScopes = """
+    [{"scope":"feed:read","resource":"feed","action":"read","audience":"api","requires":null,\
+    "description_key":null,"surfaces":["api-key"]},{"scope":"data:read","resource":"data",\
+    "action":"read","audience":"user","requires":null,"description_key":null,\
+    "surfaces":["api-key","oauth"]},{"scope":"data:write","resource":"data","action":"write",\
+    "audience":"user","requires":"data:read","description_key":null,"surfaces":["api-key","oauth"]}]
+    """
+
+    private static let publishedAudiencePolicy = """
+    "audiences":[{"audience":"user","accepts_api_keys":true,"requires_administrator":false},\
+    {"audience":"community_moderation","accepts_api_keys":true,"requires_administrator":false},\
+    {"audience":"brand","accepts_api_keys":true,"requires_administrator":false},\
+    {"audience":"admin","accepts_api_keys":false,"requires_administrator":true},\
+    {"audience":"legal","accepts_api_keys":false,"requires_administrator":true}]
+    """
 }
