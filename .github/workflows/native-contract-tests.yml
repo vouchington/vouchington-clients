@@ -2423,8 +2423,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-image-preview-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2449,6 +2450,16 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-image-preview-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-image-preview-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-maui:
     name: .NET MAUI Windows
     needs: verify
@@ -2474,8 +2485,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2533,6 +2545,16 @@ jobs:
           -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-maui-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-language-model-surface:
     name: .NET Windows language-model surface
     needs: verify
@@ -2558,8 +2580,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-language-model-surface-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2584,6 +2607,16 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false --logger "console;verbosity=detailed"
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-language-model-surface-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-language-model-surface-nuget-cache.outputs.cache-primary-key }}
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: ${{ !cancelled() }}
