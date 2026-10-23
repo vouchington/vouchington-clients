@@ -45,6 +45,31 @@ public sealed class SentrySdkBoundaryTests
   }
 
   [Fact]
+  public void TransactionWithABoundAccountKeepsOnlyTheMarker()
+  {
+    SentryAccountSync.ResetBoundAccount();
+    var store = new RecordingSessionStore
+    {
+      Current = new SessionSnapshot(new User("account-1", "ada")),
+    };
+    SentryAccountSync.Reconcile(store, _ => { });
+    var transaction = new SentryTransaction("GET /search", "http");
+    transaction.User.Id = "account-1";
+    transaction.User.Email = "person@example.com";
+    transaction.User.Other["name"] = "Ada";
+    transaction.User.Other["access_token"] = "secret";
+
+    SentryTransactionProjection.Scrub(transaction);
+
+    Assert.Equal("account-1", transaction.User.Id);
+    Assert.Null(transaction.User.Email);
+    Assert.Equal("account-1", transaction.User.Other[SentryAccountSync.AccountMarker]);
+    Assert.False(transaction.User.Other.ContainsKey("name"));
+    Assert.False(transaction.User.Other.ContainsKey("access_token"));
+    SentryAccountSync.ResetBoundAccount();
+  }
+
+  [Fact]
   public void TransactionWithoutAMarkerDropsIdentityFields()
   {
     SentryAccountSync.ResetBoundAccount();
