@@ -92,6 +92,7 @@ final class SentryEventScrubberTests: XCTestCase {
             "GET https://voucha.ai/search"
         )
         XCTAssertNil(SentryEventScrubber.scrubField(key: "http.query", value: "q=private-search"))
+        XCTAssertNil(SentryEventScrubber.scrubField(key: "http.query_string", value: "token=secret"))
         XCTAssertNil(SentryEventScrubber.scrubField(key: "http.fragment", value: "token=secret"))
         XCTAssertEqual(
             SentryEventScrubber.scrubField(key: "url", value: "https://voucha.ai/search?q=private-search"),
@@ -101,6 +102,12 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertTrue(SentryEventScrubber.keepsNumericField("status_code"))
         XCTAssertTrue(SentryEventScrubber.keepsNumericField("http.response.status_code"))
         XCTAssertFalse(SentryEventScrubber.keepsNumericField("http.query"))
+        let scrubbed = SentryEventScrubber.scrub(SentryOutboundEvent(
+            extras: ["request_url": "https://voucha.ai/search?q=private"],
+            breadcrumbs: [SentryBreadcrumbDraft(category: "http", message: "GET /search?q=private")]
+        ))
+        XCTAssertEqual(scrubbed.extras["request_url"], "https://voucha.ai/search")
+        XCTAssertEqual(scrubbed.breadcrumbs.first?.message, "GET /search")
     }
 
     private var secretEvent: SentryOutboundEvent {

@@ -41,15 +41,14 @@ enum SentryEventProjection {
 
     static func apply(_ scrubbed: SentryOutboundEvent, to event: Event) {
         if let accountId = scrubbed.accountId {
-            let user = event.user ?? User(userId: accountId)
-            user.userId = accountId
-            user.email = nil
-            user.username = nil
-            user.ipAddress = nil
+            let user = User(userId: accountId)
+            user.data = [Self.accountMarker: accountId]
             event.user = user
         } else {
             event.user = nil
         }
+        event.tags = scrubbedTags(event.tags)
+        event.context = scrubbedContext(event.context)
         if event.request != nil || scrubbed.requestURL != nil || scrubbed.cookies != nil {
             let request = event.request ?? SentryRequest()
             request.url = scrubbed.requestURL
@@ -97,6 +96,36 @@ enum SentryEventProjection {
 
     static func keepsNumber(_ key: String, _ value: Any) -> Bool {
         value is NSNumber && SentryEventScrubber.keepsNumericField(key)
+    }
+
+    private static func scrubbedTags(_ tags: [String: String]?) -> [String: String]? {
+        guard let tags else { return nil }
+        var retained: [String: String] = [:]
+        for (key, value) in tags {
+            if let kept = SentryEventScrubber.scrubField(key: key, value: value) {
+                retained[key] = kept
+            }
+        }
+        return retained
+    }
+
+    private static func scrubbedContext(_ context: [String: [String: Any]]?) -> [String: [String: Any]]? {
+        guard let context else { return nil }
+        var retained: [String: [String: Any]] = [:]
+        for (name, values) in context {
+            var kept: [String: Any] = [:]
+            for (key, value) in values {
+                if let text = value as? String, let scrubbed = SentryEventScrubber.scrubField(key: key, value: text) {
+                    kept[key] = scrubbed
+                } else if keepsNumber(key, value) {
+                    kept[key] = value
+                }
+            }
+            if !kept.isEmpty {
+                retained[name] = kept
+            }
+        }
+        return retained
     }
 
     private static func capturedAccountId(_ event: Event) -> String? {

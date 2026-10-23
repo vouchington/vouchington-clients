@@ -123,7 +123,9 @@ public enum SentryEventScrubber {
             }
             data[key] = name.contains("url") ? stripQuery(value) ?? value : value
         }
-        return SentryBreadcrumbDraft(category: breadcrumb.category, message: breadcrumb.message, data: data)
+        return SentryBreadcrumbDraft(
+            category: breadcrumb.category, message: stripQuery(breadcrumb.message), data: data
+        )
     }
 
     private static func scrubHeaders(_ headers: [String: String]) -> [String: String] {
@@ -137,13 +139,9 @@ public enum SentryEventScrubber {
     private static func scrubExtras(_ extras: [String: String]) -> [String: String] {
         var result: [String: String] = [:]
         for (key, value) in extras where !droppedExtraKeys.contains(key.lowercased()) {
-            result[key] = value
+            result[key] = retainedValue(key, value)
         }
         return result
-    }
-
-    private static func isSeparateRequestPart(_ name: String) -> Bool {
-        name == "http.query" || name == "http.fragment" || name == "query" || name == "fragment"
     }
 
     private static func isCredentialHeader(_ name: String) -> Bool {
@@ -151,7 +149,7 @@ public enum SentryEventScrubber {
         return credentialHeaders.contains(lowered) || lowered.hasPrefix("x-app-attest-")
     }
 
-    private static func stripQuery(_ value: String?) -> String? {
+    static func stripQuery(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         let query = value.firstIndex(of: "?")
         let fragment = value.firstIndex(of: "#")
