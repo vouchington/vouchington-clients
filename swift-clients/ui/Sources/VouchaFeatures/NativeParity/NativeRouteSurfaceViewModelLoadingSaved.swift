@@ -126,7 +126,7 @@ extension NativeRouteSurfaceViewModel {
         return .publicDefaultLandingPage(username: username)
     }
 
-    private func landingPageAnalyticsRows(
+    func landingPageAnalyticsRows(
         _ analytics: LandingPageAnalytics,
         title: String? = nil
     ) -> [NativeRouteDestinationRow] {
