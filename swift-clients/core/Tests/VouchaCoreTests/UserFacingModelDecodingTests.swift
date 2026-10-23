@@ -167,6 +167,37 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(clickLog.users["user-2"]?.username, "newmember")
     }
 
+    func testDecodesRetainedReferralClickWithClearedLandingUrl() throws {
+        let json = Data(
+            """
+            {
+              "results": [{"id": "click-1"}],
+              "clicks": {"click-1": {
+                "id": "click-1",
+                "landing_url": null,
+                "signed_up_at": null,
+                "user_id": null,
+                "created_at": "2026-03-01T11:55:00Z"
+              }},
+              "users": {},
+              "page_info": {"has_next_page": false, "start_cursor": null, "end_cursor": null}
+            }
+            """.utf8
+        )
+
+        let response = try makeVouchaDecoder().decode(ReferralClickLogResponse.self, from: json)
+
+        XCTAssertEqual(response.results.map(\.id), ["click-1"])
+        XCTAssertNotNil(response.clicks["click-1"])
+        XCTAssertNil(response.clicks["click-1"]?.landingUrl)
+
+        let omittedUrl = Data(
+            String(decoding: json, as: UTF8.self)
+                .replacingOccurrences(of: "\"landing_url\": null,", with: "").utf8
+        )
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(ReferralClickLogResponse.self, from: omittedUrl))
+    }
+
     func testDecodesAppealsMessagingBookmarksAndMemberships() throws {
         let decoder = makeVouchaDecoder()
         let appealObject = #""id":"appeal-1","case_id":"case-1","appellant_id":"user-1","user_warning_id":null,"user_suspension_id":null,"community_ban_id":null,"post_id":null,"community_id":null,"post_removal_kind":null,"appeal_reason":"Please review this again.","status":"pending","recommended_action":null,"ai_public_response":null,"ai_internal_response":null,"model":null,"ai_drafted_at":null,"ai_draft_requested_run_id":"appeal_resolution_00000000-0000-7000-8000-000000000202","ai_draft_run_id":null,"public_response":null,"internal_notes":null,"drafted_at":null,"edited_at":null,"edited_by_id":null,"approved_at":null,"approved_by_id":null,"sent_at":null,"resolved_at":null,"resolved_by_id":null,"resolution_action":null,"latest_lifecycle_change_id":null,"created_at":"2026-03-01T11:55:00Z","updated_at":"2026-03-01T11:55:00Z","is_overdue":false"#

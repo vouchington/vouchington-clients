@@ -31,7 +31,7 @@ final class NativeRouteLibraryPresentationTests: NativeRouteSurfaceViewModelTest
             Data(
                 """
                 {
-                  "results": [{"id": "click-1"}, {"id": "click-2"}],
+                  "results": [{"id": "click-1"}, {"id": "click-2"}, {"id": "click-3"}],
                   "clicks": {
                     "click-1": {
                       "id": "click-1",
@@ -45,6 +45,13 @@ final class NativeRouteLibraryPresentationTests: NativeRouteSurfaceViewModelTest
                       "landing_url": "https://example.com/signup",
                       "signed_up_at": "2026-01-02T00:00:00Z",
                       "user_id": "user-2",
+                      "created_at": "2026-01-01T00:00:00Z"
+                    },
+                    "click-3": {
+                      "id": "click-3",
+                      "landing_url": null,
+                      "signed_up_at": null,
+                      "user_id": null,
                       "created_at": "2026-01-01T00:00:00Z"
                     }
                   },
@@ -74,9 +81,10 @@ final class NativeRouteLibraryPresentationTests: NativeRouteSurfaceViewModelTest
         XCTAssertEqual(linkRows.map(\.detail), ["user-1"])
         XCTAssertEqual(clickRows.map(\.title), [
             "https://example.com/click",
-            "https://example.com/signup"
+            "https://example.com/signup",
+            "—"
         ])
-        XCTAssertEqual(clickRows.map(\.detail), ["Click", "Signup"])
+        XCTAssertEqual(clickRows.map(\.detail), ["Click", "Signup", "Click"])
     }
 
     func testNativeRoutePlanLoaderFormatsKnownAndUnknownIntervals() async throws {
