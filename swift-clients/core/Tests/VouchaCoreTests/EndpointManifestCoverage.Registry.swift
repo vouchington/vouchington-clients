@@ -43,4 +43,8 @@ enum EndpointManifestCoverage {
             + copyrightNoticesFixtureEndpoints.map { id, endpoint in
                 ManifestRegisteredEndpoint(id: id) { endpoint }
             }
+
+            + topicClaimFixtureEndpoints.map { id, endpoint in
+                ManifestRegisteredEndpoint(id: id) { endpoint }
+            }
 }

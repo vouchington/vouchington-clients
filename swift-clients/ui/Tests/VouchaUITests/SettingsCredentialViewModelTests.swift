@@ -324,10 +324,11 @@ final class SettingsCredentialViewModelTests: NativeRouteSurfaceViewModelTestCas
     func testInvalidPrerequisiteGraphIsVisibleAndCannotCreate() async throws {
         seedCredentials()
         CannedFeedURLProtocol.handlers["/api/v1/scopes"] = (
-            Data(
-                #"{"scopes":[{"scope":"write","resource":"data","action":"write","audience":"user","requires":"missing","description_key":null,"surfaces":["api-key"]}]}"#
-                    .utf8
-            ), 200
+            SettingsCredentialsTestData.catalogData(scopes: """
+            [{"scope":"write","resource":"data","action":"write","audience":"user",\
+            "requires":"missing","description_key":null,"surfaces":["api-key"]}]
+            """),
+            200
         )
         let model = try SettingsViewModel(client: makeClient())
         model.apiKeyType = .mcp

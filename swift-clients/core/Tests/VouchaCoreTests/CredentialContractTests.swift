@@ -20,6 +20,25 @@ final class CredentialContractTests: XCTestCase {
         }
     }
 
+    func testStagedCatalogPreservesAudienceApiKeyPolicy() throws {
+        let catalog = try makeVouchaDecoder().decode(
+            ScopeCatalogResponse.self,
+            from: ApiFixtureLoader.data("shared.scopes.catalog")
+        )
+        XCTAssertEqual(
+            catalog.audiences.map {
+                "\($0.audience.rawValue) \($0.acceptsApiKeys) \($0.requiresAdministrator)"
+            },
+            [
+                "user true false",
+                "community_moderation true false",
+                "brand true false",
+                "admin false true",
+                "legal false true"
+            ]
+        )
+    }
+
     func testStagedCatalogDrivesSelectionAndCreationFixtureDecodes() throws {
         let decoder = makeVouchaDecoder()
         let catalog = try decoder.decode(
@@ -39,9 +58,6 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(response.apiKey.permissions, selection.permissions)
         XCTAssertEqual(response.rawKey, "fixture-raw-api-key")
         XCTAssertEqual(response.apiKey.type, .mcp)
-        let user = try XCTUnwrap(catalog.audiences.first { $0.audience == "user" })
-        XCTAssertTrue(user.acceptsApiKeys)
-        XCTAssertFalse(user.requiresAdministrator)
     }
 
     func testStagedFinancialScopesNeedExactSelectionAndTheirOwnReadPrerequisites() throws {
@@ -188,16 +204,5 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertTrue(endpoint.path.contains("grant%2Fother"))
         let list = Endpoint.myOAuthGrants(after: "opaque+/=cursor")
         XCTAssertEqual(list.queryItems.first { $0.name == "after" }?.value, "opaque+/=cursor")
-    }
-
-    func testAudienceCatalogKeepsApiKeyAndAdministratorFlags() {
-        let audience = ScopeCatalogAudience(
-            audience: "user", acceptsApiKeys: true, requiresAdministrator: false
-        )
-        let catalog = ScopeCatalogResponse(audiences: [audience], scopes: [])
-        XCTAssertEqual(catalog.audiences.first?.audience, "user")
-        XCTAssertEqual(catalog.audiences.first?.acceptsApiKeys, true)
-        XCTAssertEqual(catalog.audiences.first?.requiresAdministrator, false)
-        XCTAssertTrue(catalog.scopes.isEmpty)
     }
 }
