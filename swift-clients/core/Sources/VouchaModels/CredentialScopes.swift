@@ -78,8 +78,15 @@ public struct CredentialScope: Codable, Identifiable, Sendable {
     }
 }
 
+public struct ScopeAudiencePolicy: Codable, Sendable {
+    public let audience: ScopeAudience
+    public let acceptsApiKeys: Bool
+    public let requiresAdministrator: Bool
+}
+
 public struct ScopeCatalogResponse: Codable, Sendable {
     public let scopes: [CredentialScope]
+    public let audiences: [ScopeAudiencePolicy]
 }
 
 public struct OAuthGrantClient: Codable, Sendable {
