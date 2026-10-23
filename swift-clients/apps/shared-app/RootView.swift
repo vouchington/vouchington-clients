@@ -23,6 +23,9 @@ public struct RootView: View {
     #endif
 
     public static let rootShellAccessibilityIdentifier = "root-shell"
+    /// Compact and regular signed-out controls that present the sign-in sheet.
+    /// Feed vote menus also use the Sign In label, so launch smoke must not query by label alone.
+    public static let signedOutSignInAccessibilityIdentifier = "signed-out-sign-in"
     @State
     var selectedSection: AppSection? = .news
     /// macOS only: driven by column-2 sub-option list selection.
