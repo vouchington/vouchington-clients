@@ -1,21 +1,27 @@
 import Foundation
 
 extension Endpoint {
-    static func myTopicClaims(limit: Int = 25) -> Endpoint {
-        Endpoint(
-            .GET,
-            path: "/api/v1/my/topic-claims",
-            queryItems: [URLQueryItem(name: "limit", value: String(limit))]
-        )
+    static func myTopicClaims(after: String? = nil, limit: Int = 25) -> Endpoint {
+        var items: [URLQueryItem] = []
+        if let after {
+            items.append(URLQueryItem(name: "after", value: after))
+        }
+        items.append(URLQueryItem(name: "limit", value: String(limit)))
+        return Endpoint(.GET, path: "/api/v1/my/topic-claims", queryItems: items)
     }
 
     static func topicClaims(
         idOrSlug: String,
         mineOnly: Bool? = nil,
         activeOnly: Bool? = nil,
+        after: String? = nil,
         limit: Int = 25
     ) -> Endpoint {
-        var items = [URLQueryItem(name: "limit", value: String(limit))]
+        var items: [URLQueryItem] = []
+        if let after {
+            items.append(URLQueryItem(name: "after", value: after))
+        }
+        items.append(URLQueryItem(name: "limit", value: String(limit)))
         if let mineOnly {
             items.append(URLQueryItem(name: "mine_only", value: mineOnly ? "true" : "false"))
         }
