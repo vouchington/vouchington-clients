@@ -1,8 +1,9 @@
 import XCTest
 
 /// Types into a launch-smoke text field, then reads the value back.
-/// `XCUIElement.typeText` can drop or repeat a whole sequence. A mismatch clears
-/// the field and types again, up to `maximumAttempts`, then fails with the observed value.
+/// `XCUIElement.typeText` can drop or repeat a whole sequence, and it raises
+/// when the field has no keyboard focus. A mismatch clears the field and types
+/// again, up to `maximumAttempts`, then fails with the observed value.
 enum LaunchSmokeFieldTyping {
     static let maximumAttempts = 3
     private static let maximumClearStrokes = 64
@@ -15,7 +16,9 @@ enum LaunchSmokeFieldTyping {
     ) {
         for _ in 1 ... maximumAttempts {
             focus(field)
+            guard readyToType(field) else { continue }
             clear(field)
+            guard readyToType(field) else { continue }
             field.typeText(text)
             if rawValue(in: field) == text {
                 return
@@ -33,12 +36,28 @@ enum LaunchSmokeFieldTyping {
             }
         #else
             field.tap()
+            if field.hasFocus {
+                return
+            }
+            field.tap()
         #endif
     }
 
-    /// Deletes one character per `typeText`. A repeated delete string left the doubled
-    /// email in place on run 39916694872 job 120313307067.
+    private static func readyToType(_ field: XCUIElement) -> Bool {
+        #if os(iOS)
+            field.hasFocus
+        #else
+            true
+        #endif
+    }
+
+    /// Select all, then move to the end. A center tap can leave the caret in the
+    /// middle of a doubled value, so Delete would keep the trailing copy.
     private static func clear(_ field: XCUIElement) {
+        guard !enteredText(in: field).isEmpty, readyToType(field) else { return }
+        field.typeKey("a", modifierFlags: .command)
+        field.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
+        field.typeKey(XCUIKeyboardKey.end.rawValue, modifierFlags: [])
         var current = enteredText(in: field)
         var stalled = 0
         var strokes = 0
