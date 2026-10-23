@@ -105,7 +105,10 @@ final class ModerationReportsViewModelTests: NativeRouteSurfaceViewModelTestCase
             ModerationReportsTestFixtures.judgement, 202
         )
         CannedFeedURLProtocol.handlers["/api/v1/admin/warnings"] = (ModerationReportsTestFixtures.warning, 201)
-        let viewModel = try ModerationReportsViewModel(client: makeClient(), viewerTier: .administrator)
+        let viewModel = try ModerationReportsViewModel(
+            client: makeClient(), viewerTier: .administrator,
+            judgementRunReads: 1, judgementRunDelay: {}
+        )
         await viewModel.updateMode(.flat)
 
         await viewModel.perform(.review, reportId: "review")
@@ -231,7 +234,10 @@ final class ModerationReportsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/reports/failed/judgements"] = (
             ModerationReportsTestFixtures.judgement, 202
         )
-        let viewModel = try ModerationReportsViewModel(client: makeClient(), viewerTier: .administrator)
+        let viewModel = try ModerationReportsViewModel(
+            client: makeClient(), viewerTier: .administrator,
+            judgementRunReads: 1, judgementRunDelay: {}
+        )
         await viewModel.load()
         await viewModel.loadMore()
 
