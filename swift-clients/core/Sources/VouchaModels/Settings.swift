@@ -71,6 +71,7 @@ public struct AuthSession: Codable, Identifiable, Sendable {
     public let lastSeenAt: Date?
     public let expiresAt: Date?
     public let isCurrent: Bool
+    public let mcpConnections: [AuthSessionMCPConnection]
 }
 
 public struct BeginBlueskyAccountLinkResponse: Codable, Sendable {

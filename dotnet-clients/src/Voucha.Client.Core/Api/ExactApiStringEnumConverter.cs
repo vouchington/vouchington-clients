@@ -6,7 +6,7 @@ namespace Voucha.Client.Core.Api;
 
 internal sealed class ExactApiStringEnumConverter<T> : JsonConverter<T> where T : struct, Enum
 {
-  private static readonly IReadOnlyDictionary<string, T> Values = Enum.GetValues<T>().ToDictionary(
+  private static readonly Dictionary<string, T> Values = Enum.GetValues<T>().ToDictionary(
       value => typeof(T).GetField(value.ToString())!.GetCustomAttribute<JsonStringEnumMemberNameAttribute>()?.Name
           ?? throw new InvalidOperationException($"{typeof(T).Name} values must declare their exact API name."),
       value => value,

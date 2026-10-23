@@ -26,6 +26,11 @@ final class NativeSessionTokenContractTests: XCTestCase {
         XCTAssertEqual(login.session.uid, login.uid)
         XCTAssertEqual(login.user.entityType, .user)
         XCTAssertEqual(login.user.emailAddress, "fixture@example.test")
+        let userJSON = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: APIClient.makeEncoder().encode(login.user)) as? [String: Any]
+        )
+        XCTAssertEqual(userJSON["__entity_type"] as? String, "user")
+        XCTAssertTrue(userJSON["account_type"] is NSNull)
         let token = try decoder.decode(
             NativeSessionMCPTokenResponse.self,
             from: ApiFixtureLoader.data("native.oauth.session-mcp-token.ios")

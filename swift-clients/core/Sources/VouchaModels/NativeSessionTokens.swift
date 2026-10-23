@@ -57,7 +57,7 @@ public struct NativeEmailAuthenticatedUser: Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, accountType, emailAddress, roles
-        case entityType = "__entity_type"
+        case entityType = "__entityType"
     }
 
     public func encode(to encoder: any Encoder) throws {

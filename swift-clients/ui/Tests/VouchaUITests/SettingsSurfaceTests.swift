@@ -404,7 +404,7 @@ final class SettingsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                   "created_at": "2026-03-01T10:00:00Z",
                   "last_seen_at": "2026-03-01T12:00:00Z",
                   "expires_at": "2026-03-31T10:00:00Z",
-                  "is_current": true
+                  "mcp_connections": [], "is_current": true
                 }
               ],
               "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null }
