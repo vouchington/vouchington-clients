@@ -1791,6 +1791,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
+          candidate-fetch-depth: 1
       - name: Wait for iPhone Simulator readiness
         timeout-minutes: 4
         working-directory: candidate-clients
@@ -1922,6 +1923,7 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
+          candidate-fetch-depth: 1
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
       - name: Start iPad Simulator for root-shell launch

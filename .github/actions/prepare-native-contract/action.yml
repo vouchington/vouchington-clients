@@ -9,6 +9,10 @@ inputs:
     description: Trusted repository recorded in the producer artifact
     required: false
     default: vouchington/vouchington
+  candidate-fetch-depth:
+    description: Commits of history to fetch for the candidate checkout; 0 fetches all branches and tags
+    required: false
+    default: '0'
   github-token:
     description: Read-only token used to download the producer artifact
     required: true
@@ -80,7 +84,7 @@ runs:
     - name: Check out exact candidate revision
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
-        fetch-depth: 0
+        fetch-depth: ${{ inputs.candidate-fetch-depth }}
         ref: ${{ inputs.candidate-revision-sha }}
         path: candidate-clients
         persist-credentials: false
