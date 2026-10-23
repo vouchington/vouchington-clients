@@ -86,6 +86,23 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertNil(data["http.fragment"])
     }
 
+    func testSpanAddressAndQueryFieldsAreScrubbed() {
+        XCTAssertEqual(
+            SentryEventScrubber.scrubAddress("GET https://voucha.ai/search?q=private#token"),
+            "GET https://voucha.ai/search"
+        )
+        XCTAssertNil(SentryEventScrubber.scrubField(key: "http.query", value: "q=private-search"))
+        XCTAssertNil(SentryEventScrubber.scrubField(key: "http.fragment", value: "token=secret"))
+        XCTAssertEqual(
+            SentryEventScrubber.scrubField(key: "url", value: "https://voucha.ai/search?q=private-search"),
+            "https://voucha.ai/search"
+        )
+        XCTAssertEqual(SentryEventScrubber.scrubField(key: "method", value: "GET"), "GET")
+        XCTAssertTrue(SentryEventScrubber.keepsNumericField("status_code"))
+        XCTAssertTrue(SentryEventScrubber.keepsNumericField("http.response.status_code"))
+        XCTAssertFalse(SentryEventScrubber.keepsNumericField("http.query"))
+    }
+
     private var secretEvent: SentryOutboundEvent {
         SentryOutboundEvent(
             accountId: "account-1",

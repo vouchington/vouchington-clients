@@ -31,6 +31,9 @@ enum SentryAppSupport {
             options.beforeBreadcrumb = { breadcrumb in
                 SentryEventProjection.scrubbedBreadcrumb(breadcrumb)
             }
+            options.beforeSendSpan = { span in
+                SentrySpanProjection.scrub(span)
+            }
         }
         didStart = true
     }

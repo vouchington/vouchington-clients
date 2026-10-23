@@ -51,6 +51,22 @@ describe('Swift Sentry configuration', () => {
     assert.match(projection, /capturedAccountId\(event\)/u)
     assert.match(projection, /voucha\.account/u)
     assert.match(projection, /request\.fragment = nil/u)
+    assert.match(projection, /keepsNumericField/u)
+    const fields = await readFile(
+      join(root, 'swift-clients/core/Sources/VouchaCore/SentryTelemetryFields.swift'),
+      'utf8',
+    )
+    assert.match(fields, /status_code/u)
+    assert.match(fields, /request_body_size/u)
+    assert.match(fields, /response_body_size/u)
+    assert.match(support, /beforeSendSpan/u)
+    const spans = await readFile(
+      join(root, 'swift-clients/apps/shared-app/SentrySpanProjection.swift'),
+      'utf8',
+    )
+    assert.match(spans, /spanDescription/u)
+    assert.match(spans, /removeData\(key:/u)
+    assert.match(spans, /scrubField\(key:/u)
     for (const platform of ['iOS', 'macOS']) {
       const app = await readFile(
         join(root, 'swift-clients/apps', platform, 'Sources/VouchaApp.swift'),

@@ -71,21 +71,32 @@ enum SentryEventProjection {
     }
 
     static func scrubbedBreadcrumb(_ breadcrumb: Breadcrumb) -> Breadcrumb? {
-        var data: [String: String] = [:]
+        var strings: [String: String] = [:]
+        var numbers: [String: NSNumber] = [:]
         for (key, value) in breadcrumb.data ?? [:] {
             if let text = value as? String {
-                data[key] = text
+                strings[key] = text
+            } else if keepsNumber(key, value) {
+                numbers[key] = value as? NSNumber
             }
         }
         guard let draft = SentryEventScrubber.scrub(
             SentryOutboundEvent(breadcrumbs: [
-                SentryBreadcrumbDraft(category: breadcrumb.category, message: breadcrumb.message, data: data)
+                SentryBreadcrumbDraft(category: breadcrumb.category, message: breadcrumb.message, data: strings)
             ])
         ).breadcrumbs.first else { return nil }
+        var data: [String: Any] = draft.data
+        for (key, number) in numbers {
+            data[key] = number
+        }
         breadcrumb.category = draft.category
         breadcrumb.message = draft.message
-        breadcrumb.data = draft.data
+        breadcrumb.data = data
         return breadcrumb
+    }
+
+    static func keepsNumber(_ key: String, _ value: Any) -> Bool {
+        value is NSNumber && SentryEventScrubber.keepsNumericField(key)
     }
 
     private static func capturedAccountId(_ event: Event) -> String? {
