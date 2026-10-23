@@ -7,8 +7,7 @@ public sealed partial class TopicDetailViewModel
   private void RecordRssFeedViewOnce()
   {
     if (productSignals is null || SourceRssFeedId is not { Length: > 0 } feedId) return;
-    if (string.Equals(recordedRssFeedViewId, feedId, StringComparison.Ordinal)) return;
-    recordedRssFeedViewId = feedId;
+    if (!recordedRssFeedViewIds.Add(feedId)) return;
     productSignals.RecordRssFeedView(feedId);
   }
 }

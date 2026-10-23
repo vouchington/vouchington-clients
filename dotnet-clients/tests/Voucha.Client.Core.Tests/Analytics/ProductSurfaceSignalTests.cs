@@ -39,6 +39,21 @@ public sealed class ProductSurfaceSignalTests
   }
 
   [Fact]
+  public async Task ReturningToAnEarlierRssFeedRecordsItOnlyOnce()
+  {
+    var signals = new RecordingSignals();
+    var viewModel = new TopicDetailViewModel(
+        new TopicService("rss_feed", new Dictionary<string, string> { ["rewards"] = "feed-1", ["other"] = "feed-2" }),
+        productSignals: signals);
+
+    await viewModel.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync("other", TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync("rewards", TestContext.Current.CancellationToken);
+
+    Assert.Equal(["feed-1", "feed-2"], signals.FeedViews);
+  }
+
+  [Fact]
   public async Task NonRssTopicAndAFediverseLoadDoNotRecordAFeedView()
   {
     var signals = new RecordingSignals();
