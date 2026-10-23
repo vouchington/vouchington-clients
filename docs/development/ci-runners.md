@@ -86,6 +86,13 @@ app consumer verifies the JVM archive hash and identity before rehydration, then
 original app and instrumentation APK task closure. These four serial jobs still verify the exact
 native contract but omit candidate pnpm installation; their candidate tooling uses Node builtins,
 shell, Swift, and Gradle without installed JS packages.
+
+The JVM phase alone supplies 2 GiB maximum heaps to Gradle and the Kotlin daemon for a bounded hosted
+experiment; native and app phases retain their configured defaults. Heap ceilings are not measured
+resident memory or proof of a performance improvement. Temporary CI telemetry records at most 180
+five-second samples of Java PID/PPID/RSS/command names, VM page counters and swap usage; it preserves
+the original build exit and is removed after this single measurement.
+
 The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
 document an `UP-TO-DATE` outcome as its correctness condition. The JVM phase sets up the host Swift
 compiler and Android SDK but skips Android Swift SDK/NDK archive materialization. The original
@@ -100,7 +107,7 @@ The dedicated host job runs the planner-selected source tests with
 `run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
 VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
 path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producers
-and consumer record pinned `--profile` summaries. The consumer selects the profile named by its
+and consumer record pinned `--profile` summaries. The JVM producer and consumer select the profile named by their
 own Gradle invocation because the verified state also contains the producer's prior profile.
 Reported task and category durations may overlap and are not a critical-path sum.
 

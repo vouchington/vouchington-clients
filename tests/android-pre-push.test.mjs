@@ -27,7 +27,7 @@ test('builds only the Android app and instrumentation Gradle task closures', asy
   const skipAndroidTest = prePush.indexOf('skip android test \\')
 
   assert.ok(qualifiedAssemble >= 0, 'pre-push must qualify the Android app task')
-  assert.match(prePush, /\.\/gradlew --profile "\$\{gradle_tasks\[@\]\}"/u)
+  assert.match(prePush, /"\$\{gradle_command\[@\]\}" "\$\{gradle_tasks\[@\]\}"/u)
   assert.equal(unqualifiedAssemble, -1, 'pre-push must not assemble every Gradle subproject')
   assert.match(prePush, /Android Gradle \$\{gradle_tasks\[\*\]\} completed in/)
   assert.match(prePush, /GITHUB_STEP_SUMMARY/)

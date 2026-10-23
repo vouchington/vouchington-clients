@@ -175,10 +175,12 @@ fi
 if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   gradle_started_at=$SECONDS
   gradle_log=""
+  gradle_command=(./gradlew --profile)
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
   if [[ "$phase" == app-native-producer ]]; then
     gradle_tasks=(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug)
   elif [[ "$phase" == app-jvm-producer ]]; then
+    gradle_command+=(-Dorg.gradle.jvmargs=-Xmx2g -Pkotlin.daemon.jvmargs=-Xmx2g)
     gradle_tasks=(:app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug)
     gradle_log="${RUNNER_TEMP:?}/android-jvm-gradle.log"
   elif [[ "$phase" == app-consumer ]]; then
@@ -189,13 +191,13 @@ if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
     if [[ -n "$gradle_log" ]]; then
-      ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$gradle_log"
+      "${gradle_command[@]}" "${gradle_tasks[@]}" 2>&1 | tee "$gradle_log"
       if [[ "$phase" == app-consumer ]]; then
         echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
         grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$gradle_log" || true
       fi
     else
-      ./gradlew --profile "${gradle_tasks[@]}"
+      "${gradle_command[@]}" "${gradle_tasks[@]}"
     fi
   )
   gradle_elapsed_seconds=$((SECONDS - gradle_started_at))

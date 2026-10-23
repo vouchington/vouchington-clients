@@ -157,11 +157,15 @@ test('native producer uses its pinned task and consumer requires verified state'
     assert.equal(f.run(['--phase', 'app-jvm-producer'], jvmVerified).status, 0)
     assert.equal(
       (await f.lines()).at(-1),
-      'gradle --profile :app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug',
+      'gradle --profile -Dorg.gradle.jvmargs=-Xmx2g -Pkotlin.daemon.jvmargs=-Xmx2g :app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug',
     )
     assert.equal(f.run(['--phase', 'app-consumer']).status, 1)
     const verified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
     assert.equal(f.run(['--phase', 'app-consumer'], verified).status, 0)
+    assert.equal(
+      (await f.lines()).at(-1),
+      'gradle --profile :app:assembleDebug :app:assembleDebugAndroidTest',
+    )
     const reused = f.run(['--phase', 'app-consumer'], { ...verified, NATIVE_REUSED: '1' })
     assert.equal(reused.status, 0)
     assert.match(reused.stdout, /buildAndroidSwiftPackageDebug UP-TO-DATE/u)
@@ -273,7 +277,7 @@ esac
     )
     assert.equal(
       (await f.lines()).at(-1),
-      'gradle --profile :app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug',
+      'gradle --profile -Dorg.gradle.jvmargs=-Xmx2g -Pkotlin.daemon.jvmargs=-Xmx2g :app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug',
     )
 
     await rm(join(skipHome, 'toolchains'), { recursive: true })
