@@ -66,7 +66,8 @@ public sealed partial class VouchaApiClientTests
 
     AssertRequest(handler, HttpMethod.Get, "/api/v1/my/referral-clicks?limit=25");
     Assert.Equal("referral-click-1", response.Results[0].Id);
-    Assert.Equal("https://voucha.ai/@alice", response.Clicks["referral-click-1"].LandingUrl);
+    Assert.Null(response.Clicks["referral-click-1"].LandingUrl);
+    Assert.Equal("https://voucha.ai/@alice/cards", response.Clicks["referral-click-2"].LandingUrl);
     Assert.NotNull(response.Clicks["referral-click-1"].SignedUpAt);
     Assert.Equal("newmember", response.Users["user-2"].Username);
     Assert.False(response.PageInfo.HasNextPage);

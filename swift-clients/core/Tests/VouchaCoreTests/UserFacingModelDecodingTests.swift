@@ -163,7 +163,8 @@ final class UserFacingModelDecodingTests: XCTestCase {
             from: ApiFixtureLoader.data("native.referral-clicks.mine.default")
         )
         XCTAssertEqual(clickLog.results.first?.id, "referral-click-1")
-        XCTAssertEqual(clickLog.clicks["referral-click-1"]?.landingUrl, "https://voucha.ai/@alice")
+        XCTAssertNil(clickLog.clicks["referral-click-1"]?.landingUrl)
+        XCTAssertEqual(clickLog.clicks["referral-click-2"]?.landingUrl, "https://voucha.ai/@alice/cards")
         XCTAssertEqual(clickLog.users["user-2"]?.username, "newmember")
     }
 
