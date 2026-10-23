@@ -136,10 +136,11 @@ extension SectionDetailView {
     @ToolbarContentBuilder
     var signInToolbarItem: some ToolbarContent {
         if !factory.sessionManager.isSignedIn {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: signInToolbarPlacement) {
                 Button(factory.uiLocaleController.string(.nativeAuthSignIn)) {
                     showSignIn()
                 }
+                .accessibilityIdentifier(RootView.signedOutSignInAccessibilityIdentifier)
             }
         }
     }

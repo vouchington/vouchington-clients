@@ -1558,8 +1558,8 @@ jobs:
             exit 1
           fi
           rm -rf "$XCODE_DERIVED_DATA/Build/Products/Debug/Voucha.app"
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT"
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPostsTests/testPostsFeedSurvivesSidebarNavigation -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 5 and .passedTests == 5 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed macOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -1759,6 +1759,30 @@ jobs:
         with:
           name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
+      - name: Start iPhone Simulator for launch smoke
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
       - uses: ./.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
@@ -1767,6 +1791,12 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
+      - name: Wait for iPhone Simulator readiness
+        timeout-minutes: 4
+        working-directory: candidate-clients
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
+          xcrun simctl bootstatus "$simulator_id" -b
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
@@ -1824,42 +1854,20 @@ jobs:
           test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
-      - name: Start iPhone Simulator for launch smoke
-        timeout-minutes: 3
-        run: |
-          set -euo pipefail
-          manifest="$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json"
-          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
-          destination="$(jq -r '.destination' "$manifest")"
-          simulator_name="${destination#*name=}"
-          simulator_name="${simulator_name%%,OS=*}"
-          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
-          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
-            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
-            exit 1
-          fi
-          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
-          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
-          case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
-            *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
-          esac
-      - name: Wait for iPhone Simulator readiness
-        timeout-minutes: 4
-        working-directory: candidate-clients
-        run: |
-          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-          xcrun simctl bootstatus "$simulator_id" -b
       - name: Launch iOS app on Simulator
         timeout-minutes: 7
         working-directory: candidate-clients
         run: |
           bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
+          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
+          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
+          case "$app" in
+            "$bundle"/*) ;;
+            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
+          esac
+          test -d "$app"
+          python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
           xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
           xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
@@ -2019,6 +2027,14 @@ jobs:
         run: |
           bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
           destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
+          case "$app" in
+            "$bundle"/*) ;;
+            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
+          esac
+          test -d "$app"
+          python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
           xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="$VOUCHA_FILAMENTS_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
           xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true
@@ -2348,6 +2364,7 @@ jobs:
           python3 dotnet-clients/tooling/catalyst-msbuild-reasons.py --root . --
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-maccatalyst
+          -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
           --no-restore -clp:PerformanceSummary
       - name: Save NuGet packages from main
@@ -2521,7 +2538,7 @@ jobs:
           export VOUCHA_FILAMENTS_CONTRACT_ROOT="$staged"
           export CATALYST_GUI_RESULT="$diagnostics/result.json"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
-          jq -e '.total == 2 and .passed == 2 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+          jq -e '.total == 3 and .passed == 3 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
       - name: Save Appium Mac2 from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
@@ -2672,6 +2689,7 @@ jobs:
         run: >-
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-windows10.0.26100.0 --no-restore
+          -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
   dotnet-windows-language-model-surface:

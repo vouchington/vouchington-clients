@@ -54,9 +54,7 @@ extension ModerationReportsViewModel {
         case .dismiss:
             try await resolve(report, as: .dismissed, client: client)
         case .rerunJudgement:
-            let _: ModerationReportJudgementResponse = try await client.send(
-                .rerunModerationReportJudgement(reportId: report.id)
-            )
+            try await reconcileAdmittedReportJudgement(report, client: client)
         case let .warn(reason, publicMessage):
             try await warn(report, reason: reason, publicMessage: publicMessage, client: client)
         case .confirmBanEvasion:
@@ -149,6 +147,16 @@ extension ModerationReportsViewModel {
             : Endpoint.dismissCommunityBanEvasion(communityIdOrSlug: context.communityId, userId: report.entityId)
         let _: EmptyResponse = try await client.send(endpoint)
         evict([report.id])
+    }
+
+    public func replaceSelectionWithActiveRemovableReports(
+        in duplicateCluster: StaffModerationReportDuplicateCluster
+    ) {
+        guard viewerTier.canRemove, !isQueueActionInProgress else { return }
+        let reports = duplicateCluster.clusters.flatMap(\.reports).filter {
+            isActive($0) && actionIsAllowed(.removeTarget, for: $0)
+        }
+        selectedReportIds = Set(reports.map(\.id))
     }
 
     func removeTarget(_ report: StaffModerationReport, client: APIClient) async throws {

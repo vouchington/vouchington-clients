@@ -36,7 +36,8 @@ public sealed partial class WindowsSystemLanguageModelProvider : IMcpLocalChatPr
         {
           var result = await bridge.ExecuteValidatedResultAsync(
               call.Name, call.ArgumentsJson, mcpSession, snapshot, call.Id, admit, token).ConfigureAwait(false);
-          return new WindowsBuiltInToolOutput(result.Envelope, result.FeedPostFact, result.RssItemFact);
+          return new WindowsBuiltInToolOutput(
+              result.Envelope, result.FeedPostFact, result.RssItemFact, result.ReferralLinkFact);
         },
         (call, _) =>
         {
@@ -49,7 +50,7 @@ public sealed partial class WindowsSystemLanguageModelProvider : IMcpLocalChatPr
     {
       WindowsBuiltInTurnKind.Retained => throw new WindowsBuiltInResultRetainedException(
           turn.Envelope!, turn.Receipt, turn.RssItemReceipt, turn.CallId,
-          snapshot.AccountId, snapshot.AccountEpoch),
+          snapshot.AccountId, snapshot.AccountEpoch, turn.ReferralLinkReceipt),
       WindowsBuiltInTurnKind.Stopped => throw new InvalidOperationException(
           "Windows built-in generation stopped with status " + turn.Status + "."),
       _ => throw new InvalidOperationException("Windows built-in prompt does not fit the model context."),
@@ -67,7 +68,8 @@ public sealed partial class WindowsSystemLanguageModelProvider : IMcpLocalChatPr
     }
     return new(turn.Answer, "windows_foundry", null,
         turn.Receipt is null ? null : [turn.Receipt],
-        turn.RssItemReceipt is null ? null : [turn.RssItemReceipt]);
+        turn.RssItemReceipt is null ? null : [turn.RssItemReceipt],
+        turn.ReferralLinkReceipt is null ? null : [turn.ReferralLinkReceipt]);
   }
 
   private static bool HasTools(MemberMcpConnectedSnapshot? snapshot) =>

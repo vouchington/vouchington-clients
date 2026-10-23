@@ -57,11 +57,13 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly four passed tests with nothing skipped: the root shell, one sidebar
+requires exactly five passed tests with nothing skipped: the root shell, one sidebar
 navigation that opens Videos, leaves for News, and returns to the canonical video row from the
 shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
-News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, and one
-email OTP sign-in that removes the signed-out control. #80 stays open for the news and posts tabs.
+News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, one
+sidebar navigation that opens Posts, leaves for News, and returns to the canonical post from
+`swift.posts.feed.default`, and one email OTP sign-in that removes the signed-out control. #80
+stays open for the news tab.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
 app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
@@ -69,8 +71,15 @@ app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a port
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
 `test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs
 of one job id, each with its own 9-minute cap: the root shell, the Videos tab, and the email OTP
-sign-in. Each leg finishes Node.js setup and unpacks the shared test products before booting its
-simulator, so neither the toolchain download nor the bundle extract competes with CoreSimulator.
+sign-in. Each leg boots the manifest's simulator before contract setup, then waits for
+`bootstatus` before unpacking, so the bundle extract does not compete with CoreSimulator.
+After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
+`simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
+That spawn gate stops after 150 seconds and still runs `xcodebuild`; every passing gate observed
+before the cap finished in under two minutes, and a longer gate pushed the sign-in leg past its
+9-minute job cap after the test had already passed. A launch that returns no process id still
+fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
+failure: the test's launch window ended before the app process existed.
 The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
 before job cleanup.
 Neither the iPhone legs nor the iPad job collect xcodebuild's verbose diagnostics. Each result
@@ -78,11 +87,15 @@ summary is still required, and a failed launch still uploads that summary plus a
 log. Each iPhone leg requires exactly one passed, non-skipped test. The sign-in fixture accepts
 only the typed email, code, and verification token, then `SessionManager.refresh` reads the
 canonical identity fixture. That token stands in for the Turnstile widget the simulator cannot
-complete.
+complete. The sign-in leg taps the hittable `signed-out-sign-in` control, the leading compact
+toolbar button rather than a grouped trailing action or another Sign In label, and still requires
+Continue with Email within the existing 20 second wait.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
 Simulator. Its job cap is 12 minutes and its launch step cap is 9 minutes, raised with user
 approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
 artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
+The iPad launch then installs the same verified app, requires the same process id, and stops
+that process before `xcodebuild`, with the same 150-second gate.
 The x86_64 job stays one `xcodebuild` compile. Its 7-minute compile step is the whole
 app slice, so splitting it would not remove a second phase. The native `Tests` fan-in requires
 both device-family launches and the x86_64 compile.
@@ -96,9 +109,10 @@ The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`
 argument, the canonical `swift.my.identity.default` fixture, and
 `native.my.email-preferences.default`. The session opens the production app shell, routes to
-`/my/notification-settings`, toggles the engagement switch, and requires the news-digest picker to
-be enabled. It counts only when both checks pass and nothing was skipped. The other six notification
-controls, route focus, and the one-announcement proof remain open. The Debug fixture transport is
+`/my/notification-settings`, requires the moderation switch to be enabled and on, toggles the
+engagement switch, and requires the news-digest picker to be enabled. It counts only when all three
+checks pass and nothing was skipped. The other five notification controls, route focus, and the
+one-announcement proof remain open. #60 stays open for those checks. The Debug fixture transport is
 compiled out of Release. The existing MAUI job still builds Release and runs linked page tests;
 those are not this session.
 

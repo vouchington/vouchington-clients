@@ -104,15 +104,23 @@ final class ModerationReportsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/reports/rerun/judgements"] = (
             ModerationReportsTestFixtures.judgement, 202
         )
+        let admittedRunPath = "/api/v1/reports/rerun/judgements/00000000-0000-7000-8000-000000000303"
+        CannedFeedURLProtocol.handlers[admittedRunPath] = (
+            ApiFixtureLoader.data("native.moderation.report-judgement-run.pending"), 200
+        )
         CannedFeedURLProtocol.handlers["/api/v1/admin/warnings"] = (ModerationReportsTestFixtures.warning, 201)
-        let viewModel = try ModerationReportsViewModel(client: makeClient(), viewerTier: .administrator)
+        let viewModel = try ModerationReportsViewModel(
+            client: makeClient(), viewerTier: .administrator,
+            judgementRunReads: 1, judgementRunDelay: {}
+        )
         await viewModel.updateMode(.flat)
-
         await viewModel.perform(.review, reportId: "review")
         await viewModel.perform(.dismiss, reportId: "dismiss")
         await viewModel.perform(.rerunJudgement, reportId: "rerun")
         await viewModel.perform(.warn(reason: "Repeated harassment", publicMessage: "Stop."), reportId: "warn")
 
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(admittedRunPath), 1)
+        XCTAssertNil(viewModel.actionErrors["rerun"])
         XCTAssertEqual(viewModel.staffReports.map(\.id), ["rerun"])
         XCTAssertTrue(CannedFeedURLProtocol.capturedMethods.contains("PATCH"))
         let warningBody = try XCTUnwrap(CannedFeedURLProtocol.capturedBodies.last.flatMap { $0 })
@@ -231,7 +239,10 @@ final class ModerationReportsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/reports/failed/judgements"] = (
             ModerationReportsTestFixtures.judgement, 202
         )
-        let viewModel = try ModerationReportsViewModel(client: makeClient(), viewerTier: .administrator)
+        let viewModel = try ModerationReportsViewModel(
+            client: makeClient(), viewerTier: .administrator,
+            judgementRunReads: 1, judgementRunDelay: {}
+        )
         await viewModel.load()
         await viewModel.loadMore()
 

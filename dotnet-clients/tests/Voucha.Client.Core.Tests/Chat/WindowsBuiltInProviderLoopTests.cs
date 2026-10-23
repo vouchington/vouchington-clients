@@ -194,6 +194,87 @@ public sealed partial class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task WindowsProviderKeepsTheReferralLinkFactOnTheClosedAnswer()
+  {
+    using var catalog = JsonDocument.Parse("""
+        {"tools":[{"name":"read_feed","description":"Read","inputSchema":{"type":"object"}}]}
+        """);
+    using var structured = JsonDocument.Parse("""
+        {"success":true,"results":[{"id":"link-1","user_id":"user-1","referral_program_id":"program-1","referral_program_name":"Example Card","referral_program_slug":"example-card","url":"https://example.test/r/card","label":null}]}
+        """);
+    using var content = JsonDocument.Parse("""[{"type":"text","text":"kept"}]""");
+    var factory = new FakeFactory { Catalog = catalog.RootElement.Clone() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections.Single().ToolResult = new McpToolResult(
+        content.RootElement.Clone(), structured.RootElement.Clone(), false);
+    var runtime = new RecordingBuiltInRuntime
+    {
+      BuiltInText = """{"call":{"id":"call-1","name":"read_feed","arguments":{"option":"referral_links"}}}""",
+      ContinuationText = """{"answer":"kept"}""",
+    };
+    var provider = new WindowsSystemLanguageModelProvider(runtime, mcpSession: session);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+
+    var result = await provider.GenerateAssistantContentAsync(
+        "Show the links", [], snapshot, TestContext.Current.CancellationToken);
+
+    var receipt = Assert.Single(result.ReferralLinkReceipts!);
+    var link = Assert.Single(receipt.Links);
+    Assert.Equal("kept", result.AssistantContent);
+    Assert.Equal("Example Card", link.ProgramName);
+    Assert.Equal("https://example.test/r/card", link.Url.OriginalString);
+    Assert.Null(result.FeedPostReceipts);
+    Assert.Null(result.RssItemReceipts);
+    Assert.Equal(2, runtime.Generated.Count);
+    Assert.Equal(1, factory.Connections.Single().ToolCalls);
+  }
+
+  [Fact]
+  public async Task RetainedWindowsReferralLinkSurvivesTheSendHandler()
+  {
+    using var catalog = JsonDocument.Parse("""
+        {"tools":[{"name":"read_feed","description":"Read","inputSchema":{"type":"object"}}]}
+        """);
+    using var structured = JsonDocument.Parse("""
+        {"success":true,"results":[{"id":"link-1","user_id":"user-1","referral_program_id":"program-1","referral_program_name":"Example Card","referral_program_slug":"example-card","url":"https://example.test/r/card","label":null}]}
+        """);
+    using var content = JsonDocument.Parse("""[{"type":"text","text":"kept"}]""");
+    var factory = new FakeFactory { Catalog = catalog.RootElement.Clone() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    factory.Connections.Single().ToolResult = new McpToolResult(
+        content.RootElement.Clone(), structured.RootElement.Clone(), false);
+    var runtime = new RecordingBuiltInRuntime
+    {
+      BuiltInText = """{"call":{"id":"call-1","name":"read_feed","arguments":{"option":"referral_links"}}}""",
+      UsablePromptIndex = prompt => prompt.Contains("result:", StringComparison.Ordinal) ? 0 : (ulong)prompt.Length,
+    };
+    var provider = new WindowsSystemLanguageModelProvider(runtime, mcpSession: session);
+    var service = new FakeChatService();
+    var viewModel = new ChatConversationViewModel(service, new StatusOnlyResolver(provider.Status), provider);
+
+    Assert.False(await viewModel.TrySendAsync("Show the links", TestContext.Current.CancellationToken));
+
+    Assert.NotNull(viewModel.RetainedWindowsToolResult);
+    var retained = viewModel.RetainedWindowsToolResult;
+    var link = Assert.Single(retained.ReferralLinkReceipt!.Links);
+    Assert.Equal("Example Card", link.ProgramName);
+    Assert.Equal("https://example.test/r/card", link.Url.OriginalString);
+    Assert.Null(retained.FeedPostReceipt);
+    Assert.Null(retained.RssItemReceipt);
+    var facts = Assert.Single(viewModel.Messages);
+    Assert.False(facts.HasContent);
+    Assert.True(facts.HasReferralLinkFacts);
+    Assert.Contains("Example Card", facts.DisplayReferralLinkFacts, StringComparison.Ordinal);
+    Assert.Contains("https://example.test/r/card", facts.DisplayReferralLinkFacts, StringComparison.Ordinal);
+    Assert.DoesNotContain(retained.Envelope, facts.Content, StringComparison.Ordinal);
+    Assert.Null(service.LastClientGeneratedChatBody);
+    Assert.Single(runtime.Generated);
+    Assert.Equal(1, factory.Connections.Single().ToolCalls);
+  }
+
+  [Fact]
   public async Task RetainedWindowsToolResultStaysWithTheDispatchAccount()
   {
     using var catalog = JsonDocument.Parse("""{"tools":[]}""");
@@ -253,6 +334,7 @@ public sealed partial class MemberMcpSessionTests
     public int PlainCalls { get; private set; }
     public List<string> Generated { get; } = [];
     public string BuiltInText { get; init; } = """{"answer":"kept"}""";
+    public string? ContinuationText { get; init; }
     public string Status { get; init; } = "Complete";
     public ulong? UsableIndex { get; init; }
     public Func<string, ulong>? UsablePromptIndex { get; init; }
@@ -271,8 +353,9 @@ public sealed partial class MemberMcpSessionTests
             UsablePromptIndex?.Invoke(prompt) ?? UsableIndex ?? (ulong)prompt.Length, false, null));
     public Task<WindowsBuiltInModelTurn> GenerateBuiltInAsync(string prompt, CancellationToken cancellationToken = default)
     {
+      var text = Generated.Count > 0 && ContinuationText is not null ? ContinuationText : BuiltInText;
       Generated.Add(prompt);
-      return Task.FromResult(new WindowsBuiltInModelTurn(Status, BuiltInText));
+      return Task.FromResult(new WindowsBuiltInModelTurn(Status, text));
     }
   }
 }

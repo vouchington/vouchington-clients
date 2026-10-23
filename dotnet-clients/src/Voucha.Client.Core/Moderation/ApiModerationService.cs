@@ -21,6 +21,9 @@ public sealed class ApiModerationService(VouchaApiClient client)
   public Task<ModerationReportJudgementResponse> RerunReportJudgementAsync(string reportId, CancellationToken cancellationToken = default) =>
       client.RerunModerationReportJudgementAsync(reportId, cancellationToken);
 
+  public Task<ModerationReportJudgementRunResponse> GetReportJudgementRunAsync(string reportId, string runId, CancellationToken cancellationToken = default) =>
+      client.GetModerationReportJudgementRunAsync(reportId, runId, cancellationToken);
+
   public Task<AdminUserWarningResponse> IssueWarningAsync(IssueAdminWarningRequest request, CancellationToken cancellationToken = default) =>
       client.IssueAdminWarningAsync(request, cancellationToken);
 

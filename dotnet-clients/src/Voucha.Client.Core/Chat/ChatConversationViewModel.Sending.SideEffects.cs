@@ -47,13 +47,15 @@ public sealed partial class ChatConversationViewModel
   {
     if (retainedFactsMessageId is { } previous) RemoveLocalMessage(previous);
     retainedFactsMessageId = null;
-    if (retained is null || retained.FeedPostReceipt is null && retained.RssItemReceipt is null) return;
+    if (retained is null || retained.FeedPostReceipt is null && retained.RssItemReceipt is null &&
+        retained.ReferralLinkReceipt is null) return;
     var id = Guid.CreateVersion7().ToString();
     retainedFactsMessageId = id;
     messages.Add(new ChatMessageRow(
         id, "assistant", "", DateTimeOffset.UtcNow, Localization: localization,
         FeedPostReceipts: retained.FeedPostReceipt is { } post ? [post] : null,
-        RssItemReceipts: retained.RssItemReceipt is { } rss ? [rss] : null));
+        RssItemReceipts: retained.RssItemReceipt is { } rss ? [rss] : null,
+        ReferralLinkReceipts: retained.ReferralLinkReceipt is { } referral ? [referral] : null));
     OnPropertyChanged(nameof(Messages));
   }
 
@@ -72,11 +74,13 @@ public sealed partial class ChatConversationViewModel
       return null;
     var post = OwnedPost(retained.Receipt, snapshot.AccountId, retained.CallId);
     var rss = OwnedRss(retained.RssItemReceipt, snapshot.AccountId, retained.CallId);
+    var referral = OwnedReferral(retained.ReferralLinkReceipt, snapshot.AccountId, retained.CallId);
     if (retained.Receipt is not null && post is null ||
-        retained.RssItemReceipt is not null && rss is null)
+        retained.RssItemReceipt is not null && rss is null ||
+        retained.ReferralLinkReceipt is not null && referral is null)
       return null;
     return new(conversationId, requestText, retained.AccountId, retained.AccountEpoch, retained.CallId,
-        retained.Envelope, post, rss);
+        retained.Envelope, post, rss, referral);
   }
 
   private static McpFeedPostReceipt? OwnedPost(McpFeedPostReceipt? receipt, string accountId, string callId)
@@ -93,5 +97,15 @@ public sealed partial class ChatConversationViewModel
     if (receipt.AccountId != accountId || receipt.CallId != callId || receipt.ItemIds.Count > 100 ||
         receipt.ItemIds.Any(id => !Guid.TryParse(id, out _))) return null;
     return new(receipt.AccountId, receipt.CallId, receipt.ItemIds.ToArray());
+  }
+
+  private static McpFeedReferralLinkReceipt? OwnedReferral(
+      McpFeedReferralLinkReceipt? receipt, string accountId, string callId)
+  {
+    if (receipt is null) return null;
+    if (receipt.AccountId != accountId || receipt.CallId != callId || receipt.Links.Count > 100 ||
+        receipt.Links.Any(link => string.IsNullOrWhiteSpace(link.ProgramName) ||
+            !McpFeedReferralLinkReceipt.SafeUri(link.Url))) return null;
+    return new(receipt.AccountId, receipt.CallId, receipt.Links.ToArray());
   }
 }
