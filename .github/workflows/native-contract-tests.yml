@@ -2072,13 +2072,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          path: consumer-tooling
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: .nvmrc
+          node-version-file: consumer-tooling/.nvmrc
       - name: Prepare verified candidate
-        uses: ./.github/actions/prepare-native-contract
+        uses: ./consumer-tooling/.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          consumer-tooling-root: consumer-tooling
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
@@ -2103,7 +2105,7 @@ jobs:
             echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
           } >>"$GITHUB_ENV"
       - name: Set up mise-managed .NET SDK
-        uses: ./.github/actions/setup-mise-toolchain
+        uses: ./consumer-tooling/.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: dotnet
@@ -2229,13 +2231,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          path: consumer-tooling
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: .nvmrc
+          node-version-file: consumer-tooling/.nvmrc
       - name: Prepare verified candidate
-        uses: ./.github/actions/prepare-native-contract
+        uses: ./consumer-tooling/.github/actions/prepare-native-contract
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          consumer-tooling-root: consumer-tooling
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
@@ -2261,7 +2265,7 @@ jobs:
             echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
           } >>"$GITHUB_ENV"
       - name: Set up mise-managed .NET SDK
-        uses: ./.github/actions/setup-mise-toolchain
+        uses: ./consumer-tooling/.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: dotnet

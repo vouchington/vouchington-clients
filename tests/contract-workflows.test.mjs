@@ -76,7 +76,11 @@ describe('native contract workflow boundary', () => {
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 25)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 23)
+    assert.equal(
+      workflow.split('uses: ./consumer-tooling/.github/actions/prepare-native-contract').length - 1,
+      2,
+    )
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
   })

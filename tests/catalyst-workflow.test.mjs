@@ -87,3 +87,33 @@ it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () =>
   assert.doesNotMatch(workflow, /clean-workspace/u)
   assert.doesNotMatch(action, /clean-workspace/u)
 })
+
+it('keeps Catalyst tooling checkout outside the candidate compiler input ancestry', async () => {
+  const [action, workflow] = await Promise.all([readAction(), readWorkflow()])
+  for (const job of ['dotnet-maui-compile', 'dotnet-maui']) {
+    const catalyst = jobBlock(workflow, job)
+    assert.match(
+      catalyst,
+      /name: Check out consumer tooling\n\s+uses: actions\/checkout@[^\n]+\n\s+with:\n\s+persist-credentials: false\n\s+path: consumer-tooling/u,
+    )
+    assert.match(catalyst, /node-version-file: consumer-tooling\/\.nvmrc/u)
+    assert.match(
+      catalyst,
+      /uses: \.\/consumer-tooling\/\.github\/actions\/prepare-native-contract\n\s+with:\n\s+candidate-revision-sha: [^\n]+\n\s+consumer-tooling-root: consumer-tooling/u,
+    )
+    assert.match(catalyst, /uses: \.\/consumer-tooling\/\.github\/actions\/setup-mise-toolchain/u)
+    assert.match(catalyst, /client-root: candidate-clients/u)
+    assert.match(catalyst, /working-directory: candidate-clients/u)
+    assert.doesNotMatch(catalyst, /path: candidate-clients\/consumer-tooling/u)
+  }
+  assert.equal(workflow.match(/consumer-tooling-root: consumer-tooling/gu)?.length, 2)
+  assert.match(
+    action,
+    /consumer-tooling-root:\n\s+description: [^\n]+\n\s+required: false\n\s+default: '\.'/u,
+  )
+  assert.match(action, /node-version-file: \$\{\{ inputs\.consumer-tooling-root \}\}\/\.nvmrc/u)
+  assert.match(action, /CONSUMER_TOOLING_ROOT: \$\{\{ inputs\.consumer-tooling-root \}\}/u)
+  assert.match(action, /node "\$CONSUMER_TOOLING_ROOT\/scripts\/contract-artifact\.mjs" verify/u)
+  assert.match(action, /path: candidate-clients\n\s+persist-credentials: false/u)
+  assert.match(action, /working-directory: candidate-clients/u)
+})
