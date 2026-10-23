@@ -129,7 +129,7 @@ public static class SentryEventScrubber
             !DropsExtra(pair.Key) && !IsCredentialHeader(pair.Key) && !IsSeparateRequestPart(pair.Key))
         .ToDictionary(
             pair => pair.Key,
-            pair => pair.Key.Contains("url", StringComparison.OrdinalIgnoreCase) ? StripQuery(pair.Value) ?? pair.Value : pair.Value,
+            pair => Retain(pair.Key, pair.Value),
             StringComparer.Ordinal);
     return breadcrumb with { Message = StripQuery(breadcrumb.Message), Data = data };
   }
