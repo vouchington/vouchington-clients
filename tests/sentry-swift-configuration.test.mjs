@@ -43,9 +43,14 @@ describe('Swift Sentry configuration', () => {
       join(root, 'swift-clients/apps/shared-app/SentryAppSupport.swift'),
       'utf8',
     )
-    assert.match(support, /capturedAccountId\(event\)/u)
-    assert.match(support, /voucha\.account/u)
-    assert.match(support, /request\.fragment = nil/u)
+    const projection = await readFile(
+      join(root, 'swift-clients/apps/shared-app/SentryEventProjection.swift'),
+      'utf8',
+    )
+    assert.match(support, /SentryEventProjection\.accountMarker/u)
+    assert.match(projection, /capturedAccountId\(event\)/u)
+    assert.match(projection, /voucha\.account/u)
+    assert.match(projection, /request\.fragment = nil/u)
     for (const platform of ['iOS', 'macOS']) {
       const app = await readFile(
         join(root, 'swift-clients/apps', platform, 'Sources/VouchaApp.swift'),

@@ -1,0 +1,101 @@
+import Foundation
+import Sentry
+import VouchaCore
+
+enum SentryEventProjection {
+    static let accountMarker = "voucha.account"
+
+    static func draft(from event: Event, boundAccountId: String?) -> SentryOutboundEvent {
+        let request = event.request
+        var extras: [String: String] = [:]
+        for (key, value) in event.extra ?? [:] {
+            if let text = value as? String {
+                extras[key] = text
+            }
+        }
+        let breadcrumbs = (event.breadcrumbs ?? []).map { breadcrumb in
+            var data: [String: String] = [:]
+            for (key, value) in breadcrumb.data ?? [:] {
+                if let text = value as? String {
+                    data[key] = text
+                }
+            }
+            return SentryBreadcrumbDraft(
+                category: breadcrumb.category, message: breadcrumb.message, data: data
+            )
+        }
+        return SentryOutboundEvent(
+            accountId: capturedAccountId(event) ?? boundAccountMatching(event, boundAccountId: boundAccountId),
+            email: event.user?.email,
+            username: event.user?.username,
+            ipAddress: event.user?.ipAddress,
+            requestURL: request?.url,
+            queryString: request?.queryString,
+            headers: request?.headers ?? [:],
+            cookies: request?.cookies,
+            body: extras["body"] ?? extras["request_body"] ?? extras["response_body"],
+            extras: extras,
+            breadcrumbs: breadcrumbs
+        )
+    }
+
+    static func apply(_ scrubbed: SentryOutboundEvent, to event: Event) {
+        if let accountId = scrubbed.accountId {
+            let user = event.user ?? User(userId: accountId)
+            user.userId = accountId
+            user.email = nil
+            user.username = nil
+            user.ipAddress = nil
+            event.user = user
+        } else {
+            event.user = nil
+        }
+        if event.request != nil || scrubbed.requestURL != nil || scrubbed.cookies != nil {
+            let request = event.request ?? SentryRequest()
+            request.url = scrubbed.requestURL
+            request.queryString = nil
+            request.fragment = nil
+            request.headers = scrubbed.headers
+            request.cookies = scrubbed.cookies
+            event.request = request
+        }
+        var extra = event.extra ?? [:]
+        for key in Array(extra.keys) where scrubbed.extras[key] == nil {
+            extra.removeValue(forKey: key)
+        }
+        for (key, value) in scrubbed.extras {
+            extra[key] = value
+        }
+        event.extra = extra
+        event.breadcrumbs = (event.breadcrumbs ?? []).compactMap { scrubbedBreadcrumb($0) }
+    }
+
+    static func scrubbedBreadcrumb(_ breadcrumb: Breadcrumb) -> Breadcrumb? {
+        var data: [String: String] = [:]
+        for (key, value) in breadcrumb.data ?? [:] {
+            if let text = value as? String {
+                data[key] = text
+            }
+        }
+        guard let draft = SentryEventScrubber.scrub(
+            SentryOutboundEvent(breadcrumbs: [
+                SentryBreadcrumbDraft(category: breadcrumb.category, message: breadcrumb.message, data: data)
+            ])
+        ).breadcrumbs.first else { return nil }
+        breadcrumb.category = draft.category
+        breadcrumb.message = draft.message
+        breadcrumb.data = draft.data
+        return breadcrumb
+    }
+
+    private static func capturedAccountId(_ event: Event) -> String? {
+        guard let value = event.user?.data?[accountMarker] as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func boundAccountMatching(_ event: Event, boundAccountId: String?) -> String? {
+        guard let boundAccountId, event.user?.userId == boundAccountId else { return nil }
+        return boundAccountId
+    }
+}
