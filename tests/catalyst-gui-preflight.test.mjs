@@ -74,7 +74,7 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /refusing to skip the Mac Catalyst GUI preflight/u)
     assert.match(
       job,
-      /jq -e '\.total == 2 and \.passed == 2 and \.failed == 0 and \.skipped == 0'/u,
+      /jq -e '\.total == 3 and \.passed == 3 and \.failed == 0 and \.skipped == 0'/u,
     )
     assert.match(needs, /^      - dotnet-catalyst-gui$/mu)
     assert.match(maui, /timeout-minutes: 30/u)
@@ -94,9 +94,10 @@ describe('Mac Catalyst GUI preflight', () => {
       /#if DEBUG\n\s+transport = CatalystGuiFixtureHandler\.Wrap\(transport\);/u,
     )
     assert.match(sessionScript, /native\.my\.email-preferences\.default/u)
-    assert.match(sessionScript, /total: 2, passed: 2, failed: 0, skipped: 0/u)
+    assert.match(sessionScript, /total: 3, passed: 3, failed: 0, skipped: 0/u)
     assert.doesNotMatch(sessionScript, /root-shell/u)
     assert.match(notificationScript, /notification-engagement/u)
+    assert.match(notificationScript, /notification-moderation/u)
     assert.match(notificationScript, /notification-news-digest/u)
     assert.equal(job.match(/timeout-minutes:/gu)?.length, 7)
     assert.match(job, /timeout-minutes: 6\n/u)

@@ -205,7 +205,7 @@ async function session() {
     }
     const resultPath = process.env.CATALYST_GUI_RESULT
     if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
-    writeFileSync(resultPath, JSON.stringify({ total: 2, passed: 2, failed: 0, skipped: 0 }))
+    writeFileSync(resultPath, JSON.stringify({ total: 3, passed: 3, failed: 0, skipped: 0 }))
   } finally {
     if (sessionId) {
       await request('DELETE', `/session/${sessionId}`).catch(() => undefined)
