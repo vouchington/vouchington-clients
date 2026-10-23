@@ -82,6 +82,8 @@ public final class NativeRouteSurfaceViewModel {
     var crawlHistorySuffix: [NativeRouteDestinationRow] = []
     var crawlHistoryEndpoint: NativeCrawlHistoryEndpoint?
 
+    var recordedProductSignalKeys: Set<String> = []
+    var productSignalTask: Task<Void, Never>?
     let client: APIClient?
     let destination: NativeRouteDestinationIdentifier?
     let routeMatch: NativeRouteMatch?

@@ -54,10 +54,17 @@ final class NativeRouteSurfaceViewModelRoutingTests: NativeRouteSurfaceViewModel
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
-            "/api/v1/rss-feeds", "/api/v1/bookmarks/rss_feed/source-1", "/api/v1/rss-feeds/source-1"
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/views") }, [
+            "/api/v1/rss-feeds",
+            "/api/v1/bookmarks/rss_feed/source-1",
+            "/api/v1/rss-feeds/source-1"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/views") },
+            ["/api/v1/rss-feeds/source-1/views"]
+        )
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedURLs.first.flatMap {
                 URLComponents(url: $0, resolvingAgainstBaseURL: false)

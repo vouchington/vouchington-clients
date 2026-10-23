@@ -49,27 +49,7 @@ extension NativeRouteSurfaceViewModel {
 
     func loadLandingPageRows(client: APIClient) async throws -> [NativeRouteDestinationRow] {
         if let publicLandingEndpoint {
-            let response: NativePublicLandingPageResponse = try await client.send(publicLandingEndpoint)
-            let page = response.landingPage
-            var rows = [
-                row(
-                    "doc.text",
-                    rawText(page.title),
-                    .joined([
-                        rawText(page.slug),
-                        page.isDefault ? appText(.nativeSwiftCommunityRowsDefaultValue) : nil,
-                        page.subtitle.map(rawText)
-                    ].compactMap { $0 })
-                )
-            ]
-            if isAdministrator {
-                if let analytics: AdminLandingPageAnalyticsResponse = try? await client.send(
-                    .adminLandingPageAnalytics(pageId: page.id)
-                ) {
-                    rows.append(contentsOf: landingPageAnalyticsRows(analytics.analytics))
-                }
-            }
-            return rows
+            return try await loadPublicLandingRows(client: client, endpoint: publicLandingEndpoint)
         }
         if let slug = routeMatch?.param("slug") {
             return try await loadMyLandingPageRows(client: client, slug: slug)

@@ -25,10 +25,17 @@ final class NativeCrawlHistorySurfaceTests: NativeRouteSurfaceViewModelTestCase 
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
-            "/api/v1/rss-feeds", "/api/v1/bookmarks/rss_feed/source-1", "/api/v1/rss-feeds/source-1"
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/views") }, [
+            "/api/v1/rss-feeds",
+            "/api/v1/bookmarks/rss_feed/source-1",
+            "/api/v1/rss-feeds/source-1"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/views") },
+            ["/api/v1/rss-feeds/source-1/views"]
+        )
         XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path.hasSuffix("/crawls") })
     }
 
@@ -50,9 +57,13 @@ final class NativeCrawlHistorySurfaceTests: NativeRouteSurfaceViewModelTestCase 
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
         XCTAssertEqual(viewModel.rows.last?.targetPath, "/source/native-source/crawls")
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.last?.path, "/api/v1/rss-feeds/source-1")
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/views") }.last,
+            "/api/v1/rss-feeds/source-1"
+        )
     }
 
     func testSourceCrawlHistoryNavigatesToDetailAndRetriesOpaqueCursorWithoutDuplicateRows() async throws {
@@ -74,6 +85,7 @@ final class NativeCrawlHistorySurfaceTests: NativeRouteSurfaceViewModelTestCase 
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
         XCTAssertEqual(
             viewModel.crawlHistoryPagination.items.first?.row.targetPath,
             "/source/native-source/crawls/crawl-1"

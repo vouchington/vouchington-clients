@@ -76,11 +76,11 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         let viewModel = try makeFocusedViewModel(itemId: fixtureItemId)
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
-        XCTAssertEqual(
-            CannedFeedURLProtocol.capturedURLs.map(\.path),
-            ["/api/v1/rss-feed-items/\(fixtureItemId)"]
-        )
+        let paths = CannedFeedURLProtocol.capturedURLs.map(\.path)
+        XCTAssertEqual(paths.filter { !$0.hasSuffix("/views") }, ["/api/v1/rss-feed-items/\(fixtureItemId)"])
+        XCTAssertEqual(paths.filter { $0.hasSuffix("/views") }, ["/api/v1/rss-feed-items/\(fixtureItemId)/views"])
         XCTAssertEqual(viewModel.focusedRssFeedItem?.data?.title, "Test Article")
         XCTAssertEqual(viewModel.focusedRssFeedItem?.data?.contentSnippet, "A short snippet")
         XCTAssertEqual(viewModel.focusedRssFeedItemContentHtml, "<p>A short snippet</p>")
@@ -101,6 +101,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         let viewModel = try makeFocusedViewModel()
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
         guard case .error = viewModel.state else {
             return XCTFail("Expected a retryable error")
         }
@@ -115,7 +116,12 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
             return XCTFail("Expected retry to load the focused detail")
         }
         XCTAssertEqual(viewModel.focusedRssFeedItem?.id, fixtureItemId)
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, 2)
+        let paths = CannedFeedURLProtocol.capturedURLs.map(\.path)
+        XCTAssertEqual(paths.filter { !$0.hasSuffix("/views") }, [
+            "/api/v1/rss-feed-items/item-1",
+            "/api/v1/rss-feed-items/item-1"
+        ])
+        XCTAssertEqual(paths.filter { $0.hasSuffix("/views") }, ["/api/v1/rss-feed-items/item-1/views"])
     }
 
     func testFocusedSurfaceRendersExpandedItemPlaybackAndExternalLinkWithoutSequenceControls() async throws {
