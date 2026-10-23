@@ -87,6 +87,32 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertNil(data["http.fragment"])
     }
 
+    func testMcpSessionIdIsFilteredFromRequestHeadersAndBreadcrumbs() {
+        let scrubbed = SentryEventScrubber.scrub(SentryOutboundEvent(
+            headers: [
+                "Mcp-Session-Id": "mcp-session-secret",
+                "MCP-SESSION-ID": "other-session-secret",
+                "Accept": "application/json"
+            ],
+            breadcrumbs: [
+                SentryBreadcrumbDraft(
+                    category: "http",
+                    data: [
+                        "Mcp-Session-Id": "mcp-session-secret",
+                        "url": "https://voucha.ai/mcp"
+                    ]
+                )
+            ]
+        ))
+        XCTAssertEqual(scrubbed.headers["Mcp-Session-Id"], SentryEventScrubber.filteredValue)
+        XCTAssertEqual(scrubbed.headers["MCP-SESSION-ID"], SentryEventScrubber.filteredValue)
+        XCTAssertEqual(scrubbed.headers["Accept"], "application/json")
+        let data = scrubbed.breadcrumbs.first?.data ?? [:]
+        XCTAssertNil(data["Mcp-Session-Id"])
+        XCTAssertEqual(data["url"], "https://voucha.ai/mcp")
+        XCTAssertFalse(data.values.contains("mcp-session-secret"))
+    }
+
     func testSpanAddressAndQueryFieldsAreScrubbed() {
         XCTAssertEqual(
             SentryEventScrubber.scrubAddress("GET https://voucha.ai/search?q=private#token"),

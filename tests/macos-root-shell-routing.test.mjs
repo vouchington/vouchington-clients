@@ -38,8 +38,23 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
   )
   assert.ok(
     macJob.indexOf('- name: Build macOS app shell') <
+      macJob.indexOf('- name: Run Sentry SDK boundary tests'),
+  )
+  assert.ok(
+    macJob.indexOf('- name: Run Sentry SDK boundary tests') <
       macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
   )
+  const boundary = macJob.slice(
+    macJob.indexOf('- name: Run Sentry SDK boundary tests'),
+    macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
+  )
+  assert.match(boundary, /timeout-minutes: 10/u)
+  assert.match(boundary, /-only-testing:VouchaSentryBoundaryTests/u)
+  assert.match(
+    boundary,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+  )
+  assert.doesNotMatch(boundary, /VouchaLaunchSmoke\.entitlements|continue-on-error/u)
   assert.match(macJob, /generate\.sh macOS/u)
   assert.match(macJob, /-destination 'platform=macOS' build/u)
   assert.match(launch, /-destination 'platform=macOS'/u)

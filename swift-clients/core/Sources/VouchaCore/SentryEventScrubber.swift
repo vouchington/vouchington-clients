@@ -185,6 +185,6 @@ public enum SentryEventScrubber {
         "authorization", "proxy-authorization", "cookie", "x-api-key", "cf-access-jwt-assertion",
         "x-cf-worker-secret", "x-bedrock-batch-shared-key", "x-voucha-cache-purge-secret",
         "x-app-attest-assertion", "x-app-attest-nonce", "x-app-attest-challenge-id", "stripe-signature",
-        "signature", "copyright-guest-capability", "idempotency-key"
+        "signature", "copyright-guest-capability", "idempotency-key", "mcp-session-id"
     ]
 }

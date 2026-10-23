@@ -125,9 +125,33 @@ targets:
     scheme:
       testTargets:
         - VouchaLaunchSmokeTests
+        - VouchaSentryBoundaryTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_FILAMENTS_CONTRACT_ROOT: '$(VOUCHA_FILAMENTS_CONTRACT_ROOT)'
+
+  VouchaSentryBoundaryTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: SentrySdkBoundaryTests.swift
+      - path: ../shared-app/SentryEventProjection.swift
+    dependencies:
+      - package: Sentry
+        product: Sentry
+      - package: VouchaCore
+        product: VouchaCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.sentry-boundary-tests
+        PRODUCT_NAME: VouchaSentryBoundaryTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing

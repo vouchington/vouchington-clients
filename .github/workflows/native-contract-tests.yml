@@ -1544,6 +1544,15 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Run Sentry SDK boundary tests
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
+        run: |
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
       - name: Launch macOS root shell, sidebar feeds, and email sign-in
         timeout-minutes: 15
         working-directory: candidate-clients
