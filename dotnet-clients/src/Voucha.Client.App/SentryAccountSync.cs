@@ -6,22 +6,40 @@ namespace Voucha.Client.App;
 
 internal static class SentryAccountSync
 {
+  private static readonly object Gate = new();
   private static string? boundAccountId;
 
   public static void Attach(ISessionStore store)
   {
-    store.SessionChanged += (_, args) => Apply(args.Snapshot.Identity?.Id);
-    Apply(store.Current.Identity?.Id);
+    store.SessionChanged += (_, _) => Reconcile(store, null);
+    Reconcile(store, null);
   }
 
-  private static void Apply(string? accountId)
+  internal static void Reconcile(ISessionStore store, Action<SentryAccountDecision>? write)
   {
-    var decision = SentryAccountDecision.Update(boundAccountId, accountId);
-    if (decision.Action == SentryAccountAction.Unchanged)
+    lock (Gate)
     {
-      return;
-    }
+      var decision = SentryAccountDecision.Update(boundAccountId, store.Current.Identity?.Id);
+      if (decision.Action == SentryAccountAction.Unchanged)
+      {
+        return;
+      }
 
+      (write ?? WriteScope)(decision);
+      boundAccountId = decision.AccountId;
+    }
+  }
+
+  internal static void ResetBoundAccount()
+  {
+    lock (Gate)
+    {
+      boundAccountId = null;
+    }
+  }
+
+  private static void WriteScope(SentryAccountDecision decision)
+  {
     SentrySdk.ConfigureScope(scope =>
     {
       scope.User.Id = decision.AccountId;
@@ -37,7 +55,6 @@ internal static class SentryAccountSync
         scope.User.Other[AccountMarker] = decision.AccountId;
       }
     });
-    boundAccountId = decision.AccountId;
   }
 
   internal const string AccountMarker = "voucha.account";

@@ -42,80 +42,9 @@ public static partial class MauiProgram
     options.IncludeTextInBreadcrumbs = false;
     options.IncludeTitleInBreadcrumbs = false;
     options.AttachScreenshot = false;
-    options.SetBeforeSend(ScrubEvent);
+    options.SetBeforeSend(SentryEventProjection.Scrub);
     options.SetBeforeBreadcrumb(ScrubBreadcrumb);
     options.SetBeforeSendTransaction(SentryTransactionProjection.Scrub);
-  }
-
-  private static SentryEvent? ScrubEvent(SentryEvent sentryEvent)
-  {
-    var extras = sentryEvent.Extra
-        .Where(pair => pair.Value is string)
-        .ToDictionary(pair => pair.Key, pair => (string)pair.Value!, StringComparer.Ordinal);
-    var scrubbed = SentryEventScrubber.Scrub(new SentryOutboundEvent(
-        AccountIdFor(sentryEvent.User),
-        sentryEvent.User.Email,
-        sentryEvent.User.Username,
-        sentryEvent.User.IpAddress,
-        sentryEvent.Request.Url,
-        sentryEvent.Request.QueryString,
-        sentryEvent.Request.Headers.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
-        sentryEvent.Request.Cookies,
-        sentryEvent.Request.Data as string ?? ExtraString(extras, "body") ?? ExtraString(extras, "request_body"),
-        extras,
-        Breadcrumbs: null));
-    sentryEvent.User.Id = scrubbed.AccountId;
-    sentryEvent.User.Email = null;
-    sentryEvent.User.Username = null;
-    sentryEvent.User.IpAddress = null;
-    foreach (var key in sentryEvent.User.Other.Keys.ToArray())
-    {
-      if (!string.Equals(key, SentryAccountSync.AccountMarker, StringComparison.Ordinal))
-      {
-        sentryEvent.User.Other.Remove(key);
-      }
-    }
-
-    foreach (var key in sentryEvent.Tags.Keys.ToArray())
-    {
-      var kept = sentryEvent.Tags[key] is string text ? SentryTelemetryFields.ScrubField(key, text) : null;
-      if (kept is null)
-      {
-        sentryEvent.UnsetTag(key);
-      }
-      else
-      {
-        sentryEvent.SetTag(key, kept);
-      }
-    }
-    sentryEvent.Request.Url = scrubbed.RequestTarget;
-    sentryEvent.Request.QueryString = null;
-    sentryEvent.Request.Cookies = scrubbed.Cookies;
-    sentryEvent.Request.Data = null;
-    if (scrubbed.Headers is not null)
-    {
-      foreach (var pair in scrubbed.Headers)
-      {
-        sentryEvent.Request.Headers[pair.Key] = pair.Value;
-      }
-    }
-
-    if (sentryEvent.Extra is Dictionary<string, object?> extra)
-    {
-      foreach (var key in extra.Keys.ToArray())
-      {
-        if (scrubbed.Extras is not null && scrubbed.Extras.TryGetValue(key, out var value))
-        {
-          extra[key] = value;
-        }
-        else if (extra[key] is string || SentryEventScrubber.DropsExtra(key))
-        {
-          extra.Remove(key);
-        }
-      }
-    }
-
-    return sentryEvent;
   }
 
   private static Breadcrumb? ScrubBreadcrumb(Breadcrumb breadcrumb)
@@ -156,22 +85,6 @@ public static partial class MauiProgram
     var build = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? "0";
     return display + "+" + build;
   }
-
-  private static string? AccountIdFor(SentryUser user)
-  {
-    if (user.Other.TryGetValue(SentryAccountSync.AccountMarker, out var captured) &&
-        !string.IsNullOrWhiteSpace(captured))
-    {
-      return captured;
-    }
-
-    return string.Equals(user.Id, SentryAccountSync.BoundAccountId, StringComparison.Ordinal)
-        ? user.Id
-        : null;
-  }
-
-  private static string? ExtraString(IReadOnlyDictionary<string, string> extras, string key) =>
-      extras.TryGetValue(key, out var value) ? value : null;
 
   private static bool IsDebugBuild()
   {

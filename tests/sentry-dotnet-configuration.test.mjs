@@ -15,10 +15,17 @@ describe('dotnet Sentry configuration', () => {
       join(root, 'dotnet-clients/src/Voucha.Client.App/SentryTransactionProjection.cs'),
       'utf8',
     )
+    const eventProjection = await readFile(
+      join(root, 'dotnet-clients/src/Voucha.Client.App/SentryEventProjection.cs'),
+      'utf8',
+    )
+    assert.match(options, /SetBeforeSend\(SentryEventProjection\.Scrub\)/u)
     assert.match(options, /SetBeforeSendTransaction\(SentryTransactionProjection\.Scrub\)/u)
     assert.match(projection, /ScrubAddress\(span\.Description\) \?\? ""/u)
     assert.match(projection, /QueryString = null/u)
     assert.match(projection, /KeepsNumber\(key\)/u)
-    assert.match(options, /extra\[key\] = value/u)
+    assert.match(projection, /RetainAccountMarker\(user, account\)/u)
+    assert.match(eventProjection, /extra\[key\] = value/u)
+    assert.match(eventProjection, /extra\.Remove\(key\)/u)
   })
 })

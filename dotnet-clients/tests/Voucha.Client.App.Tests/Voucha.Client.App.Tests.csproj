@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+    <PackageReference Include="Sentry" />
     <PackageReference Include="Microsoft.Maui.Controls" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.analyzers" PrivateAssets="all" />
@@ -196,5 +197,8 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPenaltiesPageBase.cs" Link="Pages/IntegrityPenaltiesPageBase.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPenaltiesPage.cs" Link="Pages/ReportIntegrityPenaltiesPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPenaltiesPage.cs" Link="Pages/VoteIntegrityPenaltiesPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/SentryEventProjection.cs" Link="SentryEventProjection.cs" />
+    <Compile Include="../../src/Voucha.Client.App/SentryTransactionProjection.cs" Link="SentryTransactionProjection.cs" />
+    <Compile Include="../../src/Voucha.Client.App/SentryAccountSync.cs" Link="SentryAccountSync.cs" />
   </ItemGroup>
 </Project>

@@ -86,14 +86,7 @@ internal static class SentryTransactionProjection
     user.Email = null;
     user.Username = null;
     user.IpAddress = null;
-    if (account is null)
-    {
-      user.Other.Remove(SentryAccountSync.AccountMarker);
-    }
-    else
-    {
-      user.Other[SentryAccountSync.AccountMarker] = account;
-    }
+    SentryEventProjection.RetainAccountMarker(user, account);
   }
 
   private static void ScrubData(IReadOnlyDictionary<string, object?> data)
