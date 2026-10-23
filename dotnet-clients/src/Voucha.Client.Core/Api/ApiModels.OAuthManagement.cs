@@ -39,7 +39,11 @@ public sealed record OAuthGrant(
     [property: JsonPropertyName("resource")] string Resource,
     [property: JsonPropertyName("scopes")] IReadOnlyList<string> Scopes,
     [property: JsonPropertyName("consented_at")] DateTimeOffset ConsentedAt,
-    [property: JsonPropertyName("last_used_at")] DateTimeOffset? LastUsedAt);
+    [property: JsonPropertyName("last_used_at"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] DateTimeOffset? LastUsedAt,
+    [property: JsonPropertyName("attestation_status"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    string? AttestationStatus = null,
+    [property: JsonPropertyName("session_id"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    string? SessionId = null);
 
 public sealed record OAuthGrantListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<OAuthGrant> Results,

@@ -84,7 +84,7 @@ final class SettingsForwardPaginationTests: NativeRouteSurfaceViewModelTestCase 
 
     private func sessionPage(ids: [String]) -> Data {
         let rows = ids.map { id in
-            #"{"id":"\#(id)","device_id":"device-1","device_name":"Mac","user_agent":"Safari","ip_address":"203.0.113.1","created_at":"2026-01-01T00:00:00Z","last_seen_at":null,"expires_at":null,"is_current":false}"#
+            #"{"id":"\#(id)","device_id":"device-1","device_name":"Mac","user_agent":"Safari","ip_address":"203.0.113.1","created_at":"2026-01-01T00:00:00Z","last_seen_at":null,"expires_at":null,"mcp_connections":[],"is_current":false}"#
         }.joined(separator: ",")
         return listPage(rows)
     }

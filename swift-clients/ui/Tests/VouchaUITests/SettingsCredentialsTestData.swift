@@ -15,7 +15,7 @@ enum SettingsCredentialsTestData {
             """
             {"id":"\(id)","client":{"id":"client-\(id)","client_id":"public-\(id)",
             "client_name":"Agent \(id)","verified":true},"resource":"https://voucha.ai/api/v1/mcp",
-            "scopes":["data:read"],"consented_at":"2026-09-01T12:00:00Z",
+            "attestation_status":null,"session_id":null,"scopes":["data:read"],"consented_at":"2026-09-01T12:00:00Z",
             "last_used_at":\(lastUsed ? "\"2026-09-02T12:00:00Z\"" : "null")}
             """
         }.joined(separator: ",")

@@ -46,7 +46,7 @@ final class EngineeringOpsEndpointTests: XCTestCase {
             "name": "posts",
             "partition_count": 2,
             "total_size_bytes": 123,
-            "partitions": [{"name": "posts_2026_07", "size_bytes": 100}]
+            "partitions": [{"name": "posts_2026_07", "size_bytes": 100, "drop_refusal": null}]
           }]
         }
         """.utf8))

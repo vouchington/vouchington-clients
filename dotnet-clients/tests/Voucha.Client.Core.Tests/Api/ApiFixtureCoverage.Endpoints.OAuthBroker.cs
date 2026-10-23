@@ -21,6 +21,10 @@ internal static partial class ApiFixtureCoverage
       ["native.my.api-keys.create"] = VouchaApiEndpoints.CreateApiKey(new CreateApiKeyBody("Coding agent", ["mcp.user:read", "mcp.user:write"], "mcp")),
       ["native.my.oauth-grants.paginated"] = VouchaApiEndpoints.OAuthGrants("fixture-owner-scoped-oauth-grant-cursor", 1),
       ["native.my.oauth-grants.revoke"] = VouchaApiEndpoints.RevokeOAuthGrant("00000000-0000-7000-8000-000000000711"),
+      ["native.auth.email-address.tokens"] = VouchaApiEndpoints.RequestNativeEmailOtp("fixture@example.test"),
+      ["native.auth.email-address.login.authenticated"] = VouchaApiEndpoints.VerifyNativeEmailOtp("fixture@example.test", "123456"),
+      ["native.auth.email-address.login.mfa"] = VouchaApiEndpoints.VerifyNativeEmailOtp("fixture@example.test", "123456"),
+      ["native.oauth.session-mcp-token.ios"] = VouchaApiEndpoints.MintNativeSessionMcpToken("ios"),
       ["native.oauth.providers.broker-capabilities"] = VouchaApiEndpoints.OAuthProviders(),
       ["native.oauth.authorization.begin"] = VouchaApiEndpoints.BeginOAuthAuthorization(
           OAuthBrokerProvider.Github,

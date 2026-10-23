@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Voucha.Client.Core.Api;
@@ -137,7 +138,28 @@ public sealed record AuthSession(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("last_seen_at")] DateTimeOffset? LastSeenAt,
     [property: JsonPropertyName("expires_at")] DateTimeOffset? ExpiresAt,
-    [property: JsonPropertyName("is_current")] bool IsCurrent);
+    [property: JsonPropertyName("is_current")] bool IsCurrent)
+{
+  private IReadOnlyList<AuthSessionMcpConnection> mcpConnections = [];
+
+  [JsonPropertyName("mcp_connections"), JsonRequired]
+  public IReadOnlyList<AuthSessionMcpConnection> McpConnections
+  {
+    get => mcpConnections;
+    init
+    {
+      if (value is null || value.Any(static connection => connection is null))
+        throw new JsonException("MCP connections must be a nonnull array of connections.");
+      mcpConnections = value;
+    }
+  }
+}
+
+public sealed record AuthSessionMcpConnection(
+    [property: JsonPropertyName("grant_id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string GrantId,
+    [property: JsonPropertyName("client_name"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string ClientName,
+    [property: JsonPropertyName("attestation_status"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string AttestationStatus,
+    [property: JsonPropertyName("last_minted_at"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string LastMintedAt);
 
 public sealed record AuthSessionListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<AuthSession> Results,

@@ -85,7 +85,7 @@ public sealed class ApiSettingsServiceTests
             "created_at": "2026-07-01T12:00:00Z",
             "last_seen_at": "2026-07-01T13:00:00Z",
             "expires_at": "2026-07-31T12:00:00Z",
-            "is_current": true
+            "mcp_connections": [], "is_current": true
           }
         ],
         "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null }
