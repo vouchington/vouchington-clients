@@ -91,7 +91,7 @@ class DiagnosticTest(unittest.TestCase):
 
     def test_manifest_identity_and_sha_are_required(self):
         path = self.root / "manifest.json"
-        path.write_text(json.dumps({"format": 3, "identity": self.identity, "sha256": "b" * 64}))
+        path.write_text(json.dumps({"format": 4, "identity": self.identity, "sha256": "b" * 64}))
         self.assertEqual(diagnostic.read_manifest(path, self.identity), "b" * 64)
         with self.assertRaisesRegex(ValueError, "identity mismatch"):
             diagnostic.read_manifest(path, {**self.identity, "run": "124"})

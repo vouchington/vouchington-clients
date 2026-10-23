@@ -111,7 +111,7 @@ def read_manifest(path, identity):
     if path.stat().st_size > 8192:
         raise ValueError("Android state manifest exceeds bound")
     manifest = json.loads(path.read_text())
-    if manifest.get("identity") != identity or manifest.get("format") != 3:
+    if manifest.get("identity") != identity or manifest.get("format") != 4:
         raise ValueError("Android state manifest identity mismatch")
     sha = manifest.get("sha256")
     if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
