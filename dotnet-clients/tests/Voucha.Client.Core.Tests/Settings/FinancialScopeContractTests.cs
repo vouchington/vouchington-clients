@@ -45,4 +45,19 @@ public sealed class FinancialScopeContractTests
     Assert.Equal(["mcp.user:read", "spending:read", "spending:write"],
         selection.SelectedScopes.Order(StringComparer.Ordinal));
   }
+
+  [Fact]
+  public void ScopeCatalogAudienceRoundTripsApiKeyAndAdministratorFlags()
+  {
+    var audience = new ScopeCatalogAudience("user", true, false);
+    var json = JsonSerializer.Serialize(audience, VouchaApiJson.Options);
+    var decoded = JsonSerializer.Deserialize<ScopeCatalogAudience>(json, VouchaApiJson.Options);
+
+    Assert.Contains("\"accepts_api_keys\":true", json, StringComparison.Ordinal);
+    Assert.Contains("\"requires_administrator\":false", json, StringComparison.Ordinal);
+    Assert.NotNull(decoded);
+    Assert.Equal(audience.Audience, decoded.Audience);
+    Assert.Equal(audience.AcceptsApiKeys, decoded.AcceptsApiKeys);
+    Assert.Equal(audience.RequiresAdministrator, decoded.RequiresAdministrator);
+  }
 }
