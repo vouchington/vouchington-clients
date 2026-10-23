@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readlink,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -152,6 +163,82 @@ test('native producer uses its pinned task and consumer requires verified state'
     assert.equal(reused.status, 0)
     assert.match(reused.stdout, /buildAndroidSwiftPackageDebug UP-TO-DATE/u)
     assert.equal(f.run(['--phase', 'app-consumer'], { ...verified, FAIL_APP: '13' }).status, 13)
+  } finally {
+    await f.clean()
+  }
+})
+
+test('JVM producer exposes verified host Swift without materializing the Android SDK', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const tooling = join(f.root, 'tooling')
+    for (const name of [
+      'resolve-mise-swift-toolchain.sh',
+      'expose-job-scoped-swift-toolchain.sh',
+      'gradle-build-cache-dir.sh',
+    ]) {
+      await copyFile(new URL(name, sourceRoot), join(tooling, name))
+    }
+    const miseRoot = join(f.root, 'mise')
+    const swiftRoot = join(miseRoot, 'installs/swift/6.4.0')
+    const swiftBin = join(swiftRoot, 'usr/bin/swift')
+    await mkdir(join(swiftRoot, 'usr/bin'), { recursive: true })
+    await writeFile(join(swiftRoot, 'Info.plist'), 'fixture')
+    await writeFile(swiftBin, '#!/bin/sh\necho "Swift version 6.4.0"\n')
+    await chmod(swiftBin, 0o755)
+    const miseBin = join(f.root, '.build/artifacts/skip/skip/skip.artifactbundle/bin/mise')
+    await writeFile(
+      miseBin,
+      `#!/bin/sh
+case "$1 $2" in
+  'which swift') printf '%s\\n' "$PHASE_MISE_ROOT/usr/bin/swift" ;;
+  'where swift') printf '%s\\n' "$PHASE_MISE_ROOT" ;;
+  *) exit 1 ;;
+esac
+`,
+    )
+    await chmod(miseBin, 0o755)
+    const runnerHome = join(f.root, 'runner-home')
+    const skipHome = join(f.root, 'skip-swift-home')
+    await mkdir(runnerHome)
+    const env = {
+      VOUCHA_ANDROID_STATE_VERIFIED: '1',
+      VOUCHA_SKIP_SWIFT_HOME: skipHome,
+      RUNNER_TEMP: f.root,
+      MISE_DATA_DIR: miseRoot,
+      PHASE_MISE_ROOT: swiftRoot,
+      HOME: runnerHome,
+    }
+    const result = f.run(['--phase', 'app-jvm-producer'], env)
+    assert.equal(result.status, 0, result.stderr)
+    const alias = join(skipHome, 'toolchains/swift-6.4.0-RELEASE.xctoolchain')
+    assert.equal(await readlink(alias), await realpath(swiftRoot))
+    assert.equal(
+      await readlink(
+        join(skipHome, 'Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain'),
+      ),
+      alias,
+    )
+    await assert.rejects(
+      readFile(
+        join(
+          skipHome,
+          'Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_android.artifactbundle/info.json',
+        ),
+      ),
+      { code: 'ENOENT' },
+    )
+    assert.equal(
+      (await f.lines()).at(-1),
+      'gradle --profile :app:compileDebugKotlin :app:compileDebugJavaWithJavac :app:mergeExtDexDebug',
+    )
+
+    await rm(join(skipHome, 'toolchains'), { recursive: true })
+    await symlink(swiftRoot, join(skipHome, 'toolchains'))
+    const unsafe = f.run(['--phase', 'app-jvm-producer'], env)
+    assert.equal(unsafe.status, 1)
+    assert.match(unsafe.stderr, /Skip toolchains path must be a real directory/u)
   } finally {
     await f.clean()
   }

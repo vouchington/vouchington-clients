@@ -93,12 +93,25 @@ if [[ -n "${VOUCHA_SKIP_SWIFT_HOME:-}" ]]; then
 
   MISE_SWIFT_TOOLCHAIN_ROOT="$(bash "$SCRIPT_DIR/resolve-mise-swift-toolchain.sh")"
   SKIP_SWIFT_TOOLCHAIN="$HOME/toolchains/swift-6.4.0-RELEASE.xctoolchain"
+  if [[ "$phase" == app-jvm-producer ]]; then
+    toolchains_dir="$HOME/toolchains"
+    if [[ -L "$toolchains_dir" || ( -e "$toolchains_dir" && ! -d "$toolchains_dir" ) ]]; then
+      echo "Skip toolchains path must be a real directory: $toolchains_dir" >&2
+      exit 1
+    fi
+  fi
   if [[ -e "$SKIP_SWIFT_TOOLCHAIN" || -L "$SKIP_SWIFT_TOOLCHAIN" ]]; then
     if [[ ! -L "$SKIP_SWIFT_TOOLCHAIN" || \
       "$(CDPATH='' cd -- "$SKIP_SWIFT_TOOLCHAIN" && pwd -P)" != "$MISE_SWIFT_TOOLCHAIN_ROOT" ]]; then
       echo "Skip toolchain alias must point to the mise-managed Swift install: $SKIP_SWIFT_TOOLCHAIN" >&2
       exit 1
     fi
+  elif [[ "$phase" == app-jvm-producer ]]; then
+    # The JVM closure needs Skip's host prebuild, but not the Android SDK/NDK.
+    # Materialization normally creates this alias; establish only the verified
+    # mise Swift alias for this phase.
+    mkdir -p -- "$toolchains_dir"
+    ln -s -- "$MISE_SWIFT_TOOLCHAIN_ROOT" "$SKIP_SWIFT_TOOLCHAIN"
   fi
 
   SWIFT_TMP="${RUNNER_TEMP}/swift-tmp"
