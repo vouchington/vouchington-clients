@@ -38,6 +38,8 @@ const collectedTypes = [
   'NSPrivacyCollectedDataTypeDeviceID',
   'NSPrivacyCollectedDataTypePhotosorVideos',
   'NSPrivacyCollectedDataTypeOtherUserContent',
+  'NSPrivacyCollectedDataTypeCrashData',
+  'NSPrivacyCollectedDataTypePerformanceData',
 ]
 
 const plistStrings = (xml, key) => {
