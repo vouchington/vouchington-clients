@@ -95,6 +95,18 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNil(viewModel.actionErrors[reportId])
     }
 
+    func testCancelledRunReadDoesNotAdmitAgain() async throws {
+        let viewModel = try await loadedStaff(reads: 3)
+        stubAdmission(ModerationReportsTestFixtures.judgement)
+        CannedFeedURLProtocol.errors[runPath(admittedRunId)] = URLError(.cancelled)
+
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+
+        XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
+        XCTAssertEqual(requestCount(method: "GET", path: runPath(admittedRunId)), 1)
+        XCTAssertNil(viewModel.actionErrors[reportId])
+    }
+
     private var admissionPath: String {
         "/api/v1/reports/\(reportId)/judgements"
     }

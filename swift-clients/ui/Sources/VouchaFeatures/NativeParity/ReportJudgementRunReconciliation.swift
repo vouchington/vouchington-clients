@@ -1,4 +1,5 @@
 import VouchaAPI
+import VouchaCore
 import VouchaModels
 
 enum ReportJudgementRunReconciliation {
@@ -12,15 +13,35 @@ enum ReportJudgementRunReconciliation {
         guard maximumReads > 0, !reportId.isEmpty, !runId.isEmpty else { return }
         for attempt in 0 ..< maximumReads {
             if Task.isCancelled { return }
-            let run = try await read(reportId, runId)
+            let run: ModerationReportJudgementRunResponse
+            do {
+                run = try await read(reportId, runId)
+            } catch {
+                if isCancellation(error) { return }
+                throw error
+            }
             if run.completed || Task.isCancelled { return }
             if attempt + 1 < maximumReads {
                 do {
                     try await delay()
-                } catch is CancellationError {
-                    return
+                } catch {
+                    if isCancellation(error) { return }
+                    throw error
                 }
             }
+        }
+    }
+
+    private static func isCancellation(_ error: Error) -> Bool {
+        switch error {
+        case is CancellationError:
+            true
+        case VouchaError.cancelled:
+            true
+        case let VouchaError.network(urlError) where urlError.code == .cancelled:
+            true
+        default:
+            false
         }
     }
 }
