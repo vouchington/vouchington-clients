@@ -60,6 +60,13 @@
             in app: XCUIApplication,
             timeout: TimeInterval = 10
         ) -> XCUIElement {
+            // The centered Send Code and Verify Code buttons sit under the keyboard. Probing
+            // isHittable on that covered copy stalls for most of the timeout, so the enabled
+            // keyboard-bar copy is never reached. Tap the bar when it has a real frame.
+            if identifier == nil, let barButton = readyKeyboardBarButton(label, in: app, timeout: timeout) {
+                barButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+                return barButton
+            }
             let matches = identifier.map { app.buttons.matching(identifier: $0) }
                 ?? app.buttons.matching(NSPredicate(format: "label == %@", label))
             let ready = NSPredicate { _, _ in
@@ -70,6 +77,28 @@
             XCTAssertNotNil(button)
             button?.tap()
             return button ?? app.buttons[label]
+        }
+
+        private func readyKeyboardBarButton(
+            _ label: String,
+            in app: XCUIApplication,
+            timeout: TimeInterval
+        ) -> XCUIElement? {
+            let button = app.toolbars.buttons[label]
+            guard button.waitForExistence(timeout: min(2, timeout)) else { return nil }
+            let ready = NSPredicate { _, _ in
+                button.exists && button.isEnabled && Self.usableKeyboardBarFrame(button.frame)
+            }
+            let result = XCTWaiter().wait(
+                for: [expectation(for: ready, evaluatedWith: nil)],
+                timeout: min(3, timeout)
+            )
+            return result == .completed ? button : nil
+        }
+
+        private static func usableKeyboardBarFrame(_ frame: CGRect) -> Bool {
+            frame.origin.x.isFinite && frame.origin.y.isFinite && frame.width > 1 && frame.height > 1
+                && frame.width < 500 && frame.height < 120
         }
 
         private func type(_ text: String, into field: XCUIElement) {

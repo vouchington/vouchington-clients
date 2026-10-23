@@ -23,6 +23,8 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertTrue(flow.contains("app.buttons[\"Continue with Email\"]"))
         XCTAssertTrue(flow.contains("continueWithEmail.waitForExistence(timeout: 20)"))
         XCTAssertFalse(flow.contains("app.buttons[\"Sign In\"]"))
+        XCTAssertTrue(flow.contains("readyKeyboardBarButton(label, in: app, timeout: timeout)"))
+        XCTAssertTrue(flow.contains("app.toolbars.buttons[label]"))
     }
 
     private func repoSource(_ relative: String, filePath: StaticString = #filePath) throws -> String {
