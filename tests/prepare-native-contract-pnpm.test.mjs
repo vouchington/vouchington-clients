@@ -35,7 +35,10 @@ test('native candidate setup provisions pnpm for the harness', async () => {
     action,
     /name: Set up pnpm\n\s+if: \$\{\{ inputs\.skip-candidate-install != 'true' \}\}\n\s+uses: pnpm\/action-setup@/u,
   )
-  assert.match(action, /node_major="\$\(node -p 'Number\(process\.versions\.node\.split\("\."\)\[0\]\)'\)"/u)
+  assert.match(
+    action,
+    /node_major="\$\(node -p 'Number\(process\.versions\.node\.split\("\."\)\[0\]\)'\)"/u,
+  )
   assert.match(action, /test "\$node_major" -ge 22/u)
   assert.match(
     action.slice(setupIndex, installIndex),
