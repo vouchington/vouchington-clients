@@ -10,6 +10,16 @@ extension SettingsSurface {
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.secondaryLabel)
 
+                if !viewModel.membershipLifecycleLineTexts.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        ForEach(Array(viewModel.membershipLifecycleLineTexts.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(Typography.caption)
+                                .foregroundStyle(Colors.secondaryLabel)
+                        }
+                    }
+                }
+
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: 220), spacing: Spacing.md, alignment: .top)],
                     alignment: .leading,

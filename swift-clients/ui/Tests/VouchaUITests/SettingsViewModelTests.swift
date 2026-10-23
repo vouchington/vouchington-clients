@@ -36,8 +36,9 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(cards.map(\.id), ["free", "plus", "pro"])
         XCTAssertEqual(cards[0].title, "Free")
         XCTAssertEqual(cards[0].purchaseButtonTitle, "Included")
-        XCTAssertEqual(cards[1].priceOptions.map(\.priceText), ["$12.99", "$99.99"])
-        XCTAssertEqual(cards[1].priceOptions.map(\.intervalText), ["Monthly", "Yearly"])
+        XCTAssertEqual(cards[1].priceSummaryText, "Price unavailable")
+        XCTAssertTrue(cards[1].priceOptions.isEmpty)
+        XCTAssertEqual(cards[2].priceSummaryText, "Price unavailable")
         XCTAssertEqual(cards[2].isCurrent, true)
         XCTAssertEqual(cards[2].currentStateText, "Active")
         XCTAssertTrue(cards[2].featureBullets.contains("AI moderation rules: 10"))
@@ -68,7 +69,7 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertFalse(viewModel.membershipPlanPresentations[2].isCurrent)
     }
 
-    func testMembershipPlanPresentationsTreatPausedMembershipAsFreeEntitlement() async throws {
+    func testPausedMembershipKeepsItsPlan() async throws {
         seedSettingsResponses()
         CannedFeedURLProtocol.handlers["/api/v1/memberships/me"] = (
             Data("""
@@ -107,9 +108,9 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
         await viewModel.load()
 
-        XCTAssertEqual(viewModel.membershipSummaryText, "Current plan: Free · Paused")
-        XCTAssertTrue(viewModel.membershipPlanPresentations[0].isCurrent)
-        XCTAssertFalse(viewModel.membershipPlanPresentations[2].isCurrent)
+        XCTAssertEqual(viewModel.membershipSummaryText, "Current plan: Pro · Paused")
+        XCTAssertFalse(viewModel.membershipPlanPresentations[0].isCurrent)
+        XCTAssertTrue(viewModel.membershipPlanPresentations[2].isCurrent)
     }
 
     func testApiKeyCreationExposesRawKeyOnce() async throws {
@@ -299,24 +300,20 @@ final class SettingsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertFalse(viewModel.profileLinks.contains { $0.id == "link-1" })
     }
 
-    func testMembershipPortalCheckoutAndCancelActionsWork() async throws {
+    func testMembershipCheckoutAndPortalStayClosedWhileCancelReloads() async throws {
         seedSettingsResponses()
         let viewModel = try SettingsViewModel(client: makeClient())
         await viewModel.load()
 
-        CannedFeedURLProtocol.handlers["/api/v1/memberships/checkout"] = (
-            Data(#"{"checkout_session":{"id":"sess-1","url":"https://checkout.example.com"}}"#.utf8),
-            200
-        )
         await viewModel.purchaseMembership(priceId: "price-pro")
-        XCTAssertEqual(viewModel.membershipCheckoutURL, "https://checkout.example.com")
+        XCTAssertNil(viewModel.membershipCheckoutURL)
+        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/memberships/checkout" })
 
-        CannedFeedURLProtocol.handlers["/api/v1/memberships/billing-portal-sessions"] = (
-            Data(#"{"portal_session":{"url":"https://portal.example.com"}}"#.utf8),
-            200
-        )
         await viewModel.openMembershipPortal()
-        XCTAssertEqual(viewModel.membershipPortalURL, "https://portal.example.com")
+        XCTAssertNil(viewModel.membershipPortalURL)
+        XCTAssertFalse(
+            CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/memberships/billing-portal-sessions" }
+        )
 
         CannedFeedURLProtocol.handlers["/api/v1/my/membership"] = (Data("{}".utf8), 204)
         CannedFeedURLProtocol.handlers["/api/v1/memberships/me"] = (

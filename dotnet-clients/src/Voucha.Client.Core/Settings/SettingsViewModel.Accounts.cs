@@ -75,42 +75,21 @@ public sealed partial class SettingsViewModel
     }
   }
 
-  public async Task<string> CheckoutMembershipAsync(
+  public Task<string> CheckoutMembershipAsync(
       MembershipSku membershipSku,
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(membershipSku);
-    try
-    {
-      var response = await settingsService.CreateMembershipCheckoutSessionAsync(
-          new MembershipCheckoutBody(
-              membershipSku.StripePriceId,
-              new Uri("/my/membership", UriKind.Relative),
-              new Uri("/my/membership", UriKind.Relative)),
-          cancellationToken).ConfigureAwait(true);
-      return response.CheckoutSession.Url.ToString();
-    }
-    catch (Exception ex)
-    {
-      ErrorMessage = ex.Message;
-      return string.Empty;
-    }
+    cancellationToken.ThrowIfCancellationRequested();
+    MembershipActionNotice = localization.Localize(UiMessageKey.NativeDotnetResidualBillingUnavailable);
+    return Task.FromResult(string.Empty);
   }
 
-  public async Task<string> OpenMembershipPortalAsync(CancellationToken cancellationToken = default)
+  public Task<string> OpenMembershipPortalAsync(CancellationToken cancellationToken = default)
   {
-    try
-    {
-      var response = await settingsService.CreateMembershipPortalSessionAsync(
-          new MembershipPortalBody(new Uri("/my/membership", UriKind.Relative)),
-          cancellationToken).ConfigureAwait(true);
-      return response.PortalSession.Url.ToString();
-    }
-    catch (Exception ex)
-    {
-      ErrorMessage = ex.Message;
-      return string.Empty;
-    }
+    cancellationToken.ThrowIfCancellationRequested();
+    MembershipActionNotice = localization.Localize(UiMessageKey.NativeDotnetResidualBillingUnavailable);
+    return Task.FromResult(string.Empty);
   }
 
   public async Task CancelMembershipAsync(CancellationToken cancellationToken = default)
