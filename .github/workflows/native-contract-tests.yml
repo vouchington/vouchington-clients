@@ -822,6 +822,28 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 1
+      - name: Snapshot producer SwiftPM inputs for diagnosis
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/android-swift-diagnostics"
+          python3 candidate-clients/swift-clients/apps/android/tooling/report-swiftpm-inputs.py \
+            --stage producer-after-pack \
+            --package-root candidate-clients/swift-clients/apps/android \
+            --manifest "$RUNNER_TEMP/android-state/android-state.json" \
+            --output "$RUNNER_TEMP/android-swift-diagnostics/producer.json"
+      - name: Upload bounded producer SwiftPM input diagnosis
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-swift-inputs-producer-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-swift-diagnostics/producer.json
+          if-no-files-found: warn
+          retention-days: 1
   build-swift-android:
     name: Swift Android app
     needs: [verify, build-swift-android-native]
@@ -912,12 +934,37 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
+      - name: Snapshot restored consumer SwiftPM inputs for diagnosis
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/android-swift-diagnostics"
+          python3 candidate-clients/swift-clients/apps/android/tooling/report-swiftpm-inputs.py \
+            --stage consumer-after-restore \
+            --package-root candidate-clients/swift-clients/apps/android \
+            --manifest "$RUNNER_TEMP/android-state/android-state.json" \
+            --output "$RUNNER_TEMP/android-swift-diagnostics/after-restore.json"
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Snapshot resolved consumer SwiftPM inputs for diagnosis
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          python3 candidate-clients/swift-clients/apps/android/tooling/report-swiftpm-inputs.py \
+            --stage consumer-after-resolve \
+            --package-root candidate-clients/swift-clients/apps/android \
+            --manifest "$RUNNER_TEMP/android-state/android-state.json" \
+            --output "$RUNNER_TEMP/android-swift-diagnostics/after-resolve.json"
       - name: Restore Gradle user home
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -959,6 +1006,18 @@ jobs:
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
+      - name: Snapshot built consumer SwiftPM inputs for diagnosis
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          python3 candidate-clients/swift-clients/apps/android/tooling/report-swiftpm-inputs.py \
+            --stage consumer-after-gradle \
+            --package-root candidate-clients/swift-clients/apps/android \
+            --manifest "$RUNNER_TEMP/android-state/android-state.json" \
+            --output "$RUNNER_TEMP/android-swift-diagnostics/after-gradle.json"
       - name: Package exact candidate Android app and instrumentation APKs
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
@@ -1007,6 +1066,15 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
+      - name: Upload bounded consumer SwiftPM input diagnosis
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-swift-inputs-consumer-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-swift-diagnostics/*.json
+          if-no-files-found: warn
+          retention-days: 1
   test-swift-android-libs:
     name: Swift Android test-libs
     needs: verify
