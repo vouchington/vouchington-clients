@@ -44,6 +44,7 @@ public static partial class MauiProgram
     options.AttachScreenshot = false;
     options.SetBeforeSend(ScrubEvent);
     options.SetBeforeBreadcrumb(ScrubBreadcrumb);
+    options.SetBeforeSendTransaction(SentryTransactionProjection.Scrub);
   }
 
   private static SentryEvent? ScrubEvent(SentryEvent sentryEvent)

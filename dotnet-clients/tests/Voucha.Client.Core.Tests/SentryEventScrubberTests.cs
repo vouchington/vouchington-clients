@@ -83,6 +83,23 @@ public sealed class SentryEventScrubberTests
     Assert.False(breadcrumb.Data?.ContainsKey("http.fragment"));
   }
 
+  [Fact]
+  public void SpanAddressAndQueryFieldsAreScrubbed()
+  {
+    Assert.Equal(
+        "GET https://voucha.ai/search",
+        SentryTelemetryFields.ScrubAddress("GET https://voucha.ai/search?q=private#token"));
+    Assert.Null(SentryTelemetryFields.ScrubField("http.query", "q=private-search"));
+    Assert.Null(SentryTelemetryFields.ScrubField("http.fragment", "token=secret"));
+    Assert.Equal(
+        "https://voucha.ai/search",
+        SentryTelemetryFields.ScrubField("url", "https://voucha.ai/search?q=private-search"));
+    Assert.Equal("GET", SentryTelemetryFields.ScrubField("method", "GET"));
+    Assert.True(SentryTelemetryFields.KeepsNumber("status_code"));
+    Assert.True(SentryTelemetryFields.KeepsNumber("http.response.status_code"));
+    Assert.False(SentryTelemetryFields.KeepsNumber("http.query"));
+  }
+
   private sealed class RecordingSentryTransport : ISentryEventTransport
   {
     public List<SentryOutboundEvent> Events { get; } = [];
