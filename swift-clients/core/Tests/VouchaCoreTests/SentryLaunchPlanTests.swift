@@ -43,4 +43,15 @@ final class SentryLaunchPlanTests: XCTestCase {
         XCTAssertEqual(SentryAccountBinding.update(from: "account-a", to: "account-b"), .set("account-b"))
         XCTAssertEqual(SentryAccountBinding.update(from: "account-b", to: " "), .clear)
     }
+
+    func testInvalidDsnDisablesTheSDK() {
+        let plan = SentryLaunchPlan.resolve(
+            environment: ["VOUCHA_SENTRY_DSN": "not-a-dsn"],
+            configuration: .release,
+            releaseName: "0.1.0+1",
+            accountId: nil
+        )
+        XCTAssertFalse(plan.startsSDK)
+        XCTAssertNil(plan.dsn)
+    }
 }

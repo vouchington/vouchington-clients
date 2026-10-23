@@ -99,6 +99,10 @@ final class SentryEventScrubberTests: XCTestCase {
             "https://voucha.ai/search"
         )
         XCTAssertEqual(SentryEventScrubber.scrubField(key: "method", value: "GET"), "GET")
+        XCTAssertEqual(
+            SentryEventScrubber.scrubField(key: "from", value: "https://voucha.ai/x?otp=123456"),
+            "https://voucha.ai/x"
+        )
         XCTAssertTrue(SentryEventScrubber.keepsNumericField("status_code"))
         XCTAssertTrue(SentryEventScrubber.keepsNumericField("http.response.status_code"))
         XCTAssertFalse(SentryEventScrubber.keepsNumericField("http.query"))

@@ -121,7 +121,7 @@ public enum SentryEventScrubber {
             if droppedExtraKeys.contains(name) || isCredentialHeader(name) || isSeparateRequestPart(name) {
                 continue
             }
-            data[key] = name.contains("url") ? stripQuery(value) ?? value : value
+            data[key] = retainedValue(key, value)
         }
         return SentryBreadcrumbDraft(
             category: breadcrumb.category, message: stripQuery(breadcrumb.message), data: data

@@ -36,7 +36,7 @@ public struct SentryLaunchPlan: Equatable, Sendable {
         releaseName: String,
         accountId: String?
     ) -> SentryLaunchPlan {
-        let dsn = read(environment, "VOUCHA_SENTRY_DSN") ?? read(packagedConfiguration, "VOUCHA_SENTRY_DSN")
+        let dsn = validDSN(read(environment, "VOUCHA_SENTRY_DSN") ?? read(packagedConfiguration, "VOUCHA_SENTRY_DSN"))
         return SentryLaunchPlan(
             dsn: dsn,
             releaseName: releaseName,
@@ -45,6 +45,15 @@ public struct SentryLaunchPlan: Equatable, Sendable {
             sendDefaultPii: false,
             tracesSampleRate: dsn == nil ? 0 : enabledTracesSampleRate
         )
+    }
+
+    private static func validDSN(_ value: String?) -> String? {
+        guard let value, let components = URLComponents(string: value),
+              let host = components.host, !host.isEmpty,
+              let user = components.user, !user.isEmpty,
+              let project = components.path.split(separator: "/").last, !project.isEmpty
+        else { return nil }
+        return value
     }
 
     private static func read(_ source: [String: String], _ key: String) -> String? {
