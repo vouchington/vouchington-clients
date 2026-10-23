@@ -48,7 +48,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   assert.doesNotMatch(archives, /hashFiles\([^\n]*native-contract-tests\.yml/u)
   assert.match(
     archives,
-    /inputs\.save-cache == 'true' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.archives\.outputs\.cache-hit != 'true'/u,
+    /inputs\.host-only != 'true' && inputs\.save-cache == 'true' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.archives\.outputs\.cache-hit != 'true'/u,
   )
   assert.match(app, /id: android-gradle-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u)
   assert.match(

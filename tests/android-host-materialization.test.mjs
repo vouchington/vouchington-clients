@@ -132,3 +132,15 @@ test('host and library shards skip Node dependencies while preserving contract i
     assert.doesNotMatch(step, /skip-candidate-install/u)
   }
 })
+
+test('host-only archive preparation never transfers the unused SDK and NDK cache', async () => {
+  const action = await readFile(
+    new URL('.github/actions/prepare-android-archives/action.yml', repository),
+    'utf8',
+  )
+  assert.match(
+    action,
+    /name: Restore checksummed Swift Android archives\n\s+if: \$\{\{ inputs\.host-only != 'true' \}\}/u,
+  )
+  assert.match(action, /inputs\.host-only != 'true' && inputs\.save-cache == 'true'/u)
+})

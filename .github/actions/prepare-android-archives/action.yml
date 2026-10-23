@@ -15,6 +15,7 @@ runs:
   using: composite
   steps:
     - name: Restore checksummed Swift Android archives
+      if: ${{ inputs.host-only != 'true' }}
       id: archives
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
@@ -34,7 +35,7 @@ runs:
           mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
         fi
     - name: Save checksummed archives from main
-      if: ${{ inputs.save-cache == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.archives.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.host-only != 'true' && inputs.save-cache == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.archives.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/voucha/swift-android/downloads
