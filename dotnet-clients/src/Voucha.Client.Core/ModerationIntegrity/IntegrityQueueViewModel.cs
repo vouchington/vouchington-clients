@@ -5,7 +5,8 @@ using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.ModerationIntegrity;
 
-public abstract partial class IntegrityQueueViewModel<TFlag, TRow> : ObservableObject, IDisposable, IUiLocaleChangeListener
+public abstract partial class IntegrityQueueViewModel<TFlag, TRow>
+    : ObservableObject, IDisposable, IUiLocaleChangeListener, IIntegrityFlagQueueModel
 {
   protected IUiLocalization Localization { get; }
   private readonly IDisposable? localeSubscription;
