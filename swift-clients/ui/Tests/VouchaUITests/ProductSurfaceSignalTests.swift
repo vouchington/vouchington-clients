@@ -26,7 +26,7 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(visits.first?.method, "POST")
         let body = try JSONSerialization.jsonObject(with: Data((visits.first?.body ?? "").utf8)) as? [String: String]
         XCTAssertEqual(body, ["utm_source": "newsletter", "utm_medium": "email"])
-        XCTAssertEqual(viewModel.rows.first?.title, .verbatim("Bonus"))
+        XCTAssertEqual(viewModel.rows.first?.title, "Bonus")
     }
 
     func testVisitUsesRefWhenTheUtmSourceIsBlank() async throws {
@@ -83,7 +83,7 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.load()
 
         XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path.contains("/visits") })
-        XCTAssertEqual(viewModel.rows.first?.title, .verbatim("Home"))
+        XCTAssertEqual(viewModel.rows.first?.title, "Home")
     }
 
     func testRssSourceViewIsRecordedOnceAndAFailedSignalDoesNotHideTheSource() async throws {
@@ -113,7 +113,7 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
         await settleProductSignals(viewModel)
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == viewPath }.count, 1)
-        XCTAssertEqual(viewModel.rows.first?.title, .verbatim("Native Source"))
+        XCTAssertEqual(viewModel.rows.first?.title, "Native Source")
     }
 
     func testFocusedItemRecordsOneViewBeforeAFailedDetailRequest() async throws {
