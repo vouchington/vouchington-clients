@@ -14,7 +14,7 @@ enum LaunchSmokeFieldTyping {
         line: UInt = #line
     ) {
         for _ in 1 ... maximumAttempts {
-            focus(field)
+            guard focus(field) else { continue }
             clear(field)
             field.typeText(text)
             if rawValue(in: field) == text {
@@ -24,22 +24,30 @@ enum LaunchSmokeFieldTyping {
         XCTFail("Typed \(rawValue(in: field)), expected \(text)", file: file, line: line)
     }
 
-    private static func focus(_ field: XCUIElement) {
+    private static func focus(_ field: XCUIElement) -> Bool {
         #if os(macOS)
             if field.isHittable {
                 field.click()
             } else {
                 field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
             }
+            return true
         #else
+            let keyboardFocused = NSPredicate(format: "hasKeyboardFocus == true")
             field.tap()
-            let keyboard = XCUIApplication().keyboards.firstMatch
-            if keyboard.waitForExistence(timeout: 2) {
-                return
+            if hasKeyboardFocus(field, matching: keyboardFocused) {
+                return true
             }
             field.tap()
-            _ = keyboard.waitForExistence(timeout: 2)
+            return hasKeyboardFocus(field, matching: keyboardFocused)
         #endif
+    }
+
+    private static func hasKeyboardFocus(_ field: XCUIElement, matching predicate: NSPredicate) -> Bool {
+        XCTWaiter().wait(
+            for: [XCTNSPredicateExpectation(predicate: predicate, object: field)],
+            timeout: 2
+        ) == .completed
     }
 
     /// Select all, then move to the end. A center tap can leave the caret in the
