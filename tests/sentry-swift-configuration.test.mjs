@@ -43,7 +43,8 @@ describe('Swift Sentry configuration', () => {
       join(root, 'swift-clients/apps/shared-app/SentryAppSupport.swift'),
       'utf8',
     )
-    assert.match(support, /accountId: boundAccountId/u)
+    assert.match(support, /capturedAccountId\(event\)/u)
+    assert.match(support, /voucha\.account/u)
     assert.match(support, /request\.fragment = nil/u)
     for (const platform of ['iOS', 'macOS']) {
       const app = await readFile(

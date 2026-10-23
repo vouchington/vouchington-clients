@@ -61,6 +61,31 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertNil(transport.events.first?.queryString)
     }
 
+    func testBreadcrumbQueryAndFragmentFieldsAreDropped() {
+        let transport = RecordingSentryTransport()
+        let runtime = SentryRuntime.open(
+            environment: ["VOUCHA_SENTRY_DSN": "https://public@example.invalid/1"],
+            configuration: .debug,
+            releaseName: "0.1.0+1",
+            accountId: nil,
+            transport: transport
+        )
+        runtime?.capture(SentryOutboundEvent(breadcrumbs: [
+            SentryBreadcrumbDraft(
+                category: "http",
+                data: [
+                    "url": "https://voucha.ai/search?q=private-search",
+                    "http.query": "q=private-search",
+                    "http.fragment": "token=secret"
+                ]
+            )
+        ]))
+        let data = transport.events.first?.breadcrumbs.first?.data ?? [:]
+        XCTAssertEqual(data["url"], "https://voucha.ai/search")
+        XCTAssertNil(data["http.query"])
+        XCTAssertNil(data["http.fragment"])
+    }
+
     private var secretEvent: SentryOutboundEvent {
         SentryOutboundEvent(
             accountId: "account-1",

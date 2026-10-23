@@ -43,7 +43,9 @@ enum SentryAppSupport {
             SentrySDK.setUser(nil)
             boundAccountId = nil
         case let .set(accountId):
-            SentrySDK.setUser(User(userId: accountId))
+            let user = User(userId: accountId)
+            user.data = [accountMarker: accountId]
+            SentrySDK.setUser(user)
             boundAccountId = accountId
         }
     }
@@ -93,7 +95,7 @@ enum SentryAppSupport {
             )
         }
         return SentryOutboundEvent(
-            accountId: boundAccountId,
+            accountId: capturedAccountId(event) ?? boundAccountMatching(event),
             email: event.user?.email,
             username: event.user?.username,
             ipAddress: event.user?.ipAddress,
@@ -136,6 +138,19 @@ enum SentryAppSupport {
         }
         event.extra = extra
         event.breadcrumbs = (event.breadcrumbs ?? []).compactMap { scrubbedBreadcrumb($0) }
+    }
+
+    private static let accountMarker = "voucha.account"
+
+    private static func capturedAccountId(_ event: Event) -> String? {
+        guard let value = event.user?.data?[accountMarker] as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func boundAccountMatching(_ event: Event) -> String? {
+        guard let boundAccountId, event.user?.userId == boundAccountId else { return nil }
+        return boundAccountId
     }
 
     private static func scrubbedBreadcrumb(_ breadcrumb: Breadcrumb) -> Breadcrumb? {

@@ -118,7 +118,7 @@ public enum SentryEventScrubber {
         var data: [String: String] = [:]
         for (key, value) in breadcrumb.data {
             let name = key.lowercased()
-            if droppedExtraKeys.contains(name) || isCredentialHeader(name) {
+            if droppedExtraKeys.contains(name) || isCredentialHeader(name) || isSeparateRequestPart(name) {
                 continue
             }
             data[key] = name.contains("url") ? stripQuery(value) ?? value : value
@@ -140,6 +140,10 @@ public enum SentryEventScrubber {
             result[key] = value
         }
         return result
+    }
+
+    private static func isSeparateRequestPart(_ name: String) -> Bool {
+        name == "http.query" || name == "http.fragment" || name == "query" || name == "fragment"
     }
 
     private static func isCredentialHeader(_ name: String) -> Bool {
