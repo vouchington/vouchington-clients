@@ -63,21 +63,27 @@ VOUCHA_API_BASE_URL = http:$(VOUCHA_URL_SLASH)$(VOUCHA_URL_SLASH)localhost:3000
 Generated Debug schemes reference the file, so changing the URL does not require project
 regeneration. Clean generation creates a production-default XCConfig when it is absent. See
 [web-mode resource allocation](https://github.com/vouchington/vouchington/blob/main/dev/reference-resource-allocation-web-mode.md)
-for the backend port contract. Set
-`VOUCHA_TURNSTILE_SITE_KEY` (or shared `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`) when testing
-CAPTCHA-gated flows against an environment with a Cloudflare Turnstile widget — native clients
-intentionally do not keep a checked-in site-key fallback because Cloudflare registers staging and
-production widgets separately. App startup must not fail solely because the site key is absent. In
-Xcode: Product → Scheme → Edit → Run → Arguments → Environment Variables.
+for the backend port contract. `VOUCHA_TURNSTILE_SITE_KEY` overrides
+`NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`, which overrides the packaged plist value. In Xcode:
+Product → Scheme → Edit → Run → Arguments → Environment Variables.
+
+Debug builds use Cloudflare's always-pass visible test site key `1x00000000000000000000AA` when
+those inputs are absent. The widget then returns Cloudflare's dummy token `XXXX.DUMMY.TOKEN.XXXX`.
+That token verifies only against a server configured with Cloudflare's matching Turnstile test
+secret. Production secrets reject it, so a Debug app works with a local or staging server that
+uses the test secret and does not verify against production.
 
 Packaged macOS/iOS apps read configuration in this order: process environment, the app's
 `Info.plist`, then production API/image defaults. XcodeGen writes `VOUCHA_API_BASE_URL`,
 `VOUCHA_IMAGE_BASE_URL`, and `VOUCHA_TURNSTILE_SITE_KEY` into the plist from the corresponding
-build settings. Set the public Turnstile site key in the existing local XCConfig or pass
-`VOUCHA_TURNSTILE_SITE_KEY` to `xcodebuild` when creating a Release build. Release automation
-should map its environment's `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` into that build setting;
-scheme environment variables alone do not configure an installed app. A missing key remains
-empty and CAPTCHA-gated operations fail closed. No site key or credential is checked in.
+build settings. Debug configuration defaults the site-key setting to the always-pass test key.
+Release builds run `swift-clients/tooling/turnstile-release-site-key.sh` and fail when the setting
+is empty or is any Cloudflare test site or secret key listed in
+`turnstile-test-site-keys.txt`. Pass an explicit non-test public site key in the local XCConfig or
+as `VOUCHA_TURNSTILE_SITE_KEY` on the Release `xcodebuild` command. Release automation should map
+its environment's `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` into that build setting; scheme
+environment variables alone do not configure an installed app. The Release runtime also rejects a
+missing or test key. The production site key stays outside this repository.
 
 ## Workflow
 

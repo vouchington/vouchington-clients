@@ -6,6 +6,8 @@ on:
       - .github/workflows/release-ios-testflight.yml
       - swift-clients/apps/iOS/Info.plist
       - swift-clients/apps/iOS/project.yml
+      - swift-clients/tooling/turnstile-release-site-key.sh
+      - swift-clients/tooling/turnstile-test-site-keys.txt
       - scripts/ios-release-version.mjs
       - scripts/ios-unsigned-ipa.mjs
       - tests/ios-release-version.test.mjs
@@ -84,7 +86,9 @@ jobs:
           app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
           printf 'Expected archive app: %s\nExpected version: %s\nExpected build: %s\n' "$app" "$RELEASE_VERSION" "$RELEASE_BUILD" > "$diagnostics"
           ./swift-clients/tooling/generate.sh iOS
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/ios-release-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/ios-release-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive MARKETING_VERSION="$RELEASE_VERSION" CURRENT_PROJECT_VERSION="$RELEASE_BUILD" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          # Explicit non-production site key. Release rejects an empty value and Cloudflare test keys.
+          release_site_key=0x4AAAAAAAAexample
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/ios-release-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/ios-release-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive MARKETING_VERSION="$RELEASE_VERSION" CURRENT_PROJECT_VERSION="$RELEASE_BUILD" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           if [[ ! -d "$app" ]]; then
             echo "::error::Archive succeeded but $app is absent"
             find "$RUNNER_TEMP/Voucha.xcarchive/Products" -maxdepth 3 -type d -print | tee -a "$diagnostics"
@@ -95,6 +99,11 @@ jobs:
           printf 'Observed version: %s\nObserved build: %s\n' "$actual_version" "$actual_build" | tee -a "$diagnostics"
           if [[ "$actual_version" != "$RELEASE_VERSION" || "$actual_build" != "$RELEASE_BUILD" ]]; then
             echo '::error::Archived app version does not match the release rule'
+            exit 1
+          fi
+          actual_site_key="$(/usr/libexec/PlistBuddy -c 'Print :VOUCHA_TURNSTILE_SITE_KEY' "$app/Info.plist")"
+          if [[ "$actual_site_key" != "$release_site_key" ]]; then
+            echo '::error::Archived app Turnstile site key does not match the explicit Release input'
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/ios-unsigned-export"

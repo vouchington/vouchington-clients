@@ -16,10 +16,7 @@ public sealed record AppConfig(
   public const string DefaultImageBaseUrl = "https://images.voucha.ai";
   public const string DefaultWebBaseUrl = "https://voucha.ai";
 
-  public string RequiredTurnstileSiteKey =>
-      !string.IsNullOrWhiteSpace(TurnstileSiteKey)
-          ? TurnstileSiteKey
-          : throw new InvalidOperationException("Missing VOUCHA_TURNSTILE_SITE_KEY");
+  public string RequiredTurnstileSiteKey => TurnstileSiteKeys.Require(TurnstileSiteKey);
 
   public static AppConfig FromEnvironment(
       IReadOnlyDictionary<string, string?>? environment = null,

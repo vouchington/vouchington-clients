@@ -23,13 +23,17 @@ public sealed class AppConfigTests
   }
 
   [Fact]
-  public void FromEnvironmentAllowsMissingTurnstileUntilCaptchaFlow()
+  public void FromEnvironmentResolvesAMissingTurnstileKeyForTheCompiledConfiguration()
   {
     var config = AppConfig.FromEnvironment(new Dictionary<string, string?>(StringComparer.Ordinal));
 
     Assert.Equal("", config.TurnstileSiteKey);
+#if DEBUG
+    Assert.Equal(TurnstileSiteKeys.AlwaysPassSiteKey, config.RequiredTurnstileSiteKey);
+#else
     var exception = Assert.Throws<InvalidOperationException>(() => config.RequiredTurnstileSiteKey);
-    Assert.Equal("Missing VOUCHA_TURNSTILE_SITE_KEY", exception.Message);
+    Assert.Equal(TurnstileSiteKeys.MissingReleaseKeyMessage, exception.Message);
+#endif
   }
 
   [Fact]
