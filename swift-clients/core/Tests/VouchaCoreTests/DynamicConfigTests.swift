@@ -24,7 +24,7 @@ final class DynamicConfigTests: XCTestCase {
         )
 
         XCTAssertEqual(typed.namespace.fields.map(\.type), [.boolean, .boolean, .number])
-        XCTAssertEqual(string.namespace.fields.last?.value, .string("off"))
+        XCTAssertEqual(string.namespace.fields.first { $0.name == "request_signing_mode" }?.value, .string("off"))
         XCTAssertEqual(integer.namespace.fields.first?.integer, true)
         XCTAssertEqual(history.history.first?.changedBy?.username, "qa-developer")
     }

@@ -359,7 +359,7 @@ internal static partial class ApiFixtureCoverage
     ["web.admin.valkey.cache-groups.default"] = typeof(CacheGroupsResponse),
     ["web.admin.valkey.caches.clear.default"] = typeof(ClearCacheResponse),
     ["web.admin.valkey.flush.default"] = typeof(FlushValkeyResponse),
-  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures();
+  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures().WithNativeSessionFixtures();
 
   /// <summary>
   /// Per-fixture key paths this client intentionally does not model, with a one-line reason.
