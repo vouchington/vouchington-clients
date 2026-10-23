@@ -150,6 +150,46 @@ test('native producer uses its pinned task and consumer requires verified state'
   }
 })
 
+test('app memory snapshots bracket Gradle and preserve its failure status', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const bin = join(f.root, '.build/artifacts/skip/skip/skip.artifactbundle/bin')
+    await writeFile(join(bin, 'uname'), '#!/bin/sh\nprintf "Darwin\\n"\n')
+    await writeFile(
+      join(bin, 'sysctl'),
+      '#!/bin/sh\nprintf "sysctl %s\\n" "$*" >> "$PHASE_TRACE"\n',
+    )
+    await writeFile(join(bin, 'vm_stat'), '#!/bin/sh\nprintf "vm_stat\\n" >> "$PHASE_TRACE"\n')
+    for (const name of ['uname', 'sysctl', 'vm_stat']) await chmod(join(bin, name), 0o755)
+
+    const verified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
+    const success = f.run(['--phase', 'app-consumer'], verified)
+    assert.equal(success.status, 0, success.stderr)
+    assert.equal(
+      (success.stdout.match(/Android app Gradle memory snapshot/g) ?? []).length,
+      2,
+      success.stdout + success.stderr,
+    )
+    assert.deepEqual(await f.lines(), [
+      'sysctl -n hw.memsize',
+      'sysctl vm.swapusage',
+      'vm_stat',
+      'gradle --profile :app:assembleDebug :app:assembleDebugAndroidTest',
+      'sysctl -n hw.memsize',
+      'sysctl vm.swapusage',
+      'vm_stat',
+    ])
+
+    const failure = f.run(['--phase', 'app-consumer'], { ...verified, FAIL_APP: '13' })
+    assert.equal(failure.status, 13)
+    assert.equal((failure.stdout.match(/Android app Gradle memory snapshot/g) ?? []).length, 2)
+    assert.equal((await f.lines()).at(-1), 'vm_stat')
+  } finally {
+    await f.clean()
+  }
+})
+
 test('native producer retains Skip source hashes only after verified state restore', async () => {
   const f = await fixture()
   try {

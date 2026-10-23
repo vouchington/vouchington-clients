@@ -157,6 +157,18 @@ if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" && -d "$HOME/Library/
   export ANDROID_HOME
 fi
 
+capture_android_memory_snapshot() {
+  local boundary="$1"
+  if [[ "$phase" != app-consumer || "$(uname -s)" != Darwin ]]; then
+    return 0
+  fi
+  printf 'Android app Gradle memory snapshot (%s):\n' "$boundary"
+  printf 'hw.memsize: '
+  sysctl -n hw.memsize 2>&1 | sed -n '1,2p' || true
+  sysctl vm.swapusage 2>&1 | sed -n '1,2p' || true
+  vm_stat 2>&1 | sed -n '1,32p' || true
+}
+
 if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   gradle_started_at=$SECONDS
   consumer_log=""
@@ -166,18 +178,32 @@ if [[ "$phase" != test-libs && "$phase" != app-native-dependency ]]; then
   elif [[ "$phase" == app-consumer ]]; then
     consumer_log="${RUNNER_TEMP:?}/android-consumer-gradle.log"
   fi
-  (
+  capture_android_memory_snapshot before
+  gradle_status=0
+  if (
     cd "$ANDROID_PROJECT_DIR"
     # Keep this explicitly scoped to the app closure even if a future Skip generator changes the
     # root project graph; settings.gradle.kts separately rejects any duplicate root modules.
     if [[ "$phase" == app-consumer ]]; then
-      ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"
+      if ./gradlew --profile "${gradle_tasks[@]}" 2>&1 | tee "$consumer_log"; then
+        :
+      else
+        exit "$?"
+      fi
       echo 'Observed native Swift Gradle task outcomes in exact-run consumer:'
       grep -E '^> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug( |$)' "$consumer_log" || true
     else
       ./gradlew --profile "${gradle_tasks[@]}"
     fi
-  )
+  ); then
+    :
+  else
+    gradle_status=$?
+  fi
+  capture_android_memory_snapshot after
+  if (( gradle_status != 0 )); then
+    exit "$gradle_status"
+  fi
   gradle_elapsed_seconds=$((SECONDS - gradle_started_at))
   echo "Android Gradle ${gradle_tasks[*]} completed in ${gradle_elapsed_seconds}s"
   if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
