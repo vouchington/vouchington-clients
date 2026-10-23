@@ -149,13 +149,20 @@ public enum SentryEventScrubber {
 
     private static func stripQuery(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
-        if let query = value.firstIndex(of: "?") {
-            return String(value[..<query])
+        let query = value.firstIndex(of: "?")
+        let fragment = value.firstIndex(of: "#")
+        let cut: String.Index? = switch (query, fragment) {
+        case let (query?, fragment?):
+            min(query, fragment)
+        case let (query?, nil):
+            query
+        case let (nil, fragment?):
+            fragment
+        case (nil, nil):
+            nil
         }
-        if let fragment = value.firstIndex(of: "#") {
-            return String(value[..<fragment])
-        }
-        return value
+        guard let cut else { return value }
+        return String(value[..<cut])
     }
 
     private static func normalized(_ accountId: String?) -> String? {

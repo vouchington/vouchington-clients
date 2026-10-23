@@ -93,7 +93,7 @@ enum SentryAppSupport {
             )
         }
         return SentryOutboundEvent(
-            accountId: event.user?.userId,
+            accountId: boundAccountId,
             email: event.user?.email,
             username: event.user?.username,
             ipAddress: event.user?.ipAddress,
@@ -122,12 +122,13 @@ enum SentryAppSupport {
             let request = event.request ?? SentryRequest()
             request.url = scrubbed.requestURL
             request.queryString = nil
+            request.fragment = nil
             request.headers = scrubbed.headers
             request.cookies = scrubbed.cookies
             event.request = request
         }
         var extra = event.extra ?? [:]
-        for key in Array(extra.keys) where drops(key, from: extra, kept: scrubbed.extras) {
+        for key in Array(extra.keys) where scrubbed.extras[key] == nil {
             extra.removeValue(forKey: key)
         }
         for (key, value) in scrubbed.extras {
@@ -135,10 +136,6 @@ enum SentryAppSupport {
         }
         event.extra = extra
         event.breadcrumbs = (event.breadcrumbs ?? []).compactMap { scrubbedBreadcrumb($0) }
-    }
-
-    private static func drops(_ key: String, from extra: [String: Any], kept: [String: String]) -> Bool {
-        SentryEventScrubber.dropsExtra(key) || (kept[key] == nil && extra[key] is String)
     }
 
     private static func scrubbedBreadcrumb(_ breadcrumb: Breadcrumb) -> Breadcrumb? {

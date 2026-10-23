@@ -45,6 +45,22 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertFalse(transport.events.contains { $0.requestURL?.contains("example.invalid") == true })
     }
 
+    func testFragmentBeforeQueryIsRemovedFromTheRequestURL() {
+        let transport = RecordingSentryTransport()
+        let runtime = SentryRuntime.open(
+            environment: ["VOUCHA_SENTRY_DSN": "https://public@example.invalid/1"],
+            configuration: .debug,
+            releaseName: "0.1.0+1",
+            accountId: nil,
+            transport: transport
+        )
+        runtime?.capture(SentryOutboundEvent(
+            requestURL: "https://voucha.ai/callback#access_token=secret?state=x"
+        ))
+        XCTAssertEqual(transport.events.first?.requestURL, "https://voucha.ai/callback")
+        XCTAssertNil(transport.events.first?.queryString)
+    }
+
     private var secretEvent: SentryOutboundEvent {
         SentryOutboundEvent(
             accountId: "account-1",

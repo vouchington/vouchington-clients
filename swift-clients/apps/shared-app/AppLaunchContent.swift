@@ -15,7 +15,6 @@ struct AppLaunchContent: View {
     var body: some View {
         launchContent
             .task(id: viewModelFactory.sessionManager.currentUserId) {
-                SentryAppSupport.startIfConfigured()
                 SentryAppSupport.applyAccountId(viewModelFactory.sessionManager.currentUserId)
             }
     }

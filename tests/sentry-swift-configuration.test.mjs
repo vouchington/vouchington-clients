@@ -23,7 +23,11 @@ describe('Swift Sentry configuration', () => {
       assert.doesNotMatch(project, /sentry-release-dsn/u)
       assert.match(info, /<key>VOUCHA_SENTRY_DSN<\/key>/u)
       for (const dataType of ['CrashData', 'PerformanceData']) {
-        const entry = privacy.slice(privacy.indexOf(`NSPrivacyCollectedDataType${dataType}`))
+        const start = privacy.indexOf(`<string>NSPrivacyCollectedDataType${dataType}</string>`)
+        assert.notEqual(start, -1)
+        const end = privacy.indexOf('</dict>', start)
+        assert.notEqual(end, -1)
+        const entry = privacy.slice(start, end)
         assert.match(entry, /NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/u)
         assert.match(entry, /NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/u)
       }
@@ -35,5 +39,24 @@ describe('Swift Sentry configuration', () => {
     assert.match(generator, /sentry-cocoa/u)
     assert.match(generator, /2f64c77f77514acd01780d1aac86ae75b7fccd04/u)
     assert.match(generator, /9\.31\.0/u)
+    const support = await readFile(
+      join(root, 'swift-clients/apps/shared-app/SentryAppSupport.swift'),
+      'utf8',
+    )
+    assert.match(support, /accountId: boundAccountId/u)
+    assert.match(support, /request\.fragment = nil/u)
+    for (const platform of ['iOS', 'macOS']) {
+      const app = await readFile(
+        join(root, 'swift-clients/apps', platform, 'Sources/VouchaApp.swift'),
+        'utf8',
+      )
+      assert.match(app, /startIfConfigured\(\)[\s\S]*ViewModelFactory\.makeDefault\(\)/u)
+    }
+    const inventory = await readFile(
+      join(root, 'docs/development/apple-privacy-inventory.md'),
+      'utf8',
+    )
+    assert.match(inventory, /NSPrivacyCollectedDataTypeCrashData/u)
+    assert.match(inventory, /NSPrivacyCollectedDataTypePerformanceData/u)
   })
 })
