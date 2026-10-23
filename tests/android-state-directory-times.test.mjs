@@ -60,6 +60,19 @@ test('directory timestamp helper validates all child sets before changing any mt
   await writeFile(join(first, 'source.swift'), 'source')
   await writeFile(join(last, 'source.swift'), 'source')
   await chmod(root, 0o755)
+  const originalAtime = '1792634208267950316'
+  const setAtime = spawnSync(
+    'python3',
+    [
+      '-I',
+      '-c',
+      'import os,sys; s=os.stat(sys.argv[1]); os.utime(sys.argv[1], ns=(int(sys.argv[2]),s.st_mtime_ns))',
+      first,
+      originalAtime,
+    ],
+    { encoding: 'utf8' },
+  )
+  assert.equal(setAtime.status, 0, setAtime.stderr)
   const before = (await stat(first, { bigint: true })).mtimeNs
   const wanted = '1792634209267950316'
   const records = [
@@ -77,10 +90,23 @@ test('directory timestamp helper validates all child sets before changing any mt
   assert.notEqual(mismatch.status, 0)
   assert.match(mismatch.stderr, /graph or mode differs/u)
   assert.equal((await stat(first, { bigint: true })).mtimeNs, before)
+  const resetAtime = spawnSync(
+    'python3',
+    [
+      '-I',
+      '-c',
+      'import os,sys; s=os.stat(sys.argv[1]); os.utime(sys.argv[1], ns=(int(sys.argv[2]),s.st_mtime_ns))',
+      first,
+      originalAtime,
+    ],
+    { encoding: 'utf8' },
+  )
+  assert.equal(resetAtime.status, 0, resetAtime.stderr)
   const success = runDirectoryHelper(state.root, records)
   assert.equal(success.status, 0, success.stderr)
   assert.equal((await stat(root, { bigint: true })).mtimeNs.toString(), wanted)
   assert.equal((await stat(first, { bigint: true })).mtimeNs.toString(), wanted)
+  assert.equal((await stat(first, { bigint: true })).atimeNs.toString(), originalAtime)
   assert.equal((await stat(last, { bigint: true })).mtimeNs.toString(), wanted)
 })
 

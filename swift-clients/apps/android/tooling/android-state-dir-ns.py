@@ -116,12 +116,14 @@ def main():
                     or digest != member["childrenSha256"]
                 ):
                     raise ValueError("Android state directory graph or mode differs from archive")
-                validated.append((member, details.st_dev, details.st_ino))
+                validated.append((member, details.st_dev, details.st_ino, details.st_atime_ns))
             finally:
                 os.close(fd)
         # Reopen by no-follow dirfd and verify the same inodes and graph before
         # each update. Any late race fails on private staging before root swap.
-        for member, device, inode in sorted(validated, key=lambda item: -item[0]["path"].count("/")):
+        for member, device, inode, original_atime in sorted(
+            validated, key=lambda item: -item[0]["path"].count("/")
+        ):
             fd = open_directory(root_fd, member["path"])
             try:
                 current = os.fstat(fd)
@@ -134,7 +136,7 @@ def main():
                 ):
                     raise ValueError("Android state directory changed after graph validation")
                 timestamp = int(member["mtimeNs"])
-                os.utime(fd, ns=(current.st_atime_ns, timestamp))
+                os.utime(fd, ns=(original_atime, timestamp))
                 if os.fstat(fd).st_mtime_ns != timestamp:
                     raise ValueError("Android state directory timestamp precision was lost")
             finally:
