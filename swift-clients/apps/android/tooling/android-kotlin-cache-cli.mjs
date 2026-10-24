@@ -20,15 +20,15 @@ export function configurationDigest(checkoutRoot) {
 }
 
 function main() {
-  const [command, packageArgument, artifactArgument, ...extra] = process.argv.slice(2)
-  if (!['pack', 'merge'].includes(command) || !packageArgument || !artifactArgument || extra.length) throw Error('Usage: android-kotlin-cache-cli.mjs pack|merge <package-root> <artifact-root>')
+  const [command, packageArgument, artifactArgument, dependencyFlag, dependencySha256, ...extra] = process.argv.slice(2)
+  if (!['pack', 'merge'].includes(command) || !packageArgument || !artifactArgument || dependencyFlag !== '--dependency-sha256' || !dependencySha256 || extra.length) throw Error('Usage: android-kotlin-cache-cli.mjs pack|merge <package-root> <artifact-root> --dependency-sha256 <sha256>')
   if (!process.env.GITHUB_WORKSPACE) throw Error('GITHUB_WORKSPACE is required')
   const packageRoot = resolve(packageArgument)
   const checkoutRoot = join(resolve(process.env.GITHUB_WORKSPACE), 'candidate-clients')
   const gradle = readFileSync(join(packageRoot, 'Android/gradle/wrapper/gradle-wrapper.properties'), 'utf8')
     .match(/gradle-(\d+\.\d+\.\d+)-bin\.zip/u)?.[1] ?? ''
   const identity = { revision: process.env.CANDIDATE_REVISION ?? '', run: process.env.GITHUB_RUN_ID ?? '', attempt: process.env.GITHUB_RUN_ATTEMPT ?? '', gradle }
-  const options = { packageRoot, checkoutRoot, cacheRoot: selectedBuildCacheRoot(), artifactRoot: resolve(artifactArgument), identity, configurationSha256: configurationDigest(checkoutRoot) }
+  const options = { packageRoot, checkoutRoot, cacheRoot: selectedBuildCacheRoot(), artifactRoot: resolve(artifactArgument), identity, configurationSha256: configurationDigest(checkoutRoot), dependencySha256 }
   const result = command === 'pack' ? packKotlinCache(options) : mergeKotlinCache(options)
   console.log(`${command} Android Kotlin cache ${JSON.stringify(result)}`)
 }

@@ -41,25 +41,36 @@ test('CLI binds the selected real cache to the checked-out candidate, toolchain 
     await mkdir(join(checkoutRoot, path, '..'), { recursive: true })
     await writeFile(join(checkoutRoot, path), text)
   }
-  const run = (command, overrides = {}) =>
-    spawnSync(process.execPath, [cli, command, packageRoot, f.artifactRoot], {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        HOME: home,
-        GITHUB_ACTIONS: 'true',
-        GITHUB_WORKSPACE: root,
-        CANDIDATE_REVISION: f.identity.revision,
-        GITHUB_RUN_ID: f.identity.run,
-        GITHUB_RUN_ATTEMPT: f.identity.attempt,
-        ...overrides,
+  const run = (
+    command,
+    overrides = {},
+    dependencyArguments = ['--dependency-sha256', 'e'.repeat(64)],
+  ) =>
+    spawnSync(
+      process.execPath,
+      [cli, command, packageRoot, f.artifactRoot, ...dependencyArguments],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          HOME: home,
+          GITHUB_ACTIONS: 'true',
+          GITHUB_WORKSPACE: root,
+          CANDIDATE_REVISION: f.identity.revision,
+          GITHUB_RUN_ID: f.identity.run,
+          GITHUB_RUN_ATTEMPT: f.identity.attempt,
+          ...overrides,
+        },
       },
-    })
+    )
+  assert.notEqual(run('pack', {}, []).status, 0, 'dependency digest must be an explicit CLI input')
   const packed = run('pack')
   assert.equal(packed.status, 0, packed.stderr)
   const manifest = JSON.parse(await readFile(join(f.artifactRoot, 'manifest.json')))
   assert.equal(manifest.identity.gradle, '9.4.1')
   assert.equal(manifest.role, 'kotlin-libraries')
+  assert.equal(manifest.dependencySha256, 'e'.repeat(64))
+  assert.deepEqual(manifest.requestedTasks, [':skipstone:SkipUI:compileDebugKotlin'])
   assert.match(manifest.configurationSha256, /^[a-f0-9]{64}$/u)
   await rm(join(cacheRoot, key))
   const merged = run('merge')
@@ -68,6 +79,7 @@ test('CLI binds the selected real cache to the checked-out candidate, toolchain 
   await rm(join(cacheRoot, key))
   assert.notEqual(run('merge', { CANDIDATE_REVISION: '0'.repeat(40) }).status, 0)
   assert.notEqual(run('merge', { GITHUB_RUN_ATTEMPT: '3' }).status, 0)
+  assert.notEqual(run('merge', {}, ['--dependency-sha256', 'f'.repeat(64)]).status, 0)
   await writeFile(join(checkoutRoot, '.mise.toml'), '[tools]\nswift="different"\n')
   assert.notEqual(run('merge').status, 0, 'different compiler configuration must fail')
   assert.deepEqual(await readdir(cacheRoot), [])

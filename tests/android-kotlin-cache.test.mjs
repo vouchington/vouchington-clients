@@ -20,6 +20,7 @@ async function fixture(t) {
     f[key] = join(root, relative(f.root, f[key]))
   f.root = root
   f.configurationSha256 = 'd'.repeat(64)
+  f.dependencySha256 = 'e'.repeat(64)
   await rm(join(f.cacheRoot, 'cache-entry'))
   await writeFile(join(f.cacheRoot, a), 'compiled library A')
   await writeFile(join(f.cacheRoot, b), 'compiled library B')
@@ -45,6 +46,8 @@ test('flat handoff preserves exact outputs and existing entries without touching
   const header = JSON.parse(await readFile(join(f.artifactRoot, 'manifest.json')))
   assert.deepEqual(header.identity, f.identity)
   assert.equal(header.configurationSha256, f.configurationSha256)
+  assert.equal(header.dependencySha256, f.dependencySha256)
+  assert.deepEqual(header.requestedTasks, [':skipstone:SkipUI:compileDebugKotlin'])
   const before = await lstat(join(f.cacheRoot, a))
   await rm(join(f.cacheRoot, b))
   assert.deepEqual(mergeKotlinCache(f), { role: 'kotlin-libraries', added: 1, retained: 1 })
@@ -65,7 +68,15 @@ test('flat handoff preserves exact outputs and existing entries without touching
 })
 
 test('all identity and role mismatches fail before cache publication', async t => {
-  for (const field of ['revision', 'run', 'attempt', 'gradle', 'role', 'configurationSha256']) {
+  for (const field of [
+    'revision',
+    'run',
+    'attempt',
+    'gradle',
+    'role',
+    'configurationSha256',
+    'dependencySha256',
+  ]) {
     await t.test(field, async sub => {
       const f = await fixture(sub)
       packKotlinCache(f)
@@ -254,7 +265,11 @@ test('special files and symlinked cache ancestors are rejected without opening o
   const linked = join(f.root, 'linked-cache')
   await symlink(f.cacheRoot, linked)
   assert.throws(() => packKotlinCache({ ...f, cacheRoot: linked }), /ancestor/u)
-  const fifo = spawnSync('mkfifo', [join(f.cacheRoot, c)], { encoding: 'utf8' })
+  const fifo = spawnSync(
+    'python3',
+    ['-I', '-c', 'import os,sys; os.mkfifo(sys.argv[1])', join(f.cacheRoot, c)],
+    { encoding: 'utf8' },
+  )
   assert.equal(fifo.status, 0, fifo.stderr)
   assert.throws(() => packKotlinCache(f), /regular files/u)
   await assert.rejects(lstat(f.artifactRoot), { code: 'ENOENT' })
@@ -267,4 +282,23 @@ test('packing refuses to replace an existing artifact directory or its verified 
   assert.throws(() => packKotlinCache(f), { code: 'EEXIST' })
   assert.equal(await readFile(join(f.artifactRoot, 'manifest.json'), 'utf8'), before)
   assert.equal(await readFile(join(f.artifactRoot, a), 'utf8'), 'compiled library A')
+})
+
+test('requested task provenance rejects missing, additional and different task selections', async t => {
+  for (const requestedTasks of [
+    [],
+    [':skipstone:SkipLib:compileDebugKotlin'],
+    [':skipstone:SkipUI:compileDebugKotlin', ':app:assembleDebug'],
+  ]) {
+    await t.test(JSON.stringify(requestedTasks), async sub => {
+      const f = await fixture(sub)
+      packKotlinCache(f)
+      await emptyCache(f)
+      await manifest(f, m => {
+        m.requestedTasks = requestedTasks
+      })
+      assert.throws(() => mergeKotlinCache(f), /identity mismatch/u)
+      assert.deepEqual(await readdir(f.cacheRoot), [])
+    })
+  }
 })

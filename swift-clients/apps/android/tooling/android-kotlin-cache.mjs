@@ -4,14 +4,15 @@ import { assertCandidate, assertIdentity, assertPackageLayout, existingStat } fr
 import { cacheLimits, checkTime, entryName, fileDigest, inventory, safeDirectory } from './android-kotlin-cache-files.mjs'
 
 const role = 'kotlin-libraries'
+const requestedTasks = Object.freeze([':skipstone:SkipUI:compileDebugKotlin'])
 const manifestName = 'manifest.json'
 
 function context(options) {
-  const { packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, configurationSha256 } = options
+  const { packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, configurationSha256, dependencySha256 } = options
   assertIdentity(identity)
   assertCandidate(checkoutRoot, identity)
   assertPackageLayout(packageRoot, checkoutRoot)
-  if (!/^[a-f0-9]{64}$/u.test(configurationSha256)) throw Error('Invalid Kotlin cache configuration identity')
+  if (!/^[a-f0-9]{64}$/u.test(configurationSha256) || !/^[a-f0-9]{64}$/u.test(dependencySha256)) throw Error('Invalid Kotlin cache configuration identity')
   safeDirectory(cacheRoot)
   safeDirectory(dirname(artifactRoot))
   if (artifactRoot !== resolve(artifactRoot) || cacheRoot === artifactRoot ||
@@ -20,10 +21,12 @@ function context(options) {
   return { limits, deadline: Date.now() + limits.ms }
 }
 
-function manifestEntries(manifest, identity, configurationSha256, limits) {
+function manifestEntries(manifest, identity, configurationSha256, dependencySha256, limits) {
   if (manifest?.format !== 1 || manifest.role !== role ||
       Object.keys(identity).some(key => manifest.identity?.[key] !== identity[key]) ||
-      manifest.configurationSha256 !== configurationSha256) throw Error('Kotlin cache artifact identity mismatch')
+      manifest.configurationSha256 !== configurationSha256 || manifest.dependencySha256 !== dependencySha256 ||
+      !Array.isArray(manifest.requestedTasks) || manifest.requestedTasks.length !== requestedTasks.length ||
+      manifest.requestedTasks.some((task, index) => task !== requestedTasks[index])) throw Error('Kotlin cache artifact identity mismatch')
   if (!Array.isArray(manifest.entries) || !manifest.entries.length || manifest.entries.length > limits.entries) throw Error('Invalid Kotlin cache manifest entries')
   let total = 0
   const names = new Set()
@@ -42,11 +45,11 @@ function same(left, right) {
 }
 
 export function packKotlinCache(options) {
-  const { cacheRoot, artifactRoot, identity, configurationSha256 } = options
+  const { cacheRoot, artifactRoot, identity, configurationSha256, dependencySha256 } = options
   const { limits, deadline } = context(options)
   const entries = inventory(cacheRoot, limits, deadline)
   if (!entries.length) throw Error('Kotlin cache has no task entries')
-  const manifest = { format: 1, role, identity, configurationSha256, entries }
+  const manifest = { format: 1, role, identity, configurationSha256, dependencySha256, requestedTasks, entries }
   const serialized = JSON.stringify(manifest) + '\n'
   if (Buffer.byteLength(serialized) > limits.manifestBytes) throw Error('Kotlin cache manifest limit exceeded')
   mkdirSync(artifactRoot, { mode: 0o700 })
@@ -62,14 +65,14 @@ export function packKotlinCache(options) {
 }
 
 export function mergeKotlinCache(options) {
-  const { cacheRoot, artifactRoot, identity, configurationSha256, linkEntry = linkSync } = options
+  const { cacheRoot, artifactRoot, identity, configurationSha256, dependencySha256, linkEntry = linkSync } = options
   const { limits, deadline } = context(options)
   safeDirectory(artifactRoot)
   const manifestPath = join(artifactRoot, manifestName)
   const manifestStat = lstatSync(manifestPath)
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink() || manifestStat.size > limits.manifestBytes) throw Error('Unsafe Kotlin cache manifest')
   const manifest = JSON.parse(fileDigest(manifestPath, limits.manifestBytes, deadline, undefined, true).text)
-  const expected = manifestEntries(manifest, identity, configurationSha256, limits)
+  const expected = manifestEntries(manifest, identity, configurationSha256, dependencySha256, limits)
   const incoming = new Map(inventory(artifactRoot, limits, deadline, new Set([manifestName])).map(entry => [entry.name, entry]))
   if (incoming.size !== expected.length || expected.some(entry => !same(entry, incoming.get(entry.name) ?? {}))) throw Error('Kotlin cache artifact inventory mismatch')
   const existing = new Map(inventory(cacheRoot, limits, deadline).map(entry => [entry.name, entry]))
