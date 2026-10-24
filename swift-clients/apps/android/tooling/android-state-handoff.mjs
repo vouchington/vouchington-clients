@@ -13,7 +13,7 @@ import { archiveChunks, ByteReader, magic, sha256File, sourceMetadataPath } from
 import { assertDebugLink, checkedSkipstoneLink, resolveSkipstoneLink } from './android-state-links.mjs'
 import { assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, existingStat, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 import { inventoryTrackedSourceMetadata, restoreTrackedSourceTimes, sourceMetadataLimits } from './android-state-source-metadata.mjs'
-import { assertStateRole, isTestRunnerRole, stateLimits } from './android-state-role.mjs'
+import { assertStateRole, assertTestRunnerProducts, isTestRunnerRole, stateLimits } from './android-state-role.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -233,7 +233,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
         if (member.path !== '.build/debug') {
           deferredLinks.push({ target, link: member.target, path: member.path, generated: true })
         } else {
-          assertDebugLink(member.path, member.target)
+          assertDebugLink(member.path, member.target, role)
           deferredLinks.push({ target, link: member.target, path: member.path, generated: false })
         }
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
@@ -269,6 +269,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       throw new Error('Android state unpacked inventory mismatch')
     }
     restoreExactFileTimes(staging, fileTimes, deadline)
+    if (isTestRunnerRole(role)) assertTestRunnerProducts(staging)
     for (const { target, link, path, generated } of deferredLinks) {
       if (generated) {
         checkedSkipstoneLink(path, link, packageRoot, checkoutRoot)

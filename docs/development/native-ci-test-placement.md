@@ -61,8 +61,10 @@ role/candidate/run/attempt/Gradle identity in the manifest and archive, archive 
 source hashes, exact timestamps and directory graphs. Its bounds are tighter than native state:
 100,000 members, 4 GiB unpacked, 2 GiB compressed, a 60-second scan and 90-second transfer deadline.
 It transfers no Gradle project or shared task-cache roots. The producer does not create the
-compatibility alias; the consumer reconstructs it only after verified restore. Unknown symlinks
-remain rejected. The stable runtime fan-in requires both runner and library results to succeed.
+compatibility alias; the consumer reconstructs it only after verified restore. Only this role
+admits the observed `.build/debug` link to the literal `out/Products/Debug-android-aarch64`. Every
+product ancestor must be a real directory and the runner a regular executable in producer and
+staged state. Native/default link rules and all other unknown-link rejection remain unchanged. The stable runtime fan-in requires both runner and library results to succeed.
 Hosted pack sizes, transfer time and complete job timing must establish the actual margin; the
 extra setup is not assumed to improve the whole critical path.
 

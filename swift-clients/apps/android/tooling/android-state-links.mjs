@@ -1,5 +1,6 @@
 import { lstatSync, readlinkSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isTestRunnerRole, testRunnerDebugTarget } from './android-state-role.mjs'
 
 export function targetDiagnostic(target) {
   const text = JSON.stringify(target) ?? String(target)
@@ -10,9 +11,11 @@ export function targetDiagnostic(target) {
   return `${bytes.subarray(0, end).toString('utf8')}...`
 }
 
-export function assertDebugLink(path, target) {
-  if (path !== '.build/debug' || typeof target !== 'string' ||
-      !/^[A-Za-z0-9._-]+\/debug$/u.test(target) || target.split('/').includes('..')) {
+export function assertDebugLink(path, target, role = 'native') {
+  const validTarget = isTestRunnerRole(role)
+    ? target === testRunnerDebugTarget
+    : typeof target === 'string' && /^[A-Za-z0-9._-]+\/debug$/u.test(target) && !target.split('/').includes('..')
+  if (path !== '.build/debug' || !validTarget) {
     throw new Error(`Unsafe Android state symlink: ${path}; target=${targetDiagnostic(target)}`)
   }
 }

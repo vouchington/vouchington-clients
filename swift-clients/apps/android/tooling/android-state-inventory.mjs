@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { lstatSync, opendirSync, readlinkSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
-import { assertRoleMember, isTestRunnerRole } from './android-state-role.mjs'
+import { assertRoleMember, assertTestRunnerProducts, isTestRunnerRole } from './android-state-role.mjs'
 import { assertDebugLink, checkedSkipstoneLink, isSkipstoneOutputPath, resolveSkipstoneLink, targetDiagnostic } from './android-state-links.mjs'
 
 export const defaultLimits = {
@@ -77,6 +77,7 @@ export function selectedRoots(packageRoot, cacheRoot, role = 'native') {
 export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = defaultLimits, role = 'native') {
   assertPackageLayout(packageRoot, checkoutRoot)
   const started = Date.now()
+  if (isTestRunnerRole(role)) assertTestRunnerProducts(packageRoot)
   const pending = selectedRoots(packageRoot, cacheRoot, role)
   const entries = []
   let unpackedBytes = 0
@@ -98,7 +99,7 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
           checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
           entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
         } else {
-          assertDebugLink(item.path, target)
+          assertDebugLink(item.path, target, role)
           if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
             throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
           }

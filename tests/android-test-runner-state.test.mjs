@@ -22,7 +22,11 @@ import {
   restoreState,
   inventoryState,
 } from '../swift-clients/apps/android/tooling/android-state-handoff.mjs'
-import { testRunnerLimits } from '../swift-clients/apps/android/tooling/android-state-role.mjs'
+import {
+  testRunnerLimits,
+  testRunnerDebugTarget,
+} from '../swift-clients/apps/android/tooling/android-state-role.mjs'
+import { assertDebugLink } from '../swift-clients/apps/android/tooling/android-state-links.mjs'
 import { androidStateFixture } from './android-state-handoff-fixture.mjs'
 
 async function fixture(t) {
@@ -33,6 +37,7 @@ async function fixture(t) {
   await mkdir(f.products, { recursive: true })
   await writeFile(join(f.products, 'VouchaAndroidTests-test-runner'), 'verified runner')
   await chmod(join(f.products, 'VouchaAndroidTests-test-runner'), 0o755)
+  await symlink('out/Products/Debug-android-aarch64', join(f.packageRoot, '.build/debug'))
   return f
 }
 
@@ -40,7 +45,13 @@ async function rewrite(f, edit, headerIndex = 0) {
   const archive = join(f.artifactRoot, 'android-state.gz')
   const bytes = gunzipSync(await readFile(archive))
   let offset = 5
-  for (let index = 0; index < headerIndex; index++) offset += 4 + bytes.readUInt32BE(offset)
+  for (let index = 0; ; index++) {
+    assert.ok(index < 100, 'fixture member must exist')
+    const length = bytes.readUInt32BE(offset)
+    const header = JSON.parse(bytes.subarray(offset + 4, offset + 4 + length).toString())
+    if (typeof headerIndex === 'string' ? header.path === headerIndex : index === headerIndex) break
+    offset += 4 + length + (['file', 'source-metadata'].includes(header.type) ? header.size : 0)
+  }
   const length = bytes.readUInt32BE(offset)
   const header = JSON.parse(bytes.subarray(offset + 4, offset + 4 + length).toString())
   edit(header)
@@ -73,8 +84,14 @@ test('test-runner role restores only .build and reconstructs the existing checke
   const packed = await packState(f)
   assert.equal(packed.role, 'test-runner')
   assert.deepEqual(packed.identity, f.identity)
+  const sourceTime = (await stat(join(f.packageRoot, '.build'), { bigint: true })).mtimeNs
   await rm(join(f.packageRoot, '.build'), { recursive: true })
   await restoreState(f)
+  assert.equal(
+    await readlink(join(f.packageRoot, '.build/debug')),
+    'out/Products/Debug-android-aarch64',
+  )
+  assert.equal((await stat(join(f.packageRoot, '.build'), { bigint: true })).mtimeNs, sourceTime)
   assert.equal(
     await readFile(join(f.products, 'VouchaAndroidTests-test-runner'), 'utf8'),
     'verified runner',
@@ -101,6 +118,7 @@ test('native and runner roles reject substitution in both directions before dest
       const f = await fixture(sub)
       const native = { ...f, role: 'native', identity: { ...f.identity } }
       delete native.identity.role
+      if (!runner) await rm(join(f.packageRoot, '.build/debug'))
       const packed = runner ? f : native
       const expected = runner ? native : f
       await packState(packed)
@@ -287,4 +305,112 @@ test('explicit role CLI round-trips without selecting a shared Gradle cache', as
   assert.match(restored.stdout, /"role":"test-runner"/u)
   assert.notEqual(run('restore', 'unknown').status, 0)
   assert.equal(await readFile(join(f.cacheRoot, 'cache-entry'), 'utf8'), 'cache')
+})
+
+test('only the exact runner-role debug alias is admitted; native policy stays unchanged', () => {
+  assert.doesNotThrow(() => assertDebugLink('.build/debug', testRunnerDebugTarget, 'test-runner'))
+  assert.doesNotThrow(() => assertDebugLink('.build/debug', 'arm64-apple-macosx/debug'))
+  assert.throws(
+    () => assertDebugLink('.build/debug', testRunnerDebugTarget),
+    /Unsafe Android state symlink/u,
+  )
+  for (const target of [
+    'out/Products/Debug-android-x86_64',
+    '../out/Products/Debug-android-aarch64',
+    '/out/Products/Debug-android-aarch64',
+    'arm64-apple-macosx/debug',
+  ]) {
+    assert.throws(
+      () => assertDebugLink('.build/debug', target, 'test-runner'),
+      /Unsafe Android state symlink/u,
+    )
+  }
+  assert.throws(
+    () => assertDebugLink('.build/misplaced', testRunnerDebugTarget, 'test-runner'),
+    /Unsafe Android state symlink/u,
+  )
+})
+
+test('producer rejects every symlinked product ancestor without following it', async t => {
+  for (const suffix of [
+    '.build',
+    '.build/out',
+    '.build/out/Products',
+    '.build/out/Products/Debug-android-aarch64',
+  ]) {
+    await t.test(suffix, async sub => {
+      const f = await fixture(sub)
+      const foreign = join(f.root, 'foreign')
+      const path = join(f.packageRoot, suffix)
+      await rename(path, foreign)
+      await symlink(foreign, path)
+      await writeFile(join(foreign, 'sentinel'), 'foreign')
+      await assert.rejects(packState(f), /ancestor must be a real directory/u)
+      assert.equal(await readFile(join(foreign, 'sentinel'), 'utf8'), 'foreign')
+    })
+  }
+})
+
+test('crafted consumer parent links reject before tracked timestamps or destination writes', async t => {
+  for (const path of [
+    '.build/out',
+    '.build/out/Products',
+    '.build/out/Products/Debug-android-aarch64',
+  ]) {
+    await t.test(path, async sub => {
+      const f = await fixture(sub)
+      await packState(f)
+      await rm(join(f.packageRoot, '.build'), { recursive: true })
+      const foreign = join(f.root, 'foreign')
+      await mkdir(foreign)
+      await writeFile(join(foreign, 'sentinel'), 'foreign')
+      await rewrite(
+        f,
+        header => {
+          header.type = 'symlink'
+          header.target = foreign
+          header.mode = 0
+          header.mtimeNs = null
+        },
+        path,
+      )
+      const source = join(f.checkoutRoot, 'swift-clients/Package.swift')
+      await utimes(source, 100, 100)
+      await assert.rejects(restoreState(f), /ENOENT|not a directory|real directory/u)
+      assert.equal((await stat(source)).mtimeMs, 100000)
+      assert.equal(await readFile(join(foreign, 'sentinel'), 'utf8'), 'foreign')
+      await assert.rejects(lstat(join(f.packageRoot, '.build')), { code: 'ENOENT' })
+    })
+  }
+})
+
+test('runner product must be a regular executable in producer and staged consumer', async t => {
+  for (const kind of ['source-symlink', 'source-mode', 'staged-mode']) {
+    await t.test(kind, async sub => {
+      const f = await fixture(sub)
+      const runner = join(f.products, 'VouchaAndroidTests-test-runner')
+      if (kind === 'staged-mode') {
+        await packState(f)
+        await rm(join(f.packageRoot, '.build'), { recursive: true })
+        await rewrite(
+          f,
+          header => {
+            header.mode = 0o644
+          },
+          '.build/out/Products/Debug-android-aarch64/VouchaAndroidTests-test-runner',
+        )
+        await assert.rejects(restoreState(f), /regular executable/u)
+        await assert.rejects(lstat(join(f.packageRoot, '.build')), { code: 'ENOENT' })
+      } else {
+        if (kind === 'source-mode') await chmod(runner, 0o644)
+        else {
+          await rm(runner)
+          await writeFile(join(f.root, 'foreign-runner'), 'foreign')
+          await chmod(join(f.root, 'foreign-runner'), 0o755)
+          await symlink(join(f.root, 'foreign-runner'), runner)
+        }
+        await assert.rejects(packState(f), /regular executable/u)
+      }
+    })
+  }
 })

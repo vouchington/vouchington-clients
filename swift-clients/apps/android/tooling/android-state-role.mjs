@@ -1,3 +1,6 @@
+import { lstatSync } from 'node:fs'
+import { join } from 'node:path'
+
 export const testRunnerLimits = Object.freeze({
   entries: 100_000,
   unpackedBytes: 4 * 1024 ** 3,
@@ -33,4 +36,23 @@ export function stateLimits(role, nativeLimits, requested) {
     throw Error('Android test-runner state limits exceed role bounds')
   }
   return limits
+}
+
+
+export const testRunnerDebugTarget = 'out/Products/Debug-android-aarch64'
+
+export function assertTestRunnerProducts(root) {
+  let current = root
+  for (const part of ['.build', ...testRunnerDebugTarget.split('/')]) {
+    current = join(current, part)
+    const stat = lstatSync(current)
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      throw Error(`Android test-runner product ancestor must be a real directory: ${current}`)
+    }
+  }
+  const runner = join(current, 'VouchaAndroidTests-test-runner')
+  const stat = lstatSync(runner)
+  if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o111) === 0) {
+    throw Error('Android test-runner product must be a regular executable')
+  }
 }
