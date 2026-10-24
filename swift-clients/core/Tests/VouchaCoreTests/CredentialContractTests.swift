@@ -20,6 +20,25 @@ final class CredentialContractTests: XCTestCase {
         }
     }
 
+    func testStagedCatalogPreservesAudienceApiKeyPolicy() throws {
+        let catalog = try makeVouchaDecoder().decode(
+            ScopeCatalogResponse.self,
+            from: ApiFixtureLoader.data("shared.scopes.catalog")
+        )
+        XCTAssertEqual(
+            catalog.audiences.map {
+                "\($0.audience.rawValue) \($0.acceptsApiKeys) \($0.requiresAdministrator)"
+            },
+            [
+                "user true false",
+                "community_moderation true false",
+                "brand true false",
+                "admin false true",
+                "legal false true"
+            ]
+        )
+    }
+
     func testStagedCatalogDrivesSelectionAndCreationFixtureDecodes() throws {
         let decoder = makeVouchaDecoder()
         let catalog = try decoder.decode(
@@ -109,6 +128,8 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(grant.resource, "https://voucha.ai/api/v1/mcp")
         XCTAssertEqual(grant.scopes, ["mcp.user:read", "mcp.user:write"])
         XCTAssertNil(grant.lastUsedAt)
+        XCTAssertNil(grant.sessionId)
+        XCTAssertNil(grant.attestationStatus)
         XCTAssertTrue(grants.pageInfo.hasNextPage)
         XCTAssertEqual(grants.pageInfo.endCursor, "fixture-oauth-grant-end-cursor")
     }

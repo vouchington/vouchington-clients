@@ -27,10 +27,12 @@
   </PropertyGroup>
 
   <Import Project="TurnstileSiteKey.targets" />
+  <Import Project="SentryDsn.targets" />
 
   <ItemGroup>
     <AssemblyMetadata Include="VOUCHA_API_BASE_URL" Value="$(VouchaApiBaseUrl)" />
     <AssemblyMetadata Include="VOUCHA_TURNSTILE_SITE_KEY" Value="$(VouchaTurnstileSiteKey)" />
+    <AssemblyMetadata Include="VOUCHA_SENTRY_DSN" Value="$(VouchaSentryDsn)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +46,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Maui.MediaElement" />
+    <PackageReference Include="Sentry.Maui" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
     <PackageReference Include="Microsoft.Maui.Controls" />
   </ItemGroup>

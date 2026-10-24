@@ -36,15 +36,8 @@ extension NativeRouteSurfaceViewModel {
         guard loadedResponse.results.count == 1, let feed = loadedResponse.results.first else {
             throw URLError(.resourceUnavailable)
         }
-        let bookmarks: EntityBookmarksResponse? = await (try? client.send(.bookmarks(
-            entityType: "rss_feed",
-            entityId: feed.id
-        )))
-        let relationBookmarks = bookmarks?.bookmarks ?? [:]
-        detailRelationEntityType = "rss_feed"
-        detailRelationEntityId = feed.id
-        detailRelationBookmarks = relationBookmarks
-        detailRelationIsSelfProfile = false
+        recordRssFeedView(feedId: feed.id, client: client)
+        await applySourceRelationBookmarks(feedId: feed.id, client: client)
         if let crawlId = routeMatch?.param("crawlId") {
             let response: NativeRssFeedCrawlResponse = try await client.send(.rssFeedCrawl(
                 id: feed.id,
@@ -82,6 +75,17 @@ extension NativeRouteSurfaceViewModel {
             ))
         }
         return rows
+    }
+
+    private func applySourceRelationBookmarks(feedId: String, client: APIClient) async {
+        let bookmarks: EntityBookmarksResponse? = await (try? client.send(.bookmarks(
+            entityType: "rss_feed",
+            entityId: feedId
+        )))
+        detailRelationEntityType = "rss_feed"
+        detailRelationEntityId = feedId
+        detailRelationBookmarks = bookmarks?.bookmarks ?? [:]
+        detailRelationIsSelfProfile = false
     }
 
     private func sourceCrawlHistoryRows(

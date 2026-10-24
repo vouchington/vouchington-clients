@@ -35,13 +35,13 @@
 
             let emailField = app.textFields["Email address"]
             XCTAssertTrue(emailField.waitForExistence(timeout: 20))
-            type(email, into: emailField)
+            LaunchSmokeFieldTyping.type(email, into: emailField)
             tapHittableButton("Send Code", in: app)
 
             XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
             let codeField = app.textFields["6-digit code"]
             XCTAssertTrue(codeField.waitForExistence(timeout: 20))
-            type(code, into: codeField)
+            LaunchSmokeFieldTyping.type(code, into: codeField)
             tapHittableButton("Verify Code", in: app)
 
             let signedOutControlGone = signIn.waitForNonExistence(timeout: 20)
@@ -70,22 +70,6 @@
             XCTAssertNotNil(button)
             button?.tap()
             return button ?? app.buttons[label]
-        }
-
-        private func type(_ text: String, into field: XCUIElement) {
-            field.tap()
-            field.typeText(text)
-            guard let value = field.value as? String, value != text else { return }
-            if text.hasPrefix(value) {
-                field.typeText(String(text.dropFirst(value.count)))
-            } else if value.hasPrefix(text) {
-                let extra = value.count - text.count
-                field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: extra))
-            }
-            guard (field.value as? String) == text else {
-                XCTFail("Typed \(field.value ?? ""), expected \(text)")
-                return
-            }
         }
 
         private func loadFixtures() throws -> (identity: String, providers: String) {

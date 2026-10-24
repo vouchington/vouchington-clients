@@ -1,5 +1,6 @@
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
@@ -67,7 +68,8 @@ public sealed partial class AppShell
               serviceProvider.GetRequiredService<VouchaApiClient>(),
               canViewSourceCrawlHistory: false,
               canManageSourceCrawls: serviceProvider.GetRequiredService<ISessionStore>().Current.CanManageTopics(),
-              requiresAuthoritativeSourceCrawlMembership: true),
+              requiresAuthoritativeSourceCrawlMembership: true,
+              productSignals: serviceProvider.GetRequiredService<IProductSurfaceAnalytics>()),
           serviceProvider.GetRequiredService<ISessionStore>(),
           topicId,
           serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>(),

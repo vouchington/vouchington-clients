@@ -4,6 +4,7 @@ report_exclude:
   - ../core/Sources/VouchaAPI/APIClient+ResponseLinesDataDelegate.swift
   - Tests/**
   - ../core/Sources/VouchaAPI/Endpoint+UserFacing.swift
+  - ../core/Sources/VouchaAPI/Endpoint+TopicClaims.swift
   - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport.swift
   - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+Finish.swift
   - ../core/Sources/VouchaAPI/ResponseLinesURLSessionDataDelegateTransport+State.swift

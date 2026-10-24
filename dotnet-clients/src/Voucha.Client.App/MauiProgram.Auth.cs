@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Voucha.Client.Core;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 
@@ -76,6 +77,7 @@ public static partial class MauiProgram
       };
     });
     services.AddSingleton<VouchaApiClient>();
+    services.AddSingleton<IProductSurfaceAnalytics, SessionProductSurfaceAnalytics>();
     services.AddSingleton<CookieSessionStore>();
     services.AddSingleton<ISessionStore>(sp => sp.GetRequiredService<CookieSessionStore>());
 #if DEBUG

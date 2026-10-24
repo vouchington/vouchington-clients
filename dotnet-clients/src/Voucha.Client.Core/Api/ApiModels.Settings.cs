@@ -137,7 +137,8 @@ public sealed record AuthSession(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("last_seen_at")] DateTimeOffset? LastSeenAt,
     [property: JsonPropertyName("expires_at")] DateTimeOffset? ExpiresAt,
-    [property: JsonPropertyName("is_current")] bool IsCurrent);
+    [property: JsonPropertyName("is_current")] bool IsCurrent,
+    [property: JsonPropertyName("mcp_connections")] IReadOnlyList<AuthSessionMcpConnection>? McpConnections = null);
 
 public sealed record AuthSessionListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<AuthSession> Results,
