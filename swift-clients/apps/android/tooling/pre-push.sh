@@ -4,13 +4,13 @@ set -euo pipefail
 phase=all
 if [[ "$#" -gt 0 ]]; then
   if [[ "$#" -ne 2 || "$1" != --phase ]]; then
-    echo "Usage: $0 [--phase app|test-libs|all|app-native-dependency|app-native-producer|app-kotlin-libraries|app-consumer]" >&2
+    echo "Usage: $0 [--phase app|test-libs|all|app-native-dependency|app-native-producer|app-kotlin-libraries|app-consumer|test-runner|test-libs-consumer]" >&2
     exit 64
   fi
   phase="$2"
 fi
 case "$phase" in
-  app | test-libs | all | app-native-dependency | app-native-producer | app-kotlin-libraries | app-consumer) ;;
+  app | test-libs | all | app-native-dependency | app-native-producer | app-kotlin-libraries | app-consumer | test-runner | test-libs-consumer) ;;
   *) echo "Unknown Android validation phase: $phase" >&2; exit 64 ;;
 esac
 
@@ -20,12 +20,12 @@ ANDROID_PROJECT_DIR="$ANDROID_PACKAGE_DIR/Android"
 TEST_LIBRARIES_DIR="$ANDROID_PACKAGE_DIR/.build/pre-push-test-libs"
 SKIPSTONE_OUTPUTS_DIR="$ANDROID_PACKAGE_DIR/.build/plugins/outputs"
 
-if [[ ( "$phase" == app-consumer || "$phase" == app-kotlin-libraries ) && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
+if [[ ( "$phase" == app-consumer || "$phase" == app-kotlin-libraries || "$phase" == test-libs-consumer ) && "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
   echo 'Android consumer requires a verified exact-run generated-state handoff.' >&2
   exit 1
 fi
 
-if [[ "$phase" != app-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
+if [[ "$phase" != app-consumer && "$phase" != test-libs-consumer && -d "$SKIPSTONE_OUTPUTS_DIR" ]]; then
   if [[ ( "$phase" != app-native-producer && "$phase" != app-kotlin-libraries ) || "${VOUCHA_ANDROID_STATE_VERIFIED:-}" != 1 ]]; then
     while IFS= read -r -d '' source_hash; do
       rm -f -- "$source_hash"
@@ -151,7 +151,7 @@ fi
 
 # Direct Skip/Swift phases use the pinned Swift Android SDK and explicit NDK.
 # Java and the Java Android SDK are needed only by Gradle/test-library phases.
-if [[ "$phase" != app-native-dependency && "$phase" != app-native-producer ]]; then
+if [[ "$phase" != app-native-dependency && "$phase" != app-native-producer && "$phase" != test-runner ]]; then
   if ! java -version >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
     JAVA_HOME="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
     export JAVA_HOME
@@ -167,7 +167,7 @@ if [[ "$phase" == app-native-producer ]]; then
   bash "$SCRIPT_DIR/build-native-product.sh" "$ANDROID_PACKAGE_DIR"
 fi
 
-if [[ "$phase" != test-libs && "$phase" != app-native-dependency && "$phase" != app-native-producer ]]; then
+if [[ "$phase" != test-libs && "$phase" != test-runner && "$phase" != test-libs-consumer && "$phase" != app-native-dependency && "$phase" != app-native-producer ]]; then
   gradle_started_at=$SECONDS
   consumer_log=""
   gradle_tasks=(:app:assembleDebug :app:assembleDebugAndroidTest)
@@ -249,7 +249,7 @@ if [[ "$phase" == app-native-dependency ]]; then
   mkdir -p -- "$ANDROID_PROJECT_DIR/.gradle"
 fi
 
-if [[ "$phase" == test-libs || "$phase" == all ]]; then
+if [[ "$phase" == test-libs || "$phase" == all || "$phase" == test-runner ]]; then
   # Skip 1.9.13 still looks for the pre-Swift-6.4 XCTest executable name:
   # https://github.com/skiptools/skipstone/issues/244
   # Build the actual Android test runner first, then verify its compatibility link.
@@ -257,6 +257,9 @@ if [[ "$phase" == test-libs || "$phase" == all ]]; then
     --package-path "$ANDROID_PACKAGE_DIR" \
     --arch aarch64 \
     --build-tests
+fi
+
+if [[ "$phase" == test-libs || "$phase" == all || "$phase" == test-libs-consumer ]]; then
   bash "$SCRIPT_DIR/link-swift64-android-test-runner.sh" "$ANDROID_PACKAGE_DIR"
 
   skip android test \

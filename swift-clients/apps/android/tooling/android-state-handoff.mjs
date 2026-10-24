@@ -13,6 +13,7 @@ import { archiveChunks, ByteReader, magic, sha256File, sourceMetadataPath } from
 import { assertDebugLink, checkedSkipstoneLink, resolveSkipstoneLink } from './android-state-links.mjs'
 import { assertIdentity, assertMemberPath, assertPackageLayout, defaultLimits, existingStat, inventoryState, selectedRoots } from './android-state-inventory.mjs'
 import { inventoryTrackedSourceMetadata, restoreTrackedSourceTimes, sourceMetadataLimits } from './android-state-source-metadata.mjs'
+import { assertStateRole, assertTestRunnerProducts, isTestRunnerRole, stateLimits } from './android-state-role.mjs'
 
 export { inventoryState } from './android-state-inventory.mjs'
 
@@ -84,10 +85,12 @@ function restoreExactDirectoryTimes(staging, entries, children, deadline) {
   }
 }
 
-export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
+export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, role = 'native', limits: requestedLimits }) {
   assertIdentity(identity)
+  assertStateRole(identity, role)
+  const limits = stateLimits(role, defaultLimits, requestedLimits)
   mkdirSync(artifactRoot, { recursive: true })
-  const inventory = inventoryState(packageRoot, cacheRoot, checkoutRoot, limits)
+  const inventory = inventoryState(packageRoot, cacheRoot, checkoutRoot, limits, role)
   const sourceMetadata = await inventoryTrackedSourceMetadata({ checkoutRoot, identity })
   const sourceMetadataBytes = Buffer.from(JSON.stringify(sourceMetadata))
   if (sourceMetadataBytes.length > sourceMetadataLimits.metadataBytes ||
@@ -128,6 +131,7 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
   }
   const manifest = {
     format: 4,
+    ...(isTestRunnerRole(role) ? { role } : {}),
     identity,
     sha256: digest.digest('hex'),
     entries: inventory.entries.length + 1,
@@ -139,20 +143,23 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
   return { ...manifest, scanMs: inventory.scanMs, packMs: Date.now() - started }
 }
 
-function checkedDestination(root, path) {
-  assertMemberPath(path)
+function checkedDestination(root, path, role) {
+  assertMemberPath(path, role)
   const target = join(root, path)
   if (!target.startsWith(`${root}${sep}`)) throw new Error(`Android state path escaped root: ${path}`)
   return target
 }
 
-export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, limits = defaultLimits }) {
+export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, role = 'native', limits: requestedLimits }) {
   assertIdentity(identity)
+  assertStateRole(identity, role)
+  const limits = stateLimits(role, defaultLimits, requestedLimits)
   assertPackageLayout(packageRoot, checkoutRoot)
   const manifestPath = join(artifactRoot, manifestName)
   if (statSync(manifestPath).size > 8192) throw new Error('Android state manifest exceeds 8 KiB')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-  if (manifest.format !== 4 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
+  if ((isTestRunnerRole(role) ? manifest.role !== role : manifest.role !== undefined) ||
+      manifest.format !== 4 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
       !Number.isSafeInteger(manifest.entries) || manifest.entries > limits.entries ||
       !Number.isSafeInteger(manifest.unpackedBytes) || manifest.unpackedBytes > limits.unpackedBytes ||
       !Number.isSafeInteger(manifest.compressedBytes) || manifest.compressedBytes > limits.compressedBytes ||
@@ -207,7 +214,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
         continue
       }
       if (sourceMetadata !== null) throw new Error('Android state member follows source metadata')
-      const target = checkedDestination(staging, member.path)
+      const target = checkedDestination(staging, member.path, role)
       const parentPath = member.path.slice(0, member.path.lastIndexOf('/'))
       if (parentPath === '.build' || parentPath.startsWith('.build/')) {
         const siblings = expectedChildren.get(parentPath) ?? []
@@ -226,7 +233,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
         if (member.path !== '.build/debug') {
           deferredLinks.push({ target, link: member.target, path: member.path, generated: true })
         } else {
-          assertDebugLink(member.path, member.target)
+          assertDebugLink(member.path, member.target, role)
           deferredLinks.push({ target, link: member.target, path: member.path, generated: false })
         }
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
@@ -262,6 +269,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       throw new Error('Android state unpacked inventory mismatch')
     }
     restoreExactFileTimes(staging, fileTimes, deadline)
+    if (isTestRunnerRole(role)) assertTestRunnerProducts(staging)
     for (const { target, link, path, generated } of deferredLinks) {
       if (generated) {
         checkedSkipstoneLink(path, link, packageRoot, checkoutRoot)
@@ -275,17 +283,19 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     }
     for (const { target, mode } of directoryModes.reverse()) chmodSync(target, mode)
     restoreExactDirectoryTimes(staging, directoryModes, expectedChildren, deadline)
-    for (const directory of [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]) {
+    const parents = isTestRunnerRole(role) ? [packageRoot] : [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]
+    for (const directory of parents) {
       const stat = lstatSync(directory)
       if (stat.isSymbolicLink() || !stat.isDirectory()) {
         throw new Error(`Android state destination parent is unsafe: ${directory}`)
       }
     }
-    const destinations = selectedRoots(packageRoot, cacheRoot)
+    const destinations = selectedRoots(packageRoot, cacheRoot, role)
     for (const { path, source } of destinations) {
-      const staged = checkedDestination(staging, path)
+      const staged = checkedDestination(staging, path, role)
       if (!lstatSync(staged).isDirectory()) throw new Error(`Android state root missing: ${path}`)
       const stat = existingStat(source)
+      if (stat && isTestRunnerRole(role)) throw new Error('Android test-runner destination already exists')
       if (stat && (stat.isSymbolicLink() || !stat.isDirectory())) {
         throw new Error(`Android state destination is unsafe: ${path}`)
       }
@@ -293,7 +303,8 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
     // A failed source identity or byte check leaves every tracked source timestamp untouched.
     await restoreTrackedSourceTimes({ checkoutRoot, identity, metadata: sourceMetadata })
     for (const { path, source } of destinations) {
-      const staged = checkedDestination(staging, path)
+      const staged = checkedDestination(staging, path, role)
+      if (isTestRunnerRole(role) && existingStat(source)) throw new Error('Android test-runner destination already exists')
       if (existsSync(source)) rmSync(source, { recursive: true })
       mkdirSync(dirname(source), { recursive: true })
       renameSync(staged, source)

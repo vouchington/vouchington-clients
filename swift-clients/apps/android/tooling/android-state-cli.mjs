@@ -25,21 +25,23 @@ export function selectedBuildCacheRoot() {
 }
 
 async function main() {
-  const [command, packageRootArgument, artifactRootArgument] = process.argv.slice(2)
-  if (!['pack', 'restore'].includes(command) || !packageRootArgument || !artifactRootArgument) {
-    throw new Error('Usage: android-state-cli.mjs pack|restore <package-root> <artifact-root>')
+  const [command, packageRootArgument, artifactRootArgument, roleFlag, roleArgument, ...extra] = process.argv.slice(2)
+  if (!['pack', 'restore'].includes(command) || !packageRootArgument || !artifactRootArgument || extra.length ||
+      (roleFlag !== undefined && (roleFlag !== '--role' || roleArgument !== 'test-runner'))) {
+    throw new Error('Usage: android-state-cli.mjs pack|restore <package-root> <artifact-root> [--role test-runner]')
   }
   const packageRoot = resolve(packageRootArgument)
   const workspaceRoot = process.env.GITHUB_WORKSPACE
   if (!workspaceRoot) throw new Error('GITHUB_WORKSPACE is required for exact-run Android state')
   const checkoutRoot = join(resolve(workspaceRoot), 'candidate-clients')
   const artifactRoot = resolve(artifactRootArgument)
-  const cacheRoot = selectedBuildCacheRoot()
-  const identity = cliIdentity(packageRoot)
+  const role = roleFlag === undefined ? 'native' : 'test-runner'
+  const cacheRoot = role === 'test-runner' ? join(packageRoot, '.build') : selectedBuildCacheRoot()
+  const identity = { ...cliIdentity(packageRoot), ...(role === 'test-runner' ? { role } : {}) }
   assertCandidate(checkoutRoot, identity)
   const result = command === 'pack'
-    ? await packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity })
-    : await restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity })
+    ? await packState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, role })
+    : await restoreState({ packageRoot, checkoutRoot, cacheRoot, artifactRoot, identity, role })
   process.stdout.write(`${command} Android exact state ${JSON.stringify(result)}\n`)
 }
 

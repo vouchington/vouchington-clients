@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { lstatSync, opendirSync, readlinkSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
-import { assertDebugLink, checkedSkipstoneLink, isSkipstoneOutputPath, resolveSkipstoneLink } from './android-state-links.mjs'
+import { assertRoleMember, assertTestRunnerProducts, isTestRunnerRole } from './android-state-role.mjs'
+import { assertDebugLink, checkedSkipstoneLink, isSkipstoneOutputPath, resolveSkipstoneLink, targetDiagnostic } from './android-state-links.mjs'
 
 export const defaultLimits = {
   entries: 150_000,
@@ -37,7 +38,7 @@ export function assertPackageLayout(packageRoot, checkoutRoot) {
   }
 }
 
-export function assertMemberPath(path) {
+export function assertMemberPath(path, role = 'native') {
   if (typeof path !== 'string' || path.length > 4096 || path.includes('\\') ||
       path.startsWith('/') || Array.from(path).some(character => {
         const code = character.codePointAt(0)
@@ -45,6 +46,7 @@ export function assertMemberPath(path) {
       })) {
     throw new Error(`Unsafe Android state member: ${path}`)
   }
+  assertRoleMember(path, role)
   const parts = path.split('/')
   if (parts.some(part => part === '' || part === '.' || part === '..')) {
     throw new Error(`Unsafe Android state member: ${path}`)
@@ -63,7 +65,8 @@ export function existingStat(path) {
   }
 }
 
-export function selectedRoots(packageRoot, cacheRoot) {
+export function selectedRoots(packageRoot, cacheRoot, role = 'native') {
+  if (isTestRunnerRole(role)) return [{ path: '.build', source: join(packageRoot, '.build') }]
   return [
     { path: '.build', source: join(packageRoot, '.build') },
     { path: 'Android/.gradle', source: join(packageRoot, 'Android/.gradle') },
@@ -71,10 +74,11 @@ export function selectedRoots(packageRoot, cacheRoot) {
   ]
 }
 
-export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = defaultLimits) {
+export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = defaultLimits, role = 'native') {
   assertPackageLayout(packageRoot, checkoutRoot)
   const started = Date.now()
-  const pending = selectedRoots(packageRoot, cacheRoot)
+  if (isTestRunnerRole(role)) assertTestRunnerProducts(packageRoot)
+  const pending = selectedRoots(packageRoot, cacheRoot, role)
   const entries = []
   let unpackedBytes = 0
   while (pending.length) {
@@ -82,23 +86,28 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
       throw new Error('Android state inventory exceeded its time or member cap')
     }
     const item = pending.pop()
-    assertMemberPath(item.path)
+    assertMemberPath(item.path, role)
     const stat = lstatSync(item.source)
     if (stat.isSymbolicLink()) {
       const target = readlinkSync(item.source)
-      if (isAbsolute(target)) {
-        const portable = relative(dirname(item.source), target)
-        checkedSkipstoneLink(item.path, portable, packageRoot, checkoutRoot)
-        entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
-      } else if (isSkipstoneOutputPath(item.path)) {
-        checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
-        entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
-      } else {
-        assertDebugLink(item.path, target)
-        if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
-          throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+      try {
+        if (isAbsolute(target)) {
+          const portable = relative(dirname(item.source), target)
+          checkedSkipstoneLink(item.path, portable, packageRoot, checkoutRoot)
+          entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
+        } else if (isSkipstoneOutputPath(item.path)) {
+          checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
+          entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
+        } else {
+          assertDebugLink(item.path, target, role)
+          if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
+            throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+          }
+          entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
         }
-        entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error)
+        throw new Error(`${reason.split('; target=')[0]}; target=${targetDiagnostic(target)}`, { cause: error })
       }
       continue
     }

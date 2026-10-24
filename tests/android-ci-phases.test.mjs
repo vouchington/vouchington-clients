@@ -125,7 +125,7 @@ test('direct Swift phases never probe Java or Homebrew', async () => {
       )
       await chmod(join(bin, command), 0o755)
     }
-    for (const phase of ['app-native-dependency', 'app-native-producer']) {
+    for (const phase of ['app-native-dependency', 'app-native-producer', 'test-runner']) {
       const result = f.run(['--phase', phase], { RUNNER_TEMP: f.root })
       assert.equal(result.status, 0, result.stderr)
       assert.doesNotMatch(result.stderr, /unexpected Java probe/u)
@@ -332,7 +332,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(
     gate,
-    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android-kotlin-libraries,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n      \]/u,
+    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android-kotlin-libraries,\n        build-swift-android,\n        build-swift-android-test-runner,\n        test-swift-android-libs,\n        test-swift-android-host,\n      \]/u,
   )
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
@@ -344,6 +344,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     'ANDROID_NATIVE_RESULT',
     'ANDROID_KOTLIN_LIBRARIES_RESULT',
     'ANDROID_APP_RESULT',
+    'ANDROID_TEST_RUNNER_RESULT',
     'ANDROID_LIBS_RESULT',
     'ANDROID_HOST_RESULT',
   ]
@@ -417,6 +418,42 @@ test('Kotlin library phase requires verified state and never provisions native S
       await realpath(join(host, '.cache/voucha/gradle-build-cache')),
     ])
     assert.ok(observed[5].startsWith(bin + ':'))
+  } finally {
+    await f.clean()
+  }
+})
+
+test('split test-library commands retain their ordering and failure propagation', async () => {
+  const f = await fixture()
+  try {
+    assert.equal(f.run(['--phase', 'test-libs-consumer']).status, 1)
+    assert.deepEqual(await f.lines(), [])
+    assert.equal(f.run(['--phase', 'test-runner'], { FAIL_BUILD: '31' }).status, 31)
+    assert.equal(f.run(['--phase', 'test-runner']).status, 0)
+    const alias = join(
+      f.root,
+      '.build/out/Products/Debug-android-aarch64/voucha-androidPackageTests.xctest',
+    )
+    await assert.rejects(readFile(alias), { code: 'ENOENT' })
+    const marker = join(f.root, '.build/plugins/outputs/.verified.sourcehash')
+    await writeFile(marker, 'verified')
+    assert.equal(
+      f.run(['--phase', 'test-libs-consumer'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status,
+      0,
+    )
+    assert.equal(await readFile(marker, 'utf8'), 'verified')
+    const lines = await f.lines()
+    assert.equal(lines.filter(line => line.startsWith('android build')).length, 2)
+    assert.equal(lines.filter(line => line.startsWith('android test')).length, 1)
+    assert.match(lines[1], /--arch aarch64 --build-tests$/u)
+    assert.match(lines[2], /--build-test-libs /u)
+    assert.equal(
+      f.run(['--phase', 'test-libs-consumer'], {
+        VOUCHA_ANDROID_STATE_VERIFIED: '1',
+        FAIL_LIBS: '32',
+      }).status,
+      32,
+    )
   } finally {
     await f.clean()
   }
