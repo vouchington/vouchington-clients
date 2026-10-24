@@ -88,15 +88,11 @@ test('Android caches restore on all runs and save only one completed main phase'
       app.indexOf('Restore Gradle task-output cache'),
   )
   const appSteps = [
-    'Restore Gradle user home',
-    'Set up mise-managed Swift compiler',
-    'Select Xcode 26.6 for Android host SwiftPM tests',
     'Prepare checksummed Swift Android SDK and archives',
     'Download exact-run generated Android state',
     'Restore verified exact-run generated Android state',
-    'Start isolated Gradle daemon bootstrap',
     'Resolve Android Swift package with shared artifact cache',
-    'Join isolated Gradle daemon bootstrap',
+    'Restore Gradle user home',
     'Build the selected Android validation phase',
     'Package exact candidate Android app and instrumentation APKs',
   ]
