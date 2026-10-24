@@ -19,6 +19,11 @@ export { inventoryState } from './android-state-inventory.mjs'
 const archiveName = 'android-state.gz'
 const manifestName = 'android-state.json'
 const maxTimestampNs = 9_223_372_036_854_775_807n
+function validTimestamp(value) {
+  return typeof value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(value) &&
+    BigInt(value) <= maxTimestampNs
+}
+
 function restoreExactFileTimes(staging, entries, deadline) {
   const lines = []
   let inputBytes = 0
@@ -41,6 +46,41 @@ function restoreExactFileTimes(staging, entries, deadline) {
   })
   if (result.error || result.status !== 0) {
     throw new Error(`Android state exact timestamps could not be restored: ${result.error?.message ?? result.stderr.trim()}`)
+  }
+}
+
+function restoreExactDirectoryTimes(staging, entries, children, deadline) {
+  const lines = []
+  let inputBytes = 0
+  for (const entry of entries) {
+    if (!entry.path.startsWith('.build/') && entry.path !== '.build') continue
+    const digest = createHash('sha256')
+    const expected = children.get(entry.path) ?? []
+    expected.sort((left, right) => Buffer.compare(Buffer.from(left.name), Buffer.from(right.name)))
+    for (const child of expected) {
+      digest.update(child.type)
+      digest.update(Buffer.from([0]))
+      digest.update(child.name)
+      digest.update(Buffer.from([0]))
+    }
+    const line = `${JSON.stringify({
+      path: entry.path, mtimeNs: entry.mtimeNs, mode: entry.mode,
+      children: expected.length, childrenSha256: digest.digest('hex'),
+    })}\n`
+    inputBytes += Buffer.byteLength(line)
+    if (inputBytes > 16 * 1024 * 1024 || Date.now() > deadline) {
+      throw new Error('Android state directory timestamps exceeded byte or time cap')
+    }
+    lines.push(line)
+  }
+  const remaining = deadline - Date.now()
+  if (remaining <= 0) throw new Error('Android state directory timestamp restoration timed out')
+  const result = spawnSync('python3', ['-I', fileURLToPath(new URL('./android-state-dir-ns.py', import.meta.url))], {
+    cwd: staging,
+    input: lines.join(''), encoding: 'utf8', timeout: remaining, maxBuffer: 8192,
+  })
+  if (result.error || result.status !== 0) {
+    throw new Error(`Android state exact directory timestamps could not be restored: ${result.error?.message ?? result.stderr.trim()}`)
   }
 }
 
@@ -87,7 +127,7 @@ export async function packState({ packageRoot, checkoutRoot, cacheRoot, artifact
     clearTimeout(timer)
   }
   const manifest = {
-    format: 3,
+    format: 4,
     identity,
     sha256: digest.digest('hex'),
     entries: inventory.entries.length + 1,
@@ -112,7 +152,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   const manifestPath = join(artifactRoot, manifestName)
   if (statSync(manifestPath).size > 8192) throw new Error('Android state manifest exceeds 8 KiB')
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-  if (manifest.format !== 3 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
+  if (manifest.format !== 4 || JSON.stringify(manifest.identity) !== JSON.stringify(identity) ||
       !Number.isSafeInteger(manifest.entries) || manifest.entries > limits.entries ||
       !Number.isSafeInteger(manifest.unpackedBytes) || manifest.unpackedBytes > limits.unpackedBytes ||
       !Number.isSafeInteger(manifest.compressedBytes) || manifest.compressedBytes > limits.compressedBytes ||
@@ -135,6 +175,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
   const observed = { entries: 0, unpackedBytes: 0 }
   const fileTimes = []
   const directoryModes = []
+  const expectedChildren = new Map()
   const deferredLinks = []
   let sourceMetadata = null
   try {
@@ -167,15 +208,21 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       }
       if (sourceMetadata !== null) throw new Error('Android state member follows source metadata')
       const target = checkedDestination(staging, member.path)
+      const parentPath = member.path.slice(0, member.path.lastIndexOf('/'))
+      if (parentPath === '.build' || parentPath.startsWith('.build/')) {
+        const siblings = expectedChildren.get(parentPath) ?? []
+        siblings.push({ name: member.path.slice(parentPath.length + 1), type: member.type })
+        expectedChildren.set(parentPath, siblings)
+      }
       const parent = dirname(target)
       if (!lstatSync(parent).isDirectory()) throw new Error(`Android state parent is not a directory: ${member.path}`)
       if (!Number.isSafeInteger(member.mode) || member.mode < 0 || member.mode > 0o777) {
         throw new Error(`Android state mode is invalid: ${member.path}`)
       }
-      if (member.type === 'directory' && member.size === 0) {
+      if (member.type === 'directory' && member.size === 0 && validTimestamp(member.mtimeNs)) {
         mkdirSync(target, { mode: 0o700 })
-        directoryModes.push({ target, mode: member.mode })
-      } else if (member.type === 'symlink' && member.size === 0) {
+        directoryModes.push({ target, path: member.path, mode: member.mode, mtimeNs: member.mtimeNs })
+      } else if (member.type === 'symlink' && member.size === 0 && member.mtimeNs === null) {
         if (member.path !== '.build/debug') {
           deferredLinks.push({ target, link: member.target, path: member.path, generated: true })
         } else {
@@ -183,8 +230,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
           deferredLinks.push({ target, link: member.target, path: member.path, generated: false })
         }
       } else if (member.type === 'file' && Number.isSafeInteger(member.size) && member.size >= 0 &&
-          typeof member.mtimeNs === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(member.mtimeNs) &&
-          BigInt(member.mtimeNs) <= maxTimestampNs) {
+          validTimestamp(member.mtimeNs)) {
         observed.unpackedBytes += member.size
         if (observed.unpackedBytes > limits.unpackedBytes) throw new Error('Android state file-byte cap exceeded')
         const file = createWriteStream(target, { flags: 'wx', mode: 0o600 })
@@ -228,6 +274,7 @@ export async function restoreState({ packageRoot, checkoutRoot, cacheRoot, artif
       if (generated) resolveSkipstoneLink(path, link, packageRoot, checkoutRoot, staging, deadline)
     }
     for (const { target, mode } of directoryModes.reverse()) chmodSync(target, mode)
+    restoreExactDirectoryTimes(staging, directoryModes, expectedChildren, deadline)
     for (const directory of [packageRoot, join(packageRoot, 'Android'), dirname(cacheRoot)]) {
       const stat = lstatSync(directory)
       if (stat.isSymbolicLink() || !stat.isDirectory()) {

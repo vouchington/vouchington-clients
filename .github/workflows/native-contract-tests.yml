@@ -584,43 +584,11 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Select Xcode 26.6 for Android host SwiftPM tests
-        working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -671,6 +639,8 @@ jobs:
   build-swift-android-native:
     name: Swift Android native producer
     needs: [verify, build-swift-android-dependency]
+    outputs:
+      dependency-sha256: ${{ steps.android-dependency-state.outputs.dependency-sha256 }}
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -688,43 +658,11 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Select Xcode 26.6 for Android host SwiftPM tests
-        working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -749,6 +687,7 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.run_id }}
       - name: Restore verified native dependency state
+        id: android-dependency-state
         timeout-minutes: 4
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
@@ -758,6 +697,8 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-dependency-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
+          node -e 'const fs = require("node:fs"); const digest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).sha256; if (!/^[0-9a-f]{64}$/.test(digest)) process.exit(1); console.log("dependency-sha256=" + digest)' \
+            "$RUNNER_TEMP/android-dependency-state/android-state.json" >> "$GITHUB_OUTPUT"
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
@@ -822,9 +763,169 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 1
+  build-swift-android-kotlin-libraries:
+    name: Swift Android Kotlin libraries
+    needs: [verify, build-swift-android-dependency]
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+      - name: Resolve Java for Android SDK setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          if java -version >/dev/null 2>&1; then
+            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
+          elif command -v brew >/dev/null 2>&1; then
+            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
+          else
+            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
+          fi
+          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
+          "$java_home/bin/java" -version
+          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
+          echo "$java_home/bin" >> "$GITHUB_PATH"
+      - name: Select job-scoped Android SDK location
+        shell: bash
+        run: |
+          android_sdk="$RUNNER_TEMP/android-sdk"
+          rm -rf -- "$android_sdk"
+          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
+      - name: Select Xcode 26.6 for Android Gradle prebuild
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Configure Skip Swift home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
+      - name: Remove obsolete Swift Android executable cache
+        run: |
+          cache_root="$HOME/.cache/voucha/swift-android"
+          for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
+            [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
+          done
+          rm -rf -- "$cache_root/extracted"
+      - name: Prepare checksummed Skip artifact only
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 2
+        with:
+          save-cache: false
+          host-only: true
+      - name: Download exact-run native dependency state
+        timeout-minutes: 5
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: android-native-dependency-state-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-state
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Restore verified native dependency state
+        id: android-dependency-state
+        timeout-minutes: 4
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          python3 --version
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
+            restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
+          echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
+          node -e 'const fs = require("node:fs"); const digest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).sha256; if (!/^[0-9a-f]{64}$/.test(digest)) process.exit(1); console.log("dependency-sha256=" + digest)' \
+            "$RUNNER_TEMP/android-state/android-state.json" >> "$GITHUB_OUTPUT"
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Restore Gradle user home
+        id: android-gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/voucha/gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+      - name: Select Gradle task-output cache path
+        id: android-task-cache-path
+        shell: bash
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+          PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
+          TASK_CACHE_CONFIG_HASH: ${{ hashFiles('candidate-clients/.mise.toml', 'candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle.properties', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh', 'candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+        run: |
+          set -euo pipefail
+          cache_dir="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
+          node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
+            "$cache_dir" "$GITHUB_OUTPUT"
+      - name: Restore Gradle task-output cache
+        id: android-task-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache-path.outputs.cache-key }}
+      - name: Restore prior main Gradle task-output cache
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache-path.outputs.previous-key }}
+      - name: Build the selected Android validation phase
+        working-directory: candidate-clients
+        env:
+          VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+          VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
+          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
+          ANDROID_BUILD_PHASE: app-kotlin-libraries
+        run: |
+          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
+      - name: Pack bounded exact-run Kotlin library cache
+        timeout-minutes: 2
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          DEPENDENCY_SHA256: ${{ steps.android-dependency-state.outputs.dependency-sha256 }}
+        run: |
+          [[ "$DEPENDENCY_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          node candidate-clients/swift-clients/apps/android/tooling/android-kotlin-cache-cli.mjs \
+            pack candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-kotlin-cache" \
+            --dependency-sha256 "$DEPENDENCY_SHA256"
+      - name: Upload exact-run Kotlin library cache
+        timeout-minutes: 2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-kotlin-cache-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-kotlin-cache
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
   build-swift-android:
     name: Swift Android app
-    needs: [verify, build-swift-android-native]
+    needs: [verify, build-swift-android-native, build-swift-android-kotlin-libraries]
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -949,6 +1050,25 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.previous-key }}
+      - name: Download exact-run Kotlin library cache
+        timeout-minutes: 2
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: android-kotlin-cache-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-kotlin-cache
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Merge verified exact-run Kotlin library cache
+        timeout-minutes: 2
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          DEPENDENCY_SHA256: ${{ needs.build-swift-android-native.outputs.dependency-sha256 }}
+        run: |
+          [[ "$DEPENDENCY_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          node candidate-clients/swift-clients/apps/android/tooling/android-kotlin-cache-cli.mjs \
+            merge candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-kotlin-cache" \
+            --dependency-sha256 "$DEPENDENCY_SHA256"
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
@@ -1026,43 +1146,12 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
+          skip-candidate-install: true
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Select Xcode 26.6 for Android host SwiftPM tests
-        working-directory: candidate-clients
-        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -1112,43 +1201,27 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Resolve Java for Android SDK setup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if java -version >/dev/null 2>&1; then
-            java_home="$({ java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/^[[:space:]]*java\.home[[:space:]]*=/ { print $2; exit }'; })"
-          elif command -v brew >/dev/null 2>&1; then
-            java_home="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home"
-          else
-            echo '::error::Java is unavailable and Homebrew OpenJDK cannot be located.' >&2; exit 1
-          fi
-          [[ -n "$java_home" && -x "$java_home/bin/java" ]]
-          "$java_home/bin/java" -version
-          echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
-          echo "$java_home/bin" >> "$GITHUB_PATH"
-      - name: Select job-scoped Android SDK location
-        shell: bash
-        run: |
-          android_sdk="$RUNNER_TEMP/android-sdk"
-          rm -rf -- "$android_sdk"
-          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+          skip-candidate-install: true
+      - name: Install mise for the pinned host compiler
+        uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
         with:
-          packages: >-
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
-      - name: Set up mise-managed Swift compiler
-        uses: ./.github/actions/setup-mise-toolchain
-        with:
-          client-root: candidate-clients
-          tool: swift
+          cache: false
+          install: false
+      - name: Configure isolated host compiler installation
+        working-directory: candidate-clients
+        run: |
+          {
+            echo "MISE_DATA_DIR=$RUNNER_TEMP/mise-data"
+            echo "MISE_CACHE_DIR=$RUNNER_TEMP/mise-cache"
+            echo 'MISE_DISABLE_TOOLS=actionlint,dotnet,shellcheck,github:boyter/scc,zizmor,aqua:gitleaks/gitleaks,aqua:lycheeverse/lychee,swiftformat'
+          } >> "$GITHUB_ENV"
+          mise trust "$PWD/.mise.toml"
       - name: Select Xcode 26.6 for Android host SwiftPM tests
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Install and verify pinned host Swift compiler
+        working-directory: candidate-clients
+        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
       - name: Configure Skip Swift home
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
@@ -1163,18 +1236,117 @@ jobs:
         timeout-minutes: 14
         with:
           save-cache: false
+          host-only: true
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
-          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          env MISE_EXEC_AUTO_INSTALL=false mise exec swift@6.3.3 -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Record Android host test start marker
+        run: touch "$RUNNER_TEMP/android-host-test-start-marker"
       - name: Test Android Swift package
+        id: android-host-tests
         working-directory: candidate-clients
+        env:
+          # Swift backtracing is opt-in on macOS; noninteractive output defaults to stderr.
+          SWIFT_BACKTRACE: enable=yes,interactive=no
         run: >-
           bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
           --package-path swift-clients/apps/android
           --filter VouchaAndroidTests
+      - name: Collect Android host xctest crash reports
+        if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}
+        timeout-minutes: 2
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, re, stat, time
+          from pathlib import Path
+
+          reports = Path.home() / "Library/Logs/DiagnosticReports"
+          marker = Path(os.environ["RUNNER_TEMP"]) / "android-host-test-start-marker"
+          output = Path(os.environ["RUNNER_TEMP"]) / "android-host-crash-reports"
+          output.mkdir(exist_ok=True)
+          bundle = "voucha-androidPackageTests"
+          max_file_bytes, max_total_bytes = 8 * 1024 * 1024, 16 * 1024 * 1024
+          collected, total = [], 0
+          warnings = set()
+
+          def matches(text, suffix):
+              if suffix == ".crash":
+                  return bool(re.search(r"^Process:\s+xctest\s+\[", text, re.M)) and bool(
+                      re.search(r"/" + bundle + r"\.xctest/Contents/MacOS/" + bundle + r"(?:\s|$)", text))
+              decoder, records, offset = json.JSONDecoder(), [], 0
+              while text[offset:].strip():
+                  offset += len(text[offset:]) - len(text[offset:].lstrip())
+                  record, end = decoder.raw_decode(text, offset)
+                  records.append(record)
+                  offset = end
+              return any(isinstance(record, dict) and record.get("procName") == "xctest"
+                         and any(isinstance(image, dict) and image.get("name") == bundle
+                                 and ("/" + bundle + ".xctest/Contents/MacOS/" + bundle) in image.get("path", "")
+                                 for image in record.get("usedImages", [])) for record in records)
+
+          for attempt in range(6):
+              if reports.is_dir():
+                  with os.scandir(reports) as entries:
+                      for index, entry in enumerate(entries):
+                          if index >= 512:
+                              warnings.add("Diagnostic report inventory exceeded 512 entries")
+                              break
+                          path = Path(entry.path)
+                          if path.suffix not in (".ips", ".crash"):
+                              continue
+                          try:
+                              # Do not follow symlinks, including a replacement between scan and open.
+                              fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                              with os.fdopen(fd, "rb") as stream:
+                                  info = os.fstat(stream.fileno())
+                                  if not stat.S_ISREG(info.st_mode) or info.st_mtime_ns <= marker.stat().st_mtime_ns:
+                                      continue
+                                  if info.st_size > max_file_bytes or total + info.st_size > max_total_bytes:
+                                      warnings.add("Diagnostic report byte limit reached")
+                                      continue
+                                  data = stream.read(max_file_bytes + 1)
+                              if len(data) > max_file_bytes or total + len(data) > max_total_bytes:
+                                  warnings.add("Diagnostic report byte limit reached")
+                                  continue
+                              if not matches(data.decode("utf-8"), path.suffix):
+                                  continue
+                              (output / path.name).write_bytes(data)
+                              collected.append(path.name)
+                              total += len(data)
+                          except (OSError, ValueError, UnicodeError, TypeError):
+                              warnings.add("Unreadable or invalid diagnostic report ignored")
+              if collected:
+                  break
+              if attempt < 5:
+                  time.sleep(5)
+          provenance = dict(candidate_revision=os.environ["CANDIDATE_REVISION"],
+                            run_id=os.environ["WORKFLOW_RUN_ID"], run_attempt=os.environ["WORKFLOW_RUN_ATTEMPT"],
+                            process="xctest", bundle=bundle + ".xctest", marker_ns=marker.stat().st_mtime_ns,
+                            reports=collected, bytes=total, warnings=sorted(warnings))
+          (output / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+          if not collected:
+              print("::warning::No new Android host xctest crash report was available; original test failure remains fatal")
+          for warning in sorted(warnings):
+              print("::warning::" + warning)
+          PYTHON
+      - name: Upload Android host xctest crash reports
+        if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}
+        timeout-minutes: 1
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-host-crash-reports-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-host-crash-reports
+          retention-days: 1
+          if-no-files-found: warn
   test-swift-android-cookie:
     name: Swift Android Skip
     needs:
@@ -1182,6 +1354,7 @@ jobs:
         verify,
         build-swift-android-dependency,
         build-swift-android-native,
+        build-swift-android-kotlin-libraries,
         build-swift-android,
         test-swift-android-libs,
         test-swift-android-host,
@@ -1198,6 +1371,7 @@ jobs:
           VERIFY_RESULT: ${{ needs.verify.result }}
           ANDROID_DEPENDENCY_RESULT: ${{ needs.build-swift-android-dependency.result }}
           ANDROID_NATIVE_RESULT: ${{ needs.build-swift-android-native.result }}
+          ANDROID_KOTLIN_LIBRARIES_RESULT: ${{ needs.build-swift-android-kotlin-libraries.result }}
           ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
           ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
           ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
@@ -1205,6 +1379,7 @@ jobs:
           test "$VERIFY_RESULT" = success
           test "$ANDROID_DEPENDENCY_RESULT" = success
           test "$ANDROID_NATIVE_RESULT" = success
+          test "$ANDROID_KOTLIN_LIBRARIES_RESULT" = success
           test "$ANDROID_APP_RESULT" = success
           test "$ANDROID_LIBS_RESULT" = success
           test "$ANDROID_HOST_RESULT" = success
@@ -2429,8 +2604,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-image-preview-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2455,6 +2631,16 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-image-preview-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-image-preview-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-maui:
     name: .NET MAUI Windows
     needs: verify
@@ -2480,8 +2666,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2539,6 +2726,16 @@ jobs:
           -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-maui-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-language-model-surface:
     name: .NET Windows language-model surface
     needs: verify
@@ -2564,8 +2761,9 @@ jobs:
           github-token: ${{ github.token }}
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-language-model-surface-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2590,6 +2788,16 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false --logger "console;verbosity=detailed"
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-language-model-surface-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-language-model-surface-nuget-cache.outputs.cache-primary-key }}
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
     if: ${{ !cancelled() }}
