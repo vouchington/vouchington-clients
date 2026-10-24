@@ -19,6 +19,23 @@ test('CLI binds the selected real cache to the checked-out candidate, toolchain 
   await rename(f.checkoutRoot, checkoutRoot)
   const packageRoot = join(checkoutRoot, 'swift-clients/apps/android')
   const home = join(root, 'home')
+  const bin = join(root, 'platform-bin')
+  const platformLog = join(root, 'platform-probes')
+  await mkdir(bin)
+  await writeFile(
+    join(bin, 'uname'),
+    '#!/bin/sh\nprintf "%s\\n" "$CACHE_TEST_PLATFORM"\nprintf "%s:%s\\n" "$CACHE_TEST_PLATFORM" "$*" >> "$CACHE_TEST_PLATFORM_LOG"\n',
+    { mode: 0o755 },
+  )
+  const platformEnv = {
+    ...process.env,
+    PATH: `${bin}:${process.env.PATH}`,
+    CACHE_TEST_PLATFORM: 'Darwin',
+    CACHE_TEST_PLATFORM_LOG: platformLog,
+  }
+  const parentProbe = spawnSync('uname', ['-s'], { env: platformEnv, encoding: 'utf8' })
+  assert.equal(parentProbe.status, 0)
+  assert.equal(parentProbe.stdout.trim(), 'Darwin')
   const cacheRoot = join(home, '.cache/voucha/gradle-build-cache')
   await mkdir(cacheRoot, { recursive: true })
   await writeFile(join(cacheRoot, key), 'compiled Kotlin output')
@@ -52,7 +69,7 @@ test('CLI binds the selected real cache to the checked-out candidate, toolchain 
       {
         encoding: 'utf8',
         env: {
-          ...process.env,
+          ...platformEnv,
           HOME: home,
           GITHUB_ACTIONS: 'true',
           GITHUB_WORKSPACE: root,
@@ -64,8 +81,16 @@ test('CLI binds the selected real cache to the checked-out candidate, toolchain 
       },
     )
   assert.notEqual(run('pack', {}, []).status, 0, 'dependency digest must be an explicit CLI input')
+  const rejectedPlatform = run('pack', { CACHE_TEST_PLATFORM: 'Linux' })
+  assert.notEqual(rejectedPlatform.status, 0)
+  assert.match(rejectedPlatform.stderr, /requires macOS/u)
+  assert.deepEqual(await readdir(cacheRoot), [key])
   const packed = run('pack')
   assert.equal(packed.status, 0, packed.stderr)
+  const probes = (await readFile(platformLog, 'utf8')).trim().split('\n')
+  assert.equal(probes[0], 'Darwin:-s')
+  assert.ok(probes.includes('Linux:-s'))
+  assert.ok(probes.slice(1).includes('Darwin:-s'), 'CLI child must use the isolated Darwin probe')
   const manifest = JSON.parse(await readFile(join(f.artifactRoot, 'manifest.json')))
   assert.equal(manifest.identity.gradle, '9.4.1')
   assert.equal(manifest.role, 'kotlin-libraries')
