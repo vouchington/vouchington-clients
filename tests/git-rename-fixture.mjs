@@ -3,9 +3,24 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
+const inheritedGitVariables = [
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+]
+
+function isolatedGitEnvironment() {
+  const env = { ...process.env }
+  for (const name of inheritedGitVariables) delete env[name]
+  return env
+}
+
 export function renamedFilePaths(source, destination) {
   const repository = mkdtempSync(join(tmpdir(), 'changed-file-rename-'))
-  const git = (...args) => execFileSync('git', args, { cwd: repository, encoding: 'utf8' })
+  const env = isolatedGitEnvironment()
+  const git = (...args) => execFileSync('git', args, { cwd: repository, encoding: 'utf8', env })
   try {
     git('init', '-q')
     git('config', 'user.email', 'test@example.invalid')
