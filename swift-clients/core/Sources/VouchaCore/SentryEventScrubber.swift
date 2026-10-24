@@ -138,7 +138,7 @@ public enum SentryEventScrubber {
 
     private static func scrubExtras(_ extras: [String: String]) -> [String: String] {
         var result: [String: String] = [:]
-        for (key, value) in extras where !dropsExtra(key) {
+        for (key, value) in extras where !dropsExtra(key) && !isSeparateRequestPart(key.lowercased()) {
             result[key] = retainedValue(key, value)
         }
         return result

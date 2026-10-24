@@ -24,6 +24,17 @@ final class SentrySdkBoundaryTests: XCTestCase {
         XCTAssertFalse(event.breadcrumbs?.first?.data?.values.contains { ($0 as? String) == sessionId } == true)
     }
 
+    func testQueryStringExtrasAreRemovedByTheSdkProjection() {
+        let event = Event()
+        event.extra = ["http.query_string": "token=secret", "http.fragment": "x=1", "screen": "settings"]
+        let draft = SentryEventProjection.draft(from: event, boundAccountId: nil)
+        SentryEventProjection.apply(SentryEventScrubber.scrub(draft), to: event)
+
+        XCTAssertNil(event.extra?["http.query_string"])
+        XCTAssertNil(event.extra?["http.fragment"])
+        XCTAssertEqual(event.extra?["screen"] as? String, "settings")
+    }
+
     private func capturedEvent() -> Event {
         let event = Event()
         let request = SentryRequest()

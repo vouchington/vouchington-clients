@@ -174,6 +174,17 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertEqual(scrubbed.extras["screen"], "settings")
     }
 
+    func testQueryAndFragmentExtrasAreDropped() {
+        let scrubbed = SentryEventScrubber.scrub(SentryOutboundEvent(
+            extras: [
+                "http.query_string": "token=secret",
+                "http.fragment": "access_token=x",
+                "screen": "settings"
+            ]
+        ))
+        XCTAssertEqual(scrubbed.extras, ["screen": "settings"])
+    }
+
     func testBenignNamesAndTheOpaqueAccountMarkerPass() {
         for name in ["voucha.account", "author", "authority", "monkey", "method", "status", "screen"] {
             XCTAssertFalse(SentryEventScrubber.dropsExtra(name), name)
