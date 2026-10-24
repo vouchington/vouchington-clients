@@ -1,0 +1,84 @@
+name: macOS Swift package cache
+
+# Seeds the SwiftPM clone cache that release-macos-unsigned.yml restores. Pull requests can read
+# caches saved from main, so every new PR starts warm. The cache key and paths must match the
+# "Restore Swift package clones" step in release-macos-unsigned.yml exactly.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/swift-package-cache-macos.yml
+      - swift-clients/apps/macOS/project.yml
+      - swift-clients/core/Package.resolved
+      - swift-clients/tooling/generate.sh
+      - swift-clients/ui/Package.resolved
+  pull_request:
+    paths:
+      - .github/workflows/swift-package-cache-macos.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-swift-package-cache-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  seed:
+    name: Resolve and cache macOS Swift packages
+    runs-on: macos-latest
+    timeout-minutes: 8
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      XCODEGEN_VERSION: 2.45.4
+      XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for an existing cache
+        id: swift-package-clones
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          lookup-only: true
+          path: |
+            ${{ runner.temp }}/swift-package-clones/checkouts
+            ${{ runner.temp }}/swift-package-clones/artifacts
+            ${{ runner.temp }}/swift-package-clones/workspace-state.json
+          key: ${{ runner.os }}-swiftpm-checkouts-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
+      - name: Verify pinned Xcode
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Install pinned XcodeGen
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        run: |
+          xcodegen_root="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          curl --fail --location --connect-timeout 15 --max-time 60 --retry 2 --retry-max-time 120 --retry-all-errors --silent --show-error "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip" --output "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" -d "$xcodegen_root"
+          xcodegen_bin="$xcodegen_root/xcodegen/bin/xcodegen"
+          test -x "$xcodegen_bin"
+          test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
+          dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Generate macOS project
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        run: ./swift-clients/tooling/generate.sh macOS
+      - name: Resolve packages from the pinned versions
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        timeout-minutes: 5
+        run: |
+          xcodebuild -resolvePackageDependencies -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache
+          test -d "$RUNNER_TEMP/swift-package-clones/checkouts/sentry-cocoa"
+          test -f "$RUNNER_TEMP/swift-package-clones/workspace-state.json"
+      - name: Save Swift package clones
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/swift-package-clones/checkouts
+            ${{ runner.temp }}/swift-package-clones/artifacts
+            ${{ runner.temp }}/swift-package-clones/workspace-state.json
+          key: ${{ steps.swift-package-clones.outputs.cache-primary-key }}

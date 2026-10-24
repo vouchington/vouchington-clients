@@ -68,7 +68,7 @@ jobs:
           fi
           # Explicit non-production site key. Release rejects an empty value and Cloudflare test keys.
           release_site_key=0x4AAAAAAAAexample
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -showBuildTimingSummary archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
           test -d "$app"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$BUILD_NUMBER"
