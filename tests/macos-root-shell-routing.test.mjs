@@ -52,7 +52,7 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
   assert.match(boundary, /-only-testing:VouchaSentryBoundaryTests/u)
   assert.match(
     boundary,
-    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
   )
   assert.doesNotMatch(boundary, /VouchaLaunchSmoke\.entitlements|continue-on-error/u)
   assert.match(macJob, /generate\.sh macOS/u)
