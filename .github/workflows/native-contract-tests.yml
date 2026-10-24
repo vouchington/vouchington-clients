@@ -1127,9 +1127,79 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
+  build-swift-android-test-runner:
+    name: Swift Android test runner
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
+      - name: Configure Skip Swift home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
+      - name: Remove obsolete Swift Android executable cache
+        run: |
+          cache_root="$HOME/.cache/voucha/swift-android"
+          for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
+            [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
+          done
+          rm -rf -- "$cache_root/extracted"
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: false
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Build the selected Android validation phase
+        working-directory: candidate-clients
+        env:
+          VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+          VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
+          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
+          ANDROID_BUILD_PHASE: test-runner
+        run: |
+          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
+      - name: Pack exact-run Android test-runner state
+        timeout-minutes: 3
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
+            pack candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-test-runner-state" --role test-runner
+      - name: Upload exact-run Android test-runner state
+        timeout-minutes: 1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-test-runner-state-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-test-runner-state
+          compression-level: 0
+          if-no-files-found: error
   test-swift-android-libs:
     name: Swift Android test-libs
-    needs: verify
+    needs: [verify, build-swift-android-test-runner]
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
@@ -1166,6 +1236,22 @@ jobs:
         timeout-minutes: 14
         with:
           save-cache: true
+      - name: Download exact-run Android test-runner state
+        timeout-minutes: 3
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: android-test-runner-state-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-test-runner-state
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Restore verified Android test-runner state
+        timeout-minutes: 3
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
+            restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-test-runner-state" --role test-runner
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
@@ -1178,7 +1264,8 @@ jobs:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
           VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
-          ANDROID_BUILD_PHASE: test-libs
+          ANDROID_BUILD_PHASE: test-libs-consumer
+          VOUCHA_ANDROID_STATE_VERIFIED: '1'
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
@@ -1356,6 +1443,7 @@ jobs:
         build-swift-android-native,
         build-swift-android-kotlin-libraries,
         build-swift-android,
+        build-swift-android-test-runner,
         test-swift-android-libs,
         test-swift-android-host,
       ]
@@ -1373,6 +1461,7 @@ jobs:
           ANDROID_NATIVE_RESULT: ${{ needs.build-swift-android-native.result }}
           ANDROID_KOTLIN_LIBRARIES_RESULT: ${{ needs.build-swift-android-kotlin-libraries.result }}
           ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
+          ANDROID_TEST_RUNNER_RESULT: ${{ needs.build-swift-android-test-runner.result }}
           ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
           ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
         run: |
@@ -1381,6 +1470,7 @@ jobs:
           test "$ANDROID_NATIVE_RESULT" = success
           test "$ANDROID_KOTLIN_LIBRARIES_RESULT" = success
           test "$ANDROID_APP_RESULT" = success
+          test "$ANDROID_TEST_RUNNER_RESULT" = success
           test "$ANDROID_LIBS_RESULT" = success
           test "$ANDROID_HOST_RESULT" = success
       - name: Check out exact candidate runtime script
