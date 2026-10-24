@@ -50,8 +50,7 @@ not build an APK or launch an emulator, so it needs no Java or Android platform/
 The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
 package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
 Swift Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
-exact run, attempt, and candidate revision. The native producer allows seven minutes to download
-that dependency state within its existing 30-minute job cap. The native producer invokes the same full-product Skip
+exact run, attempt, and candidate revision. The native producer invokes the same full-product Skip
 command directly, with the original working directory, environment, compiler flags, JNI output and scratch paths. A digest of the
 generated task and its path resolvers rejects generator drift before this invocation. This avoids
 Gradle startup and configuration in that shard. The app consumer still runs the original Gradle
