@@ -85,6 +85,10 @@ its environment's `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` into that build se
 environment variables alone do not configure an installed app. The Release runtime also rejects a
 missing or test key. The production site key stays outside this repository.
 
+`VOUCHA_SENTRY_DSN` uses the same environment-then-plist order and defaults to empty in Debug and
+Release. An empty DSN does not start Sentry, does not fail the Release build, and does not send
+events. Debug symbol upload stays out of the app build until a Sentry auth token exists.
+
 ## Workflow
 
 CI builds the macOS app shell and compiles the generated iOS app for a generic iOS Simulator

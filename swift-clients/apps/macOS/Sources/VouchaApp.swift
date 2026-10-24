@@ -7,7 +7,12 @@ import VouchaDesignSystem
 struct VouchaApp: App {
     @NSApplicationDelegateAdaptor(VouchaUITestingWindowDelegate.self) private var uiTestingDelegate
     @State
-    private var factory = ViewModelFactory.makeDefault()
+    private var factory: ViewModelFactory
+
+    init() {
+        SentryAppSupport.startIfConfigured()
+        _factory = State(initialValue: ViewModelFactory.makeDefault())
+    }
 
     var body: some Scene {
         WindowGroup {

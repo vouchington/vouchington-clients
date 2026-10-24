@@ -15,6 +15,7 @@ settings:
     VOUCHA_API_BASE_URL: 'https://voucha.ai'
     VOUCHA_IMAGE_BASE_URL: 'https://images.voucha.ai'
     VOUCHA_TURNSTILE_SITE_KEY: ''
+    VOUCHA_SENTRY_DSN: ''
   configs:
     Debug:
       VOUCHA_TURNSTILE_SITE_KEY: '1x00000000000000000000AA'
@@ -24,6 +25,9 @@ packages:
     path: ../../core
   VouchaUI:
     path: ../../ui
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.31.0
 
 targets:
   Voucha:
@@ -57,6 +61,7 @@ targets:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'
+        VOUCHA_SENTRY_DSN: '$(VOUCHA_SENTRY_DSN)'
         CFBundleURLTypes:
           - CFBundleURLName: ai.voucha.ios
             CFBundleURLSchemes:
@@ -121,6 +126,8 @@ targets:
         product: VouchaFeatures
       - package: VouchaUI
         product: VouchaLocalization
+      - package: Sentry
+        product: Sentry
     scheme:
       testTargets:
         - VouchaLaunchSmokeTests
