@@ -828,16 +828,6 @@ jobs:
       - name: Select Xcode 26.6 for Android host SwiftPM tests
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
-      - name: Start isolated Gradle daemon bootstrap
-        timeout-minutes: 2
-        shell: bash
-        working-directory: candidate-clients
-        run: |
-          mise exec -- node swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs start \
-            --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
-            --wrapper swift-clients/apps/android/Android/gradlew \
-            --properties swift-clients/apps/android/Android/gradle.properties \
-            --timeout-seconds 90
       - name: Remove obsolete Swift Android executable cache
         run: |
           cache_root="$HOME/.cache/voucha/swift-android"
@@ -869,6 +859,16 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/android-state-cli.mjs \
             restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-state"
           echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "$GITHUB_ENV"
+      - name: Start isolated Gradle daemon bootstrap
+        timeout-minutes: 2
+        shell: bash
+        working-directory: candidate-clients
+        run: |
+          mise exec -- node swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs start \
+            --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
+            --wrapper swift-clients/apps/android/Android/gradlew \
+            --properties swift-clients/apps/android/Android/gradle.properties \
+            --timeout-seconds 90
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |

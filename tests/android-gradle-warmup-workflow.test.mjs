@@ -14,7 +14,7 @@ const step = name => {
   return matches[0]
 }
 
-test('app bootstraps after pinned tools, overlaps materialization, and joins before the full build', () => {
+test('app bootstraps from verified inputs, overlaps frozen resolve, and joins before the full build', () => {
   const order = [
     'Resolve Java for Android SDK setup',
     'Configure app Gradle and Swift homes',
@@ -23,9 +23,9 @@ test('app bootstraps after pinned tools, overlaps materialization, and joins bef
     'Setup Android SDK',
     'Set up mise-managed Swift compiler',
     'Select Xcode 26.6 for Android host SwiftPM tests',
-    'Start isolated Gradle daemon bootstrap',
     'Prepare checksummed Swift Android SDK and archives',
     'Restore verified exact-run generated Android state',
+    'Start isolated Gradle daemon bootstrap',
     'Resolve Android Swift package with shared artifact cache',
     'Restore Gradle task-output cache',
     'Join isolated Gradle daemon bootstrap',

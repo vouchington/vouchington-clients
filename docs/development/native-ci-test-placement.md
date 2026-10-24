@@ -49,18 +49,20 @@ Swift package task, builds both APKs, verifies the native ABI, and passes those 
 cookie restart job.
 
 The app job restores its existing Gradle user home immediately after resolving Java. After the
-pinned Swift installation and Xcode selection, it starts an empty-project `help` invocation while
-SDK materialization and exact-run state setup proceed. Start and join run through the candidate
-`mise exec` context; the daemon startup PATH includes the same future verified Skip artifact bin
-as the original full build. The build still verifies that executable before invoking Gradle.
+pinned Swift installation, Xcode selection, SDK materialization and verified exact-run state
+restoration, it starts an empty-project `help` invocation immediately before the required frozen
+package resolve. The measured six-second bootstrap can overlap that resolve window. Start and
+join run through the candidate `mise exec` context; the daemon startup PATH includes the same
+verified Skip artifact bin as the original full build. The build still verifies that executable before invoking Gradle.
 The checked-in wrapper and unmodified Gradle properties select the same Java, job-scoped
 home/temporary paths and 4 GB daemon as the original full build. The empty project lives under
 `RUNNER_TEMP`, outside the restored Android state and separate task-output cache. A strict join
 immediately before the original build propagates bootstrap failure; start/join steps each have a
 two-minute cap and the helper has a 90-second deadline. A bounded 64 KiB log tail preserves
 terminal diagnostics. No app tasks are pre-executed or skipped.
-This targets the observed 35–38-second Gradle startup, but hosted evidence must establish daemon
-reuse and an app-job margin below ten minutes; the prior 10m02 sample does not meet that target.
+This overlaps the measured six-second empty-project bootstrap with mandatory resolve; it does
+not establish that the full profile's 35–38-second startup is eliminated. Hosted evidence must
+establish daemon reuse and an app-job margin below ten minutes; the prior 10m02 sample does not meet that target.
 
 The two direct Swift producer phases provision the pinned Swift Android SDK and NDK without
 installing the Java Android SDK or selecting Xcode for host tests. They execute Skip prebuild
