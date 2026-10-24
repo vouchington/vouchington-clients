@@ -31,7 +31,7 @@ test('runner and library consumer retain exact candidate setup and a role-bound 
     assert.doesNotMatch(block, /actions\/cache\/save|restore-keys|Setup Android SDK|setup-java/u)
   }
   assert.match(producer, /ANDROID_BUILD_PHASE: test-runner\n/u)
-  assert.match(producer, /compression-level: 0\n\s+if-no-files-found: error/u)
+  assert.match(producer, /compression-level: 0\n\s+if-no-files-found: error\n\s+retention-days: 1/u)
   assert.match(
     consumer,
     /ANDROID_BUILD_PHASE: test-libs-consumer\n\s+VOUCHA_ANDROID_STATE_VERIFIED: '1'/u,

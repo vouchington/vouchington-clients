@@ -1197,6 +1197,7 @@ jobs:
           path: ${{ runner.temp }}/android-test-runner-state
           compression-level: 0
           if-no-files-found: error
+          retention-days: 1
   test-swift-android-libs:
     name: Swift Android test-libs
     needs: [verify, build-swift-android-test-runner]
