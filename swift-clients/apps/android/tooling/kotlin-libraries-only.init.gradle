@@ -5,7 +5,7 @@ gradle.taskGraph.whenReady { graph ->
     graph.allTasks.each { task ->
         def name = task.name.toLowerCase(java.util.Locale.ROOT)
         if (!allowedProjects.contains(task.project.name) ||
-            name.contains('swift') || name.contains('jni') || name.contains('native') ||
+            name.contains('swift') || name.contains('jni') || name.contains('native') || name.contains('dex') ||
             name.contains('test') || name.startsWith('assemble') || name.startsWith('install') ||
             name.startsWith('connected') || name == 'packagedebug' || name == 'packagerelease') {
             throw new GradleException("Excluded task in Kotlin library producer: ${task.path}")
@@ -17,6 +17,13 @@ gradle.taskGraph.whenReady { graph ->
     }
     logger.lifecycle("Kotlin library graph (${gradle.rootProject.name}): " +
         graph.allTasks.collect { task ->
-            "${task.path} [${task.class.name}, @CacheableTask=${task.class.isAnnotationPresent(org.gradle.api.tasks.CacheableTask)}]"
+            def annotated = false
+            for (def type = task.class; type != null; type = type.superclass) {
+                if (type.isAnnotationPresent(org.gradle.api.tasks.CacheableTask)) {
+                    annotated = true
+                    break
+                }
+            }
+            "${task.path} [${task.class.name}, CacheableTask-in-hierarchy=${annotated}]"
         }.join(', '))
 }
