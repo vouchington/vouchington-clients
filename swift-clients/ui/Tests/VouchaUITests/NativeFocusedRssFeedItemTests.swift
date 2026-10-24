@@ -73,14 +73,14 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
             ApiFixtureLoader.data("native.rss-feed-item.detail.default"),
             200
         )
-        let viewModel = try makeFocusedViewModel(itemId: fixtureItemId)
+        let viewModel = try makeFocusedViewModel(itemId: fixtureItemId, isSignedIn: true)
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
-        XCTAssertEqual(
-            CannedFeedURLProtocol.capturedURLs.map(\.path),
-            ["/api/v1/rss-feed-items/\(fixtureItemId)"]
-        )
+        let paths = CannedFeedURLProtocol.capturedURLs.map(\.path)
+        XCTAssertEqual(paths.filter { !$0.hasSuffix("/views") }, ["/api/v1/rss-feed-items/\(fixtureItemId)"])
+        XCTAssertEqual(paths.filter { $0.hasSuffix("/views") }, ["/api/v1/rss-feed-items/\(fixtureItemId)/views"])
         XCTAssertEqual(viewModel.focusedRssFeedItem?.data?.title, "Test Article")
         XCTAssertEqual(viewModel.focusedRssFeedItem?.data?.contentSnippet, "A short snippet")
         XCTAssertEqual(viewModel.focusedRssFeedItemContentHtml, "<p>A short snippet</p>")
@@ -98,9 +98,10 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
 
     func testFocusedItemFailureCanRetry() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/item-1"] = (Data("{}".utf8), 500)
-        let viewModel = try makeFocusedViewModel()
+        let viewModel = try makeFocusedViewModel(isSignedIn: true)
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
         guard case .error = viewModel.state else {
             return XCTFail("Expected a retryable error")
         }
@@ -115,7 +116,12 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
             return XCTFail("Expected retry to load the focused detail")
         }
         XCTAssertEqual(viewModel.focusedRssFeedItem?.id, fixtureItemId)
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, 2)
+        let paths = CannedFeedURLProtocol.capturedURLs.map(\.path)
+        XCTAssertEqual(paths.filter { !$0.hasSuffix("/views") }, [
+            "/api/v1/rss-feed-items/item-1",
+            "/api/v1/rss-feed-items/item-1"
+        ])
+        XCTAssertEqual(paths.filter { $0.hasSuffix("/views") }, ["/api/v1/rss-feed-items/item-1/views"])
     }
 
     func testFocusedSurfaceRendersExpandedItemPlaybackAndExternalLinkWithoutSequenceControls() async throws {
@@ -291,14 +297,16 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
 
     private func makeFocusedViewModel(
         client: APIClient? = nil,
-        itemId: String = "item-1"
+        itemId: String = "item-1",
+        isSignedIn: Bool = false
     ) throws -> NativeRouteSurfaceViewModel {
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/podcast-episodes"))
         return try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: client ?? makeClient(),
             routeMatch: route.match,
-            routeQuery: "rss_item=\(itemId)"
+            routeQuery: "rss_item=\(itemId)",
+            isSignedIn: isSignedIn
         )
     }
 
