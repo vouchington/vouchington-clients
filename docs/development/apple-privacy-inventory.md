@@ -59,12 +59,14 @@ Pins are the committed `Package.resolved` revisions.
 | swift-asn1 1.7.1     | `a9a5efd40eaf558a2bcd48d64b1d1646be686008` | Yes, transitive through swift-crypto                     | No `PrivacyInfo.xcprivacy`. The checkout has no required-reason symbols from the scan above.                                                            |
 | SwiftSoup 2.14.2     | `7a185638b31911a9980655b70a26af1279d4917b` | Yes, through `VouchaDesignSystem`                        | No privacy manifest. Tag `2.14.2` has no required-reason symbols from the scan above.                                                                   |
 | ViewInspector 0.10.5 | `2dacb6e514be19379c605a5a11564d0f3fea89d9` | No. `VouchaUITests` only                                 | Not part of either app target. Not scanned as a shipped dependency.                                                                                     |
+| sentry-cocoa 9.31.0  | `2f64c77f77514acd01780d1aac86ae75b7fccd04` | Yes, iOS and macOS app targets only                      | `generate.sh` adds this pin to the generated app lock. The xcframework ships its own privacy manifest. Core and UI packages do not depend on it.        |
 
 ## Collected data in the app manifests
 
 All four manifests set `NSPrivacyTracking` to false and omit `NSPrivacyTrackingDomains`.
-No App Tracking Transparency, advertising identifier, or third-party analytics SDK is
-linked. Package manifests declare no collected data types; collection is an app-level
+No App Tracking Transparency framework or advertising identifier is linked. Sentry is
+linked from the iOS and macOS app targets and is not started when `VOUCHA_SENTRY_DSN`
+is empty. Package manifests declare no collected data types; collection is an app-level
 claim.
 
 Each row is linked to the account, not used for tracking, and declared only for app
@@ -77,6 +79,8 @@ functionality.
 | `NSPrivacyCollectedDataTypeDeviceID`         | Server `dt` device token persisted as a cookie in `APIClient+Session.swift`, and the App Attest key sent to `/api/v1/app-attestation/attest`. |
 | `NSPrivacyCollectedDataTypePhotosorVideos`   | User-selected images uploaded from `fileImporter` surfaces (profile, post compose, topic image).                                              |
 | `NSPrivacyCollectedDataTypeOtherUserContent` | Posts, comments, and other member-authored content sent to the API.                                                                           |
+| `NSPrivacyCollectedDataTypeCrashData`        | Sentry crash reports, only after a DSN is configured. The attached user is the opaque account id.                                             |
+| `NSPrivacyCollectedDataTypePerformanceData`  | Sentry performance traces at the configured sample rate, only after a DSN is configured.                                                      |
 
 `NSPrivacyCollectedDataTypePhotosorVideos` is Apple's manifest identifier, including
 the lowercase "or".
@@ -104,9 +108,9 @@ These are not encoded as final nutrition-label or review answers.
 - Session cookie `st`. It is an account session credential stored beside `dt`. It has
   no separate manifest type. Whether App Store Connect should describe it separately
   is open.
-- Tracking and diagnostics. The false tracking flag covers the current dependency set.
-  A future ads, attribution, or crash SDK would change it. Crash logs and product
-  interaction are not declared.
+- Tracking and diagnostics. Crash data and performance data are declared, linked to
+  the account, and not used for tracking. Product interaction beyond those performance
+  traces is not declared. An ads or attribution SDK would change the tracking flag.
 - Age rating. The questionnaire is not answered.
 - Guideline 1.2. Members can report a post, comment, or detail
   (`NativeDetailSurface+Reporting.swift`, `NativeCommentThreadViewModel+Mutations.swift`).
