@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { describe, it } from 'node:test'
+import { renamedFilePaths } from './git-rename-fixture.mjs'
 import { shouldRunWindowsLanguageModelSurfaceProbe } from '../scripts/windows-language-model-surface-routing.mjs'
 
 describe('Windows language-model surface probe routing', () => {
@@ -28,55 +25,15 @@ describe('Windows language-model surface probe routing', () => {
   })
 
   it('selects a relevant file renamed out of the source tree', () => {
-    const repository = mkdtempSync(join(tmpdir(), 'windows-language-model-surface-route-'))
-    try {
-      execFileSync('git', ['init', '-q'], { cwd: repository })
-      execFileSync('git', ['config', 'user.email', 'test@example.invalid'], { cwd: repository })
-      execFileSync('git', ['config', 'user.name', 'Routing test'], { cwd: repository })
-      const source = join(repository, 'dotnet-clients/src/Voucha.Client.App/Chat')
-      mkdirSync(source, { recursive: true })
-      writeFileSync(join(source, 'WindowsSystemLanguageModelRuntime.Windows.cs'), 'before')
-      execFileSync('git', ['add', '.'], { cwd: repository })
-      execFileSync('git', ['commit', '-qm', 'baseline'], { cwd: repository })
-
-      execFileSync(
-        'git',
-        [
-          'mv',
-          'dotnet-clients/src/Voucha.Client.App/Chat/WindowsSystemLanguageModelRuntime.Windows.cs',
-          'retired-runtime.cs',
-        ],
-        {
-          cwd: repository,
-        },
-      )
-      execFileSync('git', ['commit', '-qm', 'move runtime out'], { cwd: repository })
-      const [base, revision] = execFileSync('git', ['rev-list', '--max-count=2', 'HEAD'], {
-        cwd: repository,
-        encoding: 'utf8',
-      })
-        .trim()
-        .split('\n')
-        .reverse()
-      const paths = execFileSync(
-        'git',
-        ['diff', '--no-renames', '--name-only', '-z', base, revision],
-        {
-          cwd: repository,
-          encoding: 'utf8',
-        },
-      )
-        .split('\0')
-        .filter(Boolean)
-
-      assert.deepEqual(paths, [
-        'dotnet-clients/src/Voucha.Client.App/Chat/WindowsSystemLanguageModelRuntime.Windows.cs',
-        'retired-runtime.cs',
-      ])
-      assert.equal(shouldRunWindowsLanguageModelSurfaceProbe(paths), true)
-    } finally {
-      rmSync(repository, { recursive: true, force: true })
-    }
+    const paths = renamedFilePaths(
+      'dotnet-clients/src/Voucha.Client.App/Chat/WindowsSystemLanguageModelRuntime.Windows.cs',
+      'retired-runtime.cs',
+    )
+    assert.deepEqual(paths, [
+      'dotnet-clients/src/Voucha.Client.App/Chat/WindowsSystemLanguageModelRuntime.Windows.cs',
+      'retired-runtime.cs',
+    ])
+    assert.equal(shouldRunWindowsLanguageModelSurfaceProbe(paths), true)
   })
 
   it('skips unrelated Swift-only changes', () => {
