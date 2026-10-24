@@ -206,26 +206,62 @@ const waiting = setInterval(() => {
   await waitFor(() => !alive(childPid))
 })
 
-test('deadline terminates only the owned wrapper process group, including a stubborn child', async t => {
+test('interrupting an acknowledged worker terminates only its owned group, including a stubborn child', async t => {
   const f = await fixture(
     t,
-    `const child = spawn(process.execPath, ['-e', "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"], { stdio: 'ignore' })
+    `process.on('SIGTERM', () => {})
+const child = spawn(process.execPath, ['-e', "const fs=require('node:fs');process.on('SIGTERM',()=>{});fs.writeFileSync(process.env.CHILD_PID+'.ready','');setInterval(()=>{},1000)"], { stdio: 'ignore' })
 writeFileSync(process.env.CHILD_PID, String(child.pid))
-process.on('SIGTERM', () => {})
 setInterval(() => {}, 1000)`,
-    1,
+    90,
   )
   const sentinel = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' })
   t.after(() => sentinel.kill())
   assert.equal((await f.run('start')).code, 0)
-  const result = await f.run('join')
-  assert.equal(result.code, 124, result.stderr)
-  assert.match(result.stderr, /deadline exceeded/u)
+  await waitFor(async () => {
+    try {
+      await readFile(f.env.CHILD_PID + '.ready')
+      return true
+    } catch {
+      return false
+    }
+  })
   const wrapperPid = JSON.parse(await readFile(f.record, 'utf8')).pid
   const childPid = Number(await readFile(f.env.CHILD_PID, 'utf8'))
+  const running = JSON.parse(await readFile(join(f.state, 'status.json'), 'utf8'))
+  assert.equal(running.phase, 'running')
+  process.kill(running.workerPid, 'SIGTERM')
+  const result = await f.run('join')
+  assert.equal(result.code, 143, result.stderr)
+  assert.match(result.stderr, /worker interrupted/u)
   await waitFor(() => !alive(wrapperPid) && !alive(childPid))
   assert.ok(alive(sentinel.pid), 'unrelated process must survive')
 })
+
+test(
+  'one-second deadline publishes a bounded terminal result even before wrapper startup',
+  { timeout: 10000 },
+  async t => {
+    const f = await fixture(t, "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)", 1)
+    assert.equal((await f.run('start')).code, 0)
+    const result = await f.run('join')
+    assert.equal(result.code, 124, result.stderr)
+    assert.match(result.stderr, /deadline exceeded/u)
+    const terminal = JSON.parse(await readFile(join(f.state, 'status.json'), 'utf8'))
+    assert.equal(terminal.phase, 'done')
+    assert.equal(terminal.code, 124)
+    const config = JSON.parse(await readFile(join(f.state, 'config.json'), 'utf8'))
+    assert.ok(Date.now() <= config.deadline + 3000, 'terminal result must remain bounded')
+    // The absolute deadline may precede fake Node startup under parallel test load.
+    let wrapper
+    try {
+      wrapper = JSON.parse(await readFile(f.record, 'utf8'))
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    if (wrapper) await waitFor(() => !alive(wrapper.pid))
+  },
+)
 
 test('caps background output and fails closed on missing state, invalid context, and reused state', async t => {
   const f = await fixture(t, "process.stdout.write('x'.repeat(100000))")
