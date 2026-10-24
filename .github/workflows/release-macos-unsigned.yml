@@ -52,8 +52,11 @@ jobs:
         id: swift-package-clones
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/swift-package-clones
-          key: ${{ runner.os }}-swiftpm-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
+          path: |
+            ${{ runner.temp }}/swift-package-clones/checkouts
+            ${{ runner.temp }}/swift-package-clones/artifacts
+            ${{ runner.temp }}/swift-package-clones/workspace-state.json
+          key: ${{ runner.os }}-swiftpm-checkouts-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
       - name: Archive without signing
         timeout-minutes: 24
         env:
@@ -76,7 +79,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/swift-package-clones
+          path: |
+            ${{ runner.temp }}/swift-package-clones/checkouts
+            ${{ runner.temp }}/swift-package-clones/artifacts
+            ${{ runner.temp }}/swift-package-clones/workspace-state.json
           key: ${{ steps.swift-package-clones.outputs.cache-primary-key }}
       - name: Export unsigned Copy App
         timeout-minutes: 3
