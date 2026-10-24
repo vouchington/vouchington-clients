@@ -78,7 +78,7 @@ async function start({ args, state, temp }) {
 
 async function worker(state) {
   const config = JSON.parse(readFileSync(join(state, 'config.json'), 'utf8'))
-  const log = openSync(join(state, 'gradle.log'), 'wx')
+  const log = openSync(join(state, 'gradle.log.tmp'), 'wx')
   let output = Buffer.alloc(0)
   let truncated = false
   const capture = chunk => {
@@ -121,6 +121,7 @@ async function worker(state) {
   if (cleanup) await cleanup
   writeSync(log, output)
   closeSync(log)
+  renameSync(join(state, 'gradle.log.tmp'), join(state, 'gradle.log'))
   status(state, { phase: 'done', code, reason, truncated })
 }
 
