@@ -47,7 +47,7 @@ jobs:
             ${{ runner.temp }}/swift-package-clones/checkouts
             ${{ runner.temp }}/swift-package-clones/artifacts
             ${{ runner.temp }}/swift-package-clones/workspace-state.json
-          key: ${{ runner.os }}-swiftpm-checkouts-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
+          key: ${{ runner.os }}-swiftpm-seed-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
       - name: Verify pinned Xcode
         if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
