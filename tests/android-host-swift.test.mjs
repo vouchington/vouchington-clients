@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
+import { writeBashExecutable } from './fixture-files.mjs'
 
 const script = fileURLToPath(
   new URL('../swift-clients/apps/android/tooling/verify-android-host-swift.sh', import.meta.url),
@@ -15,11 +16,6 @@ const managedResolver = fileURLToPath(
 const workflowPath = fileURLToPath(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
 )
-
-async function executable(path, contents) {
-  await writeFile(path, `#!/bin/bash\nset -euo pipefail\n${contents}\n`)
-  await chmod(path, 0o755)
-}
 
 async function fixture(t, { xcode = '26.6', swift = '6.3.3', swiftInsideXcode = true } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'voucha-android-host-swift-'))
@@ -34,17 +30,20 @@ async function fixture(t, { xcode = '26.6', swift = '6.3.3', swiftInsideXcode = 
   await mkdir(bin, { recursive: true })
   await mkdir(join(developerDir, 'usr/bin'), { recursive: true })
   await mkdir(dirname(swiftPath), { recursive: true })
-  await executable(join(bin, 'uname'), "printf 'Darwin\\n'")
-  await executable(
+  await writeBashExecutable(join(bin, 'uname'), "printf 'Darwin\\n'")
+  await writeBashExecutable(
     join(bin, 'xcrun'),
     `[[ "$1" == '--find' && "$2" == 'swift' ]] || exit 2\nprintf '%s\\n' '${swiftPath}'`,
   )
-  await executable(
+  await writeBashExecutable(
     join(developerDir, 'usr/bin/xcodebuild'),
     `printf 'Xcode ${xcode}\\nBuild version test\\n'`,
   )
-  await executable(swiftPath, `printf 'Swift version ${swift} (swift-${swift}-RELEASE)\\n'`)
-  await executable(
+  await writeBashExecutable(
+    swiftPath,
+    `printf 'Swift version ${swift} (swift-${swift}-RELEASE)\\n'`,
+  )
+  await writeBashExecutable(
     join(bin, 'mise'),
     `if [[ "$1" == install && "$2" == 'swift@6.3.3' ]]; then exit 0; fi\nif [[ "$*" == 'exec swift@6.3.3 -- swift --version' ]]; then printf 'Swift version 6.3.3 (swift-6.3.3-RELEASE)\\n'; exit 0; fi\nexit 2`,
   )
@@ -117,7 +116,7 @@ test('accepts both Apple and swift.org mise Swift 6.4 banners and rejects anothe
   await mkdir(bin, { recursive: true })
   await mkdir(dirname(swiftPath), { recursive: true })
   await writeFile(join(toolchain, 'Info.plist'), '')
-  await executable(
+  await writeBashExecutable(
     join(bin, 'mise'),
     `if [[ "$1" == which && "$2" == swift ]]; then printf '%s\\n' '${swiftPath}'; exit 0; fi\nif [[ "$1" == where && "$2" == swift ]]; then printf '%s\\n' '${toolchain}'; exit 0; fi\nexit 2`,
   )
@@ -127,7 +126,7 @@ test('accepts both Apple and swift.org mise Swift 6.4 banners and rejects anothe
     ['Swift version 6.4 (swift-6.4-RELEASE)', 0],
     ['Swift version 6.3.3 (swift-6.3.3-RELEASE)', 1],
   ]) {
-    await executable(swiftPath, `printf '%s\\n' '${banner}'`)
+    await writeBashExecutable(swiftPath, `printf '%s\\n' '${banner}'`)
     const result = await new Promise((resolve, reject) => {
       const child = spawn('/bin/bash', [managedResolver], {
         env: {
