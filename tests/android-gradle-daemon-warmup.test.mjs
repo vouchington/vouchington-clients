@@ -149,6 +149,7 @@ test('warms only an empty project with exact properties and later build environm
   })
   const record = JSON.parse(await readFile(f.record, 'utf8'))
   assert.deepEqual(record.args, [
+    '--daemon',
     '--project-dir',
     join(f.state, 'project'),
     '--console=plain',
@@ -234,7 +235,7 @@ test('caps background output and fails closed on missing state, invalid context,
   const result = await f.run('join')
   assert.equal(result.code, 0, result.stderr)
   assert.equal((await readFile(join(f.state, 'gradle.log'))).length, 65536)
-  assert.match(result.stdout, /log truncated at 64 KiB/u)
+  assert.match(result.stdout, /log truncated to its final 64 KiB/u)
   const before = await readFile(join(f.state, 'config.json'), 'utf8')
   assert.notEqual((await f.run('start')).code, 0)
   assert.equal(await readFile(join(f.state, 'config.json'), 'utf8'), before)
@@ -246,4 +247,18 @@ test('rejects deadlines above the bounded limit before starting a wrapper', asyn
   assert.notEqual(result.code, 0)
   assert.match(result.stderr, /1 to 90 seconds/u)
   await assert.rejects(readFile(f.record), { code: 'ENOENT' })
+})
+
+test('retains the terminal diagnostic after large failing output and propagates its exit', async t => {
+  const f = await fixture(
+    t,
+    "process.stderr.write('old output\\n'.repeat(15000) + 'PRIMARY TERMINAL FAILURE\\n'); process.exitCode = 37",
+  )
+  assert.equal((await f.run('start')).code, 0)
+  const result = await f.run('join')
+  assert.equal(result.code, 37)
+  assert.match(result.stdout, /PRIMARY TERMINAL FAILURE/u)
+  const log = await readFile(join(f.state, 'gradle.log'), 'utf8')
+  assert.equal(Buffer.byteLength(log), 65536)
+  assert.ok(log.endsWith('PRIMARY TERMINAL FAILURE\n'))
 })

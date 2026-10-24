@@ -79,17 +79,15 @@ async function start({ args, state, temp }) {
 async function worker(state) {
   const config = JSON.parse(readFileSync(join(state, 'config.json'), 'utf8'))
   const log = openSync(join(state, 'gradle.log'), 'wx')
-  let remaining = logLimit
+  let output = Buffer.alloc(0)
+  let truncated = false
   const capture = chunk => {
-    const bytes = Buffer.from(chunk)
-    if (remaining > 0) {
-      const count = Math.min(bytes.length, remaining)
-      try { writeSync(log, bytes.subarray(0, count)); remaining -= count }
-      catch (error) { remaining = 0; stop(1, error.message) }
-    }
+    const next = Buffer.concat([output, Buffer.from(chunk)])
+    truncated ||= next.length > logLimit
+    output = next.subarray(-logLimit)
   }
   status(state, { phase: 'running', workerPid: process.pid })
-  const child = spawn(config.wrapper, ['--project-dir', config.project, '--console=plain', 'help'], {
+  const child = spawn(config.wrapper, ['--daemon', '--project-dir', config.project, '--console=plain', 'help'], {
     cwd: config.project, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   })
   child.stdout.on('data', capture)
@@ -121,8 +119,9 @@ async function worker(state) {
   })
   clearTimeout(timeout)
   if (cleanup) await cleanup
+  writeSync(log, output)
   closeSync(log)
-  status(state, { phase: 'done', code, reason, truncated: remaining === 0 })
+  status(state, { phase: 'done', code, reason, truncated })
 }
 
 async function joinWorker({ args, state }) {
@@ -136,7 +135,7 @@ async function joinWorker({ args, state }) {
     await pause(50)
   }
   if (existsSync(join(state, 'gradle.log'))) process.stdout.write(readFileSync(join(state, 'gradle.log')))
-  if (result.truncated) console.log('\nGradle warm-up log truncated at 64 KiB')
+  if (result.truncated) console.log('\nGradle warm-up log truncated to its final 64 KiB')
   if (result.code !== 0) console.error(result.reason || 'Gradle warm-up failed')
   process.exitCode = result.code
 }
