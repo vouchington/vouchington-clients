@@ -1082,12 +1082,110 @@ jobs:
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           env MISE_EXEC_AUTO_INSTALL=false mise exec swift@6.3.3 -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Record Android host test start marker
+        run: touch "$RUNNER_TEMP/android-host-test-start-marker"
       - name: Test Android Swift package
+        id: android-host-tests
         working-directory: candidate-clients
+        env:
+          # Swift backtracing is opt-in on macOS; noninteractive output defaults to stderr.
+          SWIFT_BACKTRACE: enable=yes,interactive=no
         run: >-
           bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
           --package-path swift-clients/apps/android
           --filter VouchaAndroidTests
+      - name: Collect Android host xctest crash reports
+        if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}
+        timeout-minutes: 2
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, re, stat, time
+          from pathlib import Path
+
+          reports = Path.home() / "Library/Logs/DiagnosticReports"
+          marker = Path(os.environ["RUNNER_TEMP"]) / "android-host-test-start-marker"
+          output = Path(os.environ["RUNNER_TEMP"]) / "android-host-crash-reports"
+          output.mkdir(exist_ok=True)
+          bundle = "voucha-androidPackageTests"
+          max_file_bytes, max_total_bytes = 8 * 1024 * 1024, 16 * 1024 * 1024
+          collected, total = [], 0
+          warnings = set()
+
+          def matches(text, suffix):
+              if suffix == ".crash":
+                  return bool(re.search(r"^Process:\s+xctest\s+\[", text, re.M)) and bool(
+                      re.search(r"/" + bundle + r"\.xctest/Contents/MacOS/" + bundle + r"(?:\s|$)", text))
+              decoder, records, offset = json.JSONDecoder(), [], 0
+              while text[offset:].strip():
+                  offset += len(text[offset:]) - len(text[offset:].lstrip())
+                  record, end = decoder.raw_decode(text, offset)
+                  records.append(record)
+                  offset = end
+              return any(isinstance(record, dict) and record.get("procName") == "xctest"
+                         and any(isinstance(image, dict) and image.get("name") == bundle
+                                 and ("/" + bundle + ".xctest/Contents/MacOS/" + bundle) in image.get("path", "")
+                                 for image in record.get("usedImages", [])) for record in records)
+
+          for attempt in range(6):
+              if reports.is_dir():
+                  with os.scandir(reports) as entries:
+                      for index, entry in enumerate(entries):
+                          if index >= 512:
+                              warnings.add("Diagnostic report inventory exceeded 512 entries")
+                              break
+                          path = Path(entry.path)
+                          if path.suffix not in (".ips", ".crash"):
+                              continue
+                          try:
+                              # Do not follow symlinks, including a replacement between scan and open.
+                              fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                              with os.fdopen(fd, "rb") as stream:
+                                  info = os.fstat(stream.fileno())
+                                  if not stat.S_ISREG(info.st_mode) or info.st_mtime_ns <= marker.stat().st_mtime_ns:
+                                      continue
+                                  if info.st_size > max_file_bytes or total + info.st_size > max_total_bytes:
+                                      warnings.add("Diagnostic report byte limit reached")
+                                      continue
+                                  data = stream.read(max_file_bytes + 1)
+                              if len(data) > max_file_bytes or total + len(data) > max_total_bytes:
+                                  warnings.add("Diagnostic report byte limit reached")
+                                  continue
+                              if not matches(data.decode("utf-8"), path.suffix):
+                                  continue
+                              (output / path.name).write_bytes(data)
+                              collected.append(path.name)
+                              total += len(data)
+                          except (OSError, ValueError, UnicodeError, TypeError):
+                              warnings.add("Unreadable or invalid diagnostic report ignored")
+              if collected:
+                  break
+              if attempt < 5:
+                  time.sleep(5)
+          provenance = dict(candidate_revision=os.environ["CANDIDATE_REVISION"],
+                            run_id=os.environ["WORKFLOW_RUN_ID"], run_attempt=os.environ["WORKFLOW_RUN_ATTEMPT"],
+                            process="xctest", bundle=bundle + ".xctest", marker_ns=marker.stat().st_mtime_ns,
+                            reports=collected, bytes=total, warnings=sorted(warnings))
+          (output / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+          if not collected:
+              print("::warning::No new Android host xctest crash report was available; original test failure remains fatal")
+          for warning in sorted(warnings):
+              print("::warning::" + warning)
+          PYTHON
+      - name: Upload Android host xctest crash reports
+        if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}
+        timeout-minutes: 1
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-host-crash-reports-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-host-crash-reports
+          retention-days: 1
+          if-no-files-found: warn
   test-swift-android-cookie:
     name: Swift Android Skip
     needs:
