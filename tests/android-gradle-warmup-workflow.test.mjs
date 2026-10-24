@@ -14,15 +14,16 @@ const step = name => {
   return matches[0]
 }
 
-test('app bootstraps the same Gradle daemon before independent setup and joins before the full build', () => {
+test('app bootstraps after pinned tools, overlaps materialization, and joins before the full build', () => {
   const order = [
     'Resolve Java for Android SDK setup',
     'Configure app Gradle and Swift homes',
     'Restore Gradle user home',
-    'Start isolated Gradle daemon bootstrap',
     'Select job-scoped Android SDK location',
     'Setup Android SDK',
     'Set up mise-managed Swift compiler',
+    'Select Xcode 26.6 for Android host SwiftPM tests',
+    'Start isolated Gradle daemon bootstrap',
     'Prepare checksummed Swift Android SDK and archives',
     'Restore verified exact-run generated Android state',
     'Resolve Android Swift package with shared artifact cache',
@@ -42,16 +43,16 @@ test('app bootstraps the same Gradle daemon before independent setup and joins b
   ]) {
     const body = step(name)
     assert.match(body, /timeout-minutes: 2/u)
-    assert.ok(body.includes(`gradle-daemon-warmup.mjs ${command} \\`))
-    assert.ok(body.includes('--state-dir "$RUNNER_TEMP/android-gradle-warmup"'))
-    assert.ok(
-      body.includes('--wrapper candidate-clients/swift-clients/apps/android/Android/gradlew'),
-    )
+    assert.match(body, /working-directory: candidate-clients/u)
     assert.ok(
       body.includes(
-        '--properties candidate-clients/swift-clients/apps/android/Android/gradle.properties',
+        'mise exec -- node swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs',
       ),
     )
+    assert.ok(body.includes(`gradle-daemon-warmup.mjs ${command} \\`))
+    assert.ok(body.includes('--state-dir "$RUNNER_TEMP/android-gradle-warmup"'))
+    assert.ok(body.includes('--wrapper swift-clients/apps/android/Android/gradlew'))
+    assert.ok(body.includes('--properties swift-clients/apps/android/Android/gradle.properties'))
     assert.match(body, /--timeout-seconds 90/u)
     assert.doesNotMatch(body, /continue-on-error|\|\| true|--no-daemon/u)
   }

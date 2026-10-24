@@ -806,15 +806,6 @@ jobs:
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
-      - name: Start isolated Gradle daemon bootstrap
-        timeout-minutes: 2
-        shell: bash
-        run: |
-          node candidate-clients/swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs start \
-            --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
-            --wrapper candidate-clients/swift-clients/apps/android/Android/gradlew \
-            --properties candidate-clients/swift-clients/apps/android/Android/gradle.properties \
-            --timeout-seconds 90
       - name: Select job-scoped Android SDK location
         shell: bash
         run: |
@@ -837,6 +828,16 @@ jobs:
       - name: Select Xcode 26.6 for Android host SwiftPM tests
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Start isolated Gradle daemon bootstrap
+        timeout-minutes: 2
+        shell: bash
+        working-directory: candidate-clients
+        run: |
+          mise exec -- node swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs start \
+            --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
+            --wrapper swift-clients/apps/android/Android/gradlew \
+            --properties swift-clients/apps/android/Android/gradle.properties \
+            --timeout-seconds 90
       - name: Remove obsolete Swift Android executable cache
         run: |
           cache_root="$HOME/.cache/voucha/swift-android"
@@ -902,11 +903,12 @@ jobs:
       - name: Join isolated Gradle daemon bootstrap
         timeout-minutes: 2
         shell: bash
+        working-directory: candidate-clients
         run: |
-          node candidate-clients/swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs join \
+          mise exec -- node swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs join \
             --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
-            --wrapper candidate-clients/swift-clients/apps/android/Android/gradlew \
-            --properties candidate-clients/swift-clients/apps/android/Android/gradle.properties \
+            --wrapper swift-clients/apps/android/Android/gradlew \
+            --properties swift-clients/apps/android/Android/gradle.properties \
             --timeout-seconds 90
       - name: Build the selected Android validation phase
         working-directory: candidate-clients

@@ -48,8 +48,11 @@ Gradle startup and configuration in that shard. The app consumer still runs the 
 Swift package task, builds both APKs, verifies the native ABI, and passes those exact APKs to the
 cookie restart job.
 
-The app job restores its existing Gradle user home immediately after resolving Java, then starts
-an empty-project `help` invocation while Android SDK, Swift and exact-run state setup proceed.
+The app job restores its existing Gradle user home immediately after resolving Java. After the
+pinned Swift installation and Xcode selection, it starts an empty-project `help` invocation while
+SDK materialization and exact-run state setup proceed. Start and join run through the candidate
+`mise exec` context; the daemon startup PATH includes the same future verified Skip artifact bin
+as the original full build. The build still verifies that executable before invoking Gradle.
 The checked-in wrapper and unmodified Gradle properties select the same Java, job-scoped
 home/temporary paths and 4 GB daemon as the original full build. The empty project lives under
 `RUNNER_TEMP`, outside the restored Android state and separate task-output cache. A strict join
