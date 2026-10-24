@@ -48,6 +48,12 @@ jobs:
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Generate macOS project
         run: ./swift-clients/tooling/generate.sh macOS
+      - name: Restore Swift package clones
+        id: swift-package-clones
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/swift-package-clones
+          key: ${{ runner.os }}-swiftpm-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
       - name: Archive without signing
         timeout-minutes: 24
         env:
@@ -65,6 +71,13 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$BUILD_NUMBER"
           test "$(/usr/libexec/PlistBuddy -c 'Print :VOUCHA_TURNSTILE_SITE_KEY' "$app/Contents/Info.plist")" = "$release_site_key"
           test "$(lipo -archs "$app/Contents/MacOS/Voucha")" = arm64
+      - name: Save Swift package clones
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/swift-package-clones
+          key: ${{ steps.swift-package-clones.outputs.cache-primary-key }}
       - name: Export unsigned Copy App
         timeout-minutes: 3
         run: |
