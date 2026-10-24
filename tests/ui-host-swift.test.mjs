@@ -1,20 +1,16 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
+import { writeBashExecutable } from './fixture-files.mjs'
 
 const script = fileURLToPath(
   new URL('../swift-clients/tooling/verify-ui-host-swift.sh', import.meta.url),
 )
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
-
-async function executable(path, contents) {
-  await writeFile(path, `#!/bin/bash\nset -euo pipefail\n${contents}\n`)
-  await chmod(path, 0o755)
-}
 
 async function fixture(
   t,
@@ -32,16 +28,19 @@ async function fixture(
   await mkdir(bin, { recursive: true })
   await mkdir(join(developerDir, 'usr/bin'), { recursive: true })
   await mkdir(dirname(swiftPath), { recursive: true })
-  await executable(join(bin, 'uname'), `printf '%s\\n' '${darwin ? 'Darwin' : 'Linux'}'`)
-  await executable(
+  await writeBashExecutable(join(bin, 'uname'), `printf '%s\\n' '${darwin ? 'Darwin' : 'Linux'}'`)
+  await writeBashExecutable(
     join(bin, 'xcrun'),
     `[[ "$1" == '--find' && "$2" == 'swift' ]] || exit 2\nprintf '%s\\n' '${swiftPath}'`,
   )
-  await executable(
+  await writeBashExecutable(
     join(developerDir, 'usr/bin/xcodebuild'),
     `printf 'Xcode ${xcode}\\nBuild version fixture\\n'`,
   )
-  await executable(swiftPath, `printf 'Apple Swift version ${swift} (swiftlang-${swift})\\n'`)
+  await writeBashExecutable(
+    swiftPath,
+    `printf 'Apple Swift version ${swift} (swiftlang-${swift})\\n'`,
+  )
 
   return {
     async run() {

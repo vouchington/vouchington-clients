@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
+import { writeBashExecutable } from './fixture-files.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const entrypoint = join(
@@ -12,11 +13,6 @@ const entrypoint = join(
 )
 const fullTargetCommand =
   'bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter VouchaAndroidTests'
-
-async function executable(path, contents) {
-  await writeFile(path, `#!/bin/bash\nset -euo pipefail\n${contents}\n`)
-  await chmod(path, 0o755)
-}
 
 async function fixture(t, { xcode = '26.6', swift = '6.3.3' } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'voucha-android-host-entrypoint-'))
@@ -29,20 +25,20 @@ async function fixture(t, { xcode = '26.6', swift = '6.3.3' } = {}) {
   await mkdir(dirname(swiftPath), { recursive: true })
   await mkdir(join(developerDir, 'usr/bin'), { recursive: true })
   await writeFile(logPath, '')
-  await executable(join(bin, 'uname'), "printf 'Darwin\\n'")
-  await executable(
+  await writeBashExecutable(join(bin, 'uname'), "printf 'Darwin\\n'")
+  await writeBashExecutable(
     join(bin, 'xcrun'),
     `[[ "$1" == '--find' && "$2" == 'swift' ]] || exit 2\nprintf '%s\\n' '${swiftPath}'`,
   )
-  await executable(
+  await writeBashExecutable(
     join(developerDir, 'usr/bin/xcodebuild'),
     `printf 'Xcode ${xcode}\\nBuild version test\\n'`,
   )
-  await executable(
+  await writeBashExecutable(
     swiftPath,
     `if [[ "\${1:-}" == test ]]; then printf 'swift test\\n' >> '${logPath}'; exit 99; fi\nprintf 'Swift version ${swift} (swift-${swift}-RELEASE)\\n'`,
   )
-  await executable(
+  await writeBashExecutable(
     join(bin, 'mise'),
     `printf '%s\\n' "$*" >> '${logPath}'
 if [[ "$1" == install && "$2" == swift@6.3.3 ]]; then exit 0; fi
