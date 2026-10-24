@@ -4,9 +4,12 @@ import XCTest
 
 final class SentrySdkBoundaryTests: XCTestCase {
     func testMcpSessionIdIsRedactedFromTheSdkEvent() throws {
-        let event = capturedEvent()
-        let breadcrumb = try XCTUnwrap(event.breadcrumbs?.first)
+        let callbackEvent = capturedEvent()
+        let breadcrumb = try XCTUnwrap(callbackEvent.breadcrumbs?.first)
         let fromCallback = try XCTUnwrap(SentryEventProjection.scrubbedBreadcrumb(breadcrumb))
+        // `scrubbedBreadcrumb` mutates in place, so the `apply` path needs its own unscrubbed event.
+        let event = capturedEvent()
+        XCTAssertEqual(event.breadcrumbs?.first?.data?["Mcp-Session-Id"] as? String, sessionId)
         let draft = SentryEventProjection.draft(from: event, boundAccountId: nil)
         SentryEventProjection.apply(SentryEventScrubber.scrub(draft), to: event)
 

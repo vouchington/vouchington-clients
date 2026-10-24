@@ -147,6 +147,51 @@ final class SentryEventScrubberTests: XCTestCase {
         XCTAssertEqual(scrubbed.breadcrumbs.first?.message, "GET /search")
     }
 
+    func testSensitiveNamesAreFilteredOrDroppedEverywhere() {
+        let names = [
+            "userEmail",
+            "db_password",
+            "X-Auth-Token",
+            "sessionId",
+            "apiKey",
+            "client-secret",
+            "Set-Cookie",
+            "x-signature",
+            "APIKey",
+            "private_key"
+        ]
+        for name in names {
+            XCTAssertTrue(SentryEventScrubber.dropsExtra(name), name)
+            XCTAssertNil(SentryEventScrubber.scrubField(key: name, value: "v"), name)
+        }
+        let scrubbed = SentryEventScrubber.scrub(SentryOutboundEvent(
+            headers: ["X-Session-Token": "abc", "X-Request-Id": "r1"],
+            extras: ["userEmail": "ada@example.com", "screen": "settings"]
+        ))
+        XCTAssertEqual(scrubbed.headers["X-Session-Token"], SentryEventScrubber.filteredValue)
+        XCTAssertEqual(scrubbed.headers["X-Request-Id"], "r1")
+        XCTAssertNil(scrubbed.extras["userEmail"])
+        XCTAssertEqual(scrubbed.extras["screen"], "settings")
+    }
+
+    func testBenignNamesAndTheOpaqueAccountMarkerPass() {
+        for name in ["voucha.account", "author", "authority", "monkey", "method", "status", "screen"] {
+            XCTAssertFalse(SentryEventScrubber.dropsExtra(name), name)
+            XCTAssertEqual(SentryEventScrubber.scrubField(key: name, value: "v"), "v", name)
+        }
+    }
+
+    func testQueryAndFragmentAreStrippedFromPathLikeValues() {
+        XCTAssertEqual(
+            SentryEventScrubber.scrubField(key: "route", value: "/callback?token=secret"), "/callback"
+        )
+        XCTAssertEqual(
+            SentryEventScrubber.scrubField(key: "route", value: "/callback#access_token=x"), "/callback"
+        )
+        XCTAssertEqual(SentryEventScrubber.scrubField(key: "route", value: "/settings"), "/settings")
+        XCTAssertEqual(SentryEventScrubber.scrubField(key: "note", value: "a?b"), "a?b")
+    }
+
     private var secretEvent: SentryOutboundEvent {
         SentryOutboundEvent(
             accountId: "account-1",

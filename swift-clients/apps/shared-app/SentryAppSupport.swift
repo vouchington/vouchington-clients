@@ -3,8 +3,19 @@ import Sentry
 import VouchaCore
 
 enum SentryAppSupport {
-    private static var didStart = false
-    private static var boundAccountId: String?
+    private static let stateLock = NSLock()
+    private static var didStartStorage = false
+    private static var boundAccountIdStorage: String?
+
+    private static var didStart: Bool {
+        get { stateLock.withLock { didStartStorage } }
+        set { stateLock.withLock { didStartStorage = newValue } }
+    }
+
+    private static var boundAccountId: String? {
+        get { stateLock.withLock { boundAccountIdStorage } }
+        set { stateLock.withLock { boundAccountIdStorage = newValue } }
+    }
 
     static func startIfConfigured() {
         guard !didStart else { return }

@@ -88,7 +88,7 @@ public enum SentryEventScrubber {
     public static let filteredValue = "[Filtered]"
 
     public static func dropsExtra(_ key: String) -> Bool {
-        droppedExtraKeys.contains(key.lowercased())
+        droppedExtraKeys.contains(key.lowercased()) || isSensitiveName(key)
     }
 
     public static func scrub(_ event: SentryOutboundEvent) -> SentryOutboundEvent {
@@ -118,7 +118,7 @@ public enum SentryEventScrubber {
         var data: [String: String] = [:]
         for (key, value) in breadcrumb.data {
             let name = key.lowercased()
-            if droppedExtraKeys.contains(name) || isCredentialHeader(name) || isSeparateRequestPart(name) {
+            if dropsExtra(key) || isCredentialHeader(name) || isSeparateRequestPart(name) {
                 continue
             }
             data[key] = retainedValue(key, value)
@@ -138,7 +138,7 @@ public enum SentryEventScrubber {
 
     private static func scrubExtras(_ extras: [String: String]) -> [String: String] {
         var result: [String: String] = [:]
-        for (key, value) in extras where !droppedExtraKeys.contains(key.lowercased()) {
+        for (key, value) in extras where !dropsExtra(key) {
             result[key] = retainedValue(key, value)
         }
         return result
@@ -146,7 +146,7 @@ public enum SentryEventScrubber {
 
     private static func isCredentialHeader(_ name: String) -> Bool {
         let lowered = name.lowercased()
-        return credentialHeaders.contains(lowered) || lowered.hasPrefix("x-app-attest-")
+        return credentialHeaders.contains(lowered) || lowered.hasPrefix("x-app-attest-") || isSensitiveName(name)
     }
 
     static func stripQuery(_ value: String?) -> String? {
