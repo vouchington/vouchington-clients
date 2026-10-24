@@ -1,0 +1,29 @@
+// This read-only listener also runs in included builds. Do not add task actions:
+// doing so would change the build-cache keys consumed by the original APK build.
+gradle.taskGraph.whenReady { graph ->
+    def allowedProjects = ['SkipUI', 'SkipModel', 'SkipFoundation', 'SkipLib', 'skip-gradle', 'skip-plugins']
+    graph.allTasks.each { task ->
+        def name = task.name.toLowerCase(java.util.Locale.ROOT)
+        if (!allowedProjects.contains(task.project.name) ||
+            name.contains('swift') || name.contains('jni') || name.contains('native') || name.contains('dex') ||
+            name.contains('test') || name.startsWith('assemble') || name.startsWith('install') ||
+            name.startsWith('connected') || name == 'packagedebug' || name == 'packagerelease') {
+            throw new GradleException("Excluded task in Kotlin library producer: ${task.path}")
+        }
+    }
+    if (gradle.rootProject.findProject(':SkipUI') != null &&
+        !graph.allTasks.any { it.project.name == 'SkipUI' && it.name == 'compileDebugKotlin' }) {
+        throw new GradleException('Kotlin library graph is missing SkipUI:compileDebugKotlin')
+    }
+    logger.lifecycle("Kotlin library graph (${gradle.rootProject.name}): " +
+        graph.allTasks.collect { task ->
+            def annotated = false
+            for (def type = task.class; type != null; type = type.superclass) {
+                if (type.isAnnotationPresent(org.gradle.api.tasks.CacheableTask)) {
+                    annotated = true
+                    break
+                }
+            }
+            "${task.path} [${task.class.name}, CacheableTask-in-hierarchy=${annotated}]"
+        }.join(', '))
+}

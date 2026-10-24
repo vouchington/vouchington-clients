@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { lstatSync, realpathSync } from 'node:fs'
+import { basename, dirname } from 'node:path/posix'
 import { fileURLToPath } from 'node:url'
 import { assertCandidate, assertIdentity } from './android-state-inventory.mjs'
 
@@ -10,6 +12,8 @@ export const sourceMetadataLimits = Object.freeze({
   scanMs: 60_000,
 })
 const maxTimestampNs = 9_223_372_036_854_775_807n
+const androidSources = 'swift-clients/apps/android/Sources'
+const maxSourceDirectories = 256
 function fail(message) { throw new Error(`Android source metadata: ${message}`) }
 function limitValues(limits) {
   for (const key of ['entries', 'bytes', 'metadataBytes', 'scanMs']) {
@@ -47,8 +51,32 @@ function trackedPaths(root, limits) {
   }
   return paths
 }
-function scanWithNoFollowDescriptors(root, paths, deadline, limits) {
-  const input = JSON.stringify(paths)
+function sourceDirectories(paths) {
+  const names = new Map()
+  for (const path of paths) {
+    if (!path.startsWith(`${androidSources}/`)) continue
+    let child = path
+    for (let parent = dirname(child); parent === androidSources || parent.startsWith(`${androidSources}/`);
+      child = parent, parent = dirname(parent)) {
+      const children = names.get(parent) ?? new Map()
+      const name = basename(child)
+      const type = child === path ? 'file' : 'directory'
+      if (children.has(name) && children.get(name) !== type) fail('tracked source child type collision')
+      children.set(name, type)
+      names.set(parent, children)
+    }
+  }
+  if (names.size > maxSourceDirectories) fail('Android source directory count exceeds cap')
+  return [...names].sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)))
+    .map(([path, children]) => ({
+      path,
+      childrenSha256: createHash('sha256').update(JSON.stringify(
+        [...children].sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right))),
+      )).digest('hex'),
+    }))
+}
+function scanWithNoFollowDescriptors(root, paths, directories, deadline, limits) {
+  const input = JSON.stringify({ files: paths, directories })
   if (Buffer.byteLength(input) > limits.metadataBytes || Date.now() >= deadline) fail('tracked inventory exceeded bounds')
   const result = spawnSync('python3', ['-I', fileURLToPath(new URL('./android-state-source-ns.py', import.meta.url)), 'inventory'], {
     cwd: root, input, encoding: 'utf8', timeout: deadline - Date.now(), maxBuffer: limits.metadataBytes,
@@ -65,8 +93,10 @@ function validatedContext(checkoutRoot, identity, limits) {
   return root
 }
 function checkedMetadata(metadata, identity, limits) {
-  if (metadata?.version !== 1 || JSON.stringify(metadata.identity) !== JSON.stringify(identity) ||
-      !Array.isArray(metadata.entries) || metadata.entries.length > limits.entries ||
+  if (metadata?.version !== 2 || JSON.stringify(metadata.identity) !== JSON.stringify(identity) ||
+      !Array.isArray(metadata.entries) || !Array.isArray(metadata.directories) ||
+      metadata.entries.length + metadata.directories.length > limits.entries ||
+      metadata.directories.length > maxSourceDirectories ||
       Buffer.byteLength(JSON.stringify(metadata)) > limits.metadataBytes) fail('metadata schema, identity, or bounds mismatch')
   let previous = ''
   let bytes = 0
@@ -85,14 +115,28 @@ function checkedMetadata(metadata, identity, limits) {
     previous = entry.path
     folded.add(entry.path.toLowerCase())
   }
+  const expected = sourceDirectories(metadata.entries.map(entry => entry.path))
+  if (expected.length !== metadata.directories.length) fail('source directory set differs from tracked inputs')
+  for (let index = 0; index < expected.length; index++) {
+    const entry = metadata.directories[index]
+    if (!entry || Object.keys(entry).sort().join(',') !== 'childrenSha256,mode,mtimeNs,path' ||
+        entry.path !== expected[index].path || entry.childrenSha256 !== expected[index].childrenSha256 ||
+        !Number.isInteger(entry.mode) || entry.mode < 0 || entry.mode > 0o777 ||
+        typeof entry.mtimeNs !== 'string' || !/^(?:0|[1-9][0-9]{0,18})$/u.test(entry.mtimeNs) ||
+        BigInt(entry.mtimeNs) > maxTimestampNs) {
+      fail('source directory graph or metadata invalid')
+    }
+  }
 }
 
 export async function inventoryTrackedSourceMetadata({ checkoutRoot, identity, limits = sourceMetadataLimits }) {
   const root = validatedContext(checkoutRoot, identity, limits)
   const deadline = Date.now() + limits.scanMs
   const paths = trackedPaths(root, limits)
-  const entries = scanWithNoFollowDescriptors(root, paths, deadline, limits)
-  const metadata = { version: 1, identity, entries }
+  const directories = sourceDirectories(paths)
+  if (paths.length + directories.length > limits.entries) fail('source metadata count exceeds cap')
+  const scanned = scanWithNoFollowDescriptors(root, paths, directories, deadline, limits)
+  const metadata = { version: 2, identity, entries: scanned.entries, directories: scanned.directories }
   checkedMetadata(metadata, identity, limits)
   return metadata
 }
@@ -106,7 +150,7 @@ export async function restoreTrackedSourceTimes({ checkoutRoot, identity, metada
     fail('tracked source set differs from producer')
   }
   // The helper retains no-follow file descriptors across complete byte validation and replay.
-  const input = JSON.stringify(metadata.entries)
+  const input = JSON.stringify({ entries: metadata.entries, directories: metadata.directories })
   if (Buffer.byteLength(input) > limits.metadataBytes || Date.now() >= deadline) fail('timestamp replay exceeded bounds')
   const result = spawnSync('python3', ['-I', fileURLToPath(new URL('./android-state-source-ns.py', import.meta.url))], {
     cwd: root, input, encoding: 'utf8', timeout: deadline - Date.now(), maxBuffer: 8192,

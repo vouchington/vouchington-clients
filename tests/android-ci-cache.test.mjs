@@ -13,7 +13,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   )
   const producer = workflow
     .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android:\n')[0]
+    .split('  build-swift-android-kotlin-libraries:\n')[0]
   const dependency = workflow
     .split('  build-swift-android-dependency:\n')[1]
     .split('  build-swift-android-native:\n')[0]
@@ -48,7 +48,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   assert.doesNotMatch(archives, /hashFiles\([^\n]*native-contract-tests\.yml/u)
   assert.match(
     archives,
-    /inputs\.save-cache == 'true' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.archives\.outputs\.cache-hit != 'true'/u,
+    /inputs\.host-only != 'true' && inputs\.save-cache == 'true' && github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.archives\.outputs\.cache-hit != 'true'/u,
   )
   assert.match(app, /id: android-gradle-cache\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}/u)
   assert.match(
@@ -144,7 +144,7 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     .split('  build-swift-android-native:\n')[0]
   const native = workflow
     .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android:\n')[0]
+    .split('  build-swift-android-kotlin-libraries:\n')[0]
   const required = workflow
     .split('  test-swift-android-cookie:\n')[1]
     .split('  build-swift-ui-tests:\n')[0]
@@ -176,7 +176,7 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     assert.ok(native.indexOf(ordered[index - 1]) < native.indexOf(ordered[index]))
   }
   assert.match(native, /ANDROID_BUILD_PHASE: app-native-producer/u)
-  assert.match(script, /gradle_tasks=\(:skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug\)/u)
+  assert.match(script, /bash "\$SCRIPT_DIR\/build-native-product\.sh" "\$ANDROID_PACKAGE_DIR"/u)
   assert.match(
     script,
     /--package-path "\$generated_package"[\s\S]*--target SkipSwiftUI[\s\S]*--scratch-path "\$generated_scratch"/u,

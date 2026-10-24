@@ -13,6 +13,14 @@ struct AppLaunchContent: View {
     let viewModelFactory: ViewModelFactory
 
     var body: some View {
+        launchContent
+            .task(id: viewModelFactory.sessionManager.currentUserId) {
+                SentryAppSupport.applyAccountId(viewModelFactory.sessionManager.currentUserId)
+            }
+    }
+
+    @ViewBuilder
+    private var launchContent: some View {
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains(FeedFlowUITestingURLProtocol.launchArgument) {
                 FeedFlowUITestingFixture(viewModelFactory: viewModelFactory)
