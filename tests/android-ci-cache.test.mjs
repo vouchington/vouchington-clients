@@ -13,7 +13,7 @@ test('Android caches restore on all runs and save only one completed main phase'
   )
   const producer = workflow
     .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android:\n')[0]
+    .split('  build-swift-android-kotlin-libraries:\n')[0]
   const dependency = workflow
     .split('  build-swift-android-dependency:\n')[1]
     .split('  build-swift-android-native:\n')[0]
@@ -144,7 +144,7 @@ test('native dependency handoff retains the original Gradle build and exact-run 
     .split('  build-swift-android-native:\n')[0]
   const native = workflow
     .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android:\n')[0]
+    .split('  build-swift-android-kotlin-libraries:\n')[0]
   const required = workflow
     .split('  test-swift-android-cookie:\n')[1]
     .split('  build-swift-ui-tests:\n')[0]

@@ -9,7 +9,7 @@ test('direct Swift producer phases retain compiler and NDK provisioning without 
   )
   for (const [id, next, phase] of [
     ['build-swift-android-dependency', 'build-swift-android-native', 'app-native-dependency'],
-    ['build-swift-android-native', 'build-swift-android', 'app-native-producer'],
+    ['build-swift-android-native', 'build-swift-android-kotlin-libraries', 'app-native-producer'],
   ]) {
     const job = workflow.split(`  ${id}:\n`)[1].split(`  ${next}:\n`)[0]
     assert.match(job, /uses: \.\/\.github\/actions\/setup-mise-toolchain/u)

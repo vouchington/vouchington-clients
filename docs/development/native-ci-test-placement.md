@@ -48,6 +48,24 @@ Gradle startup and configuration in that shard. The app consumer still runs the 
 Swift package task, builds both APKs, verifies the native ABI, and passes those exact APKs to the
 cookie restart job.
 
+A Kotlin library producer runs beside native production from the same verified dependency
+artifact. It selects only `:skipstone:SkipUI:compileDebugKotlin`, including SkipModel,
+SkipFoundation and SkipLib transitively. It retains pinned Swift 6.4 for Skip's host prebuild,
+Java, Google Android SDK, Xcode and frozen package resolution, without provisioning the Swift
+Android SDK/NDK or exposing its cross-compiler alias. A read-only task-graph listener also runs
+in included builds, rejects native/APK/test tasks and reports selected task classes and cacheable
+annotations without modifying task actions or build-cache keys.
+
+This producer exports only bounded, flat Gradle build-cache entries: at most 2,000 entries and
+512 MiB, with a candidate/run/attempt/Gradle/configuration identity, fixed role and requested task,
+and the verified dependency archive SHA-256. It does not export or overwrite generated Swift or
+Gradle execution-state roots. The consumer first restores the native producer's full state and
+ordinary task cache, then merges this exact-run cache after complete hash/collision preflight.
+Identical entries remain; conflicting bytes fail before publication. The final full APK/native
+closure, ABI validation and eight restart phases remain unchanged. Only the main app may persist
+caches, with existing read keys and policies. The new producer has a ten-minute job cap; hosted
+profiles and cache outcomes must establish its actual benefit and the app's timing margin.
+
 The two direct Swift producer phases provision the pinned Swift Android SDK and NDK without
 installing the Java Android SDK or selecting Xcode for host tests. They execute Skip prebuild
 and Swift cross-compilation; the APK consumer owns Gradle, platform/build-tools setup, APK and

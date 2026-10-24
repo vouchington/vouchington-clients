@@ -57,7 +57,7 @@ test('uses the materialized Swift SDK NDK for the Gradle and Skip test builds', 
   assert.ok(skipTest > gradleBuild)
   assert.match(
     prePush,
-    /ANDROID_NDK_HOME="\$ANDROID_NDK_ROOT"\n  export ANDROID_NDK_ROOT ANDROID_NDK_HOME/u,
+    /ANDROID_NDK_HOME="\$ANDROID_NDK_ROOT"\n\s+export ANDROID_NDK_ROOT ANDROID_NDK_HOME/u,
   )
 })
 
