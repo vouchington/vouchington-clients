@@ -128,6 +128,8 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(grant.resource, "https://voucha.ai/api/v1/mcp")
         XCTAssertEqual(grant.scopes, ["mcp.user:read", "mcp.user:write"])
         XCTAssertNil(grant.lastUsedAt)
+        XCTAssertNil(grant.sessionId)
+        XCTAssertNil(grant.attestationStatus)
         XCTAssertTrue(grants.pageInfo.hasNextPage)
         XCTAssertEqual(grants.pageInfo.endCursor, "fixture-oauth-grant-end-cursor")
     }

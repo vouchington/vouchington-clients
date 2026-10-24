@@ -30,6 +30,8 @@ public struct EngineeringPartitionTable: Codable, Identifiable, Sendable, Hashab
 public struct EngineeringPartitionInfo: Codable, Identifiable, Sendable, Hashable {
     public let name: String
     public let sizeBytes: Int
+    /// Why the producer will not drop this partition; absent when it is eligible.
+    public let dropRefusal: String?
 
     public var id: String {
         name
