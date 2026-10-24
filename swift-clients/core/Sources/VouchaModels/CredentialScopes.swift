@@ -103,6 +103,8 @@ public struct OAuthGrant: Codable, Identifiable, Sendable {
     public let scopes: [String]
     public let consentedAt: Date
     public let lastUsedAt: Date?
+    public let sessionId: String?
+    public let attestationStatus: String?
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -112,9 +114,11 @@ public struct OAuthGrant: Codable, Identifiable, Sendable {
         try container.encode(scopes, forKey: .scopes)
         try container.encode(consentedAt, forKey: .consentedAt)
         try container.encode(lastUsedAt, forKey: .lastUsedAt)
+        try container.encode(sessionId, forKey: .sessionId)
+        try container.encode(attestationStatus, forKey: .attestationStatus)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, client, resource, scopes, consentedAt, lastUsedAt
+        case id, client, resource, scopes, consentedAt, lastUsedAt, sessionId, attestationStatus
     }
 }

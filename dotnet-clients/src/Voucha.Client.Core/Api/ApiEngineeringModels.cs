@@ -49,7 +49,8 @@ public sealed record PsqlMigrationsResponse(IReadOnlyList<string> Applied, IRead
 
 public sealed record PartitionInfo(
     string Name,
-    [property: JsonPropertyName("size_bytes")] long SizeBytes);
+    [property: JsonPropertyName("size_bytes")] long SizeBytes,
+    [property: JsonPropertyName("drop_refusal")] string? DropRefusal = null);
 
 public sealed record PartitionTable(
     string Name,
