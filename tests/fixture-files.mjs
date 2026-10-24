@@ -13,3 +13,7 @@ export async function writeExecutable(path, contents) {
   await writeFile(path, contents)
   await chmod(path, 0o755)
 }
+
+export async function writeBashExecutable(path, contents) {
+  await writeExecutable(path, `#!/bin/bash\nset -euo pipefail\n${contents}\n`)
+}
