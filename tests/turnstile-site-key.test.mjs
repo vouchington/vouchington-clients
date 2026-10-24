@@ -75,7 +75,7 @@ test('Release archives and MAUI builds pass an explicit non-test site key', () =
     assert.match(workflow, /VOUCHA_TURNSTILE_SITE_KEY="\$release_site_key"/u)
     assert.match(workflow, /Print :VOUCHA_TURNSTILE_SITE_KEY/u)
   }
-  assert.equal(contracts.split('-p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample').length - 1, 3)
+  assert.equal(contracts.split('-p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample').length - 1, 2)
   const debugStart = contracts.indexOf('name: Build the Debug app and the Mac2 host')
   const debugEnd = contracts.indexOf('name: Open the Mac2 notification settings session')
   const debugBuild = contracts.slice(debugStart, debugEnd)

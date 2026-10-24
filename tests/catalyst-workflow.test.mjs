@@ -1,145 +1,103 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { it } from 'node:test'
+import test from 'node:test'
+import { jobBlock } from './workflow-job-block.mjs'
 
-const readWorkflow = () =>
-  readFile(new URL('../.github/workflows/native-contract-tests.yml', import.meta.url), 'utf8')
-const readAction = () =>
-  readFile(
-    new URL('../.github/actions/prepare-native-contract/action.yml', import.meta.url),
-    'utf8',
-  )
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
-const stepBlock = (job, step) => {
-  const start = job.indexOf(`      - name: ${step}\n`)
-  assert.notEqual(start, -1, `missing step ${step}`)
-  const remainder = job.slice(start)
-  const nextStep = remainder.slice(1).search(/\n {6}- name:/u)
-  return remainder.slice(0, nextStep === -1 ? remainder.length : nextStep + 1)
+const workflow = await readFile(
+  new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
+  'utf8',
+)
+const rendered = jobBlock(workflow, 'dotnet-maui-tests')
+const app = jobBlock(workflow, 'dotnet-maui')
+const step = (job, name) => {
+  const rest = job.split(`      - name: ${name}\n`)[1]
+  assert.ok(rest, name)
+  return rest.split('      - name: ')[0]
 }
 
-it('uses the same explicit Release Turnstile key in both Catalyst build phases', async () => {
-  const workflow = await readWorkflow()
-  for (const [job, step] of [
-    ['dotnet-maui-compile', 'Build managed Mac Catalyst CoreBuild closure'],
-    ['dotnet-maui', 'Build MAUI Mac Catalyst app'],
-  ]) {
-    const build = stepBlock(jobBlock(workflow, job), step)
-    assert.match(
-      build,
-      /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj/u,
-    )
-    assert.deepEqual(
-      [...build.matchAll(/-p:VouchaTurnstileSiteKey=([^\s]+)/gu)].map(match => match[1]),
-      ['0x4AAAAAAAAexample'],
-      `${job} must supply the existing public CI key to its Release build`,
+test('rendered pages and full Catalyst build run independently and both remain required', () => {
+  for (const job of [rendered, app]) {
+    assert.match(job, /needs: verify\n/u)
+    assert.match(job, /runs-on: macos-latest/u)
+    assert.doesNotMatch(job, /matrix:|needs: \[|^    continue-on-error:/mu)
+  }
+  assert.match(rendered, /timeout-minutes: 10\n/u)
+  assert.match(app, /timeout-minutes: 30\n/u)
+  const aggregate = jobBlock(workflow, 'tests')
+  assert.match(aggregate, /- dotnet-maui-tests\n\s+- dotnet-maui\n/u)
+  assert.match(aggregate, /- dotnet-catalyst-gui/u)
+  for (const job of [rendered, app]) {
+    assert.doesNotMatch(
+      job,
+      /CoreBuild|compile-state|source-state|materialize-sdk-version|consumer-tooling-root/u,
     )
   }
 })
 
-it('runs portable .NET tests once on Linux and MAUI tests on macOS', async () => {
-  const [action, workflow] = await Promise.all([readAction(), readWorkflow()])
-  const portable = jobBlock(workflow, 'dotnet-portable')
-  const mauiCompile = jobBlock(workflow, 'dotnet-maui-compile')
-  const maui = jobBlock(workflow, 'dotnet-maui')
-  const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
-
-  assert.match(portable, /^    name: \.NET portable$/mu)
-  assert.match(portable, /runs-on: ubuntu-latest/u)
-  assert.doesNotMatch(portable, /matrix:/u)
-  assert.doesNotMatch(portable, /macos/u)
-  assert.doesNotMatch(portable, /matrix\.os/u)
-  assert.match(maui, /runs-on: macos-latest/u)
-  assert.match(mauiCompile, /runs-on: macos-latest/u)
-  assert.equal(workflow.split('name: Materialize verified SDK archive metadata').length - 1, 2)
-  for (const catalystJob of [mauiCompile, maui]) {
-    assert.match(
-      catalystJob,
-      /name: Set up mise-managed \.NET SDK[\s\S]*name: Materialize verified SDK archive metadata\n\s+timeout-minutes: 7\n\s+working-directory: candidate-clients\n\s+run: \|\n\s+node dotnet-clients\/tooling\/materialize-sdk-version-metadata\.mjs "\$DOTNET_ROOT"\n\s+test "\$\(dotnet --version\)" = "\$\(jq -r '\.sdk\.version' global\.json\)"[\s\S]*name: Detect pinned MAUI workload/u,
-    )
-  }
-  assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
-  assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 4)
-  assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
-  assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
-  assert.match(workflow, /run: pnpm run coverage:dotnet-core/u)
-  for (const command of [
-    /restore-locks\.sh verify/u,
-    /dotnet build dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
-    /dotnet test dotnet-clients\/tests\/Voucha\.Client\.App\.Tests\/Voucha\.Client\.App\.Tests\.csproj/u,
-    /dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--framework net10\.0-maccatalyst/u,
-  ])
-    assert.match(workflow, command)
-  assert.match(maui, /run: bash dotnet-clients\/tooling\/select-xcode\.sh 26\.6/u)
-  assert.doesNotMatch(maui, /compatible=false|steps\.xcode\.outputs\.compatible/u)
-  assert.match(maui, /name: Restore the shared MAUI project-reference graph[\s\S]*--locked-mode/u)
-  assert.match(maui, /name: Build MAUI Mac Catalyst app/u)
-  assert.match(
-    maui,
-    /name: Build MAUI Mac Catalyst app[\s\S]*python3 dotnet-clients\/tooling\/catalyst-msbuild-reasons\.py --root \. --[\s\S]*dotnet build dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj[\s\S]*--no-restore -clp:PerformanceSummary/u,
-  )
-  assert.match(mauiCompile, /name: Test rendered MAUI pages/u)
-  assert.match(mauiCompile, /name: Verify all twelve committed NuGet locks/u)
-  assert.match(maui, /name: Verify all twelve committed NuGet locks/u)
-  assert.match(
-    mauiCompile,
-    /name: Build managed Mac Catalyst CoreBuild closure[\s\S]*--no-restore -t:CoreBuild/u,
-  )
-  assert.match(mauiCompile, /name: Upload exact managed compile state/u)
-  assert.match(mauiCompile, /source-state\.tar\.gz/u)
-  assert.match(mauiCompile, /name: Pack exact managed compile state\n\s+timeout-minutes: 2/u)
-  assert.match(maui, /needs: \[verify, dotnet-maui-compile\]/u)
-  assert.match(jobBlock(workflow, 'tests'), /- dotnet-maui-compile\n\s+- dotnet-maui/u)
-  assert.match(
-    maui,
-    /name: Verify and restore exact managed compile state[\s\S]*name: Build MAUI Mac Catalyst app/u,
-  )
-  assert.match(maui, /name: Verify and restore exact managed compile state\n\s+timeout-minutes: 2/u)
-  assert.doesNotMatch(maui, /name: Test rendered MAUI pages/u)
-  assert.match(
-    maui,
-    /dotnet restore dotnet-clients\/src\/Voucha\.Client\.App\/Voucha\.Client\.App\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0-maccatalyst \\\n\s+-p:RuntimeIdentifier=\$\{\{ steps\.rid\.outputs\.runtime_identifier \}\} --locked-mode\n\s+dotnet restore dotnet-clients\/src\/Voucha\.Client\.Core\/Voucha\.Client\.Core\.csproj \\\n\s+-p:Configuration=Release -p:TargetFramework=net10\.0 --locked-mode/u,
-  )
+test('the rendered shard preserves the complete test suite, locked dependencies and failure diagnostics', () => {
   assert.ok(
-    workflow.indexOf('name: Test rendered MAUI pages') <
-      workflow.indexOf('name: Select compatible Xcode'),
+    step(rendered, 'Verify all twelve committed NuGet locks').includes('restore-locks.sh verify'),
   )
-  assert.doesNotMatch(workflow, /clean-workspace/u)
-  assert.doesNotMatch(action, /clean-workspace/u)
+  const build = step(rendered, 'Build rendered MAUI page tests')
+  assert.ok(
+    build.includes(
+      'dotnet build dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj',
+    ),
+  )
+  assert.match(build, /--configuration Release --no-restore/u)
+  const tests = step(rendered, 'Test rendered MAUI pages')
+  assert.ok(
+    tests.includes(
+      'dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj',
+    ),
+  )
+  assert.match(tests, /--configuration Release --no-build/u)
+  assert.match(tests, /--blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini/u)
+  assert.doesNotMatch(tests, /--filter|continue-on-error|\|\| true/u)
+  const diagnostics = step(rendered, 'Upload failed MAUI test diagnostics')
+  assert.ok(diagnostics.includes('if: ${{ failure() || cancelled() }}'))
+  assert.doesNotMatch(app, /Build rendered MAUI page tests|Test rendered MAUI pages/u)
 })
 
-it('keeps Catalyst tooling checkout outside the candidate compiler input ancestry', async () => {
-  const [action, workflow] = await Promise.all([readAction(), readWorkflow()])
-  for (const job of ['dotnet-maui-compile', 'dotnet-maui']) {
-    const catalyst = jobBlock(workflow, job)
-    assert.match(
-      catalyst,
-      /name: Check out consumer tooling\n\s+uses: actions\/checkout@[^\n]+\n\s+with:\n\s+persist-credentials: false\n\s+path: consumer-tooling/u,
-    )
-    assert.match(catalyst, /node-version-file: consumer-tooling\/\.nvmrc/u)
-    assert.match(
-      catalyst,
-      /uses: \.\/consumer-tooling\/\.github\/actions\/prepare-native-contract\n\s+with:\n\s+candidate-revision-sha: [^\n]+\n\s+consumer-tooling-root: consumer-tooling/u,
-    )
-    assert.match(catalyst, /uses: \.\/consumer-tooling\/\.github\/actions\/setup-mise-toolchain/u)
-    assert.match(catalyst, /client-root: candidate-clients/u)
-    assert.match(catalyst, /working-directory: candidate-clients/u)
-    assert.doesNotMatch(catalyst, /path: candidate-clients\/consumer-tooling/u)
-  }
-  assert.equal(workflow.match(/consumer-tooling-root: consumer-tooling/gu)?.length, 2)
-  assert.match(
-    action,
-    /consumer-tooling-root:\n\s+description: [^\n]+\n\s+required: false\n\s+default: '\.'/u,
+test('the app shard retains the original full Release Build, pinned tools and locked project graph', () => {
+  assert.ok(
+    step(app, 'Verify all twelve committed NuGet locks').includes('restore-locks.sh verify'),
   )
-  assert.match(action, /node-version-file: \$\{\{ inputs\.consumer-tooling-root \}\}\/\.nvmrc/u)
-  assert.match(action, /CONSUMER_TOOLING_ROOT: \$\{\{ inputs\.consumer-tooling-root \}\}/u)
-  assert.match(action, /node "\$CONSUMER_TOOLING_ROOT\/scripts\/contract-artifact\.mjs" verify/u)
-  assert.match(action, /path: candidate-clients\n\s+persist-credentials: false/u)
-  assert.match(action, /working-directory: candidate-clients/u)
+  assert.match(step(app, 'Select compatible Xcode'), /select-xcode\.sh 26\.6/u)
+  assert.match(
+    step(app, 'Detect host Mac Catalyst RID'),
+    /maccatalyst-arm64[\s\S]*maccatalyst-x64/u,
+  )
+  const graph = step(app, 'Restore the shared MAUI project-reference graph')
+  assert.ok(graph.includes('dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj'))
+  assert.ok(graph.includes('dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj'))
+  assert.equal(graph.match(/--locked-mode/gu)?.length, 2)
+  const build = step(app, 'Build MAUI Mac Catalyst app')
+  assert.ok(
+    build.includes('dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj'),
+  )
+  assert.match(build, /--configuration Release --framework net10\.0-maccatalyst/u)
+  assert.ok(build.includes('-p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample'))
+  assert.ok(build.includes('"-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"'))
+  assert.match(build, /--no-restore -clp:PerformanceSummary/u)
+  assert.doesNotMatch(build, /-t:|Skip|BuildProjectReferences=false|continue-on-error|\|\| true/u)
+})
+
+test('each shard independently verifies its candidate and tools, with NuGet writes restricted to main app success', () => {
+  for (const job of [rendered, app]) {
+    assert.ok(job.includes('uses: ./.github/actions/prepare-native-contract'))
+    assert.ok(job.includes('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}'))
+    assert.ok(job.includes('producer-run-attempt: ${{ github.run_attempt }}'))
+    assert.ok(job.includes('producer-run-id: ${{ github.run_id }}'))
+    assert.ok(job.includes('uses: ./.github/actions/setup-mise-toolchain'))
+    assert.ok(job.includes('client-root: candidate-clients'))
+    assert.ok(job.includes('tool: dotnet'))
+    assert.match(job, /dotnet workload install maui-maccatalyst/u)
+    assert.match(job, /--configfile dotnet-clients\/NuGet\.config/u)
+    assert.doesNotMatch(job, /consumer-tooling\/|compile-state|source-state/u)
+  }
+  assert.doesNotMatch(rendered, /actions\/cache\/save@/u)
+  const save = step(app, 'Save NuGet packages from main')
+  assert.ok(save.includes("github.event_name == 'push' && github.ref == 'refs/heads/main'"))
+  assert.ok(save.includes("steps.maui-nuget-cache.outputs.cache-hit != 'true'"))
 })

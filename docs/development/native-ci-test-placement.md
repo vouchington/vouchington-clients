@@ -36,20 +36,14 @@ those exact APKs to the cookie restart job.
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 
-The Mac Catalyst path has two required macOS jobs. The first verifies all twelve NuGet locks,
-runs the rendered-page tests, and runs the public `CoreBuild` managed preparation and compile
-closure for the App and Core projects with the pinned Mac Catalyst RID. It transfers App/Core
-`obj` state, Core `bin` state, and a bounded snapshot of the
-actual tracked .NET source/configuration file modification times, both checksummed against the exact
-candidate, run, attempt, RID, SDK, workload, and Xcode identity. The second independently restores
-the locked graph and pinned tools, verifies every source byte against its own candidate checkout
-before restoring the producer's real modification times, then runs the unchanged full Release
-app build, which recreates App `bin` and includes trimming, AOT, native linking, and bundle
-creation. Each job first installs its own pinned .NET SDK, then verifies the SDK version tree
-against the checksum-pinned official archive and materializes that archive's original file
-metadata before workload detection. No SDK files are transferred between jobs. The aggregate
-Tests gate requires both jobs to succeed. Host timing must establish whether this split helps
-cold runs.
+The Mac Catalyst path has two required macOS jobs that start independently after contract
+verification. The rendered-page job verifies all twelve committed NuGet locks and runs the complete
+MAUI page test suite. The app job restores the locked graph and pinned SDK, workload, Xcode, and
+host RID, then runs the unchanged full Release app build, including managed compilation, trimming,
+AOT, native linking, and bundle creation. Each job checks out and restores its own exact candidate;
+no compiled state or source timestamps are transferred between them. The aggregate Tests gate
+requires both jobs to succeed. Hosted measurements must establish each job's duration and the full
+run's critical path.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
 root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
