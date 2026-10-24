@@ -1,7 +1,7 @@
 import { lstatSync, readlinkSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
-function targetDiagnostic(target) {
+export function targetDiagnostic(target) {
   const text = JSON.stringify(target) ?? String(target)
   const bytes = Buffer.from(text)
   if (bytes.length <= 1024) return text

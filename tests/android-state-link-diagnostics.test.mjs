@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { symlink } from 'node:fs/promises'
+import { join } from 'node:path'
+import { inventoryState } from '../swift-clients/apps/android/tooling/android-state-inventory.mjs'
+import { androidStateFixture } from './android-state-handoff-fixture.mjs'
 import { assertDebugLink } from '../swift-clients/apps/android/tooling/android-state-links.mjs'
 
 function failure(target) {
@@ -30,5 +34,27 @@ test('unsafe debug-link target diagnostics are capped at 1024 UTF-8 bytes', () =
     assert.ok(Buffer.byteLength(diagnostic) <= 1024)
     assert.ok(diagnostic.endsWith('...'))
     assert.ok(!diagnostic.includes('\ufffd'), 'truncation must preserve UTF-8 code points')
+  }
+})
+
+test('inventory rejection reports the original absolute or relative readlink target', async t => {
+  for (const absolute of [false, true]) {
+    await t.test(String(absolute), async sub => {
+      const f = await androidStateFixture(sub)
+      const target = absolute
+        ? join(f.packageRoot, '.build/out/Products/Debug-android-aarch64')
+        : 'out/Products/Debug-android-aarch64'
+      await symlink(target, join(f.packageRoot, '.build/debug'))
+      assert.throws(
+        () => inventoryState(f.packageRoot, f.cacheRoot, f.checkoutRoot),
+        error => {
+          assert.match(error.message, /^Unsafe Android state symlink: \.build\/debug/u)
+          assert.equal(error.message.split('; target=')[1], JSON.stringify(target))
+          assert.equal(error.message.split('; target=').length, 2)
+          assert.ok(error.cause instanceof Error)
+          return true
+        },
+      )
+    })
   }
 })

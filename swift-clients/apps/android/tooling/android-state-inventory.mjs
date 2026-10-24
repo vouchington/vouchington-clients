@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { lstatSync, opendirSync, readlinkSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { assertRoleMember, isTestRunnerRole } from './android-state-role.mjs'
-import { assertDebugLink, checkedSkipstoneLink, isSkipstoneOutputPath, resolveSkipstoneLink } from './android-state-links.mjs'
+import { assertDebugLink, checkedSkipstoneLink, isSkipstoneOutputPath, resolveSkipstoneLink, targetDiagnostic } from './android-state-links.mjs'
 
 export const defaultLimits = {
   entries: 150_000,
@@ -89,19 +89,24 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
     const stat = lstatSync(item.source)
     if (stat.isSymbolicLink()) {
       const target = readlinkSync(item.source)
-      if (isAbsolute(target)) {
-        const portable = relative(dirname(item.source), target)
-        checkedSkipstoneLink(item.path, portable, packageRoot, checkoutRoot)
-        entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
-      } else if (isSkipstoneOutputPath(item.path)) {
-        checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
-        entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
-      } else {
-        assertDebugLink(item.path, target)
-        if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
-          throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+      try {
+        if (isAbsolute(target)) {
+          const portable = relative(dirname(item.source), target)
+          checkedSkipstoneLink(item.path, portable, packageRoot, checkoutRoot)
+          entries.push({ path: item.path, type: 'symlink', target: portable, mode: 0 })
+        } else if (isSkipstoneOutputPath(item.path)) {
+          checkedSkipstoneLink(item.path, target, packageRoot, checkoutRoot)
+          entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
+        } else {
+          assertDebugLink(item.path, target)
+          if (!lstatSync(join(dirname(item.source), target)).isDirectory()) {
+            throw new Error(`Android state debug symlink target is not a directory: ${item.path}`)
+          }
+          entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
         }
-        entries.push({ path: item.path, type: 'symlink', target, mode: 0 })
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error)
+        throw new Error(`${reason.split('; target=')[0]}; target=${targetDiagnostic(target)}`, { cause: error })
       }
       continue
     }
