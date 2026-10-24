@@ -178,20 +178,26 @@ final class NativeRouteSurfaceViewModelBookmarkTests: NativeRouteSurfaceViewMode
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: makeClient(),
-            routeMatch: route.match
+            routeMatch: route.match,
+            isSignedIn: true
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
         XCTAssertEqual(viewModel.detailRelationEntityType, "rss_feed")
         XCTAssertEqual(viewModel.detailRelationEntityId, "feed-1")
         XCTAssertTrue(viewModel.isDetailRelationActive("follow"))
         XCTAssertTrue(viewModel.isDetailRelationActive("mute"))
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/views") }, [
             "/api/v1/rss-feeds",
             "/api/v1/bookmarks/rss_feed/feed-1",
             "/api/v1/rss-feeds/feed-1"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/views") },
+            ["/api/v1/rss-feeds/feed-1/views"]
+        )
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedURLs.first.flatMap {
                 URLComponents(url: $0, resolvingAgainstBaseURL: false)

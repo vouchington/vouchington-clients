@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Support;
@@ -30,6 +31,8 @@ public sealed partial class TopicDetailViewModel : ObservableObject, IDisposable
   private int? voteCountDown;
   private readonly IUiLocalization localization;
   private readonly IUiLocaleController? localeController;
+  private readonly IProductSurfaceAnalytics? productSignals;
+  private readonly HashSet<string> recordedRssFeedViewIds = new(StringComparer.Ordinal);
 
   public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();
 
@@ -41,12 +44,14 @@ public sealed partial class TopicDetailViewModel : ObservableObject, IDisposable
       VouchaApiClient? apiClient = null,
       bool canViewSourceCrawlHistory = false,
       bool canManageSourceCrawls = false,
-      bool requiresAuthoritativeSourceCrawlMembership = false)
+      bool requiresAuthoritativeSourceCrawlMembership = false,
+      IProductSurfaceAnalytics? productSignals = null)
   {
     this.topicsService = topicsService ?? throw new ArgumentNullException(nameof(topicsService));
     this.bookmarkService = bookmarkService ?? NullBookmarkService.Instance;
     this.localization = localization ?? UiLocalization.English;
     this.localeController = localeController;
+    this.productSignals = productSignals;
     ApiClient = apiClient;
     CanViewPaidSourceCrawlHistory = canViewSourceCrawlHistory;
     CanManageSourceCrawls = canManageSourceCrawls;
