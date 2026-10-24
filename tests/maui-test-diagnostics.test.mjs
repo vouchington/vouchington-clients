@@ -20,11 +20,11 @@ describe('MAUI App test diagnostics', () => {
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
     )
-    const maui = jobBlock(workflow, 'dotnet-maui')
+    const maui = jobBlock(workflow, 'dotnet-maui-tests')
     const test = stepBlock(maui, 'Test rendered MAUI pages')
     const upload = stepBlock(maui, 'Upload failed MAUI test diagnostics')
 
-    assert.match(maui, /timeout-minutes: 30/u)
+    assert.match(maui, /timeout-minutes: 10/u)
     assert.match(test, /timeout-minutes: 18/u)
     const testCommand = test.replace(/\\\n\s*/gu, ' ').replace(/\s+/gu, ' ')
     assert.match(
@@ -56,9 +56,6 @@ describe('MAUI App test diagnostics', () => {
       maui.indexOf('      - name: Test rendered MAUI pages') <
         maui.indexOf('      - name: Upload failed MAUI test diagnostics'),
     )
-    assert.ok(
-      maui.indexOf('      - name: Upload failed MAUI test diagnostics') <
-        maui.indexOf('      - name: Select compatible Xcode'),
-    )
+    assert.doesNotMatch(maui, /name: Select compatible Xcode|name: Build MAUI Mac Catalyst app/u)
   })
 })

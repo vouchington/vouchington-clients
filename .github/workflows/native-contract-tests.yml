@@ -2257,11 +2257,11 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-  dotnet-maui:
-    name: .NET MAUI Mac Catalyst
+  dotnet-maui-tests:
+    name: .NET MAUI rendered pages
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     env:
       UseArtifactsOutput: 'true'
     steps:
@@ -2281,7 +2281,6 @@ jobs:
           producer-run-attempt: ${{ github.run_attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        id: maui-nuget-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -2356,6 +2355,76 @@ jobs:
           path: ${{ runner.temp }}/voucha-maui-test-results
           retention-days: 1
           if-no-files-found: warn
+  dotnet-maui:
+    name: .NET MAUI Mac Catalyst
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      UseArtifactsOutput: 'true'
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        id: maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
+      - name: Configure isolated MAUI paths
+        shell: bash
+        run: |
+          {
+            echo "ArtifactsPath=$RUNNER_TEMP/voucha-dotnet-lock-artifacts/app-tests"
+            echo "VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-artifacts"
+            echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
+          } >>"$GITHUB_ENV"
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload
+        if: steps.workload.outputs.install == 'true'
+        working-directory: candidate-clients
+        run: >-
+          dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Verify all twelve committed NuGet locks
+        working-directory: candidate-clients
+        run: >-
+          bash dotnet-clients/tooling/restore-locks.sh verify
       - name: Select compatible Xcode
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
@@ -2839,6 +2908,7 @@ jobs:
       - build-ios-app
       - build-ios-ipad
       - build-ios-x86
+      - dotnet-maui-tests
       - dotnet-maui
       - dotnet-catalyst-gui
       - dotnet-windows-image-preview
