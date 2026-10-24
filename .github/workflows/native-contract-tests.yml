@@ -793,6 +793,28 @@ jobs:
           "$java_home/bin/java" -version
           echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
           echo "$java_home/bin" >> "$GITHUB_PATH"
+      - name: Configure app Gradle and Swift homes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/skip-swift-home"
+          echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
+          echo "GRADLE_USER_HOME=$HOME/.cache/voucha/gradle" >> "$GITHUB_ENV"
+      - name: Restore Gradle user home
+        id: android-gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/voucha/gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+      - name: Start isolated Gradle daemon bootstrap
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          node candidate-clients/swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs start \
+            --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
+            --wrapper candidate-clients/swift-clients/apps/android/Android/gradlew \
+            --properties candidate-clients/swift-clients/apps/android/Android/gradle.properties \
+            --timeout-seconds 90
       - name: Select job-scoped Android SDK location
         shell: bash
         run: |
@@ -815,8 +837,6 @@ jobs:
       - name: Select Xcode 26.6 for Android host SwiftPM tests
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
-      - name: Configure Skip Swift home
-        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
         run: |
           cache_root="$HOME/.cache/voucha/swift-android"
@@ -854,12 +874,6 @@ jobs:
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
-      - name: Restore Gradle user home
-        id: android-gradle-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/voucha/gradle
-          key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
       - name: Select Gradle task-output cache path
         id: android-task-cache-path
         shell: bash
@@ -885,6 +899,15 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.previous-key }}
+      - name: Join isolated Gradle daemon bootstrap
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          node candidate-clients/swift-clients/apps/android/tooling/gradle-daemon-warmup.mjs join \
+            --state-dir "$RUNNER_TEMP/android-gradle-warmup" \
+            --wrapper candidate-clients/swift-clients/apps/android/Android/gradlew \
+            --properties candidate-clients/swift-clients/apps/android/Android/gradle.properties \
+            --timeout-seconds 90
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:

@@ -48,6 +48,16 @@ Gradle startup and configuration in that shard. The app consumer still runs the 
 Swift package task, builds both APKs, verifies the native ABI, and passes those exact APKs to the
 cookie restart job.
 
+The app job restores its existing Gradle user home immediately after resolving Java, then starts
+an empty-project `help` invocation while Android SDK, Swift and exact-run state setup proceed.
+The checked-in wrapper and unmodified Gradle properties select the same Java, job-scoped
+home/temporary paths and 4 GB daemon as the original full build. The empty project lives under
+`RUNNER_TEMP`, outside the restored Android state and separate task-output cache. A strict join
+immediately before the original build propagates bootstrap failure; start/join steps each have a
+two-minute cap and the helper has a 90-second deadline. No app tasks are pre-executed or skipped.
+This targets the observed 35–38-second Gradle startup, but hosted evidence must establish daemon
+reuse and an app-job margin below ten minutes; the prior 10m02 sample does not meet that target.
+
 The two direct Swift producer phases provision the pinned Swift Android SDK and NDK without
 installing the Java Android SDK or selecting Xcode for host tests. They execute Skip prebuild
 and Swift cross-compilation; the APK consumer owns Gradle, platform/build-tools setup, APK and
