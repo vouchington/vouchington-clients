@@ -54,7 +54,8 @@ The checked-in wrapper and unmodified Gradle properties select the same Java, jo
 home/temporary paths and 4 GB daemon as the original full build. The empty project lives under
 `RUNNER_TEMP`, outside the restored Android state and separate task-output cache. A strict join
 immediately before the original build propagates bootstrap failure; start/join steps each have a
-two-minute cap and the helper has a 90-second deadline. No app tasks are pre-executed or skipped.
+two-minute cap and the helper has a 90-second deadline. A bounded 64 KiB log tail preserves
+terminal diagnostics. No app tasks are pre-executed or skipped.
 This targets the observed 35–38-second Gradle startup, but hosted evidence must establish daemon
 reuse and an app-job margin below ten minutes; the prior 10m02 sample does not meet that target.
 
