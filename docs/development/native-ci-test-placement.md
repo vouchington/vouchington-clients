@@ -4,6 +4,11 @@ Run each test on the cheapest GitHub-hosted runner that can execute the compiled
 Do not add a second operating system for confidence. Dual-OS is required only when the runtime or
 `#if` slice is actually different.
 
+Ten minutes per job is a soft performance target. Native app builds and launch checks may need
+longer bounded job and step timeouts so healthy work and cleanup can finish. Calibrate those caps
+from hosted timings and confirmed timeout cancellations; a larger cap does not establish that
+the performance target has been met.
+
 ## Default placement
 
 | Workload                                                                                             | Runner           | Why                                                                                |
@@ -25,6 +30,10 @@ shard compiles the complete coverage-enabled test product and transfers only its
 resource bundles, and SwiftPM test metadata. The test shard verifies the run, candidate, toolchain,
 architecture, package lock, and archive before `swift test --skip-build` executes the same suite
 and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
+The build job has a 13-minute cap and its compile step has a 10-minute cap, allowing headroom
+above observed successful hosted durations while retaining explicit deadlines.
+The UI Periphery scan has a 20-minute job cap for the same measured-headroom reason; the core
+scan retains its 15-minute cap.
 
 The Android host-test shard installs only the matching Swift 6.3.3 host compiler after verifying
 Xcode 26.6. Its archive preparation verifies and seeds the pinned Skip binary for SwiftPM; it
@@ -105,19 +114,21 @@ sidebar navigation that opens Posts, leaves for News, and returns to the canonic
 stays open for the news tab.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
-app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
+app slice in parallel on `macos-latest`. The arm64 build has a 13-minute job cap and a
+10-minute compile step cap. Xcode exports the arm64 tests as a portable
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
 `test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs
-of one job id, each with its own 9-minute cap: the root shell, the Videos tab, and the email OTP
-sign-in. Each leg boots the manifest's simulator before contract setup, then waits for
-`bootstatus` before unpacking, so the bundle extract does not compete with CoreSimulator.
+of one job id: the root shell, the Videos tab, and the email OTP sign-in. Each leg has a 12-minute
+job cap and a 7-minute launch step cap. Each leg boots the manifest's simulator before contract
+setup, then waits for `bootstatus` before unpacking, so the bundle extract does not compete with
+CoreSimulator.
 After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
 `simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
 That spawn gate stops after 150 seconds and still runs `xcodebuild`; every passing gate observed
 before the cap finished in under two minutes, and a longer gate pushed the sign-in leg past its
-9-minute job cap after the test had already passed. A launch that returns no process id still
-fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
+former 9-minute job cap after the test had already passed. A launch that returns no process id
+still fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
 failure: the test's launch window ended before the app process existed.
 The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
 before job cleanup.
@@ -135,9 +146,9 @@ approval after a passing run still crossed 9 minutes. The iPad boots after Node.
 artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
 The iPad launch then installs the same verified app, requires the same process id, and stops
 that process before `xcodebuild`, with the same 150-second gate.
-The x86_64 job stays one `xcodebuild` compile. Its 7-minute compile step is the whole
-app slice, so splitting it would not remove a second phase. The native `Tests` fan-in requires
-both device-family launches and the x86_64 compile.
+The x86_64 job stays one `xcodebuild` compile with a 12-minute job cap and a 9-minute compile
+step cap. That step builds the whole app slice, so splitting it would not remove a second phase.
+The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
 These launches do not prove cookie persistence, a live CAPTCHA, or sign-in on another platform.
 Each launch receives the complete fixture checkout explicitly through the generated scheme and fails
 closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted

@@ -446,7 +446,7 @@ jobs:
     name: Swift Periphery (UI)
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
       VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN: xcode
@@ -1451,7 +1451,7 @@ jobs:
     name: Swift UI build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 13
     permissions:
       actions: read
       contents: read
@@ -1475,7 +1475,7 @@ jobs:
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Build complete UI test bundle with coverage
-        timeout-minutes: 8
+        timeout-minutes: 10
         working-directory: candidate-clients
         run: >-
           xcrun swift build --package-path swift-clients/ui --build-tests
@@ -1772,7 +1772,7 @@ jobs:
     name: Swift iOS Simulator build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 13
     permissions:
       actions: read
       contents: read
@@ -1806,7 +1806,7 @@ jobs:
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Build selected iPhone test products
-        timeout-minutes: 7
+        timeout-minutes: 10
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ github.workspace }}/ios-test-derived-data
@@ -1858,7 +1858,7 @@ jobs:
     name: Swift iOS Simulator x86_64 build
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     permissions:
       actions: read
       contents: read
@@ -1892,7 +1892,7 @@ jobs:
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Compile x86_64 iOS Simulator app
-        timeout-minutes: 7
+        timeout-minutes: 9
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-x86-derived-data
@@ -1913,7 +1913,7 @@ jobs:
     name: Swift iOS Simulator launch smoke (${{ matrix.shard }})
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
