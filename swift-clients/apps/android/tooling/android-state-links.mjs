@@ -1,10 +1,19 @@
 import { lstatSync, readlinkSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
+function targetDiagnostic(target) {
+  const text = JSON.stringify(target) ?? String(target)
+  const bytes = Buffer.from(text)
+  if (bytes.length <= 1024) return text
+  let end = 1021
+  while ((bytes[end] & 0xc0) === 0x80) end--
+  return `${bytes.subarray(0, end).toString('utf8')}...`
+}
+
 export function assertDebugLink(path, target) {
   if (path !== '.build/debug' || typeof target !== 'string' ||
       !/^[A-Za-z0-9._-]+\/debug$/u.test(target) || target.split('/').includes('..')) {
-    throw new Error(`Unsafe Android state symlink: ${path}`)
+    throw new Error(`Unsafe Android state symlink: ${path}; target=${targetDiagnostic(target)}`)
   }
 }
 
