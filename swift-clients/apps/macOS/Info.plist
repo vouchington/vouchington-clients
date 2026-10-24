@@ -84,5 +84,7 @@
 	<string>$(VOUCHA_IMAGE_BASE_URL)</string>
 	<key>VOUCHA_TURNSTILE_SITE_KEY</key>
 	<string>$(VOUCHA_TURNSTILE_SITE_KEY)</string>
+	<key>VOUCHA_SENTRY_DSN</key>
+	<string>$(VOUCHA_SENTRY_DSN)</string>
 </dict>
 </plist>

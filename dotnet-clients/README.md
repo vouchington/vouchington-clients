@@ -186,6 +186,12 @@ not configure an installed app. The Release runtime also rejects a missing or te
 production site key stays outside this repository, and this does not introduce a packaging or
 signing pipeline.
 
+`VOUCHA_SENTRY_DSN` overrides the packaged `VouchaSentryDsn` assembly metadata. Both Debug and
+Release leave that value empty, and an empty value does not start Sentry, does not fail the
+Release build, and does not send events. A configured DSN reports crashes and performance with
+the opaque account id only. Debug symbol upload stays out of the app build until a Sentry auth
+token exists.
+
 ## Agent rules
 
 Read [AGENTS.md](AGENTS.md) before implementation for native parity, portable-core boundaries,

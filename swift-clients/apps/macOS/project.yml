@@ -14,6 +14,7 @@ settings:
     VOUCHA_API_BASE_URL: 'https://voucha.ai'
     VOUCHA_IMAGE_BASE_URL: 'https://images.voucha.ai'
     VOUCHA_TURNSTILE_SITE_KEY: ''
+    VOUCHA_SENTRY_DSN: ''
     ENABLE_HARDENED_RUNTIME: YES
     ENABLE_APP_SANDBOX: YES
   configs:
@@ -25,6 +26,9 @@ packages:
     path: ../../core
   VouchaUI:
     path: ../../ui
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.31.0
 
 targets:
   Voucha:
@@ -47,6 +51,7 @@ targets:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'
+        VOUCHA_SENTRY_DSN: '$(VOUCHA_SENTRY_DSN)'
         CFBundleURLTypes:
           - CFBundleURLName: ai.voucha.macos
             CFBundleURLSchemes:
@@ -115,12 +120,38 @@ targets:
         product: VouchaFeatures
       - package: VouchaUI
         product: VouchaLocalization
+      - package: Sentry
+        product: Sentry
     scheme:
       testTargets:
         - VouchaLaunchSmokeTests
+        - VouchaSentryBoundaryTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_FILAMENTS_CONTRACT_ROOT: '$(VOUCHA_FILAMENTS_CONTRACT_ROOT)'
+
+  VouchaSentryBoundaryTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: SentrySdkBoundaryTests.swift
+      - path: ../shared-app/SentryEventProjection.swift
+    dependencies:
+      - package: Sentry
+        product: Sentry
+      - package: VouchaCore
+        product: VouchaCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.sentry-boundary-tests
+        PRODUCT_NAME: VouchaSentryBoundaryTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing

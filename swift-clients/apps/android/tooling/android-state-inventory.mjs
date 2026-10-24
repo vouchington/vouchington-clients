@@ -104,7 +104,17 @@ export function inventoryState(packageRoot, cacheRoot, checkoutRoot, limits = de
     }
     if ((stat.mode & 0o7000) !== 0) throw new Error(`Android state contains special permissions: ${item.path}`)
     if (stat.isDirectory()) {
-      entries.push({ path: item.path, type: 'directory', source: item.source, mode: stat.mode & 0o777 })
+      const exactStat = lstatSync(item.source, { bigint: true })
+      if (!exactStat.isDirectory() || exactStat.mode !== BigInt(stat.mode)) {
+        throw new Error(`Android state directory changed during inventory: ${item.path}`)
+      }
+      entries.push({
+        path: item.path,
+        type: 'directory',
+        source: item.source,
+        mode: stat.mode & 0o777,
+        mtimeNs: exactStat.mtimeNs.toString(),
+      })
       const directory = opendirSync(item.source)
       try {
         let child

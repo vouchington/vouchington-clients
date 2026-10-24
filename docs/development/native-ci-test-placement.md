@@ -26,15 +26,69 @@ resource bundles, and SwiftPM test metadata. The test shard verifies the run, ca
 architecture, package lock, and archive before `swift test --skip-build` executes the same suite
 and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
 
+The Android host-test shard installs only the matching Swift 6.3.3 host compiler after verifying
+Xcode 26.6. Its archive preparation verifies and seeds the pinned Skip binary for SwiftPM; it
+never installs the Android SDK, NDK, or Swift 6.4 cross-compiler. Frozen package resolution uses
+that same verified host compiler and rejects a binary-artifact download after preparation.
+Host-only archive seeding has its own small helper; the full Android materializer and its cache
+inputs stay independent of host setup edits. Both helpers use the same explicit Skip pins, checked
+by a regression. This duplicates four pin declarations to preserve the actual dependency boundary;
+it does not guarantee cache availability or an under-ten-minute APK job.
+The test-library shard retains the Swift 6.4 Android SDK and its pinned NDK, builds the Android
+test runner, verifies its compatibility link, and builds the test libraries and harness. It does
+not build an APK or launch an emulator, so it needs no Java or Android platform/build-tools setup.
+
 The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
 package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
-Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
-exact run, attempt, and candidate revision. The native producer still runs the original Gradle
-Swift package task; the app consumer still builds both APKs, verifies the native ABI, and passes
-those exact APKs to the cookie restart job.
+Swift Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
+exact run, attempt, and candidate revision. The native producer invokes the same full-product Skip
+command directly, with the original working directory, environment, compiler flags, JNI output and scratch paths. A digest of the
+generated task and its path resolvers rejects generator drift before this invocation. This avoids
+Gradle startup and configuration in that shard. The app consumer still runs the original Gradle
+Swift package task, builds both APKs, verifies the native ABI, and passes those exact APKs to the
+cookie restart job.
+
+A Kotlin library producer runs beside native production from the same verified dependency
+artifact. It selects only `:skipstone:SkipUI:compileDebugKotlin`, including SkipModel,
+SkipFoundation and SkipLib transitively. It retains pinned Swift 6.4 for Skip's host prebuild,
+Java, Google Android SDK, Xcode and frozen package resolution, without provisioning the Swift
+Android SDK/NDK or exposing its cross-compiler alias. A read-only task-graph listener also runs
+in included builds, rejects native/APK/test tasks and reports selected task classes and cacheable
+annotations without modifying task actions or build-cache keys.
+
+This producer exports only bounded, flat Gradle build-cache entries: the persistent save policy’s
+100,000-entry budget and
+512 MiB of logical cache bytes, with an unchanged 30-second scan deadline. Its separately validated
+manifest is bounded to 16 MiB to cover that inventory; existing root metadata remains charged to
+the 512 MiB total before any merge writes. Each handoff has a candidate/run/attempt/Gradle/configuration identity,
+fixed role and requested task,
+and the verified dependency archive SHA-256. It does not export or overwrite generated Swift or
+Gradle execution-state roots. The consumer first restores the native producer's full state and
+ordinary task cache, then merges this exact-run cache after complete hash/collision preflight.
+Identical entries remain; conflicting bytes fail before publication. The final full APK/native
+closure, ABI validation and eight restart phases remain unchanged. Only the main app may persist
+caches, with existing read keys and policies. The new producer has a ten-minute job cap; hosted
+profiles and cache outcomes must establish its actual benefit and the app's timing margin.
+
+The two direct Swift producer phases provision the pinned Swift Android SDK and NDK without
+installing the Java Android SDK or selecting Xcode for host tests. They execute Skip prebuild
+and Swift cross-compilation; the APK consumer owns Gradle, platform/build-tools setup, APK and
+ABI validation. The handoff preserves verified file and directory nanosecond timestamps, modes,
+and complete child-name/type graphs, including canonical tracked Android source directories.
+It validates exact candidate/run/attempt identity, hashes, tracked bytes and directory membership
+before replaying genuine producer metadata; incompatible formats and drift fail closed.
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
+
+The Mac Catalyst path has two required macOS jobs that start independently after contract
+verification. The rendered-page job verifies all twelve committed NuGet locks and runs the complete
+MAUI page test suite. The app job restores the locked graph and pinned SDK, workload, Xcode, and
+host RID, then runs the unchanged full Release app build, including managed compilation, trimming,
+AOT, native linking, and bundle creation. Each job checks out and restores its own exact candidate;
+no compiled state or source timestamps are transferred between them. The aggregate Tests gate
+requires both jobs to succeed. Hosted measurements must establish each job's duration and the full
+run's critical path.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
 root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs

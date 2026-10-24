@@ -33,11 +33,11 @@
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
             clickEnabled("Sign In", in: app)
             clickEnabled("Continue with Email", in: app)
-            type(email, into: textField("Email address", in: app))
+            LaunchSmokeFieldTyping.type(email, into: textField("Email address", in: app))
             clickEnabled("Send Code", in: app)
 
             XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
-            type(code, into: textField("6-digit code", in: app))
+            LaunchSmokeFieldTyping.type(code, into: textField("6-digit code", in: app))
             clickEnabled("Verify Code", in: app)
 
             let signIn = app.buttons.matching(NSPredicate(format: "label == %@", "Sign In"))
@@ -77,16 +77,6 @@
             ).firstMatch
             XCTAssertTrue(field.waitForExistence(timeout: 20), "Missing field \(label)")
             return field
-        }
-
-        private func type(_ text: String, into field: XCUIElement) {
-            if field.isHittable {
-                field.click()
-            } else {
-                field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-            }
-            field.typeText(text)
-            XCTAssertEqual(field.value as? String, text)
         }
 
         private func loadFixtures() throws -> (identity: String, providers: String) {

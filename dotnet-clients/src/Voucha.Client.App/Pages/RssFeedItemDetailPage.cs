@@ -1,4 +1,5 @@
 using Microsoft.Maui.ApplicationModel;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.HnDiscussions;
@@ -29,7 +30,13 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
   {
     this.serviceProvider = serviceProvider;
     sessionStore = serviceProvider.GetRequiredService<ISessionStore>();
-    viewModel = new(service, itemId, kind, localization, localeController);
+    viewModel = new(
+        service,
+        itemId,
+        kind,
+        localization,
+        localeController,
+        serviceProvider.GetRequiredService<IProductSurfaceAnalytics>());
     hnDiscussions = new(
         serviceProvider.GetRequiredService<IHnDiscussionsSettings>(),
         serviceProvider.GetRequiredService<HnDiscussionsClient>(),

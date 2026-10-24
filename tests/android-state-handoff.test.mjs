@@ -38,11 +38,24 @@ test('packs and restores exact candidate state with bounded contents', async t =
     { encoding: 'utf8' },
   )
   assert.equal(timestamp.status, 0, timestamp.stderr)
+  const directoryTimestamp = spawnSync(
+    'python3',
+    [
+      '-I',
+      '-c',
+      'import os,sys; t=int(sys.argv[2]); s=os.stat(sys.argv[1]); os.utime(sys.argv[1], ns=(s.st_atime_ns,t))',
+      directoryPath,
+      preciseTime,
+    ],
+    { encoding: 'utf8' },
+  )
+  assert.equal(directoryTimestamp.status, 0, directoryTimestamp.stderr)
   const nativeTime = (await stat(nativePath, { bigint: true })).mtimeNs
+  const directoryTime = (await stat(directoryPath, { bigint: true })).mtimeNs
   assert.equal(nativeTime.toString(), preciseTime)
   const directoryMode = (await stat(directoryPath)).mode & 0o777
   const packed = await packState({ ...state, limits })
-  assert.equal(packed.format, 3)
+  assert.equal(packed.format, 4)
   assert.ok(packed.unpackedBytes > 21)
   assert.ok(packed.compressedBytes > 0 && packed.compressedBytes <= limits.compressedBytes)
   await rm(join(state.packageRoot, '.build'), { recursive: true })
@@ -57,6 +70,7 @@ test('packs and restores exact candidate state with bounded contents', async t =
   assert.equal((await stat(nativePath)).mode & 0o777, 0o755)
   assert.equal((await stat(nativePath, { bigint: true })).mtimeNs, nativeTime)
   assert.equal((await stat(directoryPath)).mode & 0o777, directoryMode)
+  assert.equal((await stat(directoryPath, { bigint: true })).mtimeNs, directoryTime)
   assert.equal(
     await readFile(join(state.packageRoot, 'Android/.gradle/task-state'), 'utf8'),
     'task-state',
@@ -107,6 +121,20 @@ test('rebases Skipstone absolute source and package links onto the exact consume
     join(producer.checkoutRoot, 'swift-clients/core'),
     join(producerLinks, 'Packages/core'),
   )
+  const packageDirectory = join(producer.packageRoot, '.build/checkouts/skip-keychain/Sources')
+  const exactDirectoryTime = '1792634209267950316'
+  const setDirectoryTime = spawnSync(
+    'python3',
+    [
+      '-I',
+      '-c',
+      'import os,sys; s=os.stat(sys.argv[1]); os.utime(sys.argv[1], ns=(s.st_atime_ns,int(sys.argv[2])))',
+      packageDirectory,
+      exactDirectoryTime,
+    ],
+    { encoding: 'utf8' },
+  )
+  assert.equal(setDirectoryTime.status, 0, setDirectoryTime.stderr)
   await packState({ ...producer, limits: { ...limits, entries: 150 } })
   await mkdir(join(consumer.checkoutRoot, 'swift-clients/core/Sources'), { recursive: true })
   await rm(join(consumer.packageRoot, '.build'), { recursive: true })
@@ -129,6 +157,14 @@ test('rebases Skipstone absolute source and package links onto the exact consume
   )
   assert.equal((await stat(join(links, 'Sources'))).isDirectory(), true)
   assert.equal((await stat(join(links, 'Packages/core'))).isDirectory(), true)
+  assert.equal(
+    (
+      await stat(join(consumer.packageRoot, '.build/checkouts/skip-keychain/Sources'), {
+        bigint: true,
+      })
+    ).mtimeNs.toString(),
+    exactDirectoryTime,
+  )
 })
 
 test('preserves Skipstone module, Kotlin, resource, buildSrc and AndroidTest links', async t => {

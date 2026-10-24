@@ -334,15 +334,21 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             entry: route.entry,
             client: makeClient(),
             routeMatch: route.match,
-            isAdministrator: true
+            isAdministrator: true,
+            isSignedIn: true
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/visits") }, [
             "/api/v1/users/alice/landing-page",
             "/api/v1/admin/landing-pages/page-1/analytics"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/visits") },
+            ["/api/v1/landing-pages/page-1/visits"]
+        )
         XCTAssertEqual(viewModel.rows.map(\.title), [
             "Bonus",
             "Visits",
@@ -375,18 +381,24 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             entry: route.entry,
             client: makeClient(),
             routeMatch: route.match,
-            isAdministrator: true
+            isAdministrator: true,
+            isSignedIn: true
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
         if case .loaded = viewModel.state {} else {
             XCTFail("Expected state to be loaded")
         }
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/visits") }, [
             "/api/v1/users/alice/landing-page",
             "/api/v1/admin/landing-pages/page-1/analytics"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/visits") },
+            ["/api/v1/landing-pages/page-1/visits"]
+        )
         XCTAssertEqual(viewModel.rows, [
             verbatimRow(icon: "doc.text", title: "Bonus", detail: "bonus · Public")
         ])

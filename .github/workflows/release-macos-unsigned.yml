@@ -48,6 +48,15 @@ jobs:
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Generate macOS project
         run: ./swift-clients/tooling/generate.sh macOS
+      - name: Restore Swift package clones
+        id: swift-package-clones
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/swift-package-clones/checkouts
+            ${{ runner.temp }}/swift-package-clones/artifacts
+            ${{ runner.temp }}/swift-package-clones/workspace-state.json
+          key: ${{ runner.os }}-swiftpm-seed-macos-unsigned-xcode-26.6-${{ hashFiles('swift-clients/ui/Package.resolved', 'swift-clients/core/Package.resolved', 'swift-clients/tooling/generate.sh', 'swift-clients/apps/macOS/project.yml') }}
       - name: Archive without signing
         timeout-minutes: 24
         env:
@@ -59,12 +68,22 @@ jobs:
           fi
           # Explicit non-production site key. Release rejects an empty value and Cloudflare test keys.
           release_site_key=0x4AAAAAAAAexample
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -showBuildTimingSummary archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
           test -d "$app"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$BUILD_NUMBER"
           test "$(/usr/libexec/PlistBuddy -c 'Print :VOUCHA_TURNSTILE_SITE_KEY' "$app/Contents/Info.plist")" = "$release_site_key"
           test "$(lipo -archs "$app/Contents/MacOS/Voucha")" = arm64
+      - name: Save Swift package clones
+        if: ${{ steps.swift-package-clones.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/swift-package-clones/checkouts
+            ${{ runner.temp }}/swift-package-clones/artifacts
+            ${{ runner.temp }}/swift-package-clones/workspace-state.json
+          key: ${{ steps.swift-package-clones.outputs.cache-primary-key }}
       - name: Export unsigned Copy App
         timeout-minutes: 3
         run: |

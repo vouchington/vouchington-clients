@@ -2,6 +2,10 @@ name: Prepare checksummed Swift Android archives
 description: Restore verified downloads, materialize the pinned SDK, and save one main-branch cache
 
 inputs:
+  host-only:
+    description: Seed only the verified Skip host binary without an Android SDK or NDK
+    required: false
+    default: 'false'
   save-cache:
     description: Save a cache miss from the designated main-branch phase
     required: false
@@ -11,6 +15,7 @@ runs:
   using: composite
   steps:
     - name: Restore checksummed Swift Android archives
+      if: ${{ inputs.host-only != 'true' }}
       id: archives
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
@@ -19,12 +24,18 @@ runs:
     - name: Materialize pinned Skip Swift Android SDK
       shell: bash
       working-directory: candidate-clients
+      env:
+        HOST_ONLY: ${{ inputs.host-only }}
       run: |
         set -euo pipefail
         export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-        mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+        if [[ "$HOST_ONLY" == true ]]; then
+          bash swift-clients/apps/android/tooling/materialize-skip-host.sh
+        else
+          mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+        fi
     - name: Save checksummed archives from main
-      if: ${{ inputs.save-cache == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.archives.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.host-only != 'true' && inputs.save-cache == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.archives.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/voucha/swift-android/downloads
