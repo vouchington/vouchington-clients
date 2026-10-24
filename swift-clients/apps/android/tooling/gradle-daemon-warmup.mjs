@@ -44,6 +44,8 @@ async function start({ args, state, temp }) {
   if (!args['--wrapper'] || !args['--properties']) throw Error('Wrapper and properties are required')
   const wrapper = resolve(args['--wrapper'])
   const properties = resolve(args['--properties'])
+  // Match pre-push.sh before verified state materializes this future executable.
+  const skipBin = join(dirname(dirname(wrapper)), '.build/artifacts/skip/skip/skip.artifactbundle/bin')
   accessSync(wrapper, constants.X_OK)
   accessSync(properties, constants.R_OK)
   mkdirSync(state)
@@ -59,7 +61,7 @@ async function start({ args, state, temp }) {
   writeFileSync(join(state, 'config.json'), JSON.stringify(config))
   const worker = spawn(process.execPath, [import.meta.filename, 'worker', '--state-dir', state], {
     detached: true, stdio: 'ignore',
-    env: { ...process.env, HOME: home, CFFIXED_USER_HOME: home, TMPDIR: tmp },
+    env: { ...process.env, HOME: home, CFFIXED_USER_HOME: home, TMPDIR: tmp, PATH: `${skipBin}:${process.env.PATH || ''}` },
   })
   let spawnError
   worker.on('error', error => { spawnError = error })

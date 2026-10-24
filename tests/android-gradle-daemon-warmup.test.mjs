@@ -44,7 +44,7 @@ async function waitFor(predicate) {
 
 async function fixture(t, body, timeout = 5) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'gradle-warmup-')))
-  const android = join(root, 'android')
+  const android = join(root, 'package', 'Android')
   const runner = join(root, 'runner')
   const java = join(root, 'java')
   const state = join(runner, 'warmup')
@@ -64,11 +64,11 @@ async function fixture(t, body, timeout = 5) {
     wrapper,
     `#!/usr/bin/env node
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 const args = process.argv.slice(2)
 const project = args[args.indexOf('--project-dir') + 1]
 writeFileSync(process.env.RECORD, JSON.stringify({
-  pid: process.pid, args, cwd: process.cwd(),
+  pid: process.pid, args, cwd: process.cwd(), path: process.env.PATH,
   home: process.env.HOME, fixed: process.env.CFFIXED_USER_HOME,
   temp: process.env.TMPDIR, java: process.env.JAVA_HOME, gradle: process.env.GRADLE_USER_HOME,
   properties: readFileSync(project + '/gradle.properties', 'utf8'),
@@ -261,4 +261,57 @@ test('retains the terminal diagnostic after large failing output and propagates 
   const log = await readFile(join(f.state, 'gradle.log'), 'utf8')
   assert.equal(Buffer.byteLength(log), 65536)
   assert.ok(log.endsWith('PRIMARY TERMINAL FAILURE\n'))
+})
+
+test('startup retains future Skip and mise Swift paths when verified artifacts arrive later', async t => {
+  const f = await fixture(
+    t,
+    `const waiting = setInterval(() => {
+  if (!existsSync(process.env.RELEASE)) return
+  clearInterval(waiting)
+  for (const executable of ['skip', 'swift']) {
+    const result = spawnSync(executable, [], { encoding: 'utf8' })
+    if (result.error || result.status !== 0) throw result.error || Error(executable + ' failed')
+    console.log(executable + ': ' + result.stdout.trim())
+  }
+}, 10)`,
+  )
+  const futureSkip = join(f.root, 'package/.build/artifacts/skip/skip/skip.artifactbundle/bin')
+  const miseSwift = join(f.root, 'mise-pinned-swift/bin')
+  const ambient = join(f.root, 'ambient/bin')
+  for (const dir of [miseSwift, ambient]) await mkdir(dir, { recursive: true })
+  for (const [dir, label] of [
+    [miseSwift, 'pinned mise Swift'],
+    [ambient, 'wrong ambient Swift'],
+  ]) {
+    await writeFile(join(dir, 'swift'), `#!/bin/sh\necho '${label}'\n`)
+    await chmod(join(dir, 'swift'), 0o755)
+  }
+  await assert.rejects(readFile(join(futureSkip, 'skip')), { code: 'ENOENT' })
+  const inheritedPath = `${miseSwift}:${ambient}:${process.env.PATH}`
+  assert.equal((await f.run('start', { PATH: inheritedPath })).code, 0)
+  await waitFor(async () => {
+    try {
+      await readFile(f.record)
+      return true
+    } catch {
+      return false
+    }
+  })
+  const record = JSON.parse(await readFile(f.record, 'utf8'))
+  assert.equal(record.path, `${futureSkip}:${inheritedPath}`)
+  assert.equal(record.args.at(-1), 'help')
+  assert.equal(record.build, '')
+  assert.equal(record.settings, '')
+  // Startup succeeded before Skip existed; the same child environment resolves it later.
+  await assert.rejects(readFile(join(futureSkip, 'skip')), { code: 'ENOENT' })
+  await mkdir(futureSkip, { recursive: true })
+  await writeFile(join(futureSkip, 'skip'), '#!/bin/sh\necho verified Skip artifact\n')
+  await chmod(join(futureSkip, 'skip'), 0o755)
+  await writeFile(f.env.RELEASE, '')
+  const result = await f.run('join', { PATH: inheritedPath })
+  assert.equal(result.code, 0, result.stderr)
+  assert.match(result.stdout, /skip: verified Skip artifact/u)
+  assert.match(result.stdout, /swift: pinned mise Swift/u)
+  assert.doesNotMatch(result.stdout, /wrong ambient Swift/u)
 })
