@@ -115,7 +115,7 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
       assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
     }
     assert.match(iosJob, /\n    timeout-minutes: 12\n/u)
-    assert.match(buildJob, /\n    timeout-minutes: 11\n/u)
+    assert.match(buildJob, /\n    timeout-minutes: 13\n/u)
     assert.match(x86Job, /\n    timeout-minutes: 12\n/u)
     assert.match(ipadJob, /\n    timeout-minutes: 12\n/u)
     const ipadPrepare = ipadJob.indexOf('uses: ./.github/actions/prepare-native-contract')

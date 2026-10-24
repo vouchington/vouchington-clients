@@ -114,8 +114,8 @@ sidebar navigation that opens Posts, leaves for News, and returns to the canonic
 stays open for the news tab.
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
-app slice in parallel on `macos-latest`. The arm64 build has an 11-minute job cap and a
-7-minute compile step cap. Xcode exports the arm64 tests as a portable
+app slice in parallel on `macos-latest`. The arm64 build has a 13-minute job cap and a
+10-minute compile step cap. Xcode exports the arm64 tests as a portable
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
 `test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs

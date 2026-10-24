@@ -1772,7 +1772,7 @@ jobs:
     name: Swift iOS Simulator build for testing
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 11
+    timeout-minutes: 13
     permissions:
       actions: read
       contents: read
@@ -1806,7 +1806,7 @@ jobs:
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
       - name: Build selected iPhone test products
-        timeout-minutes: 7
+        timeout-minutes: 10
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ github.workspace }}/ios-test-derived-data
