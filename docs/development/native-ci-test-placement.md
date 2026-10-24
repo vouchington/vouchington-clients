@@ -56,8 +56,12 @@ Android SDK/NDK or exposing its cross-compiler alias. A read-only task-graph lis
 in included builds, rejects native/APK/test tasks and reports selected task classes and cacheable
 annotations without modifying task actions or build-cache keys.
 
-This producer exports only bounded, flat Gradle build-cache entries: at most 2,000 entries and
-512 MiB, with a candidate/run/attempt/Gradle/configuration identity, fixed role and requested task,
+This producer exports only bounded, flat Gradle build-cache entries: the persistent save policy’s
+100,000-entry budget and
+512 MiB of logical cache bytes, with an unchanged 30-second scan deadline. Its separately validated
+manifest is bounded to 16 MiB to cover that inventory; existing root metadata remains charged to
+the 512 MiB total before any merge writes. Each handoff has a candidate/run/attempt/Gradle/configuration identity,
+fixed role and requested task,
 and the verified dependency archive SHA-256. It does not export or overwrite generated Swift or
 Gradle execution-state roots. The consumer first restores the native producer's full state and
 ordinary task cache, then merges this exact-run cache after complete hash/collision preflight.

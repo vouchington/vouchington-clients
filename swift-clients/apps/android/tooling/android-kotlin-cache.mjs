@@ -47,7 +47,7 @@ function same(left, right) {
 export function packKotlinCache(options) {
   const { cacheRoot, artifactRoot, identity, configurationSha256, dependencySha256 } = options
   const { limits, deadline } = context(options)
-  const entries = inventory(cacheRoot, limits, deadline)
+  const { entries } = inventory(cacheRoot, limits, deadline)
   if (!entries.length) throw Error('Kotlin cache has no task entries')
   const manifest = { format: 1, role, identity, configurationSha256, dependencySha256, requestedTasks, entries }
   const serialized = JSON.stringify(manifest) + '\n'
@@ -73,17 +73,19 @@ export function mergeKotlinCache(options) {
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink() || manifestStat.size > limits.manifestBytes) throw Error('Unsafe Kotlin cache manifest')
   const manifest = JSON.parse(fileDigest(manifestPath, limits.manifestBytes, deadline, undefined, true).text)
   const expected = manifestEntries(manifest, identity, configurationSha256, dependencySha256, limits)
-  const incoming = new Map(inventory(artifactRoot, limits, deadline, new Set([manifestName])).map(entry => [entry.name, entry]))
+  // The already-validated manifest has its own byte budget; only task payload counts here.
+  const incoming = new Map(inventory(artifactRoot, limits, deadline, new Set([manifestName]), false).entries.map(entry => [entry.name, entry]))
   if (incoming.size !== expected.length || expected.some(entry => !same(entry, incoming.get(entry.name) ?? {}))) throw Error('Kotlin cache artifact inventory mismatch')
-  const existing = new Map(inventory(cacheRoot, limits, deadline).map(entry => [entry.name, entry]))
+  const existingInventory = inventory(cacheRoot, limits, deadline)
+  const existing = new Map(existingInventory.entries.map(entry => [entry.name, entry]))
   const additions = []
   for (const entry of expected) {
     if (existing.has(entry.name)) {
       if (!same(entry, existing.get(entry.name))) throw Error('Conflicting existing Kotlin cache entry')
     } else additions.push(entry)
   }
-  const combined = [...existing.values(), ...additions]
-  if (combined.length > limits.entries || combined.reduce((n, e) => n + e.size, 0) > limits.bytes) throw Error('Merged Kotlin cache exceeds bounds')
+  if (existing.size + additions.length > limits.entries ||
+      existingInventory.bytes + additions.reduce((n, e) => n + e.size, 0) > limits.bytes) throw Error('Merged Kotlin cache exceeds bounds')
   // Stage outside the destination root on its filesystem, before publishing anything.
   const staging = mkdtempSync(join(dirname(cacheRoot), '.kotlin-cache-'))
   const published = []

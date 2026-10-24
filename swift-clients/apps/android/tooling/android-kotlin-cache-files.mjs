@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto'
 import { closeSync, constants, fstatSync, lstatSync, openSync, opendirSync, readSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { cacheSaveLimits } from './check-gradle-build-cache.mjs'
 
 export const entryName = /^[a-f0-9]{32}$/u
 const metadata = new Set(['gc.properties', 'gradle-build-cache.lock'])
-export const cacheLimits = { entries: 2_000, bytes: 512 * 1024 ** 2, manifestBytes: 1024 ** 2, ms: 30_000 }
+// The handoff reads the same cache population admitted by the persistent save policy.
+// 16 MiB accommodates 100,000 fixed-schema records plus exact-run manifest metadata.
+export const cacheLimits = { entries: cacheSaveLimits.entries, bytes: cacheSaveLimits.bytes, manifestBytes: 16 * 1024 ** 2, ms: cacheSaveLimits.scanMs }
 
 export function checkTime(deadline) {
   if (Date.now() > deadline) throw Error('Kotlin cache time limit exceeded')
@@ -50,7 +53,7 @@ export function fileDigest(path, maximum, deadline, destination, capture = false
   }
 }
 
-export function inventory(root, limits, deadline, ignoredNames = metadata) {
+export function inventory(root, limits, deadline, ignoredNames = metadata, countIgnoredBytes = true) {
   safeDirectory(root)
   const entries = []
   let count = 0, bytes = 0
@@ -62,7 +65,7 @@ export function inventory(root, limits, deadline, ignoredNames = metadata) {
       const path = join(root, member.name)
       const stat = lstatSync(path)
       if (!stat.isFile() || stat.isSymbolicLink()) throw Error('Kotlin cache requires flat regular files')
-      bytes += stat.size
+      if (countIgnoredBytes || !ignoredNames.has(member.name)) bytes += stat.size
       if (bytes > limits.bytes) throw Error('Kotlin cache byte limit exceeded')
       if (ignoredNames.has(member.name)) continue
       if (++count > limits.entries) throw Error('Kotlin cache entry limit exceeded')
@@ -70,5 +73,5 @@ export function inventory(root, limits, deadline, ignoredNames = metadata) {
       entries.push({ name: member.name, ...fileDigest(path, stat.size, deadline) })
     }
   } finally { directory.closeSync() }
-  return entries.sort((a, b) => a.name.localeCompare(b.name))
+  return { entries: entries.sort((a, b) => a.name.localeCompare(b.name)), bytes }
 }

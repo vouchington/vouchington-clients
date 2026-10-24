@@ -9,6 +9,11 @@ import {
   mergeKotlinCache,
 } from '../swift-clients/apps/android/tooling/android-kotlin-cache.mjs'
 import { androidStateFixture } from './android-state-handoff-fixture.mjs'
+import { cacheLimits } from '../swift-clients/apps/android/tooling/android-kotlin-cache-files.mjs'
+import {
+  cacheSaveLimits,
+  inspectGradleBuildCache,
+} from '../swift-clients/apps/android/tooling/check-gradle-build-cache.mjs'
 
 const a = 'a'.repeat(32),
   b = 'b'.repeat(32),
@@ -301,4 +306,83 @@ test('requested task provenance rejects missing, additional and different task s
       assert.deepEqual(await readdir(f.cacheRoot), [])
     })
   }
+})
+
+test('handoff budgets cover the existing persistent cache contract and its manifest', () => {
+  assert.equal(cacheLimits.entries, cacheSaveLimits.entries)
+  assert.equal(cacheLimits.entries, 100_000)
+  assert.equal(cacheLimits.bytes, cacheSaveLimits.bytes)
+  assert.equal(cacheLimits.bytes, 512 * 1024 ** 2)
+  assert.equal(cacheLimits.ms, cacheSaveLimits.scanMs)
+  assert.equal(cacheLimits.ms, 30_000)
+  const entries = Array.from({ length: cacheLimits.entries }, (_, index) => ({
+    name: index.toString(16).padStart(32, '0'),
+    size: cacheLimits.bytes,
+    sha256: 'f'.repeat(64),
+  }))
+  // Use the largest admitted per-record size as a conservative encoding bound;
+  // the real manifest also enforces the combined task-byte budget.
+  const encoded = Buffer.byteLength(JSON.stringify({ entries })) + 1024
+  assert.ok(encoded > 1024 ** 2, 'the old 1 MiB metadata budget cannot cover saved inventories')
+  assert.ok(encoded <= cacheLimits.manifestBytes)
+})
+
+test('a save-eligible cache above 2000 tasks packs and merges without dropping entries', async t => {
+  const f = await fixture(t)
+  for (let index = 0; index < 1999; index++) {
+    writeFileSync(join(f.cacheRoot, index.toString(16).padStart(32, '0')), 'x')
+  }
+  assert.equal(inspectGradleBuildCache(f.cacheRoot).eligible, true)
+  assert.equal(packKotlinCache(f).entries, 2001)
+  await emptyCache(f)
+  assert.deepEqual(mergeKotlinCache(f), { role: 'kotlin-libraries', added: 2001, retained: 0 })
+  assert.equal((await readdir(f.cacheRoot)).length, 2001)
+  assert.equal(await readFile(join(f.cacheRoot, a), 'utf8'), 'compiled library A')
+})
+
+test('merged task count accepts its boundary and rejects overflow before publication', async t => {
+  for (const overflow of [false, true]) {
+    await t.test(String(overflow), async sub => {
+      const f = await fixture(sub)
+      packKotlinCache(f)
+      await emptyCache(f)
+      await writeFile(join(f.cacheRoot, c), 'existing')
+      await writeFile(join(f.cacheRoot, 'gc.properties'), 'metadata')
+      if (overflow) await writeFile(join(f.cacheRoot, 'd'.repeat(32)), 'another existing')
+      const before = (await readdir(f.cacheRoot)).sort()
+      const options = { ...f, limits: { entries: 3 } }
+      if (overflow) {
+        assert.throws(() => mergeKotlinCache(options), /Merged Kotlin cache exceeds bounds/u)
+        assert.deepEqual((await readdir(f.cacheRoot)).sort(), before)
+        assert.equal(await readFile(join(f.cacheRoot, c), 'utf8'), 'existing')
+      } else {
+        assert.deepEqual(mergeKotlinCache(options), {
+          role: 'kotlin-libraries',
+          added: 2,
+          retained: 0,
+        })
+      }
+    })
+  }
+})
+
+test('manifest has its own byte budget while root metadata remains in merged byte preflight', async t => {
+  const f = await fixture(t)
+  packKotlinCache(f)
+  await emptyCache(f)
+  await writeFile(join(f.cacheRoot, 'gc.properties'), 'x')
+  const payloadBytes = 36
+  // The separately validated manifest is larger than this tiny task-byte budget.
+  assert.ok((await lstat(join(f.artifactRoot, 'manifest.json'))).size > payloadBytes)
+  assert.throws(
+    () => mergeKotlinCache({ ...f, limits: { bytes: payloadBytes } }),
+    /Merged Kotlin cache exceeds bounds/u,
+  )
+  assert.deepEqual(await readdir(f.cacheRoot), ['gc.properties'])
+  assert.equal(await readFile(join(f.cacheRoot, 'gc.properties'), 'utf8'), 'x')
+  assert.deepEqual(mergeKotlinCache({ ...f, limits: { bytes: payloadBytes + 1 } }), {
+    role: 'kotlin-libraries',
+    added: 2,
+    retained: 0,
+  })
 })
