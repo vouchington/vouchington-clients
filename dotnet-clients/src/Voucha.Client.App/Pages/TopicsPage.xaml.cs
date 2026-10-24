@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core;
@@ -122,7 +123,8 @@ public partial class TopicsPage : ContentPage
               apiClient: apiClient,
               canViewSourceCrawlHistory: false,
               canManageSourceCrawls: sessionStore.Current.CanManageTopics(),
-              requiresAuthoritativeSourceCrawlMembership: true),
+              requiresAuthoritativeSourceCrawlMembership: true,
+              productSignals: serviceProvider.GetRequiredService<IProductSurfaceAnalytics>()),
           sessionStore,
           item.Id,
           emailRecovery,

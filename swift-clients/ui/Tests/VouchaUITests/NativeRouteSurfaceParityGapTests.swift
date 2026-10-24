@@ -12,10 +12,13 @@ final class NativeRouteSurfaceParityGapTests: NativeRouteSurfaceViewModelTestCas
         CannedFeedURLProtocol.handlers["/api/v1/feeds/posts/any"] = (postFeedData, 200)
         await viewModel.load()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
-            "/api/v1/feeds/posts/any",
-            "/api/v1/feeds/posts/any"
-        ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/visits") },
+            [
+                "/api/v1/feeds/posts/any",
+                "/api/v1/feeds/posts/any"
+            ]
+        )
         XCTAssertEqual(viewModel.rows.first?.title, "Native post")
     }
 
@@ -29,6 +32,7 @@ final class NativeRouteSurfaceParityGapTests: NativeRouteSurfaceViewModelTestCas
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/users/alice/landing-pages/bonus")
         XCTAssertEqual(viewModel.rows.first, verbatimRow(icon: "doc.text", title: "Bonus", detail: "bonus · Public"))

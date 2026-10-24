@@ -12,9 +12,6 @@ public static class VouchaApiJson
     Converters =
     {
       new JsonStringEnumConverter<RssFeedImportErrorCode>(allowIntegerValues: false),
-      new ExactApiStringEnumConverter<PartitionDropRefusal>(),
-      new ExactApiStringEnumConverter<NativeSessionTokenType>(),
-      new ExactApiStringEnumConverter<NativeAuthenticatedEntityType>(),
       new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
       new ModerationDisputeRunIdentityConverter(),
       new ModerationAppealRunIdentityConverter(),

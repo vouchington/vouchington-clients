@@ -36,10 +36,6 @@ internal static partial class ApiFixtureCoverage
     ["native.identity-verification-attempts.grant.default"] = typeof(GrantIdentityVerificationAttemptResponse),
     ["native.admin-ai-costs.page-2"] = typeof(AiCostTotalsResponse),
     ["native.admin-ai-costs.empty"] = typeof(AiCostTotalsResponse),
-    ["native.auth.email-address.tokens"] = typeof(NativeEmailTokenResponse),
-    ["native.auth.email-address.login.authenticated"] = typeof(NativeEmailAuthenticatedResponse),
-    ["native.auth.email-address.login.mfa"] = typeof(NativeEmailMfaResponse),
-    ["native.oauth.session-mcp-token.ios"] = typeof(NativeSessionMcpTokenResponse),
     ["native.oauth.providers.broker-capabilities"] = typeof(OAuthProvidersResponse),
     ["native.oauth.authorization.begin"] = typeof(BeginOAuthAuthorizationResponse),
     ["native.oauth.authorization.complete.pending"] = typeof(OAuthCompletionResponse),
@@ -363,7 +359,7 @@ internal static partial class ApiFixtureCoverage
     ["web.admin.valkey.cache-groups.default"] = typeof(CacheGroupsResponse),
     ["web.admin.valkey.caches.clear.default"] = typeof(ClearCacheResponse),
     ["web.admin.valkey.flush.default"] = typeof(FlushValkeyResponse),
-  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures();
+  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures().WithNativeSessionFixtures();
 
   /// <summary>
   /// Per-fixture key paths this client intentionally does not model, with a one-line reason.

@@ -1,3 +1,5 @@
+import Foundation
+
 private struct NativeEmailTokenBody: Encodable {
     let emailAddress: String
 }
@@ -7,6 +9,16 @@ private struct NativeEmailLoginBody: Encodable {
     let token: String
 }
 
+private struct NativeSessionMCPTokenBody: Encodable {
+    let clientApp: String
+
+    private enum CodingKeys: String, CodingKey {
+        case clientApp = "client_app"
+    }
+}
+
+/// Native (body-token) email OTP login and session-to-MCP token mint. These builders model the
+/// published contract only; no sign-in or settings flow calls them yet.
 public extension Endpoint {
     static func requestNativeEmailOTP(email: String) -> Endpoint {
         Endpoint(
@@ -26,10 +38,13 @@ public extension Endpoint {
         )
     }
 
-    static func mintNativeSessionMCPToken(clientApp: String) -> Endpoint {
+    static func mintNativeSessionMCPToken(app: MemberMCPApp) -> Endpoint {
         Endpoint(
-            .POST, path: "/api/v1/oauth/native-session-tokens",
-            headers: ["x-voucha-native-mcp-mint": "1"], body: ["client_app": clientApp]
+            .POST,
+            path: "/api/v1/oauth/native-session-tokens",
+            headers: ["x-voucha-native-mcp-mint": "1"],
+            body: NativeSessionMCPTokenBody(clientApp: app.rawValue),
+            bodyKeyEncodingStrategy: .useDefaultKeys
         )
     }
 }

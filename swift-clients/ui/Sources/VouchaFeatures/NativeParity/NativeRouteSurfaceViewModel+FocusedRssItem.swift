@@ -17,6 +17,11 @@ extension NativeRouteSurfaceViewModel {
     }
 
     func loadFocusedRssFeedItem(client: APIClient, id: String) async throws {
+        recordProductSignalOnce(
+            "rss-item-view:\(id)",
+            endpoint: .rssFeedItemView(itemId: id),
+            client: client
+        )
         let response: RssFeedItemDetailResponse = try await client.send(.rssFeedItem(id: id))
         let thumbnailURL = VouchaURLResolver.absoluteString(
             for: response.rssFeedItemThumbnailUrl?[response.rssFeedItem.id],

@@ -45,7 +45,7 @@ final class SettingsModelDecodingTests: XCTestCase {
         let sessions = try decoder.decode(
             Page<AuthSession>.self,
             from: Data(
-                #"{"results":[{"id":"session-1","device_id":"device-1","device_name":"MacBook Pro","user_agent":"Safari","ip_address":"203.0.113.8","created_at":"2026-03-01T10:00:00Z","last_seen_at":"2026-03-01T12:00:00Z","expires_at":"2026-03-31T10:00:00Z","mcp_connections":[],"is_current":true}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
+                #"{"results":[{"id":"session-1","device_id":"device-1","device_name":"MacBook Pro","user_agent":"Safari","ip_address":"203.0.113.8","created_at":"2026-03-01T10:00:00Z","last_seen_at":"2026-03-01T12:00:00Z","expires_at":"2026-03-31T10:00:00Z","is_current":true}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                     .utf8
             )
         )

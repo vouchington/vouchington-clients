@@ -25,6 +25,10 @@ class NativeRouteSurfaceViewModelTestCase: XCTestCase {
         CannedFeedURLProtocol.reset()
     }
 
+    func settleProductSignals(_ viewModel: NativeRouteSurfaceViewModel) async {
+        await viewModel.productSignalTask?.value
+    }
+
     override func tearDown() {
         CannedFeedURLProtocol.reset()
         super.tearDown()

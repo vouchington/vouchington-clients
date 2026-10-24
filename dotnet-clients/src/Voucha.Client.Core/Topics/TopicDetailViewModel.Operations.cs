@@ -34,6 +34,7 @@ public sealed partial class TopicDetailViewModel
       if (followSource && response.Topic.TopicType == "rss_feed")
       {
         await LoadSourceAsync(response.Topic.Id, cancellationToken).ConfigureAwait(true);
+        RecordRssFeedViewOnce();
       }
       State = LoadState.Loaded;
     }

@@ -82,12 +82,15 @@ public final class NativeRouteSurfaceViewModel {
     var crawlHistorySuffix: [NativeRouteDestinationRow] = []
     var crawlHistoryEndpoint: NativeCrawlHistoryEndpoint?
 
+    var recordedProductSignalKeys: Set<String> = []
+    var productSignalTask: Task<Void, Never>?
     let client: APIClient?
     let destination: NativeRouteDestinationIdentifier?
     let routeMatch: NativeRouteMatch?
     let routeQuery: String?
     let isAdministrator: Bool
     let isStaffViewer: Bool
+    let isSignedIn: Bool
 
     public init(
         entry: NativeRouteCatalogEntry,
@@ -95,13 +98,15 @@ public final class NativeRouteSurfaceViewModel {
         routeMatch: NativeRouteMatch? = nil,
         routeQuery: String? = nil,
         isAdministrator: Bool = false,
-        isSiteModerator: Bool = false
+        isSiteModerator: Bool = false,
+        isSignedIn: Bool = false
     ) {
         self.client = client
         self.routeMatch = routeMatch
         self.routeQuery = routeQuery
         self.isAdministrator = isAdministrator
         isStaffViewer = isAdministrator || isSiteModerator
+        self.isSignedIn = isSignedIn
         destination = entry.destinationIdentifier == .moderationReviewQueue ? nil : entry.destinationIdentifier
         fediverseProvider = FediverseProviderFilter(routeValue: routeMatch?.queryValue("provider"))
         rows = entry.destinationIdentifier?.nativeRows ?? []

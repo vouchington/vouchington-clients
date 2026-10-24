@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.NewsFeeds;
@@ -15,6 +16,8 @@ public sealed class RssFeedItemDetailViewModel :
   private readonly NewsFeedItemKind kind;
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
+  private readonly IProductSurfaceAnalytics? productSignals;
+  private bool recordedItemView;
   private RssFeedItemDetail? detail;
   private string? errorMessage;
   private bool isLoading;
@@ -24,9 +27,11 @@ public sealed class RssFeedItemDetailViewModel :
       string itemId,
       NewsFeedItemKind kind,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      IProductSurfaceAnalytics? productSignals = null)
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
+    this.productSignals = productSignals;
     this.itemId = string.IsNullOrWhiteSpace(itemId) ? throw new ArgumentException("An item ID is required.", nameof(itemId)) : itemId;
     this.kind = kind;
     this.localization = localization ?? UiLocalization.English;
@@ -92,6 +97,11 @@ public sealed class RssFeedItemDetailViewModel :
   public async Task LoadAsync(CancellationToken cancellationToken = default)
   {
     if (IsLoading) return;
+    if (!recordedItemView)
+    {
+      recordedItemView = true;
+      productSignals?.RecordRssFeedItemView(itemId);
+    }
     IsLoading = true;
     ErrorMessage = null;
     try
