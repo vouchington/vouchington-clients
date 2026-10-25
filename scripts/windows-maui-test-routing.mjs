@@ -27,7 +27,7 @@ export function shouldRunWindowsMauiBuild(paths) {
   return matchesAnyChangedPath(paths, windowsMauiPaths)
 }
 
-function main() {
+if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   runChangedFileRoute({
     repositoryRoot: resolve(import.meta.dirname, '..'),
     select: shouldRunWindowsMauiBuild,
@@ -35,5 +35,3 @@ function main() {
     outputKey: 'windows-maui',
   })
 }
-
-if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) main()
