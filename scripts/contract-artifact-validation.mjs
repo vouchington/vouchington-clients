@@ -150,18 +150,16 @@ export function validateManifest(value, config, expectedContractRepository = con
     fail('invalid manifest allowlisted paths')
   if (!Array.isArray(value.files)) fail('invalid manifest files')
   let previous = ''
-  const seen = new Set()
   for (const record of value.files) {
     exactKeys(record, ['path', 'size', 'sha256'], 'manifest file record')
     const path = artifactPath(record.path)
-    if (path <= previous || seen.has(path)) fail('manifest files must be sorted and unique')
+    if (path <= previous) fail('manifest files must be sorted and unique')
     if (!config.paths.some(prefix => path.startsWith(`${prefix}/`)))
       fail(`unexpected manifest artifact path: ${path}`)
     if (!Number.isSafeInteger(record.size) || record.size < 0) fail('invalid manifest file size')
     if (typeof record.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(record.sha256))
       fail('invalid manifest file SHA-256')
     previous = path
-    seen.add(path)
   }
   return value
 }
