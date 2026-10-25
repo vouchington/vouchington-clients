@@ -164,6 +164,26 @@ test('rejects metadata identity changes and malformed manifests', async t => {
   await assert.rejects(verifyContractArtifact(expected(identity)), /invalid artifact path/)
 })
 
+test('rejects duplicate and out-of-order manifest paths', async t => {
+  for (const indices of [
+    [0, 0, 1, 2],
+    [0, 1, 0, 2],
+    [1, 0, 2],
+  ]) {
+    await t.test(indices.join(','), async t => {
+      const identity = await fixture(t)
+      const manifest = await createContractArtifact(identity)
+      manifest.files = indices.map(index => manifest.files[index])
+      await writeFile(join(identity.outputRoot, 'manifest.json'), JSON.stringify(manifest))
+
+      await assert.rejects(
+        verifyContractArtifact(expected(identity)),
+        /manifest files must be sorted and unique/,
+      )
+    })
+  }
+})
+
 test('binds the artifact to the expected producer run ID and attempt', async t => {
   const identity = await fixture(t)
   await createContractArtifact(identity)
