@@ -21,7 +21,7 @@ import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 
 it('binds an artifact to exact action metadata and the current run', () => {
   const digest = 'a'.repeat(64)
-  const expected = { id: 42, digest, name: 'paired-native-apks-1-1' }
+  const expected = { name: 'paired-native-apks-1-1', digest, id: 42 }
   const artifact = {
     ...expected,
     digest: `sha256:${digest}`,

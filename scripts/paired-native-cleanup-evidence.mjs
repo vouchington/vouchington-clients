@@ -1,21 +1,9 @@
+import { exactKeys, fail } from './paired-native-evidence-validation.mjs'
 import { capturedLauncherCommand, lineageReachesLauncher } from './paired-native-ownership.mjs'
-
-const fail = message => {
-  throw new Error(`Paired native test evidence rejected: ${message}`)
-}
 
 const unknownReasons = new Set(['missing', 'ambiguous', 'truncated', 'malformed', 'bounded'])
 const commandPattern =
   /^(?:emulator -avd paired-native-[0-9]{1,20}|qemu-system-x86_64(?:-headless)?(?: -avd paired-native-[0-9]{1,20})?|crashpad_handler)$/u
-
-function exactKeys(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    fail(`${label} must be an object`)
-  const actual = Object.keys(value).sort()
-  const expected = [...keys].sort()
-  if (JSON.stringify(actual) !== JSON.stringify(expected))
-    fail(`${label} fields differ from the fixed schema`)
-}
 
 function requirePid(value, label) {
   if (!Number.isSafeInteger(value) || value <= 0) fail(`${label} pid is malformed`)
