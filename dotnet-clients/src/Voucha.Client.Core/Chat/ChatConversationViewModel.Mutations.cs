@@ -128,7 +128,7 @@ public sealed partial class ChatConversationViewModel
           ReferralLinkReceipts = localReceipt.ReferralLinkReceipts,
         };
     }
-    HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+    HasMoreMessages = response.PageInfo.HasMorePages;
     nextMessageCursor = response.PageInfo.EndCursor;
     OnPropertyChanged(nameof(CanLoadOlderMessages));
     OnPropertyChanged(nameof(Messages));

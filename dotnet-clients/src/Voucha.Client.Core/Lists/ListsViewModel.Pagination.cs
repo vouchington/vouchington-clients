@@ -37,7 +37,7 @@ public sealed partial class ListsViewModel
           .Select(id => ListSummaryRow.FromList(response.Lists[id!], localization));
       if (listPages.Complete(
           request, rows, response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) Lists = listPages.Items;
+          response.PageInfo.HasMorePages)) Lists = listPages.Items;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
@@ -76,7 +76,7 @@ public sealed partial class ListsViewModel
           .Select(id => ListItemRow.FromItem(response.ListItems[id!], localization));
       if (SelectedList?.Id == selected.Id && itemPages.Complete(
           request, rows, response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) Items = itemPages.Items;
+          response.PageInfo.HasMorePages)) Items = itemPages.Items;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {

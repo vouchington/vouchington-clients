@@ -24,7 +24,7 @@ public sealed partial class MemberAppealsViewModel
     var known = state.Items.Select(id).ToHashSet(StringComparer.Ordinal);
     state.Items.AddRange(incoming.Where(item => known.Add(id(item))));
     state.EndCursor = pageInfo.EndCursor;
-    state.HasMore = pageInfo.HasNextPage || pageInfo.HasMore == true;
+    state.HasMore = pageInfo.HasMorePages;
     state.IsLoading = false;
     state.HasError = false;
     state.HasSuccessfulLoad = true;

@@ -40,7 +40,7 @@ public sealed partial class SettingsViewModel
     {
       var response = await settingsService.FetchOAuthGrantsAsync(request.Cursor, 25, cancellationToken).ConfigureAwait(true);
       var items = response.Results.Where(grant => !revokedGrantIds.Contains(grant.Id));
-      var hasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+      var hasMore = response.PageInfo.HasMorePages;
       var completed = replace
           ? oauthGrantPages.CompleteReplacing(request, items, response.PageInfo.EndCursor, hasMore)
           : oauthGrantPages.Complete(request, items, response.PageInfo.EndCursor, hasMore);

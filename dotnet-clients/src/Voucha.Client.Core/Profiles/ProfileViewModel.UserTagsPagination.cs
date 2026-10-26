@@ -36,7 +36,7 @@ public sealed partial class ProfileViewModel
           request,
           MapUserTags(response),
           response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) UserTags = userTagPages.Items;
+          response.PageInfo.HasMorePages)) UserTags = userTagPages.Items;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
@@ -57,7 +57,7 @@ public sealed partial class ProfileViewModel
     userTagPages.Reset(MapUserTags(response));
     userTagPages.RestoreContinuation(
         response.PageInfo.EndCursor,
-        response.PageInfo.HasNextPage || response.PageInfo.HasMore == true);
+        response.PageInfo.HasMorePages);
     UserTags = userTagPages.Items;
     NotifyUserTagPagination();
   }

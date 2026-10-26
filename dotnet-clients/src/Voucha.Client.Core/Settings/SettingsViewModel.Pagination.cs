@@ -73,7 +73,7 @@ public sealed partial class SettingsViewModel
           request,
           page.Items,
           page.PageInfo.EndCursor,
-          page.PageInfo.HasNextPage || page.PageInfo.HasMore == true)) apply(state.Items);
+          page.PageInfo.HasMorePages)) apply(state.Items);
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
@@ -96,7 +96,7 @@ public sealed partial class SettingsViewModel
   private static void ReplacePage<T>(CursorPaginationState<T, string> state, IReadOnlyList<T> items, PageInfo pageInfo)
   {
     state.Reset(items);
-    state.RestoreContinuation(pageInfo.EndCursor, pageInfo.HasNextPage || pageInfo.HasMore == true);
+    state.RestoreContinuation(pageInfo.EndCursor, pageInfo.HasMorePages);
   }
 
   private void ReplaceApiKeyPage(ApiKeyListResponse response)
