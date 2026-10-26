@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -97,19 +96,7 @@ public sealed class TopicRecommendationsPageSourceTests
   private static int Count(string source, string value) => source.Split(value, StringSplitOptions.None).Length - 1;
 
   private static string PageSource() =>
-      File.ReadAllText(AppSource("TopicRecommendationsPage.cs"))
+      AppSource.Read("Pages", "TopicRecommendationsPage.cs")
       + Environment.NewLine
-      + File.ReadAllText(AppSource("TopicRecommendationsPage.HashtagMutations.cs"));
-
-  private static string AppSource(string file, [CallerFilePath] string sourceFile = "")
-  {
-    var directory = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (directory is not null)
-    {
-      var root = Path.Combine(directory.FullName, "src", "Voucha.Client.App", "Pages", file);
-      if (File.Exists(root)) return root;
-      directory = directory.Parent;
-    }
-    throw new FileNotFoundException("Could not find the .NET topic recommendations page source.", file);
-  }
+      + AppSource.Read("Pages", "TopicRecommendationsPage.HashtagMutations.cs");
 }

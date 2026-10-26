@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
@@ -61,7 +60,7 @@ public sealed class ModerationPageTransparencyRangeTests
   [Fact]
   public void AppShellPreservesQueryForNewAndExistingModerationPages()
   {
-    var source = AppSource("AppShell.ModerationRoutes.cs");
+    var source = AppSource.Read("AppShell.ModerationRoutes.cs");
     const string structuralResolution = "ModerationRoutes.TryResolve(match, out var context)";
 
     Assert.Equal(2, source.Split(structuralResolution, StringSplitOptions.None).Length - 1);
@@ -75,20 +74,6 @@ public sealed class ModerationPageTransparencyRangeTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(root.GetVisualTreeDescendants().OfType<T>(), item => item.AutomationId == automationId);
-
-  private static string AppSource(string file, [CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src")))
-    {
-      root = root.Parent;
-    }
-    return File.ReadAllText(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src",
-        "Voucha.Client.App",
-        file));
-  }
 
   private sealed class RecordingTransparencyService : ReviewQueueModerationServiceStub
   {
