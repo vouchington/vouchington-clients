@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -8,10 +7,10 @@ public sealed class TopicDetailPageSourceCrawlsTests
   [Fact]
   public void SourceCrawlRoutesRenderTheMemberVisibleCrawlHistoryBinding()
   {
-    var pageSource = AppSource("Pages", "TopicDetailPage.xaml.cs");
-    var markup = AppSource("Pages", "TopicDetailPage.xaml");
-    var routeSource = AppSource("", "AppShell.TopicRoutes.cs");
-    var topicsPage = AppSource("Pages", "TopicsPage.xaml.cs");
+    var pageSource = AppSource.Read("Pages", "TopicDetailPage.xaml.cs");
+    var markup = AppSource.Read("Pages", "TopicDetailPage.xaml");
+    var routeSource = AppSource.Read("AppShell.TopicRoutes.cs");
+    var topicsPage = AppSource.Read("Pages", "TopicsPage.xaml.cs");
 
     Assert.Contains("if (showSourceCrawls) await viewModel.LoadSourceCrawlsAsync()", pageSource, StringComparison.Ordinal);
     Assert.Contains("ItemsSource=\"{Binding SourceCrawls}\"", markup, StringComparison.Ordinal);
@@ -43,14 +42,5 @@ public sealed class TopicDetailPageSourceCrawlsTests
     Assert.Contains("apiClient: apiClient", topicsPage, StringComparison.Ordinal);
     Assert.Contains("canManageSourceCrawls", topicsPage, StringComparison.Ordinal);
     Assert.Contains("requiresAuthoritativeSourceCrawlMembership: true", topicsPage, StringComparison.Ordinal);
-  }
-
-  private static string AppSource(string directory, string file, [CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return File.ReadAllText(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", directory, file));
   }
 }
