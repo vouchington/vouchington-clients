@@ -18,7 +18,7 @@ export function absoluteDirectoryPath(value, label) {
   return path
 }
 
-async function info(path, label) {
+export async function info(path, label) {
   try {
     const result = await lstat(path)
     if (result.isSymbolicLink()) fail(`symbolic link found at ${label}`)
