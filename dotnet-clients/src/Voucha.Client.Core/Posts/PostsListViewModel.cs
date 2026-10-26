@@ -174,7 +174,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         ? Items.Concat(rows).DistinctBy(row => row.Id, StringComparer.Ordinal).ToArray()
         : rows;
     endCursor = response.PageInfo.EndCursor;
-    HasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+    HasMore = response.PageInfo.HasMorePages;
     State = LoadState.Loaded;
   }
 

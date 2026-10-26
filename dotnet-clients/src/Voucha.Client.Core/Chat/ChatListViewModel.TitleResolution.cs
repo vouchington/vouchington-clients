@@ -25,7 +25,7 @@ public sealed partial class ChatListViewModel
         if (match is not null) return match.Title;
 
         var nextCursor = response.PageInfo.EndCursor;
-        if (!(response.PageInfo.HasNextPage || response.PageInfo.HasMore == true) ||
+        if (!response.PageInfo.HasMorePages ||
             nextCursor is not { Length: > 0 } ||
             nextCursor == after)
         {

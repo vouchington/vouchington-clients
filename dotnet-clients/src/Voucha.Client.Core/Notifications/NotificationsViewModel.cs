@@ -154,7 +154,7 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
     var rows = RowsFrom(response);
     Items = cursor is null ? rows : [.. Items, .. rows];
     cursor = response.PageInfo.EndCursor;
-    HasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+    HasMore = response.PageInfo.HasMorePages;
     State = LoadState.Loaded;
   }
 

@@ -68,7 +68,7 @@ public sealed partial class ModerationDisputesViewModel
           : Merge(Disputes, response.Disputes);
       SeedDrafts(response.Disputes);
       endCursor = response.PageInfo.EndCursor;
-      HasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+      HasMore = response.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

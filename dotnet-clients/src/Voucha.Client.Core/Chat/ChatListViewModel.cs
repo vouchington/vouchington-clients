@@ -93,7 +93,7 @@ public sealed partial class ChatListViewModel :
       if (currentRequest != Volatile.Read(ref requestId)) return;
       Append(page.Results.Select(MapConversation));
       cursor = page.PageInfo.EndCursor;
-      HasMore = page.PageInfo.HasNextPage || page.PageInfo.HasMore == true;
+      HasMore = page.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException)

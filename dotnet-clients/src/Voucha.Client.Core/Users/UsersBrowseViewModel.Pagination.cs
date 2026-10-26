@@ -33,7 +33,7 @@ public sealed partial class UsersBrowseViewModel
       pagination.Reset(response.Results);
       pagination.RestoreContinuation(
           response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true);
+          response.PageInfo.HasMorePages);
       NotifyResultsPagination();
     }
     catch (OperationCanceledException) { throw; }
@@ -63,7 +63,7 @@ public sealed partial class UsersBrowseViewModel
           request,
           response.Results,
           response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true);
+          response.PageInfo.HasMorePages);
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {

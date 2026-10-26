@@ -41,5 +41,5 @@ public sealed partial class FriendsViewModel
       new(
           rows,
           page.PageInfo.EndCursor,
-          page.PageInfo.HasNextPage || page.PageInfo.HasMore == true);
+          page.PageInfo.HasMorePages);
 }

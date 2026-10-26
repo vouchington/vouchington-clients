@@ -44,7 +44,7 @@ public sealed partial class ModerationAppealsViewModel
       ReconcileAIReruns(response.Appeals);
       SeedDrafts(response.Appeals);
       endCursor = response.PageInfo.EndCursor;
-      HasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+      HasMore = response.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

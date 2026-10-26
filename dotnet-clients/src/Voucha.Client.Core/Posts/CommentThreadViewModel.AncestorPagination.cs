@@ -30,7 +30,7 @@ public sealed partial class CommentThreadViewModel
           request,
           response.Results,
           response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) return;
+          response.PageInfo.HasMorePages)) return;
       ancestorsResponse = MergeThreadPage(
           ancestorsResponse ?? response,
           response,
@@ -57,7 +57,7 @@ public sealed partial class CommentThreadViewModel
     ancestorPages.Reset(response.Results);
     ancestorPages.RestoreContinuation(
         response.PageInfo.EndCursor,
-        response.PageInfo.HasNextPage || response.PageInfo.HasMore == true);
+        response.PageInfo.HasMorePages);
     ancestorsResponse = ancestorPages.Items.Count == response.Results.Count
         ? response
         : response with { Results = ancestorPages.Items };

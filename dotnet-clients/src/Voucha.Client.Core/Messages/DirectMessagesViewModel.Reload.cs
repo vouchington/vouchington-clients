@@ -62,7 +62,7 @@ public sealed partial class DirectMessagesViewModel
         Conversations = [.. Conversations, .. rows.Where(row => seenIds.Add(row.Id))];
       }
       conversationCursor = response.PageInfo.EndCursor;
-      HasMoreConversations = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+      HasMoreConversations = response.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)

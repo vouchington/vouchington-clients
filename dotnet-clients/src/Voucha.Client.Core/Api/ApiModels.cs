@@ -9,7 +9,12 @@ public sealed record PageInfo(
     [property: JsonPropertyName("has_next_page")] bool HasNextPage,
     [property: JsonPropertyName("start_cursor")] string? StartCursor,
     [property: JsonPropertyName("has_more")] bool? HasMore = null,
-    [property: JsonPropertyName("has_previous_page")] bool? HasPreviousPage = null);
+    [property: JsonPropertyName("has_previous_page")] bool? HasPreviousPage = null)
+{
+  // has_more is optional. A missing value does not continue the page.
+  [JsonIgnore]
+  public bool HasMorePages => HasNextPage || HasMore == true;
+}
 
 public sealed record EntityReference(
     [property: JsonPropertyName("__entity_type")] string? EntityType,
