@@ -1,11 +1,5 @@
-import { createHash } from 'node:crypto'
-
 export function assertion(condition, message) {
   if (!condition) throw new Error(message)
-}
-
-export function sha256(bytes) {
-  return createHash('sha256').update(bytes).digest('hex')
 }
 
 async function responseBytes(response, url) {
