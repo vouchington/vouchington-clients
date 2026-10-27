@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { lstat, readFile, realpath, readdir, writeFile } from 'node:fs/promises'
 import { join, relative, sep, isAbsolute } from 'node:path'
 import { promisify } from 'node:util'
+import { packageIntegrity } from './paired-exporter-archive.mjs'
 import { packagePins, verifyPairedExporterLock } from './paired-exporter-lock-validation.mjs'
 export { verifyPairedExporterLock } from './paired-exporter-lock-validation.mjs'
 
@@ -86,7 +86,7 @@ export async function readPinnedRegistryBytes(pin, fetchImpl = fetch) {
     chunks.push(chunk)
   }
   const body = Buffer.concat(chunks, size)
-  if (createHash('sha512').update(body).digest('base64') !== pin.integrity.slice('sha512-'.length))
+  if (packageIntegrity(body) !== pin.integrity)
     fail(`registry bytes do not match reviewed integrity for ${pin.name}@${pin.version}`)
   return body
 }
