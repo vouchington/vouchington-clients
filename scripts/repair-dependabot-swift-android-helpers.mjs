@@ -1,6 +1,4 @@
-export function assertion(condition, message) {
-  if (!condition) throw new Error(message)
-}
+import { assertion } from './swift-repair-common.mjs'
 
 async function responseBytes(response, url) {
   assertion(response?.ok !== false, `failed to download ${url}`)
