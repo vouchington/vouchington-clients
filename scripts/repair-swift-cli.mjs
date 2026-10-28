@@ -1,5 +1,6 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { writeSwiftAndroidRepair } from './repair-swift-write.mjs'
 import {
   parseCli,
   parseRawGitDiff,
@@ -35,20 +36,16 @@ export async function main(argv, api) {
       fetchImpl: globalThis.fetch,
     }
   }
-  const result = await api.prepareSwiftAndroidRepairFromFiles({
-    ...input,
-    root: input.root ?? process.cwd(),
-    trustedRoot: input.trustedRoot ?? input.root ?? process.cwd(),
-    candidateRoot: input.candidateRoot ?? input.root ?? process.cwd(),
+  const result = await writeSwiftAndroidRepair({
+    outputRoot: options.output ?? input.outputRoot ?? process.cwd(),
+    prepare: () =>
+      api.prepareSwiftAndroidRepairFromFiles({
+        ...input,
+        root: input.root ?? process.cwd(),
+        trustedRoot: input.trustedRoot ?? input.root ?? process.cwd(),
+        candidateRoot: input.candidateRoot ?? input.root ?? process.cwd(),
+      }),
   })
-  const outputRoot = options.output ?? input.outputRoot ?? process.cwd()
-  const materializerPath = resolve(outputRoot, SWIFT_ANDROID_MATERIALIZER_PATH)
-  await mkdir(dirname(materializerPath), { recursive: true })
-  await writeFile(materializerPath, result.materializer)
-  await writeFile(
-    resolve(outputRoot, 'dependabot-swift-android-provenance.json'),
-    `${JSON.stringify(result.provenance, null, 2)}\n`,
-  )
   process.stdout.write(
     `${JSON.stringify({ paths: [SWIFT_ANDROID_MATERIALIZER_PATH, 'dependabot-swift-android-provenance.json'], provenance: result.provenance })}\n`,
   )
