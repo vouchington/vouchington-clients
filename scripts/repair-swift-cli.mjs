@@ -1,17 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import { parseRawGitDiff, SWIFT_ANDROID_MATERIALIZER_PATH } from './swift-repair-common.mjs'
+import {
+  parseCli,
+  parseRawGitDiff,
+  SWIFT_ANDROID_MATERIALIZER_PATH,
+} from './swift-repair-common.mjs'
 
-function parseCli(argv) {
-  const options = {}
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index]
-    if (!argument.startsWith('--')) continue
-    const key = argument.slice(2)
-    options[key] = argv[index + 1]?.startsWith('--') ? true : argv[++index]
-  }
-  return options
-}
 const readJson = async path => JSON.parse(await readFile(resolve(path), 'utf8'))
 export async function main(argv, api) {
   const options = parseCli(argv)
