@@ -1,6 +1,7 @@
 import { cp, lstat, mkdir, readdir, readFile } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isAbsolute, join, resolve, sep } from 'node:path'
 import { prefixedFailure } from './prefixed-failure.mjs'
+import { within } from './path-within.mjs'
 
 const fail = prefixedFailure('Native contract staging failed')
 
@@ -69,11 +70,6 @@ export async function declaredPaths(configurationPath, expectedPaths) {
   if (JSON.stringify(configuration.paths) !== JSON.stringify(expectedPaths))
     fail('contract configuration paths do not match the client contract')
   return configuration.paths
-}
-
-function within(root, path) {
-  const child = relative(root, path)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
 }
 
 export async function emptyOutputRoot(root) {
