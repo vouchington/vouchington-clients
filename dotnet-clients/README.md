@@ -196,3 +196,23 @@ token exists.
 
 Read [AGENTS.md](AGENTS.md) before implementation for native parity, portable-core boundaries,
 session storage, TLS pinning, and file-size invariants.
+
+## Windows passkey sign-in
+
+The existing Session passkey action uses the Windows WebAuthn system dialog, including Windows
+Hello and supported external authenticators. It requires a Windows release exposing WebAuthn API
+version 1 or later. The app forwards the server user-verification requirement, supplies a 60-second timeout, forwards
+cancellation to Windows, and sends an assertion (`authenticatorData`, `clientDataJSON`, `signature`,
+and `userHandle`) to the existing authentication verification endpoint. The configured HTTPS web
+origin must exactly match the server's relying-party ID; the release defaults use `voucha.ai`.
+
+Device validation requires Windows with a passkey registered for that relying party. Open Session,
+select passkey sign-in, and complete the OS dialog with Hello or an available security key. Check
+that the authenticated session appears. Repeat with dialog cancellation, an unavailable credential,
+and an expired challenge; each must leave the user signed out and allow another attempt. A canceled
+application operation must dismiss the OS dialog without submitting an assertion. Fake-API tests
+cover request buffers, cancellation, native errors, and cleanup; they do not establish that a physical
+authenticator completed sign-in. Mac Catalyst retains its AuthenticationServices implementation.
+
+The Win32 declarations follow Microsoft's [WebAuthn header](https://github.com/microsoft/webauthn/blob/master/webauthn.h)
+and [assertion options documentation](https://learn.microsoft.com/windows/win32/api/webauthn/ns-webauthn-webauthn_authenticator_get_assertion_options).
