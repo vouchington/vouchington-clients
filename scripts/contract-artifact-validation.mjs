@@ -1,12 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { isAbsolute, resolve } from 'node:path'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const shaPattern = /^[0-9a-f]{40}$/i
 const repositoryPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 
-export function fail(message) {
-  throw new Error(`Contract artifact failed: ${message}`)
-}
+export const fail = prefixedFailure('Contract artifact failed')
 export function requiredString(value, label) {
   if (typeof value !== 'string' || value.trim() === '' || value.includes('\0'))
     fail(`${label} is required`)

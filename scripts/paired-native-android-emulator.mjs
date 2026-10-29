@@ -6,10 +6,9 @@ import { androidPhasesForProfile } from './paired-native-test-profiles.mjs'
 import { validateNativeAbiEntries, verifyApkBundle } from './paired-native-test-evidence.mjs'
 import { ownedAvdName } from './paired-native-emulator-lineage.mjs'
 import { runAndroidSession } from './paired-native-android-session.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
-const fail = message => {
-  throw new Error(`Paired Android runtime evidence failed: ${message}`)
-}
+const fail = prefixedFailure('Paired Android runtime evidence failed')
 
 function command(program, args, options = {}, runSync = spawnSync) {
   const result = runSync(program, args, {
