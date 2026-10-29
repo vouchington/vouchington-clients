@@ -106,7 +106,7 @@ function exactKeys(value, expected) {
   )
 }
 
-function packageFile(name, version) {
+export function packageFile(name, version) {
   return `${name.replaceAll('@', '').replaceAll('/', '_')}-${version}.tgz`
 }
 
