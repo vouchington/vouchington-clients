@@ -1,13 +1,13 @@
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { declaredFilamentsContractPaths } from './contracts.mjs'
-import { pairedRepositories, assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
+import {
+  fail,
+  pairedRepositories,
+  assertCheckoutMatchesSnapshot,
+} from './paired-contract-policy.mjs'
 import { validatePairManifest } from './paired-contract-manifest-validation.mjs'
 import { sha256 } from './sha256.mjs'
-
-function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
 
 async function realDirectory(path, label) {
   let stat
