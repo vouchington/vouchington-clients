@@ -8,6 +8,8 @@ import {
 } from './swift-repair-common.mjs'
 
 const readJson = async path => JSON.parse(await readFile(resolve(path), 'utf8'))
+const readChangedPaths = async path =>
+  parseRawGitDiff(await readFile(resolve(path), 'utf8')).map(entry => entry.path)
 export async function main(argv, api) {
   const options = parseCli(argv)
   let input
@@ -16,9 +18,7 @@ export async function main(argv, api) {
     const [trustedRoot, candidateRoot, metadataPath, rawDiffPath, outputRoot] = argv
     input = {
       metadata: await readJson(metadataPath),
-      changedPaths: parseRawGitDiff(await readFile(resolve(rawDiffPath), 'utf8')).map(
-        entry => entry.path,
-      ),
+      changedPaths: await readChangedPaths(rawDiffPath),
       trustedRoot,
       candidateRoot,
       outputRoot,
@@ -28,9 +28,7 @@ export async function main(argv, api) {
       throw new Error('repair requires --metadata and --raw-diff')
     input = {
       metadata: await readJson(options.metadata),
-      changedPaths: parseRawGitDiff(await readFile(resolve(options['raw-diff']), 'utf8')).map(
-        entry => entry.path,
-      ),
+      changedPaths: await readChangedPaths(options['raw-diff']),
       trustedRoot: options['trusted-root'] ?? process.cwd(),
       candidateRoot: options['candidate-root'] ?? process.cwd(),
       fetchImpl: globalThis.fetch,
