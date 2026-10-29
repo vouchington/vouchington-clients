@@ -140,6 +140,9 @@ public sealed partial class VouchaApiClient
   public Task<MembershipResponse> FetchMembershipAsync(CancellationToken cancellationToken = default) =>
       SendAsync<MembershipResponse>(VouchaApiEndpoints.MembershipMe(), cancellationToken);
 
+  public Task<NativeMembershipOverview> FetchMembershipOverviewAsync(CancellationToken cancellationToken = default) =>
+      SendAsync<NativeMembershipOverview>(VouchaApiEndpoints.MembershipMe(), cancellationToken);
+
   public Task<MembershipPlansResponse> FetchMembershipPlansAsync(CancellationToken cancellationToken = default) =>
       SendAsync<MembershipPlansResponse>(VouchaApiEndpoints.MembershipPlans(), cancellationToken);
 

@@ -7,7 +7,7 @@ namespace Voucha.Client.Core.Tests.Settings;
 public sealed partial class SettingsViewModelActionsTests
 {
   [Fact]
-  public async Task CheckoutMembershipAsyncUsesTheCheckoutUrls()
+  public async Task CheckoutMembershipAsyncStaysClosed()
   {
     var service = new RecordingSettingsService();
     var viewModel = new SettingsViewModel(service);
@@ -16,24 +16,26 @@ public sealed partial class SettingsViewModelActionsTests
         new MembershipSku("sku-1", "pro", new Money(1500, "usd"), "month", "price-1"),
         TestContext.Current.CancellationToken);
 
-    Assert.Equal("https://checkout/", url);
-    Assert.NotNull(service.LastCheckoutBody);
-    Assert.Equal("price-1", service.LastCheckoutBody!.PriceId);
-    Assert.Equal("/my/membership", service.LastCheckoutBody.SuccessUrl.OriginalString);
-    Assert.Equal("/my/membership", service.LastCheckoutBody.CancelUrl.OriginalString);
+    Assert.Equal(string.Empty, url);
+    Assert.Null(service.LastCheckoutBody);
+    Assert.Equal(
+        "Native purchase and billing management are not available yet.",
+        viewModel.MembershipActionNotice);
   }
 
   [Fact]
-  public async Task OpenMembershipPortalAsyncUsesTheReturnUrl()
+  public async Task OpenMembershipPortalAsyncStaysClosed()
   {
     var service = new RecordingSettingsService();
     var viewModel = new SettingsViewModel(service);
 
     var url = await viewModel.OpenMembershipPortalAsync(TestContext.Current.CancellationToken);
 
-    Assert.Equal("https://portal/", url);
-    Assert.NotNull(service.LastPortalBody);
-    Assert.Equal("/my/membership", service.LastPortalBody!.ReturnUrl.OriginalString);
+    Assert.Equal(string.Empty, url);
+    Assert.Null(service.LastPortalBody);
+    Assert.Equal(
+        "Native purchase and billing management are not available yet.",
+        viewModel.MembershipActionNotice);
   }
 
   [Fact]

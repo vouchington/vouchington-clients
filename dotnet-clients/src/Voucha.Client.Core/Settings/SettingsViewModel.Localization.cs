@@ -53,7 +53,15 @@ public sealed partial class SettingsViewModel
           UiMessageKey.NativeDotnetSettingsApiKeyCreatedNotice,
           ("maskedKey", MaskSecret(secret)));
     }
-    if (lastMembershipPlans is not null)
+    if (MembershipOverview is { } overview)
+    {
+      MembershipPlanOptions = BuildNativeMembershipPlanOptions(overview, lastMembershipBenefitCatalog);
+      MembershipLifecycleLines = MembershipLifecyclePresentation.Lines(
+          overview,
+          membershipSnapshotIsStale,
+          localization);
+    }
+    else if (lastMembershipPlans is not null)
     {
       MembershipPlanOptions = BuildMembershipPlanOptions(
           lastMembershipPlans,

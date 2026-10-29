@@ -44,7 +44,9 @@ public final class SettingsViewModel {
     var revokedSessionIds: Set<String> = []
     @ObservationIgnored
     var revokedAllSessions = false
-    public internal(set) var membership: Membership?
+    public internal(set) var membership: NativeMembershipEntitlement?
+    public internal(set) var membershipOverview: NativeMembershipOverview?
+    public internal(set) var membershipSnapshotIsStale = false
     public internal(set) var membershipPlans: [String: [MembershipSkuSummary]] = [:]
     public internal(set) var membershipBenefitCatalog: MembershipBenefitCatalog?
     public internal(set) var dataRequest: UserDataRequest?
