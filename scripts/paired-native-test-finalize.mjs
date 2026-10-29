@@ -7,10 +7,9 @@ import { validateCleanupEvidence } from './paired-native-cleanup-evidence.mjs'
 import { validateInstrumentationResult } from './paired-native-test-runtime-result.mjs'
 import { validatePairManifest } from './paired-contract-manifest-validation.mjs'
 import { assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
-const fail = message => {
-  throw new Error(`Paired native test finalization failed: ${message}`)
-}
+const fail = prefixedFailure('Paired native test finalization failed')
 
 function required(value, label) {
   if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)

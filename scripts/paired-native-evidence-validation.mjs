@@ -1,6 +1,6 @@
-export const fail = message => {
-  throw new Error(`Paired native test evidence rejected: ${message}`)
-}
+import { prefixedFailure } from './prefixed-failure.mjs'
+
+export const fail = prefixedFailure('Paired native test evidence rejected')
 
 export function exactKeys(value, keys, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value))
