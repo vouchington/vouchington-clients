@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { mkdir, open, lstat, readFile, realpath, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { pairedExporterPackages } from './paired-exporter-runtime-evidence.mjs'
+import { packageFile, pairedExporterPackages } from './paired-exporter-runtime-evidence.mjs'
 import { collectPairedExporterOutput } from './paired-exporter-output-collector.mjs'
 import { inspectPackageArchive, verifyPackageIntegrity } from './paired-exporter-archive.mjs'
 import { prefixedFailure } from './prefixed-failure.mjs'
@@ -17,10 +17,6 @@ const maximumExpandedPackageBytes = 32 * 1024 * 1024
 const maximumExpandedTotalBytes = 96 * 1024 * 1024
 
 const fail = prefixedFailure('Trusted exporter bootstrap rejected input')
-
-function packageFile(name, version) {
-  return `${name.replaceAll('@', '').replaceAll('/', '_')}-${version}.tgz`
-}
 
 function validateManifest(manifest) {
   if (
