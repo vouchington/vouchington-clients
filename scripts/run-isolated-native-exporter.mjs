@@ -1,14 +1,13 @@
 import { fileURLToPath } from 'node:url'
 import { runIsolatedNativeExporter } from './paired-exporter-runner.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 export { runIsolatedNativeExporter } from './paired-exporter-runner.mjs'
 export {
   assertUnprivilegedHostIdentity,
   decodeCandidateOutput,
 } from './paired-exporter-output-protocol.mjs'
 
-function fail(message) {
-  throw new Error(`Isolated native exporter failed: ${message}`)
-}
+const fail = prefixedFailure('Isolated native exporter failed')
 
 function parseArguments(argv) {
   if (

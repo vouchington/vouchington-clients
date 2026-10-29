@@ -1,13 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { pairedExporterOutputPaths } from './paired-exporter-runtime-evidence.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const maximumOutputBytes = 200 * 1024 * 1024
 export const maximumResponseBytes = 280 * 1024 * 1024
 
-function fail(message) {
-  throw new Error(`Isolated native exporter failed: ${message}`)
-}
+const fail = prefixedFailure('Isolated native exporter failed')
 
 export function assertUnprivilegedHostIdentity(uid, gid) {
   if (!Number.isInteger(uid) || !Number.isInteger(gid) || uid === 0 || gid === 0)

@@ -16,13 +16,12 @@ import {
   realDirectory,
   tree,
 } from './stage-native-contract-files.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const configurationPath = join(repositoryRoot, 'contracts/filaments.json')
 const filamentsExporterRelativePath = 'dev/native-localization.mts'
-function fail(message) {
-  throw new Error(`Native contract staging failed: ${message}`)
-}
+const fail = prefixedFailure('Native contract staging failed')
 async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot }) {
   const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath))
   await new Promise((resolvePromise, reject) => {

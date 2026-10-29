@@ -5,6 +5,7 @@ import { promisify } from 'node:util'
 import { packageIntegrity } from './paired-exporter-archive.mjs'
 import { packagePins, verifyPairedExporterLock } from './paired-exporter-lock-validation.mjs'
 export { verifyPairedExporterLock } from './paired-exporter-lock-validation.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const execFileAsync = promisify(execFile)
 const registryOrigin = 'https://registry.npmjs.org'
@@ -12,9 +13,7 @@ const maximumPackageBytes = 8 * 1024 * 1024
 const maximumBundleBytes = 24 * 1024 * 1024
 const timeoutMs = 120_000
 
-function fail(message) {
-  throw new Error(`Paired exporter dependency bundle rejected: ${message}`)
-}
+const fail = prefixedFailure('Paired exporter dependency bundle rejected')
 
 function safeName(name) {
   return name.replaceAll('@', '').replaceAll('/', '_')

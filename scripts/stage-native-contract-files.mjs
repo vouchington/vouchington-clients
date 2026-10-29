@@ -1,9 +1,8 @@
 import { cp, lstat, mkdir, readdir, readFile } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
-function fail(message) {
-  throw new Error(`Native contract staging failed: ${message}`)
-}
+const fail = prefixedFailure('Native contract staging failed')
 
 export function contractPathComponents(path) {
   return path.split('/')

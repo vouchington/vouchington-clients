@@ -1,9 +1,8 @@
 import { lstat, realpath } from 'node:fs/promises'
 import { relative, sep, isAbsolute } from 'node:path'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
-function fail(message) {
-  throw new Error(`Isolated native exporter failed: ${message}`)
-}
+const fail = prefixedFailure('Isolated native exporter failed')
 
 export async function directory(value, label) {
   if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)
