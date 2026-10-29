@@ -59,7 +59,7 @@ public sealed record ReferralClickLogResult(
 
 public sealed record ReferralClickLogEntry(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("landing_url")] string LandingUrl,
+    [property: JsonPropertyName("landing_url"), JsonRequired] string? LandingUrl,
     [property: JsonPropertyName("signed_up_at")] DateTimeOffset? SignedUpAt,
     [property: JsonPropertyName("user_id")] string? UserId,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
