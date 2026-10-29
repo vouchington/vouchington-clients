@@ -4,6 +4,7 @@ import { join, relative, sep } from 'node:path'
 import { pairedExporterPackages } from './paired-exporter-runtime-evidence.mjs'
 import { collectPairedExporterOutput } from './paired-exporter-output-collector.mjs'
 import { inspectPackageArchive, verifyPackageIntegrity } from './paired-exporter-archive.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const packagePins = pairedExporterPackages.map(({ name, version, integrity }) => [
   name,
@@ -14,9 +15,7 @@ const maximumArchiveBytes = 8 * 1024 * 1024
 const maximumExpandedPackageBytes = 32 * 1024 * 1024
 const maximumExpandedTotalBytes = 96 * 1024 * 1024
 
-function fail(message) {
-  throw new Error(`Trusted exporter bootstrap rejected input: ${message}`)
-}
+const fail = prefixedFailure('Trusted exporter bootstrap rejected input')
 
 function packageFile(name, version) {
   return `${name.replaceAll('@', '').replaceAll('/', '_')}-${version}.tgz`

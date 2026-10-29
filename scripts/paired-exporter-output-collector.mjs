@@ -1,6 +1,7 @@
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pairedExporterOutputPaths } from './paired-exporter-runtime-evidence.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const maximumExportBytes = 200 * 1024 * 1024
 const maximumExportFiles = pairedExporterOutputPaths.length
@@ -9,9 +10,7 @@ const localizationRoots = [
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
 
-function fail(message) {
-  throw new Error(`Trusted exporter bootstrap rejected input: ${message}`)
-}
+const fail = prefixedFailure('Trusted exporter bootstrap rejected input')
 
 export async function collectPairedExporterOutput() {
   const files = []
