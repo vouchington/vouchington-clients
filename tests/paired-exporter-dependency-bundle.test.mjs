@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { it } from 'node:test'
 import {
+  fetchPairedExporterDependencies,
   readPinnedRegistryBytes,
   verifyPairedExporterLock,
 } from '../scripts/fetch-paired-exporter-dependencies.mjs'
@@ -74,6 +77,36 @@ it('fetches only the constructed registry URL without following redirects and ve
   )
   assert.equal(requestedURL, 'https://registry.npmjs.org/sample-pkg/-/sample-pkg-1.2.3.tgz')
   assert.deepEqual(result, contents)
+})
+
+it('rejects bundle output that is the producer root or nested with it', async () => {
+  const producer = await mkdtemp(join(tmpdir(), 'paired-exporter-producer-'))
+  const parentOutput = await mkdtemp(join(tmpdir(), 'paired-exporter-output-'))
+  try {
+    const nestedOutput = join(producer, 'bundle')
+    await mkdir(nestedOutput)
+    const nestedProducer = join(parentOutput, 'producer')
+    await mkdir(nestedProducer)
+
+    await assert.rejects(
+      fetchPairedExporterDependencies({ producerRoot: producer, outputRoot: producer }),
+      /bundle output must be isolated from producer source/u,
+    )
+    await assert.rejects(
+      fetchPairedExporterDependencies({ producerRoot: producer, outputRoot: nestedOutput }),
+      /bundle output must be isolated from producer source/u,
+    )
+    await assert.rejects(
+      fetchPairedExporterDependencies({
+        producerRoot: nestedProducer,
+        outputRoot: parentOutput,
+      }),
+      /bundle output must be isolated from producer source/u,
+    )
+  } finally {
+    await rm(producer, { recursive: true, force: true })
+    await rm(parentOutput, { recursive: true, force: true })
+  }
 })
 
 it('rejects unexpected registry origins, redirect responses, and integrity mismatches', async () => {
