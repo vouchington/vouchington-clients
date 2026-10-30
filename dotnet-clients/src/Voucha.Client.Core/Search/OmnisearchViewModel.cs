@@ -1,14 +1,13 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Search;
 
-public sealed partial class OmnisearchViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class OmnisearchViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly VouchaApiClient client;
   private readonly OmnisearchMode mode;
@@ -60,8 +59,6 @@ public sealed partial class OmnisearchViewModel : INotifyPropertyChanged, IDispo
 
     SetInitialQuery(initialQuery);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public string Query
   {

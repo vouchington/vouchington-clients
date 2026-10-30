@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Pagination;
@@ -7,7 +5,7 @@ using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Households;
 
-public sealed partial class HouseholdSection : INotifyPropertyChanged
+public sealed partial class HouseholdSection : ObservableObject
 {
   private readonly Dictionary<string, int> memberOrder = new(StringComparer.Ordinal);
   private readonly IUiLocalization localization;
@@ -26,8 +24,6 @@ public sealed partial class HouseholdSection : INotifyPropertyChanged
     IsOwned = isOwned;
     this.localization = localization ?? UiLocalization.English;
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public Household Household { get; private set; }
 
@@ -193,6 +189,4 @@ public sealed partial class HouseholdSection : INotifyPropertyChanged
     OnPropertyChanged(nameof(Members));
   }
 
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

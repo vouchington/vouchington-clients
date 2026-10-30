@@ -1,11 +1,10 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Lists;
 
-public sealed partial class ListsViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class ListsViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly VouchaApiClient client;
   private readonly IUiLocalization localization;
@@ -28,8 +27,6 @@ public sealed partial class ListsViewModel : INotifyPropertyChanged, IDisposable
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public IReadOnlyList<ListSummaryRow> Lists
   {
@@ -156,11 +153,6 @@ public sealed partial class ListsViewModel : INotifyPropertyChanged, IDisposable
   {
     SelectedFilter = filter;
     await LoadSelectedItemsWithErrorStateAsync(cancellationToken).ConfigureAwait(true);
-  }
-
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-  {
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
   }
 
 }

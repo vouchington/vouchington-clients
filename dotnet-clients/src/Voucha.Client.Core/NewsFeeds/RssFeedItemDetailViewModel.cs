@@ -1,13 +1,12 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
 public sealed class RssFeedItemDetailViewModel :
-    INotifyPropertyChanged,
+    ObservableObject,
     IDisposable,
     IUiLocaleChangeListener
 {
@@ -38,16 +37,14 @@ public sealed class RssFeedItemDetailViewModel :
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
-
   public RssFeedItemDetail? Detail
   {
     get => detail;
     private set
     {
       detail = value;
-      Changed();
-      Changed(nameof(HasDetail));
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(HasDetail));
       RaisePresentationChanged();
     }
   }
@@ -82,7 +79,7 @@ public sealed class RssFeedItemDetailViewModel :
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set { errorMessage = value; Changed(); Changed(nameof(HasError)); }
+    private set { errorMessage = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasError)); }
   }
 
   public bool HasError => ErrorMessage is not null;
@@ -90,7 +87,7 @@ public sealed class RssFeedItemDetailViewModel :
   public bool IsLoading
   {
     get => isLoading;
-    private set { isLoading = value; Changed(); }
+    private set { isLoading = value; OnPropertyChanged(); }
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Focused feed item errors are presented with retry.")]
@@ -118,9 +115,6 @@ public sealed class RssFeedItemDetailViewModel :
     }
   }
 
-  private void Changed([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
   public void OnUiLocaleChanged() => RaisePresentationChanged();
 
   public void Dispose() => localeSubscription?.Dispose();
@@ -136,12 +130,12 @@ public sealed class RssFeedItemDetailViewModel :
 
   private void RaisePresentationChanged()
   {
-    Changed(nameof(UserContentSource));
-    Changed(nameof(UserContentTitle));
-    Changed(nameof(ExternalContentSummary));
-    Changed(nameof(LocalizedPublishedAt));
-    Changed(nameof(LocalizedVoteCounts));
-    Changed(nameof(LocalizedSavedState));
-    Changed(nameof(LocalizedHiddenState));
+    OnPropertyChanged(nameof(UserContentSource));
+    OnPropertyChanged(nameof(UserContentTitle));
+    OnPropertyChanged(nameof(ExternalContentSummary));
+    OnPropertyChanged(nameof(LocalizedPublishedAt));
+    OnPropertyChanged(nameof(LocalizedVoteCounts));
+    OnPropertyChanged(nameof(LocalizedSavedState));
+    OnPropertyChanged(nameof(LocalizedHiddenState));
   }
 }

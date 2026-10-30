@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Pagination;
@@ -7,7 +5,7 @@ using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Households;
 
-public sealed partial class HouseholdViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class HouseholdViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly IHouseholdService service;
   private readonly string currentUserId;
@@ -40,8 +38,6 @@ public sealed partial class HouseholdViewModel : INotifyPropertyChanged, IDispos
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public IReadOnlyList<HouseholdSection> Sections
   {
@@ -184,6 +180,4 @@ public sealed partial class HouseholdViewModel : INotifyPropertyChanged, IDispos
     internal List<HouseholdSection> RefreshedSections { get; } = [];
   }
 
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
