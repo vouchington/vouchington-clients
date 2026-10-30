@@ -39,6 +39,14 @@ public sealed partial class MemberMcpClient
     if (version is not null) request.Headers.TryAddWithoutValidation("MCP-Protocol-Version", version);
     if (requestSession is not null) request.Headers.TryAddWithoutValidation("Mcp-Session-Id", requestSession);
     using var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+    ThrowIfTransportRejected(response, requestSession);
+    if (response.StatusCode != HttpStatusCode.Accepted)
+      throw new HttpRequestException("MCP server rejected a JSON-RPC response.", null, response.StatusCode);
+    return true;
+  }
+
+  private void ThrowIfTransportRejected(HttpResponseMessage response, string? requestSession)
+  {
     if (response.StatusCode == HttpStatusCode.Unauthorized) throw new McpUnauthorizedException();
     if (response.StatusCode == HttpStatusCode.NotFound && requestSession is not null)
     {
@@ -56,8 +64,5 @@ public sealed partial class MemberMcpClient
     }
     if (response.StatusCode == HttpStatusCode.TooManyRequests)
       throw retryCooldown.FromResponse(response);
-    if (response.StatusCode != HttpStatusCode.Accepted)
-      throw new HttpRequestException("MCP server rejected a JSON-RPC response.", null, response.StatusCode);
-    return true;
   }
 }
