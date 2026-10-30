@@ -8,7 +8,7 @@ public sealed class ListsPageBinding : BindableObject
   private readonly ListsViewModel viewModel;
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
   private bool lastStaffViewer;
   private string cachedSelectedListDescription;
   private string cachedSelectedListName;
@@ -98,20 +98,15 @@ public sealed class ListsPageBinding : BindableObject
 
   public void AttachSessionChanged()
   {
-    if (isSessionChangedAttached) return;
+    if (sessionChangedSubscription.IsAttached) return;
     lastStaffViewer = IsStaffViewer;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
+    sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
     OnPropertyChanged(nameof(Lists));
     OnPropertyChanged(nameof(SelectedList));
   }
 
-  public void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  public void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
       role is "administrator" or "moderator") == true;
@@ -123,7 +118,7 @@ public sealed class ListsPageBinding : BindableObject
     lastStaffViewer = isStaffViewer;
     OnPropertyChanged(nameof(Lists));
     OnPropertyChanged(nameof(SelectedList));
-    if (isSessionChangedAttached && gainedStaffAccess)
+    if (sessionChangedSubscription.IsAttached && gainedStaffAccess)
     {
       await viewModel.LoadAsync().ConfigureAwait(true);
     }
