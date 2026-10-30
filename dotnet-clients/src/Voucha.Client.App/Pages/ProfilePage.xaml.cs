@@ -21,7 +21,7 @@ public partial class ProfilePage : ContentPage
   private readonly string? idOrUsername;
   private readonly NativeUserProfileScope initialScope;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
   private bool hasLoaded;
   private bool lastStaffViewer;
 
@@ -111,19 +111,11 @@ public partial class ProfilePage : ContentPage
             role is "administrator" or "moderator") == true);
   }
 
-  private void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  private void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  private void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  private void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   private async void OnUserAdminClicked(object? sender, EventArgs e)
   {

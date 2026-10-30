@@ -10,7 +10,7 @@ public sealed class ReferralLinksPageBinding : LoadablePageBinding<ReferralLinkR
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Func<Task> refresh;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public ReferralLinksPageBinding(
       ReferralLinksViewModel viewModel,
@@ -46,19 +46,11 @@ public sealed class ReferralLinksPageBinding : LoadablePageBinding<ReferralLinkR
 
   protected override bool IsLoading => viewModel.IsLoading;
 
-  public void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  public void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  public void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  public void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Session refresh failures are logged without disrupting the current native page.")]
   private async Task RefreshAfterSessionChangedAsync()

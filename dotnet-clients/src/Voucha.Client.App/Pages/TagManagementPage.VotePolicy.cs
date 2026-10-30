@@ -5,7 +5,7 @@ namespace Voucha.Client.App.Pages;
 public sealed partial class TagManagementPage
 {
   private EventHandler<SessionChangedEventArgs> sessionChangedHandler = null!;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
   private int votePolicyVersion;
 
   public int VotePolicyVersion => votePolicyVersion;
@@ -23,17 +23,9 @@ public sealed partial class TagManagementPage
     base.OnDisappearing();
   }
 
-  private void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  private void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  private void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  private void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 }

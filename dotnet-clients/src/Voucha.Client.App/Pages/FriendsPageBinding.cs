@@ -11,7 +11,7 @@ public sealed class FriendsPageBinding : LoadablePageBinding<FriendRow>
   private readonly FriendsViewModel viewModel;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private FriendsTab selectedTab = FriendsTab.Following;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public FriendsPageBinding(FriendsViewModel viewModel, Func<Task> refresh) : base(refresh)
   {
@@ -65,19 +65,11 @@ public sealed class FriendsPageBinding : LoadablePageBinding<FriendRow>
 
   protected override bool IsLoading => viewModel.IsLoading;
 
-  public void AttachSessionChanged(ISessionStore sessionStore)
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  public void AttachSessionChanged(ISessionStore sessionStore) =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  public void DetachSessionChanged(ISessionStore sessionStore)
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  public void DetachSessionChanged(ISessionStore sessionStore) =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   public void SetSelectedTab(FriendsTab tab) => CurrentTab = tab;
 
