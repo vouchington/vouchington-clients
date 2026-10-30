@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process'
 import { lstat, readFile, realpath, readdir, writeFile } from 'node:fs/promises'
-import { join, relative, sep, isAbsolute } from 'node:path'
+import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { packageIntegrity } from './paired-exporter-archive.mjs'
 import { packagePins, verifyPairedExporterLock } from './paired-exporter-lock-validation.mjs'
 export { verifyPairedExporterLock } from './paired-exporter-lock-validation.mjs'
 import { prefixedFailure } from './prefixed-failure.mjs'
+import { within } from './path-within.mjs'
 
 const execFileAsync = promisify(execFile)
 const registryOrigin = 'https://registry.npmjs.org'
@@ -17,11 +18,6 @@ const fail = prefixedFailure('Paired exporter dependency bundle rejected')
 
 function safeName(name) {
   return name.replaceAll('@', '').replaceAll('/', '_')
-}
-
-function isWithin(root, path) {
-  const child = relative(root, path)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
 }
 
 async function realDirectory(value, label) {
@@ -43,7 +39,7 @@ async function regularFile(root, path, label) {
     if (info.isSymbolicLink()) fail(`${label} contains a symbolic link`)
   }
   const resolved = await realpath(current)
-  if (!isWithin(root, resolved)) fail(`${label} escapes the producer root`)
+  if (!within(root, resolved)) fail(`${label} escapes the producer root`)
   const info = await lstat(resolved)
   if (!info.isFile()) fail(`${label} must be a regular file`)
   return resolved
@@ -93,7 +89,7 @@ export async function readPinnedRegistryBytes(pin, fetchImpl = fetch) {
 export async function fetchPairedExporterDependencies({ producerRoot, outputRoot }) {
   const producer = await realDirectory(producerRoot, 'producer root')
   const output = await realDirectory(outputRoot, 'bundle output root')
-  if (producer === output || isWithin(producer, output) || isWithin(output, producer))
+  if (producer === output || within(producer, output) || within(output, producer))
     fail('bundle output must be isolated from producer source')
   if ((await readdir(output)).length !== 0) fail('bundle output root must be empty')
   const packageJsonPath = await regularFile(
