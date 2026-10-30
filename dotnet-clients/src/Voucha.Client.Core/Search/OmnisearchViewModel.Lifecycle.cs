@@ -1,7 +1,4 @@
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Localization;
-
-using System.ComponentModel;
 
 namespace Voucha.Client.Core.Search;
 
@@ -23,9 +20,6 @@ public sealed partial class OmnisearchViewModel
     cancellation?.Cancel();
     cancellation?.Dispose();
   }
-
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
   public void OnUiLocaleChanged()
   {

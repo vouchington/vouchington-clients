@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Support;
@@ -8,7 +6,7 @@ using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
-public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly INewsFeedService newsFeedService;
   private readonly IBookmarkService bookmarkService;
@@ -63,8 +61,6 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
     selectedSourceFeedType = feedKind.GetDefaultSourceFeedType();
     selectedScope = initialScope ?? feedKind.GetAuthenticatedScope();
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public NewsFeedScope SelectedScope
   {
@@ -165,8 +161,4 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
     OnPropertyChanged(nameof(HasItems));
   }
 
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-  {
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-  }
 }

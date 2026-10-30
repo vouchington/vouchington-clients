@@ -1,12 +1,10 @@
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Tags;
 
-public sealed partial class TagManagementViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class TagManagementViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly VouchaApiClient client;
   private readonly IUiLocalization localization;
@@ -33,8 +31,6 @@ public sealed partial class TagManagementViewModel : INotifyPropertyChanged, IDi
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public TagManagementRouteContext? Context
   {
@@ -185,8 +181,4 @@ public sealed partial class TagManagementViewModel : INotifyPropertyChanged, IDi
     ResetRelationPagination();
   }
 
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-  {
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-  }
 }

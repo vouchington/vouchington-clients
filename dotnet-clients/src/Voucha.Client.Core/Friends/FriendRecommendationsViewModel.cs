@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
@@ -7,7 +5,7 @@ using Voucha.Client.Core.Support;
 namespace Voucha.Client.Core.Friends;
 
 public sealed partial class FriendRecommendationsViewModel :
-    INotifyPropertyChanged,
+    ObservableObject,
     IDisposable,
     IUiLocaleChangeListener
 {
@@ -35,8 +33,6 @@ public sealed partial class FriendRecommendationsViewModel :
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public IReadOnlyList<FriendRecommendationRow> Items
   {
@@ -131,9 +127,6 @@ public sealed partial class FriendRecommendationsViewModel :
             localization))
         .ToArray();
   }
-
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
   private sealed record RecommendationTombstone(
       FriendRecommendation Recommendation,
