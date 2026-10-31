@@ -33,7 +33,7 @@ public sealed class ReportIntegrityReconciliationPageTests
       Assert.Equal(0, service.MutationCalls);
       Find<Button>(page, "report-integrity-penalize-confirm-flag-1").SendClicked();
     }
-    await WaitUntilAsync(() => service.ExactFetches == 1 &&
+    await PageTestWait.WaitUntilAsync(() => service.ExactFetches == 1 &&
         VisualTreeElements.Descendants<Button>(page).Any(button =>
             button.AutomationId == "report-integrity-reconcile-flag-1"));
 
@@ -42,7 +42,7 @@ public sealed class ReportIntegrityReconciliationPageTests
         UiLocalization.English.Localize(UiMessageKey.NativeSwiftIntegrityReconcile),
         reconcile.Text);
     reconcile.SendClicked();
-    await WaitUntilAsync(() => service.ExactFetches == 2 &&
+    await PageTestWait.WaitUntilAsync(() => service.ExactFetches == 2 &&
         !VisualTreeElements.Descendants<Border>(page).Any(border =>
             border.AutomationId == "report-integrity-flag-flag-1"));
 
@@ -75,7 +75,7 @@ public sealed class ReportIntegrityReconciliationPageTests
     var confirm = Find<Button>(page, "report-integrity-penalize-confirm-flag-1");
     confirm.SendClicked();
     confirm.SendClicked();
-    await WaitUntilAsync(() => service.ExactFetches == 1);
+    await PageTestWait.WaitUntilAsync(() => service.ExactFetches == 1);
 
     Assert.Equal(1, service.MutationCalls);
     Assert.False(Find<Button>(page, "report-integrity-penalize-flag-1").IsEnabled);
@@ -127,13 +127,6 @@ public sealed class ReportIntegrityReconciliationPageTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 
   private sealed class ReconciliationService(bool penalize) : IModerationIntegrityService
   {
