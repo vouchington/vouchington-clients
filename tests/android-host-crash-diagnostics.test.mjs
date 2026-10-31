@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, utimes, writeFile } from 'node:f
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
+import { stepBlock } from './workflow-job-block.mjs'
 
 const workflow = await readFile(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -91,9 +92,7 @@ test('host diagnostics preserve the original fatal test invocation and bounded f
     ['Collect', 2],
     ['Upload', 1],
   ]) {
-    const step = host
-      .split(`      - name: ${name} Android host xctest crash reports\n`)[1]
-      .split('      - name: ')[0]
+    const step = stepBlock(host, `${name} Android host xctest crash reports`)
     assert.ok(
       step.includes("if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}"),
     )

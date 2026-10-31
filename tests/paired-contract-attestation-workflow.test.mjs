@@ -2,18 +2,10 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { it } from 'node:test'
 import { runPairedContractCommand } from '../scripts/paired-contract-attestation.mjs'
-import { jobBlock } from './workflow-job-block.mjs'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const workflowPath = '../.github/workflows/paired-native-contract-attestation.yml'
 const readWorkflow = () => readFile(new URL(workflowPath, import.meta.url), 'utf8')
-
-function stepBlock(workflow, name) {
-  const marker = `      - name: ${name}`
-  const start = workflow.indexOf(marker)
-  assert.notEqual(start, -1, `missing step ${name}`)
-  const next = workflow.indexOf('\n      - name:', start + marker.length)
-  return workflow.slice(start, next === -1 ? undefined : next)
-}
 
 it('keeps paired review evidence separate from the required native contract workflow', async () => {
   const [workflow, existingWorkflow] = await Promise.all([

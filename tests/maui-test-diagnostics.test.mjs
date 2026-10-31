@@ -1,18 +1,10 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
+import { jobBlock as readJobBlock, stepBlock as readStepBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
-
-const stepBlock = (job, name) => {
-  const marker = `      - name: ${name}\n`
-  const start = job.indexOf(marker)
-  assert.notEqual(start, -1, `missing workflow step ${name}`)
-  const remainder = job.slice(start)
-  const nextStep = remainder.search(/\n      - name:/u)
-  return remainder.slice(0, nextStep === -1 ? remainder.length : nextStep)
-}
+const stepBlock = (job, name) => readStepBlock(job, name, `missing workflow step ${name}`)
 
 describe('MAUI App test diagnostics', () => {
   it('keeps the full Catalyst App suite and saves bounded hang diagnostics on failure', () => {

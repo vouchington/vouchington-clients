@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { jobBlock } from './workflow-job-block.mjs'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const workflow = await readFile(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -9,11 +9,7 @@ const workflow = await readFile(
 )
 const rendered = jobBlock(workflow, 'dotnet-maui-tests')
 const app = jobBlock(workflow, 'dotnet-maui')
-const step = (job, name) => {
-  const rest = job.split(`      - name: ${name}\n`)[1]
-  assert.ok(rest, name)
-  return rest.split('      - name: ')[0]
-}
+const step = (job, name) => stepBlock(job, name, name)
 
 test('rendered pages and full Catalyst build run independently and both remain required', () => {
   for (const job of [rendered, app]) {
