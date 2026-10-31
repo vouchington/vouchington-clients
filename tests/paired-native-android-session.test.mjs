@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { it } from 'node:test'
 import { androidPhases } from '../scripts/paired-native-test-profiles.mjs'
 import { runAndroidSession } from '../scripts/paired-native-android-session.mjs'
+import { passingAdbCommand } from './paired-native-adb-command.mjs'
 
 it('opens the emulator log before attaching it to a real child process', async () => {
   const root = await mkdtemp(join(tmpdir(), 'paired-native-session-spawn-'))
@@ -15,33 +16,6 @@ it('opens the emulator log before attaching it to a real child process', async (
   const resultPath = join(root, 'results', 'runtime-result.json')
   let logStream
   try {
-    const runCommand = (_program, args) => {
-      if (args[0] === 'shell' && args[1] === 'getprop') {
-        return (
-          {
-            'sys.boot_completed': '1',
-            'ro.build.version.sdk': '35',
-            'ro.build.fingerprint': 'google/sdk_gphone64_x86_64/test-build',
-            'ro.product.cpu.abilist': 'x86_64,arm64-v8a',
-            'ro.dalvik.vm.native.bridge': 'libndk_translation.so',
-          }[args[2]] ?? ''
-        )
-      }
-      if (args[0] === 'shell' && args[1] === 'pm' && args[2] === 'list')
-        return 'instrumentation:ai.voucha.android.test/androidx.test.runner.AndroidJUnitRunner (target=ai.voucha.android)'
-      if (args[0] === 'shell' && args[1] === 'am' && args[2] === 'instrument') {
-        const [className, methodName] = args[7].split('voucha.android.')[1].split('#')
-        return [
-          `INSTRUMENTATION_STATUS: class=voucha.android.${className}`,
-          `INSTRUMENTATION_STATUS: test=${methodName}`,
-          'INSTRUMENTATION_STATUS_CODE: 0',
-          'OK (1 test)',
-          'INSTRUMENTATION_CODE: -1',
-        ].join('\n')
-      }
-      return ''
-    }
-
     await runAndroidSession({
       emulatorPath: process.execPath,
       avdName: 'paired-native-1234',
@@ -55,7 +29,7 @@ it('opens the emulator log before attaching it to a real child process', async (
       emulatorVersion: 'Android emulator version 37.2.12.0 (build_id 16428233)',
       logPath,
       resultPath,
-      runCommand,
+      runCommand: passingAdbCommand,
       runSync: () => ({ status: 0, stdout: '', stderr: '' }),
       launch: (_program, _args, options) => {
         assert.ok(Number.isInteger(options.stdio[1].fd), 'log stream must be open before spawn')
