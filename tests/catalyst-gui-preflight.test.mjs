@@ -3,8 +3,11 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
+
+const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
 const workflow = readFileSync(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -34,14 +37,6 @@ const notificationScript = readFileSync(
   new URL('../dotnet-clients/tooling/catalyst-gui-notification-session.mjs', import.meta.url),
   'utf8',
 )
-
-function jobBlock(source, job) {
-  const start = source.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing workflow job ${job}`)
-  const remainder = source.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
 
 describe('Mac Catalyst GUI preflight', () => {
   it('keeps one non-skipped Debug Mac2 session inside a 10-minute job', () => {
