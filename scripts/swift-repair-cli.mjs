@@ -5,21 +5,12 @@ import {
   SWIFT_ANDROID_MATERIALIZER_PATH,
   SWIFT_ANDROID_RESOLVED_PATH,
   assertion,
+  parseCli,
   parseRawGitDiff,
   validatePublishedArtifactPaths,
   validatePublishedCommitPaths,
 } from './swift-repair-common.mjs'
 
-function parseCli(argv) {
-  const options = {}
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index]
-    if (!argument.startsWith('--')) continue
-    const key = argument.slice(2)
-    options[key] = argv[index + 1]?.startsWith('--') ? true : argv[++index]
-  }
-  return options
-}
 async function readJsonInput(path) {
   const source = path
     ? await readFile(resolve(path), 'utf8')

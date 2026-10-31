@@ -17,7 +17,7 @@ public partial class PostDetailPage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly string focusedCommentId;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public PostDetailPage(
       ICommentThreadService commentThreadService,

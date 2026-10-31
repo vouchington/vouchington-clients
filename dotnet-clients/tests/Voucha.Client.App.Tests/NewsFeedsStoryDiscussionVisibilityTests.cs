@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
@@ -25,7 +24,7 @@ public sealed class NewsFeedsStoryDiscussionVisibilityTests
 
     foreach (var page in new[] { "NewsFeedsPage.xaml", "StoryRelatedArticlesView.xaml" })
     {
-      var document = PageDocument(page);
+      var document = XDocument.Load(AppSource.Locate("Pages", page));
       var button = document.Descendants().Single(element =>
           element.Attributes().Any(attribute => attribute.Name.LocalName == "Clicked" && attribute.Value == "OnStartStoryDiscussionClicked"));
       var paths = button.Descendants().Where(element => element.Name.LocalName == "Binding")
@@ -37,15 +36,6 @@ public sealed class NewsFeedsStoryDiscussionVisibilityTests
     Assert.False(related.CanExpand);
     Assert.False(primary.CanStartStoryDiscussion);
     Assert.Contains(nameof(StoryRelatedArticles.CanExpand), changed);
-  }
-
-  private static XDocument PageDocument(string page, [CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return XDocument.Load(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", "Pages", page));
   }
 
   private sealed class Service(NewsFeedItem primary) : INewsFeedService, IStoryRelatedArticlesService

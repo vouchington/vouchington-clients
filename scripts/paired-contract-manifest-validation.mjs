@@ -1,12 +1,8 @@
 import { declaredFilamentsContractPaths } from './contracts.mjs'
-import { pairedRepositories, shaIsValid } from './paired-contract-policy.mjs'
+import { fail, pairedRepositories, shaIsValid } from './paired-contract-policy.mjs'
 
 const digestPattern = /^[0-9a-f]{64}$/u
 const maintainerPermissions = new Set(['admin', 'maintain'])
-
-function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
 
 function exactKeys(record, expected, label) {
   if (!record || typeof record !== 'object' || Array.isArray(record))

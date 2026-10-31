@@ -1,11 +1,7 @@
-import { createHash } from 'node:crypto'
 import { lstat, opendir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { exactKeys, fail } from './paired-native-evidence-validation.mjs'
-
-export function sha256(bytes) {
-  return createHash('sha256').update(bytes).digest('hex')
-}
+import { sha256 } from './sha256.mjs'
 
 export function validateNativeAbiEntries(entries) {
   for (const name of ['libSkipAndroidBridge.so', 'libSwiftJNI.so', 'libVouchaAndroid.so'])

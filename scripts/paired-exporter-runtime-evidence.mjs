@@ -1,3 +1,5 @@
+import { prefixedFailure } from './prefixed-failure.mjs'
+
 export const pairedExporterImage = {
   reference:
     'node:26.12.0-bookworm@sha256:662de7348097c97cc0a43dd71649bf2f5b721da6587eb390c4ee4ad78213bcf1',
@@ -93,9 +95,7 @@ export const pairedExporterOutputPaths = [
 export const pairedExporterImageDigest =
   'sha256:662de7348097c97cc0a43dd71649bf2f5b721da6587eb390c4ee4ad78213bcf1'
 
-function fail(message) {
-  throw new Error(`Paired exporter runtime evidence rejected: ${message}`)
-}
+const fail = prefixedFailure('Paired exporter runtime evidence rejected')
 
 function exactKeys(value, expected) {
   return (
@@ -106,7 +106,7 @@ function exactKeys(value, expected) {
   )
 }
 
-function packageFile(name, version) {
+export function packageFile(name, version) {
   return `${name.replaceAll('@', '').replaceAll('/', '_')}-${version}.tgz`
 }
 

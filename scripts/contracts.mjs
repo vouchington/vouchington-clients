@@ -1,6 +1,7 @@
 import { cp, lstat, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { prefixedFailure } from './prefixed-failure.mjs'
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const localizationPaths = [
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
@@ -13,9 +14,7 @@ function localizationTargets(destinationRoot = repositoryRoot) {
     destination: resolve(destinationRoot, source),
   }))
 }
-function fail(message) {
-  throw new Error(`Contract check failed: ${message}`)
-}
+const fail = prefixedFailure('Contract check failed')
 async function pathInfo(path) {
   try {
     return await lstat(path)

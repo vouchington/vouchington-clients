@@ -35,7 +35,7 @@ internal sealed partial class FollowerDistributionSendPage : ContentPage
   private readonly Button cancel = new() { AutomationId = "follower-distribution-cancel", Text = UiCopy.Localize(UiMessageKey.CommonCancel) };
   private readonly Button more = new() { Text = T(UiMessageKey.NativeSwiftFollowerDistributionLoadMoreFollowers) };
   private readonly Label error = new() { TextColor = Colors.IndianRed };
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
   private bool isDismissing;
 
   public FollowerDistributionSendPage(
@@ -115,17 +115,9 @@ internal sealed partial class FollowerDistributionSendPage : ContentPage
     base.OnDisappearing();
   }
 
-  private void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  private void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  private void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  private void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 }

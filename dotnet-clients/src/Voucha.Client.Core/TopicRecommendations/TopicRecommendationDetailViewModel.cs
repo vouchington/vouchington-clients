@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
@@ -8,7 +6,7 @@ using Voucha.Client.Core.Support;
 namespace Voucha.Client.Core.TopicRecommendations;
 
 public sealed partial class TopicRecommendationDetailViewModel :
-    INotifyPropertyChanged,
+    ObservableObject,
     IDisposable,
     IUiLocaleChangeListener
 {
@@ -39,8 +37,6 @@ public sealed partial class TopicRecommendationDetailViewModel :
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
-
   public PostResponse? Detail
   {
     get => detail;
@@ -49,36 +45,36 @@ public sealed partial class TopicRecommendationDetailViewModel :
       detail = value;
       Election = value?.PostElection;
       CurrentVoteChoice = value?.ElectionVote?.Choice;
-      Changed(); Changed(nameof(Title)); Changed(nameof(Html)); Changed(nameof(Markdown));
+      OnPropertyChanged(); OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Html)); OnPropertyChanged(nameof(Markdown));
     }
   }
   public string Title => Detail?.Post.Title ??
       localization.Localize(UiMessageKey.NativeTaxonomyPostsTopicRecommendation);
   public string? Html => Detail?.Html ?? Detail?.Post.Html;
   public string? Markdown => Detail?.Post.Markdown;
-  public string? ErrorMessage { get => errorMessage; private set { errorMessage = value; Changed(); Changed(nameof(HasError)); } }
+  public string? ErrorMessage { get => errorMessage; private set { errorMessage = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasError)); } }
   public bool HasError => ErrorMessage is not null;
-  public bool IsLoading { get => isLoading; private set { isLoading = value; Changed(); } }
+  public bool IsLoading { get => isLoading; private set { isLoading = value; OnPropertyChanged(); } }
   public bool IsVoting
   {
     get => isVoting;
     private set
     {
       isVoting = value;
-      Changed();
-      Changed(nameof(CanCastVote));
-      Changed(nameof(CanClearVote));
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(CanCastVote));
+      OnPropertyChanged(nameof(CanClearVote));
     }
   }
-  public PostElection? Election { get => election; private set { election = value; Changed(); Changed(nameof(VoteCountUp)); Changed(nameof(VoteCountDown)); } }
+  public PostElection? Election { get => election; private set { election = value; OnPropertyChanged(); OnPropertyChanged(nameof(VoteCountUp)); OnPropertyChanged(nameof(VoteCountDown)); } }
   public ElectionVoteChoice? CurrentVoteChoice
   {
     get => currentVoteChoice;
     private set
     {
       currentVoteChoice = value;
-      Changed();
-      Changed(nameof(CanClearVote));
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(CanClearVote));
     }
   }
   public bool CanCastVote => !IsVoting;
@@ -109,10 +105,7 @@ public sealed partial class TopicRecommendationDetailViewModel :
     }
   }
 
-  private void Changed([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-  public void OnUiLocaleChanged() => Changed(nameof(Title));
+  public void OnUiLocaleChanged() => OnPropertyChanged(nameof(Title));
 
   public void Dispose() => localeSubscription?.Dispose();
 }

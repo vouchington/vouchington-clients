@@ -10,7 +10,7 @@ public partial class ProfilePage
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI session handlers must not throw.")]
   private async Task RefreshAfterSessionChangedAsync()
   {
-    if (!isSessionChangedAttached) return;
+    if (!sessionChangedSubscription.IsAttached) return;
     var isStaffViewer = IsStaffViewer;
     var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
     lastStaffViewer = isStaffViewer;

@@ -202,6 +202,19 @@ test('asserts extracted representatives from the staged client contract', async 
   )
 })
 
+test('rejects a symbolic link in place of the Filaments exporter script', async t => {
+  const options = await fixture(t)
+  await mkdir(join(options.filamentsRoot, 'dev'))
+  await symlink(
+    'native-localization.mts',
+    join(options.filamentsRoot, 'dev/native-localization.mts'),
+  )
+  await assert.rejects(
+    stageNativeContract(options),
+    /Native contract staging failed: symbolic link found at Filaments exporter dev\/native-localization\.mts/,
+  )
+})
+
 test('fails closed for partial legacy trees, symlinks, a nonempty output, and invalid exporter output', async t => {
   const missingFixture = await fixture(t)
   await rm(join(missingFixture.filamentsRoot, 'api-fixtures'), { recursive: true })

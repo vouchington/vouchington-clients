@@ -133,9 +133,8 @@ describe('paired contract exact file evidence', () => {
   })
 
   it('rejects extra manifest keys instead of accepting metadata-only rebinding', () => {
-    assert.throws(
-      () => validatePairManifest({ schemaVersion: 1, ignored: true }),
-      /invalid key set/u,
-    )
+    assert.throws(() => validatePairManifest({ schemaVersion: 1, ignored: true }), {
+      message: 'Paired contract attestation failed: manifest has an invalid key set',
+    })
   })
 })

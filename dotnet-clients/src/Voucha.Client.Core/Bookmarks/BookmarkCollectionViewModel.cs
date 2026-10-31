@@ -1,12 +1,11 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Bookmarks;
 
-public sealed partial class BookmarkCollectionViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class BookmarkCollectionViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly VouchaApiClient client;
   private readonly ISessionStore sessionStore;
@@ -41,8 +40,6 @@ public sealed partial class BookmarkCollectionViewModel : INotifyPropertyChanged
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public BookmarkCollectionRouteContext? Context
   {
@@ -150,9 +147,5 @@ public sealed partial class BookmarkCollectionViewModel : INotifyPropertyChanged
     errorMessage = null;
     OnPropertyChanged(nameof(ErrorMessage));
     OnPropertyChanged(nameof(HasError));
-  }
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-  {
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
   }
 }

@@ -5,6 +5,7 @@ import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } fro
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
+import { stepBlock } from './workflow-job-block.mjs'
 
 const repository = new URL('../', import.meta.url)
 
@@ -128,7 +129,7 @@ test('host and library shards skip Node dependencies while preserving contract i
     'Verify artifact and candidate identity',
     'Check out exact candidate revision',
   ]) {
-    const step = action.split(`    - name: ${name}\n`)[1].split('    - name:')[0]
+    const step = stepBlock(action, name, `missing step ${name}`, 4)
     assert.doesNotMatch(step, /skip-candidate-install/u)
   }
 })

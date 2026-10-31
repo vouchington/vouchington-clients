@@ -5,11 +5,8 @@ import { mkdtemp, open, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { it } from 'node:test'
-import {
-  listRegularFiles,
-  sha256,
-  verifyApkBundle,
-} from '../scripts/paired-native-test-evidence.mjs'
+import { listRegularFiles, verifyApkBundle } from '../scripts/paired-native-test-evidence.mjs'
+import { sha256 } from '../scripts/sha256.mjs'
 
 it('accepts a debug APK beyond the generic artifact limit without widening other artifacts', async () => {
   const root = await mkdtemp(join(tmpdir(), 'paired-native-large-apk-'))

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { jobBlock } from './workflow-job-block.mjs'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const workflow = `name: example
 on:
@@ -67,5 +67,63 @@ describe('workflow job block', () => {
     assert.throws(() => jobBlock(workflow, 'missing', 'missing workflow job missing'), {
       message: 'missing workflow job missing',
     })
+  })
+})
+
+const steps = `jobs:
+  build:
+    steps:
+      - name: First
+        run: echo first
+      - name: First extended
+        run: echo longer
+      - name: Run
+        run: |
+          echo '      - name: nested'
+      - name: Last
+        run: echo last
+`
+
+describe('workflow step block', () => {
+  it('returns one step through the line before the next step', () => {
+    const block = stepBlock(steps, 'First')
+
+    assert.equal(block, '      - name: First\n        run: echo first')
+    assert.doesNotMatch(block, /First extended/u)
+  })
+
+  it('keeps a longer step name distinct from its prefix', () => {
+    assert.throws(() => stepBlock(steps, 'Fir', 'missing workflow step Fir'), {
+      message: 'missing workflow step Fir',
+    })
+    assert.match(stepBlock(steps, 'First extended'), /echo longer/u)
+  })
+
+  it('keeps a name-like string inside a script with the step', () => {
+    const block = stepBlock(steps, 'Run')
+
+    assert.match(block, /echo '      - name: nested'/u)
+    assert.doesNotMatch(block, /echo last/u)
+  })
+
+  it('returns the last step through the end of the source', () => {
+    const block = stepBlock(steps, 'Last')
+
+    assert.equal(block, '      - name: Last\n        run: echo last\n')
+  })
+
+  it('slices a composite action step at four-space indent', () => {
+    const action = [
+      '    - name: Checkout',
+      '      uses: actions/checkout',
+      '    - name: Test',
+      '      run: npm test',
+      '',
+    ].join('\n')
+
+    assert.equal(
+      stepBlock(action, 'Checkout', 'missing step Checkout', 4),
+      '    - name: Checkout\n      uses: actions/checkout',
+    )
   })
 })

@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using Xunit;
 
@@ -54,30 +53,12 @@ public sealed class SettingsCredentialsPageSourceTests
   private static string? Attribute(XElement element, string name) =>
       element.Attributes().SingleOrDefault(attribute => attribute.Name.LocalName == name)?.Value;
 
-  private static XDocument SettingsOAuthGrantsDocument([CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return XDocument.Load(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", "Pages", "SettingsOAuthGrantsView.xaml"));
-  }
+  private static XDocument SettingsOAuthGrantsDocument() =>
+      XDocument.Load(AppSource.Locate("Pages", "SettingsOAuthGrantsView.xaml"));
 
-  private static XDocument SettingsPageDocument([CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return XDocument.Load(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", "Pages", "SettingsPage.xaml"));
-  }
+  private static XDocument SettingsPageDocument() =>
+      XDocument.Load(AppSource.Locate("Pages", "SettingsPage.xaml"));
 
-  private static XDocument SettingsApiKeyDocument([CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return XDocument.Load(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", "Pages", "SettingsApiKeyLifecycleView.xaml"));
-  }
+  private static XDocument SettingsApiKeyDocument() =>
+      XDocument.Load(AppSource.Locate("Pages", "SettingsApiKeyLifecycleView.xaml"));
 }

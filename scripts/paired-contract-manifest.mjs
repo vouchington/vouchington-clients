@@ -1,13 +1,13 @@
-import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { declaredFilamentsContractPaths } from './contracts.mjs'
-import { pairedRepositories, assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
+import {
+  fail,
+  pairedRepositories,
+  assertCheckoutMatchesSnapshot,
+} from './paired-contract-policy.mjs'
 import { validatePairManifest } from './paired-contract-manifest-validation.mjs'
-
-function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
+import { sha256 } from './sha256.mjs'
 
 async function realDirectory(path, label) {
   let stat
@@ -48,7 +48,7 @@ async function listFiles(root, declaredPaths) {
         const bytes = await readFile(path)
         files.push({
           path: relativePath,
-          sha256: createHash('sha256').update(bytes).digest('hex'),
+          sha256: sha256(bytes),
           sizeBytes: bytes.length,
         })
       } else fail(`unsupported staged contract entry ${relativePath}`)

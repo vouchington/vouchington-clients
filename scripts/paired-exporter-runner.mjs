@@ -14,6 +14,7 @@ import {
   materializeOutput,
   maximumResponseBytes,
 } from './paired-exporter-output-protocol.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const image = pairedExporterImage.reference
 const bootstrap = fileURLToPath(new URL('./paired-exporter-bootstrap.mjs', import.meta.url))
@@ -28,9 +29,7 @@ const maximumDiagnosticBytes = 4 * 1024 * 1024
 const defaultExecutionTimeoutMs = 5 * 60 * 1000
 const maximumExecutionTimeoutMs = defaultExecutionTimeoutMs
 
-function fail(message) {
-  throw new Error(`Isolated native exporter failed: ${message}`)
-}
+const fail = prefixedFailure('Isolated native exporter failed')
 
 export async function runIsolatedNativeExporter({
   producerRoot,

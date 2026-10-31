@@ -1,9 +1,8 @@
 import { createHash } from 'node:crypto'
 import { gunzipSync } from 'node:zlib'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
-function fail(message) {
-  throw new Error(`Exporter package archive rejected: ${message}`)
-}
+const fail = prefixedFailure('Exporter package archive rejected')
 
 function octal(buffer) {
   const text = buffer.toString('ascii').replace(/\0.*$/u, '').trim()
@@ -11,11 +10,14 @@ function octal(buffer) {
   return Number.parseInt(text, 8)
 }
 
+export function packageIntegrity(bytes) {
+  return `sha512-${createHash('sha512').update(bytes).digest('base64')}`
+}
+
 export function verifyPackageIntegrity(bytes, integrity) {
   if (!Buffer.isBuffer(bytes) || typeof integrity !== 'string')
     fail('invalid package integrity input')
-  const digest = `sha512-${createHash('sha512').update(bytes).digest('base64')}`
-  if (digest !== integrity) fail('package archive integrity mismatch')
+  if (packageIntegrity(bytes) !== integrity) fail('package archive integrity mismatch')
   return true
 }
 

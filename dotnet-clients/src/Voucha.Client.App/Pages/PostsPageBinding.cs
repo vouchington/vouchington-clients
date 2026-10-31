@@ -9,7 +9,7 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Func<Task> refresh;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public PostsPageBinding(
       PostsListViewModel viewModel,
@@ -55,19 +55,11 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
 
   protected override bool IsLoading => viewModel.IsLoading;
 
-  public void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  public void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  public void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  public void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   internal async Task RefreshAfterSessionChangedAsync()
   {

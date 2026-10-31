@@ -1,4 +1,4 @@
-import { lstat, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -11,27 +11,17 @@ import {
   declaredPaths as loadDeclaredPaths,
   descendantInfo,
   emptyOutputRoot,
+  info,
   pathsOverlap,
   realDirectory,
   tree,
 } from './stage-native-contract-files.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const configurationPath = join(repositoryRoot, 'contracts/filaments.json')
 const filamentsExporterRelativePath = 'dev/native-localization.mts'
-function fail(message) {
-  throw new Error(`Native contract staging failed: ${message}`)
-}
-async function info(path, label) {
-  try {
-    const result = await lstat(path)
-    if (result.isSymbolicLink()) fail(`symbolic link found at ${label}`)
-    return result
-  } catch (error) {
-    if (error.code === 'ENOENT') return undefined
-    throw error
-  }
-}
+const fail = prefixedFailure('Native contract staging failed')
 async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot }) {
   const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath))
   await new Promise((resolvePromise, reject) => {

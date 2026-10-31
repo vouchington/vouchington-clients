@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using Xunit;
 
@@ -9,7 +8,7 @@ public sealed class ProfilePageVotingWiringTests
   [Fact]
   public void ProfileHistoryRendersProvenanceOnlyWhenThePostHasIt()
   {
-    var markup = XDocument.Parse(AppSource("ProfilePage.xaml"));
+    var markup = XDocument.Parse(AppSource.Read("Pages", "ProfilePage.xaml"));
     XNamespace maui = "http://schemas.microsoft.com/dotnet/2021/maui";
     var history = Assert.Single(markup.Descendants(maui + "CollectionView"),
         element => (string?)element.Attribute("ItemsSource") == "{Binding HistoryItems}");
@@ -23,8 +22,8 @@ public sealed class ProfilePageVotingWiringTests
   [Fact]
   public void ProfileUserTrustVotesHandOffVerificationRecoveryAfterBothMutations()
   {
-    var page = AppSource("ProfilePage.xaml.cs");
-    var voting = AppSource("ProfilePage.Voting.cs");
+    var page = AppSource.Read("Pages", "ProfilePage.xaml.cs");
+    var voting = AppSource.Read("Pages", "ProfilePage.Voting.cs");
 
     Assert.Contains(
         "emailRecovery = serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>();",
@@ -38,7 +37,7 @@ public sealed class ProfilePageVotingWiringTests
   [Fact]
   public void ProfileTrustContextLabelsFollowedSignalsInsteadOfGlobalVoteTotals()
   {
-    var markup = AppSource("ProfilePage.xaml");
+    var markup = AppSource.Read("Pages", "ProfilePage.xaml");
 
     Assert.Contains(
         "Text=\"{Binding LocalizedPositiveSignalsFromFollowing}\"",
@@ -55,22 +54,13 @@ public sealed class ProfilePageVotingWiringTests
   [Fact]
   public void ProfileUserTagControlsUseRelationPolicyAndOnlyEnableClearForRowsWithVotes()
   {
-    var page = AppSource("ProfilePage.xaml.cs");
-    var markup = AppSource("ProfilePage.xaml");
+    var page = AppSource.Read("Pages", "ProfilePage.xaml.cs");
+    var markup = AppSource.Read("Pages", "ProfilePage.xaml");
 
     Assert.Contains("CanCreateEntityRelationVote(isUserTag: true)", page, StringComparison.Ordinal);
     Assert.Contains("<pages:VoteClearEligibilityConverter />", markup, StringComparison.Ordinal);
     Assert.Contains("<Binding Path=\"MyVote\" />", markup, StringComparison.Ordinal);
     Assert.Contains("Path=\"BindingContext.CanClearUserTagVotes\"", markup, StringComparison.Ordinal);
-  }
-
-  private static string AppSource(string file, [CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return File.ReadAllText(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", "Pages", file));
   }
 
   private static int Count(string source, string value) =>

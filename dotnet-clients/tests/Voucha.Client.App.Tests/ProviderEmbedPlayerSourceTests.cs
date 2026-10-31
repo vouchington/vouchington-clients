@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -8,27 +7,27 @@ public sealed class ProviderEmbedPlayerSourceTests
   [Fact]
   public void PlayerUsesTheNarrowPlatformWebViewBoundary()
   {
-    Assert.Contains("ProviderEmbedWebView", Source("Pages", "EmbedPlayerPage.cs"), StringComparison.Ordinal);
-    var page = Source("Pages", "EmbedPlayerPage.cs");
+    Assert.Contains("ProviderEmbedWebView", AppSource.Read("Pages", "EmbedPlayerPage.cs"), StringComparison.Ordinal);
+    var page = AppSource.Read("Pages", "EmbedPlayerPage.cs");
     Assert.Contains("Uri sourceUrl", page, StringComparison.Ordinal);
     Assert.Contains("IsValidSource(sourceUrl)", page, StringComparison.Ordinal);
     Assert.DoesNotContain("open.IsVisible", page, StringComparison.Ordinal);
     Assert.Contains("active.Unload()", page, StringComparison.Ordinal);
     Assert.Contains("player = new ProviderEmbedWebView()", page, StringComparison.Ordinal);
     Assert.Contains("playerLayout.Remove(active)", page, StringComparison.Ordinal);
-    var shared = Source("Controls", "ProviderEmbedWebView.cs");
+    var shared = AppSource.Read("Controls", "ProviderEmbedWebView.cs");
     Assert.Contains("HeightRequest = 200", shared, StringComparison.Ordinal);
     Assert.Contains("https://{AppInfo.Current.PackageName}/", shared, StringComparison.Ordinal);
     Assert.Contains("DisconnectHandler", shared, StringComparison.Ordinal);
     Assert.Contains("IsApprovedPlayer", shared, StringComparison.Ordinal);
-    var mac = Source("Controls", "ProviderEmbedWebViewHandler.MacCatalyst.cs");
+    var mac = AppSource.Read("Controls", "ProviderEmbedWebViewHandler.MacCatalyst.cs");
     Assert.Contains("NonPersistentDataStore", mac, StringComparison.Ordinal);
     Assert.Contains("new WKWebView", mac, StringComparison.Ordinal);
-    var windows = Source("Controls", "ProviderEmbedWebView.Windows.cs");
+    var windows = AppSource.Read("Controls", "ProviderEmbedWebView.Windows.cs");
     Assert.Contains("IsWebMessageEnabled = false", windows, StringComparison.Ordinal);
     Assert.Contains("NewWindowRequested", windows, StringComparison.Ordinal);
     Assert.Contains("CreateWebResourceRequest", windows, StringComparison.Ordinal);
-    var handler = Source("Controls", "ProviderEmbedWebViewHandler.Windows.cs");
+    var handler = AppSource.Read("Controls", "ProviderEmbedWebViewHandler.Windows.cs");
     Assert.Contains("Guid.NewGuid", handler, StringComparison.Ordinal);
     Assert.Contains("Directory.Delete", handler, StringComparison.Ordinal);
     Assert.Contains("Interlocked.Exchange", handler, StringComparison.Ordinal);
@@ -52,7 +51,7 @@ public sealed class ProviderEmbedPlayerSourceTests
   [Fact]
   public void RssDetailRendersPreviewAndKeepsSourceVisible()
   {
-    var page = Source("Pages", "RssFeedItemDetailPage.cs") + Source("Pages", "RssFeedItemDetailPage.EmbedPreview.cs");
+    var page = AppSource.Read("Pages", "RssFeedItemDetailPage.cs") + AppSource.Read("Pages", "RssFeedItemDetailPage.EmbedPreview.cs");
     Assert.Contains("EmbedPreview.Provider", page, StringComparison.Ordinal);
     Assert.Contains("EmbedPreview.Title", page, StringComparison.Ordinal);
     Assert.Contains("EmbedPreview.Description", page, StringComparison.Ordinal);
@@ -64,8 +63,8 @@ public sealed class ProviderEmbedPlayerSourceTests
   [Fact]
   public void FeedSurfacesChooseTheEmbedSourceActionWhenAvailable()
   {
-    var news = Source("Pages", "NewsFeedsPage.xaml");
-    var rss = Source("Pages", "RssFeedItemDetailPage.cs");
+    var news = AppSource.Read("Pages", "NewsFeedsPage.xaml");
+    var rss = AppSource.Read("Pages", "RssFeedItemDetailPage.cs");
 
     Assert.Contains("CanOpenExternally", news, StringComparison.Ordinal);
     Assert.Contains("EmbedPreview.HasSource", news, StringComparison.Ordinal);
@@ -76,19 +75,12 @@ public sealed class ProviderEmbedPlayerSourceTests
   [Fact]
   public void ProfileHistoryRendersAndOperatesEmbedPreview()
   {
-    var page = Source("Pages", "ProfilePage.xaml") + Source("Pages", "ProfilePage.EmbedPreview.cs");
+    var page = AppSource.Read("Pages", "ProfilePage.xaml") + AppSource.Read("Pages", "ProfilePage.EmbedPreview.cs");
 
     Assert.Contains("EmbedPreview.Provider", page, StringComparison.Ordinal);
     Assert.Contains("IsVisible=\"{Binding ShowEmbed}\"", page, StringComparison.Ordinal);
     Assert.Contains("CanPlayEmbed", page, StringComparison.Ordinal);
     Assert.Contains("HasEmbedSource", page, StringComparison.Ordinal);
     Assert.Contains("EmbedPlayerPage", page, StringComparison.Ordinal);
-  }
-
-  private static string Source(string directory, string file, [CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return File.ReadAllText(Path.Combine(root!.FullName, "src", "Voucha.Client.App", directory, file));
   }
 }

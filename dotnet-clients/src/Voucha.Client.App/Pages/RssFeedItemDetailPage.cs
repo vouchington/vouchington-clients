@@ -18,7 +18,7 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Button followerSend;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public RssFeedItemDetailPage(
       IRssFeedItemDetailService service,
@@ -182,17 +182,9 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
       followerSend.IsVisible =
           viewModel.Detail?.Item.HasItemActions == true && FollowerDistributionActions.CanSendRssItem(sessionStore);
 
-  private void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  private void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  private void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  private void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 }

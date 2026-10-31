@@ -1,12 +1,4 @@
-import { createHash } from 'node:crypto'
-
-export function assertion(condition, message) {
-  if (!condition) throw new Error(message)
-}
-
-export function sha256(bytes) {
-  return createHash('sha256').update(bytes).digest('hex')
-}
+import { assertion } from './swift-repair-common.mjs'
 
 async function responseBytes(response, url) {
   assertion(response?.ok !== false, `failed to download ${url}`)

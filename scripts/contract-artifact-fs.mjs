@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto'
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { artifactPath, fail } from './contract-artifact-validation.mjs'
+import { sha256 } from './sha256.mjs'
 
 export async function info(path, label) {
   let result
@@ -36,7 +36,7 @@ export async function fileRecord(root, path) {
   return {
     path,
     size: contents.byteLength,
-    sha256: createHash('sha256').update(contents).digest('hex'),
+    sha256: sha256(contents),
   }
 }
 export async function artifactEntries(root) {
