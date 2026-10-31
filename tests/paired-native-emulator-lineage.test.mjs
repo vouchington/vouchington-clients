@@ -9,7 +9,6 @@ import { validateCleanupEvidence } from '../scripts/paired-native-cleanup-eviden
 import {
   commandIdentity,
   lineageLimits,
-  ownedAvdName,
   parseProcStat,
   stopOwnedLauncher,
 } from '../scripts/paired-native-emulator-lineage.mjs'
@@ -17,32 +16,16 @@ import { selectOwnedLineage } from '../scripts/paired-native-ownership.mjs'
 import { observeOwnedEmulatorLineage } from '../scripts/paired-native-proc-snapshot.mjs'
 import { passingAdbCommand } from './paired-native-adb-command.mjs'
 import { cleanupBinding, cleanupFixture } from './paired-native-cleanup-fixture.mjs'
+import {
+  lineageFixtureAvd as avd,
+  procStatText as statText,
+  selectLineageFixture as select,
+} from './paired-native-lineage-fixture.mjs'
 
-const avd = ownedAvdName('55')
 const launcherCommand = `emulator -avd ${avd}`
 
 function record(pid, ppid, pgid, identity, startTime = pid) {
   return { pid, ppid, pgid, startTime, identity }
-}
-
-function statText(pid, ppid, pgid, startTime, comm = 'emulator') {
-  const fields = Array.from({ length: 20 }, () => '0')
-  fields[0] = 'S'
-  fields[1] = String(ppid)
-  fields[2] = String(pgid)
-  fields[19] = String(startTime)
-  return `${pid} (${comm}) ${fields.join(' ')}\n`
-}
-
-function select(records, options = {}) {
-  return selectOwnedLineage({
-    launcherPid: 200,
-    avdName: avd,
-    records,
-    scanComplete: true,
-    limits: lineageLimits,
-    ...options,
-  })
 }
 
 const ownedTree = [

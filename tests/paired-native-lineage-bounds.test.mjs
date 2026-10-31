@@ -6,37 +6,19 @@ import { join } from 'node:path'
 import { it } from 'node:test'
 import { runAndroidSession } from '../scripts/paired-native-android-session.mjs'
 import { validateCleanupEvidence } from '../scripts/paired-native-cleanup-evidence.mjs'
-import { lineageLimits, ownedAvdName } from '../scripts/paired-native-emulator-lineage.mjs'
-import { selectOwnedLineage } from '../scripts/paired-native-ownership.mjs'
+import { lineageLimits } from '../scripts/paired-native-emulator-lineage.mjs'
 import { observeOwnedEmulatorLineage } from '../scripts/paired-native-proc-snapshot.mjs'
 import { readBoundedFile } from '../scripts/paired-native-proc-read.mjs'
 import { passingAdbCommand } from './paired-native-adb-command.mjs'
 import { cleanupBinding, cleanupFixture } from './paired-native-cleanup-fixture.mjs'
-
-const avd = ownedAvdName('55')
+import {
+  lineageFixtureAvd as avd,
+  procStatText as statText,
+  selectLineageFixture as select,
+} from './paired-native-lineage-fixture.mjs'
 
 function record(pid, ppid, pgid, command, startTime) {
   return { pid, ppid, pgid, startTime, identity: { command } }
-}
-
-function statText(pid, ppid, pgid, startTime, comm = 'emulator') {
-  const fields = Array.from({ length: 20 }, () => '0')
-  fields[0] = 'S'
-  fields[1] = String(ppid)
-  fields[2] = String(pgid)
-  fields[19] = String(startTime)
-  return `${pid} (${comm}) ${fields.join(' ')}\n`
-}
-
-function select(records, options = {}) {
-  return selectOwnedLineage({
-    launcherPid: 200,
-    avdName: avd,
-    records,
-    scanComplete: true,
-    limits: lineageLimits,
-    ...options,
-  })
 }
 
 it('rejects an observed launch without the captured launcher or a connected ancestry', () => {
