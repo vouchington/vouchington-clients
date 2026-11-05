@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Engineering;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -15,18 +15,10 @@ public partial class EngineeringPostgreSqlPage : ContentPage
     BindingContext = viewModel;
   }
 
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI lifecycle handler surfaces failures through view state.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try
-    {
-      await viewModel.LoadAsync().ConfigureAwait(true);
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync()).ConfigureAwait(true);
   }
 
   private async void OnRefreshClicked(object? sender, EventArgs e) => await viewModel.LoadAsync().ConfigureAwait(true);

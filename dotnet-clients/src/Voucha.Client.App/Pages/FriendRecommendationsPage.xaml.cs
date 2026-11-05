@@ -1,5 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Friends;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -19,21 +19,10 @@ public partial class FriendRecommendationsPage : ContentPage, IDisposable
     Unloaded += OnUnloaded;
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void lifecycle methods must not allow load failures to escape.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try
-    {
-      await viewModel.LoadAsync().ConfigureAwait(true);
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync()).ConfigureAwait(true);
   }
 
   private async void OnRefreshing(object? sender, EventArgs e) =>

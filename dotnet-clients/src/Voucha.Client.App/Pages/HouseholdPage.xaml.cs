@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Households;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 using Voucha.Client.App.Controls;
 
 namespace Voucha.Client.App.Pages;
@@ -17,12 +17,10 @@ public partial class HouseholdPage : ContentPage
     BindingContext = viewModel;
   }
 
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI lifecycle errors are represented by the view model.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try { await viewModel.LoadAsync(); }
-    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync());
   }
 
   private async void OnRetryHouseholdClicked(object? sender, EventArgs e) => await viewModel.LoadAsync();
