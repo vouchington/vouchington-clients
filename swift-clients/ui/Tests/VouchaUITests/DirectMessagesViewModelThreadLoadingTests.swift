@@ -281,7 +281,7 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
               ],
               "page_info": {
                 "has_next_page": \(hasNextPage),
-                "end_cursor": \(jsonString(endCursor)),
+                "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
                 "start_cursor": null
               }
             }
@@ -351,11 +351,6 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
             }
             """.utf8
         )
-    }
-
-    private func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
     }
 
     private func assertLoadState(

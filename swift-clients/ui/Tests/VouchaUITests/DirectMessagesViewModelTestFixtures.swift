@@ -1,5 +1,27 @@
 import Foundation
 
+enum DirectMessagesTestJSON {
+    static func decode<T: Decodable>(_ json: String) throws -> T {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(T.self, from: Data(json.utf8))
+    }
+
+    static func array(_ values: [String]) -> String {
+        "[" + values.map { "\"\($0)\"" }.joined(separator: ",") + "]"
+    }
+
+    static func string(_ value: String?) -> String {
+        guard let value else { return "null" }
+        return "\"\(value)\""
+    }
+
+    static func date(_ value: String) -> Date {
+        ISO8601DateFormatter().date(from: value)!
+    }
+}
+
 extension DirectMessagesViewModelTests {
     func directMessageJSON(conversationId: String, id: String, bodyText: String) -> String {
         """
@@ -39,15 +61,6 @@ extension DirectMessagesViewModelTests {
           "participant_add_policy": "all_members"
         }
         """
-    }
-
-    func jsonArray(_ values: [String]) -> String {
-        "[" + values.map { "\"\($0)\"" }.joined(separator: ",") + "]"
-    }
-
-    func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
     }
 
     func policyResponseData() -> Data {

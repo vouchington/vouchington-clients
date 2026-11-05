@@ -335,7 +335,7 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
               ],
               "page_info": {
                 "has_next_page": \(hasNextPage),
-                "end_cursor": \(jsonString(endCursor)),
+                "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
                 "start_cursor": null
               }
             }
@@ -426,7 +426,7 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
     }
 
     private func message(id: String, conversationId: String, bodyText: String) -> DirectMessage {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -440,18 +440,6 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
             }
             """
         )
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
-
-    private func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
     }
 
     private func assertLoadState(
