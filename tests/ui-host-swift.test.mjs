@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
-import { writeBashExecutable } from './fixture-files.mjs'
+import { captureSpawn, writeBashExecutable } from './fixture-files.mjs'
 
 const script = fileURLToPath(
   new URL('../swift-clients/tooling/verify-ui-host-swift.sh', import.meta.url),
@@ -43,25 +42,13 @@ async function fixture(
   )
 
   return {
-    async run() {
-      return new Promise((resolve, reject) => {
-        const child = spawn('/bin/bash', [script], {
-          env: {
-            ...process.env,
-            DEVELOPER_DIR: bundle ? join(root, 'Xcode.app') : developerDir,
-            PATH: `${bin}:${process.env.PATH}`,
-          },
-        })
-        let stdout = ''
-        let stderr = ''
-        child.stdout.setEncoding('utf8').on('data', chunk => {
-          stdout += chunk
-        })
-        child.stderr.setEncoding('utf8').on('data', chunk => {
-          stderr += chunk
-        })
-        child.on('error', reject)
-        child.on('close', code => resolve({ code, stdout, stderr }))
+    run() {
+      return captureSpawn('/bin/bash', [script], {
+        env: {
+          ...process.env,
+          DEVELOPER_DIR: bundle ? join(root, 'Xcode.app') : developerDir,
+          PATH: `${bin}:${process.env.PATH}`,
+        },
       })
     },
   }

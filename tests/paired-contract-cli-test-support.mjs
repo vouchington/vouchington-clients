@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
+import { captureSpawn } from './fixture-files.mjs'
 
 const clientsRepository = 'vouchington/vouchington-clients'
 const producerRepository = 'vouchington/vouchington'
@@ -123,17 +123,9 @@ export function dispatchEnvironment(apiURL, outputPath, extra = {}) {
 }
 
 export function runCli(cli, command, cwd, env) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [cli, command], {
-      cwd,
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    let stdout = ''
-    let stderr = ''
-    child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk))
-    child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk))
-    child.once('error', reject)
-    child.once('close', code => resolve({ code, stdout, stderr }))
+  return captureSpawn(process.execPath, [cli, command], {
+    cwd,
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 }
