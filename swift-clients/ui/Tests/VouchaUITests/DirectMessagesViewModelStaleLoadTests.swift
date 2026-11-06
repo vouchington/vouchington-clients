@@ -17,7 +17,7 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-2/participants"] = (
-            participantsPage(conversationId: "conversation-2", ownerUserId: "user-2"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-2", ownerUserId: "user-2"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1"] = [
@@ -27,7 +27,11 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             (messagesPage(conversationId: "conversation-1", ids: ["message-a"]), 200, 0.2)
         ]
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/participants"] = [
-            (participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"), 200, 0.2)
+            (
+                DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+                200,
+                0.2
+            )
         ]
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
 
@@ -61,7 +65,7 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-old/participants"] = (
-            participantsPage(conversationId: "conversation-old", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-old", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages"] = [
@@ -115,7 +119,7 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -151,7 +155,7 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-2/participants"] = (
-            participantsPage(conversationId: "conversation-2", ownerUserId: "user-3"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-2", ownerUserId: "user-3"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/participants"] = [
@@ -186,7 +190,7 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-2/participants"] = (
-            participantsPage(conversationId: "conversation-2", ownerUserId: "user-3"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-2", ownerUserId: "user-3"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1"] = [
@@ -214,7 +218,7 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/messages"] = [
@@ -359,32 +363,6 @@ final class DirectMessagesViewModelStaleLoadTests: NativeRouteSurfaceViewModelTe
               "page_info": {
                 "has_next_page": \(hasNextPage),
                 "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
-                "start_cursor": null
-              }
-            }
-            """.utf8
-        )
-    }
-
-    private func participantsPage(conversationId: String, ownerUserId: String) -> Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "\(conversationId)",
-                  "user_id": "\(ownerUserId)",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
                 "start_cursor": null
               }
             }

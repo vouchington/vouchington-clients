@@ -20,6 +20,32 @@ enum DirectMessagesTestJSON {
     static func date(_ value: String) -> Date {
         ISO8601DateFormatter().date(from: value)!
     }
+
+    static func ownerParticipantsPage(conversationId: String, ownerUserId: String) -> Data {
+        Data(
+            """
+            {
+              "results": [
+                {
+                  "id": "participant-owner",
+                  "conversation_id": "\(conversationId)",
+                  "user_id": "\(ownerUserId)",
+                  "role": "owner",
+                  "created_at": "2026-01-01T00:00:00Z",
+                  "removed_at": null,
+                  "username": "alice",
+                  "profile_image_id": null
+                }
+              ],
+              "page_info": {
+                "has_next_page": false,
+                "end_cursor": null,
+                "start_cursor": null
+              }
+            }
+            """.utf8
+        )
+    }
 }
 
 extension DirectMessagesViewModelTests {

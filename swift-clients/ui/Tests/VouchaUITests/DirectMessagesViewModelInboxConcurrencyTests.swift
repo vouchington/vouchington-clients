@@ -273,7 +273,7 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -374,32 +374,6 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
                 "updated_at": "2026-01-01T00:00:00Z",
                 "participant_usernames": ["alice", "bob"],
                 "participant_add_policy": "\(participantAddPolicy.rawValue)"
-              }
-            }
-            """.utf8
-        )
-    }
-
-    private func participantsPage(conversationId: String, ownerUserId: String) -> Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "\(conversationId)",
-                  "user_id": "\(ownerUserId)",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
-                "start_cursor": null
               }
             }
             """.utf8

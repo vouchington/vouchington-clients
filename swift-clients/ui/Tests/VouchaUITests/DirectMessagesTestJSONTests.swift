@@ -30,4 +30,52 @@ final class DirectMessagesTestJSONTests: XCTestCase {
         XCTAssertEqual(DirectMessagesTestJSON.string(nil), "null")
         XCTAssertEqual(DirectMessagesTestJSON.string("a"), "\"a\"")
     }
+
+    func testOwnerParticipantsPageCarriesTheRequestedOwner() throws {
+        struct Page: Decodable {
+            struct Participant: Decodable {
+                let id: String
+                let conversationId: String
+                let userId: String
+                let role: String
+                let username: String
+                let profileImageId: String?
+                let createdAt: Date
+                let removedAt: Date?
+            }
+
+            struct PageInfo: Decodable {
+                let hasNextPage: Bool
+                let endCursor: String?
+                let startCursor: String?
+            }
+
+            let results: [Participant]
+            let pageInfo: PageInfo
+        }
+
+        let page: Page = try DirectMessagesTestJSON.decode(
+            String(
+                decoding: DirectMessagesTestJSON.ownerParticipantsPage(
+                    conversationId: "conversation-9",
+                    ownerUserId: "user-9"
+                ),
+                as: UTF8.self
+            )
+        )
+        let owner = try XCTUnwrap(page.results.first)
+
+        XCTAssertEqual(page.results.count, 1)
+        XCTAssertEqual(owner.id, "participant-owner")
+        XCTAssertEqual(owner.conversationId, "conversation-9")
+        XCTAssertEqual(owner.userId, "user-9")
+        XCTAssertEqual(owner.role, "owner")
+        XCTAssertEqual(owner.username, "alice")
+        XCTAssertNil(owner.profileImageId)
+        XCTAssertEqual(owner.createdAt, DirectMessagesTestJSON.date("2026-01-01T00:00:00Z"))
+        XCTAssertNil(owner.removedAt)
+        XCTAssertFalse(page.pageInfo.hasNextPage)
+        XCTAssertNil(page.pageInfo.endCursor)
+        XCTAssertNil(page.pageInfo.startCursor)
+    }
 }

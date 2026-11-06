@@ -28,7 +28,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -154,7 +154,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             (messagesPageData(conversationId: "conversation-99"), 200, 0)
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -264,7 +264,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-2/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -344,13 +344,6 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     private func directMessageResponseData(conversationId: String, id: String, bodyText: String) -> Data {
         Data(
             #"{"message":{"id":"\#(id)","conversation_id":"\#(conversationId)","body_text":"\#(bodyText)","created_by_id":"user-1","sender_username":"alice","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","deleted_at":null}}"#
-                .utf8
-        )
-    }
-
-    private var participantsPageData: Data {
-        Data(
-            #"{"results":[{"id":"participant-owner","conversation_id":"conversation-1","user_id":"user-1","role":"owner","created_at":"2026-01-01T00:00:00Z","removed_at":null,"username":"alice","profile_image_id":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
                 .utf8
         )
     }
