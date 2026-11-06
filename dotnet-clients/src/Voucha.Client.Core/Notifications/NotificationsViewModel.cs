@@ -91,26 +91,16 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
     var currentRequest = BeginLoad();
     try
     {
-      var response = await notificationsService
-          .FetchAsync(new FetchNotificationsRequest(cursor), cancellationToken)
-          .ConfigureAwait(true);
-      CompleteLoad(currentRequest, response);
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
+      await ClientLoadAttempt.RunAsync(
+          async () =>
+          {
+            var response = await notificationsService
+                .FetchAsync(new FetchNotificationsRequest(cursor), cancellationToken)
+                .ConfigureAwait(true);
+            CompleteLoad(currentRequest, response);
+          },
+          () => CompleteCanceled(currentRequest),
+          message => CompleteError(currentRequest, message)).ConfigureAwait(true);
     }
     finally
     {

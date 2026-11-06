@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -17,30 +18,17 @@ public sealed partial class PostsListViewModel
   {
     if (IsLoading || !HasMore || endCursor is not { } after) return;
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = browsing
-          ? await postsService.FetchPostsAsync(
-              new FetchPostsRequest(PostTypes: activePostTypes, After: after), cancellationToken).ConfigureAwait(true)
-          : await postsService.FetchFeedAsync(
-              new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes), cancellationToken).ConfigureAwait(true);
-      CompleteLoad(currentRequest, response, append: true);
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = browsing
+              ? await postsService.FetchPostsAsync(
+                  new FetchPostsRequest(PostTypes: activePostTypes, After: after), cancellationToken).ConfigureAwait(true)
+              : await postsService.FetchFeedAsync(
+                  new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes), cancellationToken).ConfigureAwait(true);
+          CompleteLoad(currentRequest, response, append: true);
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 }

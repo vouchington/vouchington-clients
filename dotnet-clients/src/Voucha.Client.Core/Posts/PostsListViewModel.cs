@@ -97,31 +97,18 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     endCursor = null;
     HasMore = true;
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await postsService
-          .FetchFeedAsync(
-              new FetchPostsFeedRequest(Feed: feedType, PostTypes: postTypes),
-              cancellationToken)
-          .ConfigureAwait(true);
-      CompleteLoad(currentRequest, response, append: false);
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await postsService
+              .FetchFeedAsync(
+                  new FetchPostsFeedRequest(Feed: feedType, PostTypes: postTypes),
+                  cancellationToken)
+              .ConfigureAwait(true);
+          CompleteLoad(currentRequest, response, append: false);
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
   public async Task LoadBrowseAsync(
@@ -133,29 +120,16 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     endCursor = null;
     HasMore = true;
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await postsService
-          .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes), cancellationToken)
-          .ConfigureAwait(true);
-      CompleteLoad(currentRequest, response, append: false);
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await postsService
+              .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes), cancellationToken)
+              .ConfigureAwait(true);
+          CompleteLoad(currentRequest, response, append: false);
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
   private int BeginLoad()
