@@ -32,7 +32,7 @@ public sealed partial class TopHashtagsViewModel : ObservableObject
   public string? ErrorMessage { get => errorMessage; private set => SetProperty(ref errorMessage, value); }
 
   public Task LoadAsync(CancellationToken cancellationToken = default) =>
-      LoadPageAsync(TrimmedOrNull(Query), Mapping, null, false, cancellationToken);
+      LoadPageAsync(TrimmedText.NonEmpty(Query), Mapping, null, false, cancellationToken);
   public Task LoadMoreAsync(CancellationToken cancellationToken = default) =>
       !HasMore || IsLoading ? Task.CompletedTask : LoadPageAsync(pageQuery, pageMapping, endCursor, true, cancellationToken);
 
@@ -124,8 +124,6 @@ public sealed partial class TopHashtagsViewModel : ObservableObject
     finally { IsLoading = false; }
     await LoadAsync(cancellationToken).ConfigureAwait(true);
   }
-
-  private static string? TrimmedOrNull(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   private static string NormalizeHashtagSlug(string hashtag)
   {

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -34,7 +35,7 @@ public sealed partial class PostComposeViewModel
     if (!TryParseStructuredData(out var parsed) || parsed is null) return false;
     var data = parsed.Value;
     if (data.ValueKind != JsonValueKind.Object) return false;
-    var vertical = EmptyToNull(DataPointVertical);
+    var vertical = TrimmedText.NonEmpty(DataPointVertical);
     return vertical switch
     {
       "credit_card" => HasValidCreditCardData(data),
@@ -75,7 +76,7 @@ public sealed partial class PostComposeViewModel
     foreach (var item in property.EnumerateArray())
     {
       if (item.ValueKind != JsonValueKind.String ||
-          EmptyToNull(item.GetString()) is not { } topicId ||
+          TrimmedText.NonEmpty(item.GetString()) is not { } topicId ||
           !Guid.TryParse(topicId, out _) ||
           !topicIds.Add(topicId))
       {
@@ -96,6 +97,6 @@ public sealed partial class PostComposeViewModel
       HashSet<string> allowedValues) =>
       data.TryGetProperty(propertyName, out var property) &&
       property.ValueKind == JsonValueKind.String &&
-      EmptyToNull(property.GetString()) is { } value &&
+      TrimmedText.NonEmpty(property.GetString()) is { } value &&
       allowedValues.Contains(value);
 }

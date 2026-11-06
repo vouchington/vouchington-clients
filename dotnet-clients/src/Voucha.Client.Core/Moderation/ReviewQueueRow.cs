@@ -1,6 +1,7 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Moderation;
 
@@ -18,12 +19,12 @@ public sealed record ReviewQueueRow(
     bool RequiresReconciliation = false)
 {
   public string Id => Post.Id;
-  public string DisplayTitle => Normalize(Post.Title) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueUntitledPost);
-  public string UserContentPreview => Normalize(Post.MarkdownPreview) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueNoPreview);
+  public string DisplayTitle => TrimmedText.NonEmpty(Post.Title) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueUntitledPost);
+  public string UserContentPreview => TrimmedText.NonEmpty(Post.MarkdownPreview) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueNoPreview);
   public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(Post.DeclaredLanguage, Post.LinguaRsDetectedLanguage);
-  public string? TitleFlowDirection => Normalize(Post.Title) is null ? null : ContentLanguage.Direction?.ToString();
-  public string? PreviewFlowDirection => Normalize(Post.MarkdownPreview) is null ? null : ContentLanguage.Direction?.ToString();
-  public string Author => Normalize(Post.CreatedById) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueAnonymous);
+  public string? TitleFlowDirection => TrimmedText.NonEmpty(Post.Title) is null ? null : ContentLanguage.Direction?.ToString();
+  public string? PreviewFlowDirection => TrimmedText.NonEmpty(Post.MarkdownPreview) is null ? null : ContentLanguage.Direction?.ToString();
+  public string Author => TrimmedText.NonEmpty(Post.CreatedById) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueAnonymous);
   public string PostType => Post.PostType;
   public DateTimeOffset CreatedAt => Post.CreatedAt;
   public UiMessageKey DispositionKey => Post.ModerationSummary.Disposition switch
@@ -93,5 +94,4 @@ public sealed record ReviewQueueRow(
   public string CreatedPresentation => Localization.Format(
       UiMessageKey.NativeSwiftModerationReportsReviewQueueCreated,
       ("date", Localization.FormatDateTime(CreatedAt, TimeZoneInfo.Local)));
-  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

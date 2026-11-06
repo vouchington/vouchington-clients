@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Fediverse;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -16,7 +17,7 @@ public partial class FediverseInstancesPage : ContentPage
 
   internal void SetInitialQuery(string? query)
   {
-    initialQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
+    initialQuery = TrimmedText.NonEmpty(query);
     Query.Text = initialQuery;
   }
 

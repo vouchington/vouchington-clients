@@ -1,3 +1,5 @@
+using Voucha.Client.Core.Support;
+
 namespace Voucha.Client.Core;
 
 public sealed record SentryLaunchPlan(
@@ -19,13 +21,13 @@ public sealed record SentryLaunchPlan(
       string releaseName,
       string? accountId)
   {
-    var dsn = ValidDsn(SentryTrimmedText.NonEmpty(
+    var dsn = ValidDsn(TrimmedText.NonEmpty(
         Read(environment, "VOUCHA_SENTRY_DSN") ?? Read(packagedConfiguration, "VOUCHA_SENTRY_DSN")));
     return new SentryLaunchPlan(
         dsn,
         releaseName,
         releaseConfiguration ? "release" : "debug",
-        SentryTrimmedText.NonEmpty(accountId),
+        TrimmedText.NonEmpty(accountId),
         SendDefaultPii: false,
         dsn is null ? 0 : EnabledTracesSampleRate);
   }

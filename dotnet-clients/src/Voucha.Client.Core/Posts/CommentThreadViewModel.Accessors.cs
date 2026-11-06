@@ -51,9 +51,6 @@ public sealed partial class CommentThreadViewModel
         : null;
   }
 
-  private static string? NormalizeFocusedCommentId(string? commentId) =>
-      string.IsNullOrWhiteSpace(commentId) ? null : commentId.Trim();
-
   private static string NormalizeSort(string? value) =>
       string.Equals(value, CommentThreadSorts.New, StringComparison.Ordinal) ? CommentThreadSorts.New : CommentThreadSorts.Best;
 

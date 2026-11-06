@@ -1,6 +1,7 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Communities;
 
@@ -71,17 +72,15 @@ public sealed record CommunityPostRow(
     ArgumentNullException.ThrowIfNull(post);
     return new(
         post.Id,
-        Normalize(post.Title) ?? Normalize(post.Slug) ?? post.Id,
+        TrimmedText.NonEmpty(post.Title) ?? TrimmedText.NonEmpty(post.Slug) ?? post.Id,
         post.PostType ?? "post",
         post.CreatedAt,
         metrics?.Count.Descendants ?? 0,
         UiTaxonomy.PostType(post.PostType),
         localization ?? UiLocalization.English,
-        UrlEmbedPreviews.From(embed), Normalize(post.Title) is null ? null : post.DeclaredLanguage,
-        Normalize(post.Title) is null ? null : post.LinguaRsDetectedLanguage,
-        HasAuthoredTitle: Normalize(post.Title) is not null,
+        UrlEmbedPreviews.From(embed), TrimmedText.NonEmpty(post.Title) is null ? null : post.DeclaredLanguage,
+        TrimmedText.NonEmpty(post.Title) is null ? null : post.LinguaRsDetectedLanguage,
+        HasAuthoredTitle: TrimmedText.NonEmpty(post.Title) is not null,
         StaffProvenance: post.StaffProvenance);
   }
-
-  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

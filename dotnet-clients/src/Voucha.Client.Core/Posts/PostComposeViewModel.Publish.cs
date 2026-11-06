@@ -100,13 +100,13 @@ public sealed partial class PostComposeViewModel
         PostType.Trim(),
         Title.Trim(),
         Markdown,
-        EmptyToNull(TurnstileToken),
-        CanEditSlug ? EmptyToNull(Slug) : null,
-        EmptyToNull(Broadcast),
-        EmptyToNull(Privacy),
+        TrimmedText.NonEmpty(TurnstileToken),
+        CanEditSlug ? TrimmedText.NonEmpty(Slug) : null,
+        TrimmedText.NonEmpty(Broadcast),
+        TrimmedText.NonEmpty(Privacy),
         IsAnonymous,
         PostType == PostComposeTypes.Link ? ParseUri(LinkAddress) : null,
-        PostType == PostComposeTypes.Link ? EmptyToNull(LinkIdentifier) : null,
+        PostType == PostComposeTypes.Link ? TrimmedText.NonEmpty(LinkIdentifier) : null,
         ReviewTopicRatings: PostType == PostComposeTypes.Review
             ? EffectiveReviewTopicRatings().Select(x => new CreatePostReviewTopicRatingInput(
                 x.TopicId,
@@ -115,12 +115,12 @@ public sealed partial class PostComposeViewModel
         Images: EffectiveImages().Select(x => new CreatePostImageInput(
             x.ImageId,
             x.OrderIndex,
-            EmptyToNull(x.Caption))).ToArray(),
-        DataPointVertical: PostType == PostComposeTypes.DataPoint ? EmptyToNull(DataPointVertical) : null,
+            TrimmedText.NonEmpty(x.Caption))).ToArray(),
+        DataPointVertical: PostType == PostComposeTypes.DataPoint ? TrimmedText.NonEmpty(DataPointVertical) : null,
         StructuredData: PostType == PostComposeTypes.DataPoint ? structuredData : null,
-        DeclaredLanguage: EmptyToNull(DeclaredLanguage),
-        HpWebsite: EmptyToNull(HpWebsite),
-        HpPhone: EmptyToNull(HpPhone),
+        DeclaredLanguage: TrimmedText.NonEmpty(DeclaredLanguage),
+        HpWebsite: TrimmedText.NonEmpty(HpWebsite),
+        HpPhone: TrimmedText.NonEmpty(HpPhone),
         Categories: EffectiveDiscussionCategories());
   }
 
@@ -154,7 +154,7 @@ public sealed partial class PostComposeViewModel
     if (readyImages.Length > 0) return readyImages;
     return string.IsNullOrWhiteSpace(ImageId)
         ? []
-        : [new PostComposeImageDraft(ImageId.Trim(), 0, EmptyToNull(ImageCaption))];
+        : [new PostComposeImageDraft(ImageId.Trim(), 0, TrimmedText.NonEmpty(ImageCaption))];
   }
 
   private void CompleteError(string message)
@@ -175,11 +175,8 @@ public sealed partial class PostComposeViewModel
         _ => exception.Message,
       };
 
-  private static string? EmptyToNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
   private static Uri? ParseUri(string value) =>
-      Uri.TryCreate(EmptyToNull(value), UriKind.Absolute, out var uri) ? uri : null;
+      Uri.TryCreate(TrimmedText.NonEmpty(value), UriKind.Absolute, out var uri) ? uri : null;
 
   private static IEnumerable<string> IdentifierList(string? value) =>
       (value ?? "")

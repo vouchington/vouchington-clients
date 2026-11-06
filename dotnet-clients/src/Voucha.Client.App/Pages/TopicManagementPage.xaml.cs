@@ -3,6 +3,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Topics;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 using Voucha.Client.Core;
 
 namespace Voucha.Client.App.Pages;
@@ -152,7 +153,7 @@ public partial class TopicManagementPage : ContentPage
           SlugEntry.Text ?? "",
           TypeEntry.Text ?? "topic",
           MarkdownEditor.Markdown,
-          TrimmedOrNull(HostnameEntry.Text));
+          TrimmedText.NonEmpty(HostnameEntry.Text));
 
   private UpdateTopicBody UpdateBody() =>
       new(
@@ -178,7 +179,4 @@ public partial class TopicManagementPage : ContentPage
       string.IsNullOrWhiteSpace(value)
           ? JsonNullableString.Null
           : JsonNullableString.FromString(value.Trim());
-
-  private static string? TrimmedOrNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -73,9 +73,9 @@ public sealed partial class CommunityActionViewModel
         await service.CreateAsync(
             new CreateCommunityRequest(
                 Name.Trim(),
-                EmptyToNull(Slug),
+                TrimmedText.NonEmpty(Slug),
                 Markdown,
-                TurnstileToken: EmptyToNull(TurnstileToken)),
+                TurnstileToken: TrimmedText.NonEmpty(TurnstileToken)),
             cancellationToken).ConfigureAwait(true);
         break;
       case CommunityActionKind.Apply:
@@ -102,9 +102,6 @@ public sealed partial class CommunityActionViewModel
         break;
     }
   }
-
-  private static string? EmptyToNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   private bool HandleLoadException(Exception ex)
   {

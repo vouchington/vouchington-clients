@@ -1,9 +1,10 @@
+using Voucha.Client.Core.Support;
+
 namespace Voucha.Client.Core.Search;
 
 public sealed partial class OmnisearchViewModel
 {
-  private string? TrimmedQueryOrNull() =>
-      string.IsNullOrWhiteSpace(Query) ? null : Query.Trim();
+  private string? TrimmedQueryOrNull() => TrimmedText.NonEmpty(Query);
 
   private string CurrentUserIdOrUsername() =>
       sessionStore?.Current.Identity?.Username ??
