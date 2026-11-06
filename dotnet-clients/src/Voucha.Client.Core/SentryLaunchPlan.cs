@@ -19,13 +19,13 @@ public sealed record SentryLaunchPlan(
       string releaseName,
       string? accountId)
   {
-    var dsn = ValidDsn(Trimmed(
+    var dsn = ValidDsn(SentryTrimmedText.NonEmpty(
         Read(environment, "VOUCHA_SENTRY_DSN") ?? Read(packagedConfiguration, "VOUCHA_SENTRY_DSN")));
     return new SentryLaunchPlan(
         dsn,
         releaseName,
         releaseConfiguration ? "release" : "debug",
-        Trimmed(accountId),
+        SentryTrimmedText.NonEmpty(accountId),
         SendDefaultPii: false,
         dsn is null ? 0 : EnabledTracesSampleRate);
   }
@@ -56,11 +56,5 @@ public sealed record SentryLaunchPlan(
     }
 
     return value;
-  }
-
-  private static string? Trimmed(string? value)
-  {
-    var trimmed = value?.Trim();
-    return string.IsNullOrEmpty(trimmed) ? null : trimmed;
   }
 }

@@ -96,7 +96,7 @@ public enum SentryEventScrubber {
         scrubbed.email = nil
         scrubbed.username = nil
         scrubbed.ipAddress = nil
-        scrubbed.accountId = normalized(event.accountId)
+        scrubbed.accountId = SentryTrimmedText.nonEmpty(event.accountId)
         scrubbed.requestURL = stripQuery(event.requestURL)
         scrubbed.queryString = nil
         scrubbed.headers = scrubHeaders(event.headers)
@@ -165,13 +165,6 @@ public enum SentryEventScrubber {
         }
         guard let cut else { return value }
         return String(value[..<cut])
-    }
-
-    private static func normalized(_ accountId: String?) -> String? {
-        guard let accountId = accountId?.trimmingCharacters(in: .whitespacesAndNewlines), !accountId.isEmpty else {
-            return nil
-        }
-        return accountId
     }
 
     private static let typedTextCategories: Set<String> = ["ui.text", "ui.input", "ui.textfield", "user.input"]

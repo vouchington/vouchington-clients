@@ -89,7 +89,7 @@ public static class SentryEventScrubber
         .ToDictionary(pair => pair.Key, pair => Retain(pair.Key, pair.Value), StringComparer.Ordinal);
     return outbound with
     {
-      AccountId = Trimmed(outbound.AccountId),
+      AccountId = SentryTrimmedText.NonEmpty(outbound.AccountId),
       Email = null,
       Username = null,
       IpAddress = null,
@@ -186,11 +186,5 @@ public static class SentryEventScrubber
     }
 
     return fragment < 0 ? query : Math.Min(query, fragment);
-  }
-
-  private static string? Trimmed(string? value)
-  {
-    var trimmed = value?.Trim();
-    return string.IsNullOrEmpty(trimmed) ? null : trimmed;
   }
 }

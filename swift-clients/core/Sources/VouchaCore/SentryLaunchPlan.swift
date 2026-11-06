@@ -36,12 +36,15 @@ public struct SentryLaunchPlan: Equatable, Sendable {
         releaseName: String,
         accountId: String?
     ) -> SentryLaunchPlan {
-        let dsn = validDSN(read(environment, "VOUCHA_SENTRY_DSN") ?? read(packagedConfiguration, "VOUCHA_SENTRY_DSN"))
+        let dsn = validDSN(
+            SentryTrimmedText.nonEmpty(environment["VOUCHA_SENTRY_DSN"])
+                ?? SentryTrimmedText.nonEmpty(packagedConfiguration["VOUCHA_SENTRY_DSN"])
+        )
         return SentryLaunchPlan(
             dsn: dsn,
             releaseName: releaseName,
             environmentName: configuration.environmentName,
-            accountId: normalized(accountId),
+            accountId: SentryTrimmedText.nonEmpty(accountId),
             sendDefaultPii: false,
             tracesSampleRate: dsn == nil ? 0 : enabledTracesSampleRate
         )
@@ -54,19 +57,5 @@ public struct SentryLaunchPlan: Equatable, Sendable {
               let project = components.path.split(separator: "/").last, !project.isEmpty
         else { return nil }
         return value
-    }
-
-    private static func read(_ source: [String: String], _ key: String) -> String? {
-        guard let value = source[key]?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
-            return nil
-        }
-        return value
-    }
-
-    private static func normalized(_ accountId: String?) -> String? {
-        guard let accountId = accountId?.trimmingCharacters(in: .whitespacesAndNewlines), !accountId.isEmpty else {
-            return nil
-        }
-        return accountId
     }
 }

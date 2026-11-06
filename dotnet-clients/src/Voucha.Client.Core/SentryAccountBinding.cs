@@ -11,8 +11,8 @@ public readonly record struct SentryAccountDecision(SentryAccountAction Action, 
 {
   public static SentryAccountDecision Update(string? boundAccountId, string? nextAccountId)
   {
-    var current = Trimmed(boundAccountId);
-    var next = Trimmed(nextAccountId);
+    var current = SentryTrimmedText.NonEmpty(boundAccountId);
+    var next = SentryTrimmedText.NonEmpty(nextAccountId);
     if (string.Equals(current, next, StringComparison.Ordinal))
     {
       return new SentryAccountDecision(SentryAccountAction.Unchanged, current);
@@ -21,11 +21,5 @@ public readonly record struct SentryAccountDecision(SentryAccountAction Action, 
     return next is null
         ? new SentryAccountDecision(SentryAccountAction.Clear, null)
         : new SentryAccountDecision(SentryAccountAction.Set, next);
-  }
-
-  private static string? Trimmed(string? value)
-  {
-    var trimmed = value?.Trim();
-    return string.IsNullOrEmpty(trimmed) ? null : trimmed;
   }
 }
