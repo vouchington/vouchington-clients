@@ -37,6 +37,11 @@ localization references, even when generated resources have not changed. The pro
 checks unknown keys and unused consumer claims. `contracts:check` only compares generated files,
 so checking an earlier stage cannot validate the final product references.
 
+Collect local .NET patch coverage with the portable CI filter
+`FullyQualifiedName!~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto`, then run
+`pnpm run coverage:dotnet-core`. The separately run DTO round-trip advisory intentionally does not
+contribute to the coverage gate.
+
 CI placement is a quality rule: portable .NET tests run once on Linux; Swift core tests run on
 Linux and macOS only because those jobs compile different networking and Security slices. See
 [native CI test placement](native-ci-test-placement.md).
