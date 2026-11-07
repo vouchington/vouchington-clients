@@ -121,7 +121,7 @@ public sealed class CommunityApiModelCoverageTests
     var metrics = new PostMetrics(
         "post_metrics",
         "post-1",
-        new PostMetricCounts(3, 2, 1),
+        new PostMetricCounts(3, 2),
         UpdatedAt: DateTimeOffset.Parse("2026-01-02T00:00:00Z"),
         Bookmarks: new Dictionary<string, int>
         {
