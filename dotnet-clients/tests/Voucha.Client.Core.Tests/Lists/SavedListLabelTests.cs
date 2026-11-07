@@ -24,6 +24,24 @@ public sealed partial class ListsViewModelTests
   }
 
   [Fact]
+  public void RequiredNullLabelSurvivesProductionOptionsRoundTrip()
+  {
+    var fixture = JsonSerializer.Deserialize<ListItemsResponse>(
+        ApiFixtureLoader.LoadResponse("native.list-items.default"), VouchaApiJson.Options)!;
+    var encoded = JsonSerializer.Serialize(fixture, VouchaApiJson.Options);
+    using var json = JsonDocument.Parse(encoded);
+    Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("list_items")
+        .GetProperty("list-item-2").GetProperty("entity_label").ValueKind);
+    var decoded = JsonSerializer.Deserialize<ListItemsResponse>(encoded, VouchaApiJson.Options)!;
+    Assert.Null(decoded.ListItems["list-item-2"].EntityLabel);
+    var added = new ListItemResponse(decoded.ListItems["list-item-2"]);
+    var addedAgain = JsonSerializer.Deserialize<ListItemResponse>(
+        JsonSerializer.Serialize(added, VouchaApiJson.Options), VouchaApiJson.Options)!;
+    Assert.Null(addedAgain.ListItem.EntityLabel);
+    Assert.Equal("post-1", addedAgain.ListItem.EntityId);
+  }
+
+  [Fact]
   public void ListReadAndAddRequireNullableLabelFact()
   {
     var body = JsonNode.Parse(ApiFixtureLoader.LoadResponse("native.list-items.default"))!;

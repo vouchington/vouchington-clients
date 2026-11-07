@@ -68,8 +68,15 @@ public abstract partial class CommunitySectionPage
     review.AutomationId = "community-application-review";
     review.IsEnabled = false;
     bool HasSelection() => application.SelectedItem is CommunitySummaryRow selected &&
-        viewModel.Applications.Any(row => row.Id == selected.Id) && viewModel.CanModerateCommunity && !viewModel.IsLoading;
+        viewModel.ApplicationRows.Any(row => row.Id == selected.Id && row.Status == "pending") &&
+        viewModel.CanModerateCommunity && !viewModel.IsLoading;
     application.SelectedIndexChanged += (_, _) => review.IsEnabled = HasSelection();
+    application.PropertyChanged += (_, args) =>
+    {
+      if (args.PropertyName != Picker.ItemsSourceProperty.PropertyName) return;
+      application.SelectedIndex = -1;
+      review.IsEnabled = false;
+    };
     review.Clicked += async (_, _) =>
     {
       if (!HasSelection() || application.SelectedItem is not CommunitySummaryRow selected) return;

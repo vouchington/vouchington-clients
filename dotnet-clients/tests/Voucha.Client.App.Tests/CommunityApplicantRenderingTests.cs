@@ -49,6 +49,35 @@ public sealed class CommunityApplicantRenderingTests
     Assert.Equal(1, ((ApplicationsProxy)service).ReviewCount);
   }
 
+  [Theory]
+  [InlineData("approved")]
+  [InlineData("rejected")]
+  public async Task ReviewedApplicantReloadClearsSelectionAndCannotReviewAgain(string reviewedStatus)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
+    var service = DispatchProxy.Create<ICommunitiesService, ApplicationsProxy>();
+    var proxy = (ApplicationsProxy)service;
+    proxy.StatusAfterReview = reviewedStatus;
+    var session = new SessionStore();
+    using var model = new CommunityDetailViewModel(service, session);
+    var page = new CommunityApplicationsPage(model, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Applications, TestContext.Current.CancellationToken);
+    var picker = Assert.Single(VisualTreeElements.Descendants<Picker>(page));
+    var review = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "community-application-review");
+    picker.SelectedIndex = 0;
+    review.SendClicked();
+    Assert.Equal(1, proxy.ReviewCount);
+    Assert.Equal(reviewedStatus, Assert.Single(model.ApplicationRows).Status);
+    Assert.Equal(-1, picker.SelectedIndex);
+    Assert.Null(picker.SelectedItem);
+    Assert.False(review.IsEnabled);
+    picker.SelectedIndex = 0;
+    Assert.False(review.IsEnabled);
+    review.SendClicked();
+    Assert.Equal(1, proxy.ReviewCount);
+  }
+
   [Fact]
   public async Task SavedListTemplateRendersFixtureLabelsAndUntitledPost()
   {
@@ -87,6 +116,7 @@ public sealed class CommunityApplicantRenderingTests
   {
     public bool Deleted { get; set; }
     public bool Empty { get; set; }
+    public string? StatusAfterReview { get; set; }
     public int ReviewCount { get; private set; }
     public string? ReviewedId { get; private set; }
     protected override object? Invoke(MethodInfo? method, object?[]? args)
@@ -100,6 +130,9 @@ public sealed class CommunityApplicantRenderingTests
       if (method?.Name != nameof(ICommunitiesService.FetchApplicationsPageAsync)) return base.Invoke(method, args);
       var response = JsonSerializer.Deserialize<CommunityApplicationsResponse>(File.ReadAllText(
           FilamentsContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!;
+      if (ReviewCount > 0 && StatusAfterReview is { } status)
+        response = response with { CommunityApplications = response.CommunityApplications.ToDictionary(
+            pair => pair.Key, pair => pair.Value with { Status = status }) };
       if (Empty) response = response with { Results = [], CommunityApplications = new Dictionary<string, CommunityApplicationSummary>() };
       return Task.FromResult(Deleted ? response with { Users = new Dictionary<string, PublicUser>() } : response);
     }
