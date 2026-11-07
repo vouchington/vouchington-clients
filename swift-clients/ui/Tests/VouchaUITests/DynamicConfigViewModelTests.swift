@@ -297,17 +297,17 @@ final class DynamicConfigViewModelTests: XCTestCase {
         let state = FeatureFlagState(store: store)
         XCTAssertEqual(state.effective, [:])
 
-        state.applyRemote(["fediverse": false, "chat": false])
+        state.applyRemote(["fediverse": false, "memberships": false])
 
-        XCTAssertEqual(state.effective, ["fediverse": true, "chat": false])
+        XCTAssertEqual(state.effective, ["fediverse": true, "memberships": false])
         XCTAssertNil(state.localOverride(for: "removedFlag"))
-        try state.setLocalOverride(false, for: "chat")
-        XCTAssertEqual(FeatureFlagOverrideFileStore(fileURL: fileURL).load()["chat"], false)
+        try state.setLocalOverride(false, for: "memberships")
+        XCTAssertEqual(FeatureFlagOverrideFileStore(fileURL: fileURL).load()["memberships"], false)
 
         let recreatedState = FeatureFlagState(store: FeatureFlagOverrideFileStore(fileURL: fileURL))
-        recreatedState.applyRemote(["fediverse": false, "chat": true])
-        XCTAssertEqual(recreatedState.localOverride(for: "chat"), false)
-        XCTAssertEqual(recreatedState.effective["chat"], false)
+        recreatedState.applyRemote(["fediverse": false, "memberships": true])
+        XCTAssertEqual(recreatedState.localOverride(for: "memberships"), false)
+        XCTAssertEqual(recreatedState.effective["memberships"], false)
     }
 
     func testReadOnlyNamespaceDoesNotExposeMutationsOrOverrides() async throws {
