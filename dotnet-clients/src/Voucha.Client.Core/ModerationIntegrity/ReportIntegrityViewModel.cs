@@ -19,6 +19,20 @@ public sealed class ReportIntegrityViewModel
       : base(viewer, localization, localeController, capabilities) =>
       this.service = service ?? throw new ArgumentNullException(nameof(service));
 
+  public async Task<ReportIntegrityRow> FetchDetailAsync(
+      string flagId, CancellationToken cancellationToken = default)
+  {
+    if (!IsAuthorized) throw new InvalidOperationException("Staff access required.");
+    var response = await service.FetchReportFlagAsync(flagId, cancellationToken).ConfigureAwait(false);
+    return IntegrityFlagPresentation.ReportDetailRow(response.Flag, Localization);
+  }
+
+  public ReportIntegrityRow PresentDetail(ReportIntegrityFlag flag)
+  {
+    ArgumentNullException.ThrowIfNull(flag);
+    return IntegrityFlagPresentation.ReportDetailRow(flag, Localization);
+  }
+
   public bool CanDismiss(string flagId) => CanBeginAction(flagId, Capabilities.CanResolveFlags);
   public bool CanPenalizeReporters(string flagId) =>
       CanBeginAction(flagId, Capabilities.CanApplyPenalties);

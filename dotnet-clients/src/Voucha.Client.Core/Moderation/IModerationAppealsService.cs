@@ -4,7 +4,7 @@ namespace Voucha.Client.Core.Moderation;
 
 public interface IModerationAppealsService
 {
-  Task<ModerationAppealListResponse> FetchAppealsAsync(
+  Task<StaffModerationAppealListResponse> FetchAppealsAsync(
       ModerationAppealStatus status,
       string? after = null,
       int limit = 25,

@@ -32,7 +32,8 @@ public sealed class ReportIntegrityViewModelTests
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     Assert.Null(viewModel.Items.Single().Entity.Route);
     Assert.Equal("Post ID post-9", UiLocalization.English.Resolve(viewModel.Items.Single().Entity.Label));
-    Assert.Contains("reporter_user_ids", viewModel.Items.Single().Evidence);
+    Assert.DoesNotContain("reporter_user_ids", viewModel.Items.Single().Evidence);
+    Assert.Equal(5, viewModel.Items.Single().Flag.ReporterCount);
     Assert.Contains("window_minutes: 30", viewModel.Items.Single().Evidence);
 
     await viewModel.SelectStatusAsync(

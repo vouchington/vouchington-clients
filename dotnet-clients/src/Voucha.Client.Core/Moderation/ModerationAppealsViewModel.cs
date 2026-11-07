@@ -45,7 +45,7 @@ public sealed partial class ModerationAppealsViewModel :
   public bool IsMutating => MutatingAppealId is not null;
   public bool IsLoading => State == LoadState.Loading;
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
-  public bool HasAppeals => Appeals.Count > 0;
+  public bool HasAppeals => Summaries.Count > 0;
   public bool IsEmpty => State == LoadState.Loaded && !HasAppeals;
 
   public IReadOnlyList<ModerationAppeal> Appeals
@@ -147,7 +147,11 @@ public sealed partial class ModerationAppealsViewModel :
   private static string ServerDraftFor(ModerationAppeal appeal) =>
       appeal.PublicResponse ?? appeal.AiPublicResponse ?? string.Empty;
 
-  public void OnUiLocaleChanged() => OnPropertyChanged(nameof(Appeals));
+  public void OnUiLocaleChanged()
+  {
+    OnPropertyChanged(nameof(Appeals));
+    OnPropertyChanged(nameof(Summaries));
+  }
 
   public void Dispose()
   {

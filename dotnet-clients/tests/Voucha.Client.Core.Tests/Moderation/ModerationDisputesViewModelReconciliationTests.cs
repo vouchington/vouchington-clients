@@ -12,7 +12,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
   {
     var service = new ModerationDisputesTestService();
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     viewModel.SetPublicResponseDraft(dispute, "Locally edited response");
     service.FailNext(ModerationDisputesTestService.AmbiguousFailure());
@@ -33,7 +33,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
   {
     var service = new ModerationDisputesTestService();
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     viewModel.SetPublicResponseDraft(dispute, "Locally edited response");
     service.Refreshes.Enqueue(dispute with
@@ -63,13 +63,13 @@ public sealed class ModerationDisputesViewModelReconciliationTests
       },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var pending = viewModel.Disputes.Single();
     var stalePage = new TaskCompletionSource<ModerationDisputeListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingFetch = stalePage;
 
-    var load = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var load = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await service.PendingFetchStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
     await viewModel.ResolveAsync(
         pending,
@@ -78,7 +78,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
     stalePage.SetResult(new([pending], new PageInfo(null, false, null)));
     await load;
 
-    Assert.Empty(viewModel.Disputes);
+    Assert.Empty(viewModel.Summaries);
     Assert.False(viewModel.IsLoading);
   }
 
@@ -99,7 +99,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
       PendingResolve = pendingResolution,
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var pending = viewModel.Disputes.Single();
     service.PendingFetch = stalePage;
 
@@ -108,7 +108,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
         ModerationDisputeResolutionAction.Remove,
         TestContext.Current.CancellationToken);
     await service.ResolveStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
-    var refresh = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var refresh = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await service.PendingFetchStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
     var resolved = service.Current with { Status = ModerationDisputeStatus.Resolved };
     pendingResolution.SetResult(new(resolved));
@@ -116,7 +116,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
     stalePage.SetResult(new([pending], new PageInfo(null, false, null)));
     await refresh;
 
-    Assert.Empty(viewModel.Disputes);
+    Assert.Empty(viewModel.Summaries);
     Assert.False(viewModel.IsLoading);
   }
 

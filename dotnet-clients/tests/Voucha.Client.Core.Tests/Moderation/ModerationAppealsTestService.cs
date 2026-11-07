@@ -14,6 +14,7 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
       .Appeal;
 
   public List<string> Calls { get; } = [];
+  public Queue<StaffModerationAppealListResponse> SummaryPages { get; } = new();
   public Queue<ModerationAppealListResponse> Pages { get; } = [];
   public Queue<ModerationAppeal> Details { get; } = [];
   public Exception? NextError { get; set; }
@@ -40,7 +41,17 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
         UserSuspensionId = suspension ? "suspension-1" : null,
       };
 
-  public Task<ModerationAppealListResponse> FetchAppealsAsync(
+  public async Task<StaffModerationAppealListResponse> FetchAppealsAsync(
+      ModerationAppealStatus status, string? after = null, int limit = 25,
+      CancellationToken cancellationToken = default)
+  {
+    if (SummaryPages.TryDequeue(out var summaryPage)) return summaryPage;
+    var page = await FetchPageAsync(status, after, limit, cancellationToken);
+    return JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
+        JsonSerializer.Serialize(page, VouchaApiJson.Options), VouchaApiJson.Options)!;
+  }
+
+  private Task<ModerationAppealListResponse> FetchPageAsync(
       ModerationAppealStatus status,
       string? after = null,
       int limit = 25,

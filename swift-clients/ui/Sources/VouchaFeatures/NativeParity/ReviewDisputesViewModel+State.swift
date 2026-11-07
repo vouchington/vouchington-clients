@@ -4,6 +4,9 @@ import VouchaModels
 
 extension ReviewDisputesViewModel {
     func replace(with dispute: ReviewDispute) {
+        if selectedDetailId == nil || selectedDetailId == dispute.id {
+            detailReviewDispute = dispute
+        }
         publicResponseDrafts[dispute.id] = publicDraftSeed(for: dispute)
         locallyEditedPublicResponseIds.remove(dispute.id)
         if annotationDrafts[dispute.id] == nil {

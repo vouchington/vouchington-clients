@@ -17,6 +17,14 @@ final class ModerationAppealsViewModel {
     let admissionStore: AppealAIRerunAdmissionStore
     let admissionOwner: AppealAIRerunOwner?
 
+    var detailModerationAppeal: ModerationAppeal?
+    var isLoadingDetail = false
+    var detailError: UiVerbatimText?
+    var detailRevision = 0
+    var selectedDetailId: String?
+
+    var summaryPagination = CursorPaginationState<ModerationAppealSummary>()
+
     var appealPagination = CursorPaginationState<ModerationAppeal>()
     var appeals: [ModerationAppeal] {
         get { appealPagination.items }
@@ -24,13 +32,13 @@ final class ModerationAppealsViewModel {
     }
 
     var hasMore: Bool {
-        get { appealPagination.hasMore }
-        set { appealPagination.restoreContinuation(endCursor: appealPagination.endCursor, hasMore: newValue) }
+        get { summaryPagination.hasMore }
+        set { summaryPagination.restoreContinuation(endCursor: summaryPagination.endCursor, hasMore: newValue) }
     }
 
     var isLoading = false
     var isLoadingMore: Bool {
-        appealPagination.isLoading && appealPagination.hasLoadedPage
+        summaryPagination.isLoading && summaryPagination.hasLoadedPage
     }
 
     var mutatingAppealId: String?
@@ -89,8 +97,8 @@ final class ModerationAppealsViewModel {
         loadRevision += 1
         let revision = loadRevision
         let expectedStatus = selectedStatus
-        appealPagination.reset()
-        guard let request = appealPagination.beginNextPage() else { return }
+        summaryPagination.reset()
+        guard let request = summaryPagination.beginNextPage() else { return }
         isLoading = true
         errorMessage = nil
         loadMoreErrorMessage = nil
@@ -98,25 +106,19 @@ final class ModerationAppealsViewModel {
             let response: ModerationAppealListResponse = try await client.send(
                 .appeals(status: expectedStatus, limit: 25)
             )
-            let details = try await hydrateModerationDetails(response.appeals) { summary in
-                let detail: ModerationAppealEnvelope = try await client.send(.appeal(id: summary.id))
-                return detail.appeal
-            }
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            appealPagination.complete(
+            summaryPagination.complete(
                 request,
-                items: details,
+                items: response.appeals,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            reconcileAIReruns(from: details)
-            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
-            appealPagination.cancel(request)
+            summaryPagination.cancel(request)
         } catch {
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            appealPagination.fail(request, error: vouchaError(from: error))
+            summaryPagination.fail(request, error: vouchaError(from: error))
             errorMessage = message(for: error)
         }
         guard revision == loadRevision else { return }
@@ -126,13 +128,13 @@ final class ModerationAppealsViewModel {
     func selectStatus(_ status: ModerationAppealStatus) async {
         guard status != selectedStatus else { return }
         selectedStatus = status
-        appealPagination.reset()
+        summaryPagination.reset()
         await load()
     }
 
     func loadMore() async {
         guard canAccess, let client, !isLoading,
-              let request = appealPagination.beginNextPage()
+              let request = summaryPagination.beginNextPage()
         else { return }
         let revision = loadRevision
         let expectedStatus = selectedStatus
@@ -141,27 +143,21 @@ final class ModerationAppealsViewModel {
             let response: ModerationAppealListResponse = try await client.send(
                 .appeals(status: expectedStatus, limit: 25, after: request.cursor)
             )
-            let details = try await hydrateModerationDetails(response.appeals) { summary in
-                let detail: ModerationAppealEnvelope = try await client.send(.appeal(id: summary.id))
-                return detail.appeal
-            }
             guard revision == loadRevision, expectedStatus == selectedStatus,
-                  appealPagination.isCurrent(request)
+                  summaryPagination.isCurrent(request)
             else { return }
-            appealPagination.complete(
+            summaryPagination.complete(
                 request,
-                items: details,
+                items: response.appeals,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            reconcileAIReruns(from: details)
-            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
-            appealPagination.cancel(request)
+            summaryPagination.cancel(request)
         } catch {
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            appealPagination.fail(request, error: vouchaError(from: error))
+            summaryPagination.fail(request, error: vouchaError(from: error))
             loadMoreErrorMessage = message(for: error)
         }
     }

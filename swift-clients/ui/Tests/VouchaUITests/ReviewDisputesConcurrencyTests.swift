@@ -62,7 +62,7 @@ final class ReviewDisputesConcurrencyTests: NativeRouteSurfaceViewModelTestCase 
         await load.value
 
         XCTAssertTrue(viewModel.disputes.isEmpty)
-        XCTAssertFalse(viewModel.disputePagination.isLoading)
+        XCTAssertFalse(viewModel.summaryPagination.isLoading)
     }
 
     func testCardDisappearanceCancelsOwnedRerunPolling() async throws {

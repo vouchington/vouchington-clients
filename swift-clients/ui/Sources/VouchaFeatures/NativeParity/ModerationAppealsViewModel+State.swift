@@ -4,6 +4,9 @@ import VouchaModels
 
 extension ModerationAppealsViewModel {
     func replace(with appeal: ModerationAppeal, preservingEditedDraft: Bool = false) {
+        if selectedDetailId == nil || selectedDetailId == appeal.id {
+            detailModerationAppeal = appeal
+        }
         if let mutationAdmissionToken,
            let admission = admissionStore.admission(appeal.id, for: admissionOwner),
            admission.token == mutationAdmissionToken,

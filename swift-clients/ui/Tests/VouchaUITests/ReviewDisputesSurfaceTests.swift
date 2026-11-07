@@ -1,10 +1,30 @@
 import ViewInspector
+@testable import VouchaAPI
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
 
 @MainActor
 final class ReviewDisputesSurfaceTests: XCTestCase {
+    func testStaffListRendersSummaryWithoutDraftEditorsOrActions() throws {
+        let response = try JSONDecoder.vouchaFixtureDecoder.decode(
+            ReviewDisputeListResponse.self,
+            from: ApiFixtureLoader.data("native.moderation.disputes.default")
+        )
+        let viewModel = ReviewDisputesViewModel(
+            client: nil, isSignedIn: true, isAdministrator: true, isSiteModerator: false
+        )
+        viewModel.summaryPagination.reset(items: response.disputes)
+        let inspection = try ReviewDisputesSurface(viewModel: viewModel).inspect()
+
+        XCTAssertNoThrow(try inspection.find(text: "native-claimant"))
+        XCTAssertNoThrow(try inspection.find(text: "Pending"))
+        XCTAssertThrowsError(try inspection.find(text: "The published rating uses the wrong total."))
+        XCTAssertThrowsError(try inspection.find(button: "Approve"))
+        XCTAssertTrue(inspection.findAll(ViewType.TextEditor.self).isEmpty)
+        XCTAssertTrue(viewModel.disputes.isEmpty)
+    }
+
     func testStaffSurfaceRendersContextClaimDraftsAndLifecycleActions() throws {
         let dispute = try fixture()
         let viewModel = ReviewDisputesViewModel(
@@ -13,7 +33,7 @@ final class ReviewDisputesSurfaceTests: XCTestCase {
         viewModel.disputes = [dispute]
         viewModel.seedDrafts(from: [dispute])
 
-        let inspection = try ReviewDisputesSurface(viewModel: viewModel).inspect()
+        let inspection = try ReviewDisputeCard(viewModel: viewModel, dispute: dispute).inspect()
         for text in [
             "Pending", "Quarterly review", "Example Rewards", "issuer",
             "The published rating uses the wrong total.", "Internal evidence",
@@ -37,7 +57,7 @@ final class ReviewDisputesSurfaceTests: XCTestCase {
         )
         viewModel.disputes = [dispute]
         viewModel.seedDrafts(from: [dispute])
-        let inspection = try ReviewDisputesSurface(viewModel: viewModel).inspect()
+        let inspection = try ReviewDisputeCard(viewModel: viewModel, dispute: dispute).inspect()
 
         XCTAssertNoThrow(try inspection.find(text: "The published rating uses the wrong total."))
         XCTAssertEqual(inspection.findAll(ViewType.TextEditor.self).count, 2)

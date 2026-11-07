@@ -309,7 +309,7 @@ final class NativeRouteDestinationViewRoutingTests: NativeRouteSurfaceViewModelT
     func testDedicatedStaffAppealsRouteNeverRunsTheGenericLoader() async throws {
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/appeals"))
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
-            ModerationAppealsTestSupport.list([ModerationAppealsTestSupport.appeal()]), 200
+            ModerationAppealsTestSupport.staffList([ModerationAppealsTestSupport.appeal()]), 200
         )
 
         for role in [(administrator: true, moderator: false), (administrator: false, moderator: false)] {

@@ -102,16 +102,6 @@ public sealed partial class ModerationDisputesViewModel
         !ambiguousMutationIds.Contains(dispute.Id);
   }
 
-  private void SeedDrafts(IEnumerable<ModerationDispute> loaded)
-  {
-    foreach (var dispute in loaded)
-    {
-      if (!dirtyPublicResponseIds.Contains(dispute.Id))
-        publicResponseDrafts[dispute.Id] = PublicResponseSeed(dispute);
-      annotationDrafts.TryAdd(dispute.Id, string.Empty);
-    }
-  }
-
   private void Replace(
       ModerationDispute dispute,
       bool preserveUnconfirmedDirtyDraft = false)
@@ -133,15 +123,12 @@ public sealed partial class ModerationDisputesViewModel
     annotationDrafts.TryAdd(dispute.Id, string.Empty);
     var updated = Disputes.ToList();
     var index = updated.FindIndex(item => item.Id == dispute.Id);
-    if (dispute.Status != SelectedStatus)
-    {
-      if (index >= 0) updated.RemoveAt(index);
-    }
-    else if (index >= 0)
+    if (index >= 0)
       updated[index] = dispute;
     else
       updated.Insert(0, dispute);
     Disputes = updated;
+    UpdateSummary(dispute);
   }
 
   private static string PublicResponseSeed(ModerationDispute dispute) =>

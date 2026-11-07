@@ -31,8 +31,8 @@ public sealed class ModerationAppealsPage : ContentPage, IDisposable
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetModerationAppeals.Value);
     ConfigureStatusPicker();
     statusPicker.SelectedIndexChanged += StatusChangedAsync;
-    appealsView.ItemTemplate = new DataTemplate(() => new ModerationAppealCardView(viewModel));
-    appealsView.SetBinding(ItemsView.ItemsSourceProperty, nameof(ModerationAppealsViewModel.Appeals));
+    appealsView.ItemTemplate = new DataTemplate(() => new ModerationSummaryRow(viewModel, page => Navigation.PushModalAsync(page)));
+    appealsView.SetBinding(ItemsView.ItemsSourceProperty, nameof(ModerationAppealsViewModel.Summaries));
     paginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
     paginationControl.SetBinding(HybridPaginationControl.HasMoreProperty, nameof(ModerationAppealsViewModel.HasMore));
     paginationControl.SetBinding(HybridPaginationControl.IsLoadingProperty, nameof(ModerationAppealsViewModel.IsLoading));

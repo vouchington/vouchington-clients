@@ -71,7 +71,15 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
 
   private async Task<ModerationCursorPage> LoadAppealsAsync(string? after, CancellationToken cancellationToken)
   {
-    var response = await service.FetchAppealsAsync(Context!.Mine, after, cancellationToken: cancellationToken).ConfigureAwait(true);
+    if (!Context!.Mine)
+    {
+      var summaries = await service.FetchStaffAppealsAsync(after, cancellationToken: cancellationToken).ConfigureAwait(true);
+      return new(summaries.Appeals.Select(appeal => Row(appeal.Id,
+          UiText.Verbatim(appeal.TargetContext is ModerationAppealPostRemovalContext post ? post.Title : localization.Localize(UiMessageKey.NativeDotnetModerationCase)),
+          UiText.Verbatim($"{appeal.Status} · {appeal.RecommendedAction?.ToString() ?? localization.Localize(UiMessageKey.NativeDotnetModerationNoRecommendation)}"),
+          "arrow-uturn-left")).ToArray(), summaries.PageInfo);
+    }
+    var response = await service.FetchMemberAppealsAsync(after, cancellationToken: cancellationToken).ConfigureAwait(true);
     return new(
         response.Appeals.Select(appeal => Row(appeal.Id, UiText.Verbatim((appeal.TargetContext as ModerationAppealPostRemovalContext)?.Title ?? localization.Localize(UiMessageKey.NativeDotnetModerationCase)), UiText.Verbatim($"{appeal.Status} · {AppealDescription(appeal)}"), "arrow-uturn-left")).ToArray(),
         response.PageInfo);
@@ -79,7 +87,15 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
 
   private async Task<ModerationCursorPage> LoadDisputesAsync(string? after, CancellationToken cancellationToken)
   {
-    var response = await service.FetchDisputesAsync(Context!.Mine, after, cancellationToken: cancellationToken).ConfigureAwait(true);
+    if (!Context!.Mine)
+    {
+      var summaries = await service.FetchStaffDisputesAsync(after, cancellationToken: cancellationToken).ConfigureAwait(true);
+      return new(summaries.Disputes.Select(dispute => Row(dispute.Id,
+          UiText.Verbatim(dispute.PostLabel ?? localization.Localize(UiMessageKey.NativeDotnetModerationCase)),
+          UiText.Verbatim($"{dispute.Status} · {dispute.RecommendedAction ?? dispute.Reason ?? localization.Localize(UiMessageKey.NativeDotnetModerationNoRecommendation)}"),
+          "scale-balanced")).ToArray(), summaries.PageInfo);
+    }
+    var response = await service.FetchMemberDisputesAsync(after, cancellationToken: cancellationToken).ConfigureAwait(true);
     return new(
         response.Disputes.Select(dispute => Row(
               dispute.Id,

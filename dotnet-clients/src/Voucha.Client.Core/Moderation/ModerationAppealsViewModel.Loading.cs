@@ -19,6 +19,7 @@ public sealed partial class ModerationAppealsViewModel
     _ = Interlocked.Increment(ref loadRevision);
     SelectedStatus = status;
     Appeals = [];
+    Summaries = [];
     endCursor = null;
     HasMore = false;
     State = LoadState.Idle;
@@ -30,7 +31,7 @@ public sealed partial class ModerationAppealsViewModel
     ArgumentNullException.ThrowIfNull(appeal);
     var current = Appeals.FirstOrDefault(row => row.Id == appeal.Id);
     return CanAccess && current is not null &&
-        (current.AiDraftRequestedRunId is null || IsDeliveryAmbiguous(current))
+        IsDeliveryAmbiguous(current)
         ? RefreshAppealAsync(current.Id, cancellationToken) : Task.CompletedTask;
   }
 
@@ -45,28 +46,26 @@ public sealed partial class ModerationAppealsViewModel
     {
       var response = await service.FetchAppealsAsync(expectedStatus, cursor, cancellationToken: cancellationToken).ConfigureAwait(true);
       if (!IsCurrent(revision, expectedStatus)) return;
-      Appeals = replace ? Deduplicate(response.Appeals) : Merge(Appeals, response.Appeals);
-      ReconcileAIReruns(response.Appeals);
-      SeedDrafts(response.Appeals);
+      Summaries = replace ? Deduplicate(response.Appeals) : Merge(Summaries, response.Appeals);
       endCursor = response.PageInfo.EndCursor;
       HasMore = response.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
-      if (IsCurrent(revision, expectedStatus)) State = Appeals.Count == 0 ? LoadState.Idle : LoadState.Loaded;
+      if (IsCurrent(revision, expectedStatus)) State = Summaries.Count == 0 ? LoadState.Idle : LoadState.Loaded;
     }
     catch (OperationCanceledException ex)
     {
       if (!IsCurrent(revision, expectedStatus)) return;
       ErrorMessage = ex.Message;
-      State = Appeals.Count == 0 ? LoadState.Error : LoadState.Loaded;
+      State = Summaries.Count == 0 ? LoadState.Error : LoadState.Loaded;
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
       if (!IsCurrent(revision, expectedStatus)) return;
       ErrorMessage = ex.Message;
-      State = Appeals.Count == 0 ? LoadState.Error : LoadState.Loaded;
+      State = Summaries.Count == 0 ? LoadState.Error : LoadState.Loaded;
     }
   }
 
@@ -111,9 +110,9 @@ public sealed partial class ModerationAppealsViewModel
   private bool IsCurrent(int revision, ModerationAppealStatus status) =>
       revision == Volatile.Read(ref loadRevision) && status == SelectedStatus;
 
-  private static ModerationAppeal[] Deduplicate(IEnumerable<ModerationAppeal> source) =>
+  private static ModerationAppealSummary[] Deduplicate(IEnumerable<ModerationAppealSummary> source) =>
       source.DistinctBy(appeal => appeal.Id, StringComparer.Ordinal).ToArray();
 
-  private static ModerationAppeal[] Merge(IEnumerable<ModerationAppeal> existing, IEnumerable<ModerationAppeal> additions) =>
+  private static ModerationAppealSummary[] Merge(IEnumerable<ModerationAppealSummary> existing, IEnumerable<ModerationAppealSummary> additions) =>
       existing.Concat(additions).DistinctBy(appeal => appeal.Id, StringComparer.Ordinal).ToArray();
 }

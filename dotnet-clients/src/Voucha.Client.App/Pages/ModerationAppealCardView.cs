@@ -3,12 +3,12 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Content;
-
 namespace Voucha.Client.App.Pages;
 
 internal sealed class ModerationAppealCardView : VerticalStackLayout
 {
   private readonly ModerationAppealsViewModel viewModel;
+  private readonly Func<CancellationToken> lifecycleToken;
   private readonly Label heading = new() { FontAttributes = FontAttributes.Bold };
   private readonly Label context = new() { FontSize = 12 };
   private readonly Label removalTitle = new();
@@ -60,11 +60,12 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
   private readonly Button refreshDelivery = UiCopy.Bind(
       new Button(),
       Button.TextProperty,
-      UiMessageKey.NativeDotnetCommonRefresh);
+      UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery);
 
-  public ModerationAppealCardView(ModerationAppealsViewModel viewModel)
+  public ModerationAppealCardView(ModerationAppealsViewModel viewModel, Func<CancellationToken>? lifecycleToken = null)
   {
     this.viewModel = viewModel;
+    this.lifecycleToken = lifecycleToken ?? (() => default);
     Padding = 12;
     Spacing = 8;
     Children.Add(heading);
@@ -102,11 +103,17 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     Loaded += OnLoaded;
     Unloaded += OnUnloaded;
   }
-
-  private ModerationAppeal? Appeal => BindingContext as ModerationAppeal;
+  private ModerationAppeal? Appeal => viewModel.CanAccess && BindingContext is ModerationAppeal selected
+      ? viewModel.Appeals.FirstOrDefault(item => item.Id == selected.Id) ?? selected : null;
 
   private void Populate()
   {
+    if (!viewModel.CanAccess)
+    {
+      BindingContext = null;
+      Children.Clear();
+      return;
+    }
     if (Appeal is not { } appeal) return;
     heading.Text = ModerationAppealCardPresentation.Heading(appeal);
     context.Text = ModerationAppealCardPresentation.Context(appeal);
@@ -157,19 +164,16 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     accept.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Accept);
     reduce.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Reduce);
     deny.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Deny);
-    UiCopy.Bind(refreshDelivery, Button.TextProperty, appeal.AiDraftRequestedRunId is null
-        ? UiMessageKey.NativeDotnetCommonRefresh
-        : UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery);
-    refreshDelivery.IsVisible = appeal.AiDraftRequestedRunId is null || viewModel.IsDeliveryAmbiguous(appeal);
+    refreshDelivery.IsVisible = viewModel.IsDeliveryAmbiguous(appeal);
   }
 
   private async Task WithAppeal(Func<ModerationAppeal, CancellationToken, Task> action)
   {
-    if (Appeal is { } appeal) await action(appeal, default).ConfigureAwait(true);
+    if (Appeal is { } appeal) await action(appeal, lifecycleToken()).ConfigureAwait(true);
   }
 
   private Task ResolveAsync(ModerationAppealAction action) =>
-      Appeal is { } appeal ? viewModel.ResolveAsync(appeal, action) : Task.CompletedTask;
+      Appeal is { } appeal ? viewModel.ResolveAsync(appeal, action, lifecycleToken()) : Task.CompletedTask;
 
   private void ViewModelChanged(object? sender, PropertyChangedEventArgs args) => Populate();
 
@@ -182,7 +186,6 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
 
   private void OnUnloaded(object? sender, EventArgs args) =>
       viewModel.PropertyChanged -= ViewModelChanged;
-
   private static void PopulateReadOnly(
       Label label,
       UiMessageKey heading,

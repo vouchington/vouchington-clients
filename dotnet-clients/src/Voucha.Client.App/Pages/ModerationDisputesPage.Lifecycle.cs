@@ -4,7 +4,6 @@ public sealed partial class ModerationDisputesPage
 {
   private readonly object loadSync = new();
   private CancellationTokenSource? loadCancellation;
-  private CancellationTokenSource? mutationCancellation = new();
   private Task activeLoad = Task.CompletedTask;
   private int requestedLoadRevision;
   private bool disposed;
@@ -24,7 +23,6 @@ public sealed partial class ModerationDisputesPage
 
   protected override async void OnAppearing()
   {
-    mutationCancellation ??= new CancellationTokenSource();
     base.OnAppearing();
     await ReloadAsync().ConfigureAwait(true);
   }
@@ -45,11 +43,7 @@ public sealed partial class ModerationDisputesPage
       _ = Interlocked.Increment(ref requestedLoadRevision);
       loadCancellation?.Cancel();
     }
-    CancelAndDispose(ref mutationCancellation);
   }
-
-  private CancellationToken CurrentMutationToken() =>
-      mutationCancellation?.Token ?? new CancellationToken(canceled: true);
 
   private async Task RunLatestLoadAsync(
       Func<CancellationToken, Task> operation)
@@ -90,10 +84,4 @@ public sealed partial class ModerationDisputesPage
     }
   }
 
-  private static void CancelAndDispose(ref CancellationTokenSource? cancellation)
-  {
-    cancellation?.Cancel();
-    cancellation?.Dispose();
-    cancellation = null;
-  }
 }

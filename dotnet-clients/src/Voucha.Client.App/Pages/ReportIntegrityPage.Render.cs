@@ -24,6 +24,13 @@ public sealed partial class ReportIntegrityPage
         string.IsNullOrWhiteSpace(row.Evidence) ? string.Empty :
             UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityEvidence),
         row.Evidence);
+    var open = UiCopy.Bind(new Button { AutomationId = $"report-integrity-open-{flag.Id}" },
+        Button.TextProperty, UiMessageKey.NativeSwiftIntegrityEvidence);
+    open.Clicked += async (_, _) => await Navigation.PushModalAsync(
+        new ModerationDetailPage<ReportIntegrityRow>(
+            token => viewModel.FetchDetailAsync(flag.Id, token),
+            detail => IntegrityPageViews.CardLines(viewModel.PresentDetail(detail.Flag).Evidence), viewModel)).ConfigureAwait(true);
+    content.Children.Add(open);
     IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedById);
     content.Children.Insert(1, IntegrityPageViews.Entity(row.Entity));
     if (flag.Resolution is null && flag.ResolvedAt is null)
@@ -78,8 +85,11 @@ public sealed partial class ReportIntegrityPage
       content.Children.Add(actions);
     }
     if (viewModel.PenalizedUserCount(flag.Id) is { } count)
-      content.Children.Add(new Label { Text = UiCopy.Format(
-          UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", count)) });
+      content.Children.Add(new Label
+      {
+        Text = UiCopy.Format(
+          UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", count))
+      });
     if (viewModel.ActionError(flag.Id) is { } error)
       content.Children.Add(new Label { Text = error, TextColor = Colors.IndianRed });
     if (viewModel.NeedsReconciliation(flag.Id))

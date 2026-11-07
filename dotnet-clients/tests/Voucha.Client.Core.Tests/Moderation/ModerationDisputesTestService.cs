@@ -8,6 +8,7 @@ namespace Voucha.Client.Core.Tests.Moderation;
 
 internal sealed class ModerationDisputesTestService : IModerationDisputesService
 {
+  public Queue<StaffModerationDisputeListResponse> SummaryPages { get; } = new();
   public Queue<ModerationDisputeListResponse> Pages { get; } = new();
   public List<string> Calls { get; } = [];
   public ModerationDispute Current { get; set; } = Fixture();
@@ -22,7 +23,17 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   public TaskCompletionSource ResolveStarted { get; } =
       new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-  public Task<ModerationDisputeListResponse> FetchDisputesAsync(
+  public async Task<StaffModerationDisputeListResponse> FetchDisputesAsync(
+      ModerationDisputeStatus status, string? after = null, int limit = 25,
+      CancellationToken cancellationToken = default)
+  {
+    if (SummaryPages.TryDequeue(out var summaryPage)) return summaryPage;
+    var page = await FetchPageAsync(status, after, limit, cancellationToken);
+    return JsonSerializer.Deserialize<StaffModerationDisputeListResponse>(
+        JsonSerializer.Serialize(page, VouchaApiJson.Options), VouchaApiJson.Options)!;
+  }
+
+  private Task<ModerationDisputeListResponse> FetchPageAsync(
       ModerationDisputeStatus status,
       string? after = null,
       int limit = 25,
@@ -133,8 +144,7 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   internal static ModerationDispute Fixture()
   {
     var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.detail.default");
-    return JsonSerializer.Deserialize<ModerationDisputeResponse>(json, VouchaApiJson.Options)!
-        .Dispute;
+    return JsonSerializer.Deserialize<ModerationDisputeResponse>(json, VouchaApiJson.Options)!.Dispute;
   }
 
   internal static HttpRequestException AmbiguousFailure() =>

@@ -67,7 +67,7 @@ public sealed partial class ModerationDisputesViewModel :
   public bool IsMutating => MutatingDisputeId is not null;
   public bool IsLoading => State == LoadState.Loading;
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
-  public bool HasDisputes => Disputes.Count > 0;
+  public bool HasDisputes => Summaries.Count > 0;
   public bool IsEmpty => State == LoadState.Loaded && !HasDisputes;
 
   public IReadOnlyList<ModerationDispute> Disputes
@@ -126,6 +126,7 @@ public sealed partial class ModerationDisputesViewModel :
   {
     OnPropertyChanged(nameof(ErrorMessage));
     OnPropertyChanged(nameof(Disputes));
+    OnPropertyChanged(nameof(Summaries));
   }
 
   private void SetError(UiMessageKey? key)

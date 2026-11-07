@@ -9,6 +9,7 @@ final class ModerationAppealsReviewFixTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel(rerunPollAttempts: 1)
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1/resolution-drafts"] = (
             Support.queued, 202
@@ -41,6 +42,7 @@ final class ModerationAppealsReviewFixTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
 
         let cancelled = Task {
@@ -63,6 +65,7 @@ final class ModerationAppealsReviewFixTests: NativeRouteSurfaceViewModelTestCase
             isSiteModerator: false, currentUserId: "staff-1", admissionStore: store
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         let original = try XCTUnwrap(store.admit(appeal, for: viewModel.admissionOwner))
         var newer: AppealAIRerunAdmissionStore.Admission?

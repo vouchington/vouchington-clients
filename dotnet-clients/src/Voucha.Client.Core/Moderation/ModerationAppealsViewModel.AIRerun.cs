@@ -135,6 +135,7 @@ public sealed partial class ModerationAppealsViewModel
     dirtyDraftIds.Clear();
     ambiguousDeliveryIds.Clear();
     Appeals = [];
+    Summaries = [];
     State = LoadState.Idle;
     ErrorMessage = null;
     OnPropertyChanged(nameof(Appeals));

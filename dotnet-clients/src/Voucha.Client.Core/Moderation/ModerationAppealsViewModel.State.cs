@@ -4,14 +4,6 @@ namespace Voucha.Client.Core.Moderation;
 
 public sealed partial class ModerationAppealsViewModel
 {
-  private void SeedDrafts(IEnumerable<ModerationAppeal> loaded)
-  {
-    foreach (var appeal in loaded)
-    {
-      if (!dirtyDraftIds.Contains(appeal.Id)) drafts[appeal.Id] = ServerDraftFor(appeal);
-    }
-  }
-
   private void Replace(ModerationAppeal appeal, bool preserveUnconfirmedDirtyDraft = false, int? readOwnerRevision = null)
   {
     if (!CanAccess || (readOwnerRevision ?? activeMutationOwnerRevision) != Volatile.Read(ref accountRevision)) return;
@@ -26,11 +18,7 @@ public sealed partial class ModerationAppealsViewModel
     }
     var updated = Appeals.ToList();
     var index = updated.FindIndex(item => item.Id == appeal.Id);
-    if (appeal.Status != SelectedStatus)
-    {
-      if (index >= 0) updated.RemoveAt(index);
-    }
-    else if (index >= 0)
+    if (index >= 0)
     {
       updated[index] = appeal;
     }
@@ -39,6 +27,7 @@ public sealed partial class ModerationAppealsViewModel
       updated.Insert(0, appeal);
     }
     Appeals = updated;
+    UpdateSummary(appeal);
   }
 
   private void ConfirmServerDraft(ModerationAppeal appeal)

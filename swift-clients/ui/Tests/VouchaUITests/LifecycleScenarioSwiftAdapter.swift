@@ -38,6 +38,7 @@ private enum LifecycleScenarioSwiftModerationAdapter {
             rerunPollDelay: {}
         )
         await viewModel.load()
+        await viewModel.loadDetail(id: id)
         let before = try require(viewModel.appeals.first, "Expected loaded appeal")
         let action = try input.action.string("type")
         let authoritative = appeal(id: id, source: outcome, fallback: preconditions)

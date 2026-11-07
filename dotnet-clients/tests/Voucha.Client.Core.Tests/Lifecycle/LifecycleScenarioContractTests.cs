@@ -184,7 +184,7 @@ public sealed class LifecycleScenarioContractTests
     var viewModel = new ModerationAppealsViewModel(
         service,
         new NavigationViewer(true, [viewer ?? "administrator"]));
-    await viewModel.LoadAsync(cancellationToken);
+    await viewModel.LoadWithDetailAsync(cancellationToken);
     var before = Assert.Single(viewModel.Appeals);
     var beforeChangeId = before.LatestLifecycleChangeId;
     service.Current = AppealFrom(input.GetProperty("serverOutcome"), before);
@@ -216,11 +216,13 @@ public sealed class LifecycleScenarioContractTests
     ModerationAppeal current;
     if (action == "deny")
     {
-      Assert.Empty(viewModel.Appeals);
+      Assert.Empty(viewModel.Summaries);
       current = service.Current;
     }
     else
     {
+      if (!viewModel.Summaries.Any(appeal => appeal.Id == before.Id))
+        throw new InvalidOperationException($"Production moderation view model removed appeal {before.Id} after {action}.");
       current = viewModel.Appeals.SingleOrDefault(appeal => appeal.Id == before.Id)
           ?? throw new InvalidOperationException(
               $"Production moderation view model removed appeal {before.Id} after {action}.");

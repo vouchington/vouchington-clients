@@ -3,8 +3,8 @@ import Foundation
 import XCTest
 
 @MainActor
-final class ModerationHydrationRoutingTests: NativeRouteSurfaceViewModelTestCase {
-    func testAppealInitialAndNextPagesHydrateTheirSummaryDetails() async throws {
+final class ModerationSummaryRoutingTests: NativeRouteSurfaceViewModelTestCase {
+    func testAppealInitialAndNextPagesKeepSummariesWithoutDetailReads() async throws {
         let summaries = (0 ..< 6).map { ModerationAppealsTestSupport.appeal(id: "appeal-\($0)") }
         CannedFeedURLProtocol.queuedHandlers["/api/v1/appeals"] = [
             (
@@ -19,18 +19,18 @@ final class ModerationHydrationRoutingTests: NativeRouteSurfaceViewModelTestCase
             client: makeClient(), isSignedIn: true, isAdministrator: true, isSiteModerator: false
         )
         await viewModel.load()
-        XCTAssertEqual(viewModel.appeals.map(\.id), (0 ..< 3).map { "appeal-\($0)" })
+        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 3).map { "appeal-\($0)" })
         await viewModel.loadMore()
-        XCTAssertEqual(viewModel.appeals.map(\.id), (0 ..< 6).map { "appeal-\($0)" })
+        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 6).map { "appeal-\($0)" })
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertNil(viewModel.loadMoreErrorMessage)
         XCTAssertFalse(viewModel.hasMore)
         for index in 0 ..< 6 {
-            XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/appeals/appeal-\(index)"), 1)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/appeals/appeal-\(index)"), 0)
         }
     }
 
-    func testDisputeInitialAndNextPagesHydrateTheirSummaryDetails() async throws {
+    func testDisputeInitialAndNextPagesKeepSummariesWithoutDetailReads() async throws {
         let summaries = (0 ..< 6).map { ReviewDisputesTestSupport.dispute(id: "dispute-\($0)") }
         CannedFeedURLProtocol.queuedHandlers["/api/v1/disputes"] = [
             (
@@ -44,14 +44,14 @@ final class ModerationHydrationRoutingTests: NativeRouteSurfaceViewModelTestCase
             client: makeClient(), isSignedIn: true, isAdministrator: true, isSiteModerator: false
         )
         await viewModel.load()
-        XCTAssertEqual(viewModel.disputes.map(\.id), (0 ..< 3).map { "dispute-\($0)" })
+        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 3).map { "dispute-\($0)" })
         await viewModel.loadMore()
-        XCTAssertEqual(viewModel.disputes.map(\.id), (0 ..< 6).map { "dispute-\($0)" })
+        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 6).map { "dispute-\($0)" })
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertNil(viewModel.loadMoreErrorMessage)
-        XCTAssertFalse(viewModel.disputePagination.hasMore)
+        XCTAssertFalse(viewModel.summaryPagination.hasMore)
         for index in 0 ..< 6 {
-            XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-\(index)"), 1)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-\(index)"), 0)
         }
     }
 }

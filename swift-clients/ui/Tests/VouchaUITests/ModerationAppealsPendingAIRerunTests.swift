@@ -12,6 +12,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         viewModel.setDraft("Local edit", for: appeal)
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
@@ -52,6 +53,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         var declined = try XCTUnwrap(JSONSerialization.jsonObject(with: Support.queued) as? [String: Any])
         declined["queued"] = false
@@ -79,6 +81,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers[path] = (Data(#"{"error":"rejected"}"#.utf8), 400)
 
@@ -94,6 +97,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers[path] = (Data(#"{"error":"timeout"}"#.utf8), 408)
 
@@ -110,6 +114,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 202)
 
@@ -129,11 +134,13 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         let store = AppealAIRerunAdmissionStore()
         let first = try sessionViewModel(store: store, userId: "staff-1")
         await first.load()
+        await Support.openDetails(in: first)
         let appeal = try XCTUnwrap(first.appeals.first)
         await first.rerunAI(for: appeal)
 
         let reopened = try sessionViewModel(store: store, userId: "staff-1")
         await reopened.load()
+        await Support.openDetails(in: reopened)
         let reopenedAppeal = try XCTUnwrap(reopened.appeals.first)
         XCTAssertFalse(reopened.canRerun(reopenedAppeal))
         await reopened.rerunAI(for: reopenedAppeal)
@@ -141,6 +148,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
         let otherOwner = try sessionViewModel(store: store, userId: "staff-2")
         await otherOwner.load()
+        await Support.openDetails(in: otherOwner)
         let otherAppeal = try XCTUnwrap(otherOwner.appeals.first)
         XCTAssertTrue(otherOwner.canRerun(otherAppeal))
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
@@ -188,13 +196,14 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         XCTAssertEqual(store.admission(appeal.id, for: owner)?.token, second.token)
     }
 
-    func testListReloadKeepsPendingUntilBothResultMarkersAdvance() async throws {
+    func testSummaryReloadKeepsPendingUntilDetailConfirmsBothResultMarkers() async throws {
         let path = "/api/v1/appeals/appeal-1"
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         await viewModel.rerunAI(for: appeal)
 
@@ -202,6 +211,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
             aiDraftedAt: "2026-07-01T10:01:00Z"
         )]), 200)
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         XCTAssertNotNil(viewModel.pendingAIReruns[appeal.id])
         let updatedAppeal = try XCTUnwrap(viewModel.appeals.first)
         XCTAssertFalse(viewModel.canRerun(updatedAppeal))
@@ -210,6 +220,8 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2"
         )]), 200)
         await viewModel.load()
+        XCTAssertNotNil(viewModel.pendingAIReruns[appeal.id])
+        await Support.openDetails(in: viewModel)
         XCTAssertNil(viewModel.pendingAIReruns[appeal.id])
         let completedAppeal = try XCTUnwrap(viewModel.appeals.first)
         XCTAssertTrue(viewModel.canRerun(completedAppeal))
@@ -221,6 +233,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
@@ -244,7 +257,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.releaseResponse(path: path)
         await held.value
 
-        XCTAssertEqual(viewModel.appeals.map(\.id), ["other"])
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), ["other"])
         XCTAssertNotNil(viewModel.pendingAIReruns[appeal.id])
     }
 
