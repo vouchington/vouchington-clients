@@ -389,6 +389,28 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.Null(model.AgentPromptRefreshError);
   }
 
+  [Fact]
+  public async Task ConfirmedCreateRetainsMutationBusyStateUntilRefreshFinishes()
+  {
+    var service = Service();
+    using var model = new CommunityDetailViewModel(service, new Session());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var refresh = new TaskCompletionSource<CommunityAgentPromptsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var posts = 0;
+    service.AgentPromptCreateHandler = _ => { posts++; return Task.FromResult(Fixture().CommunityAgentPrompts[0]); };
+    service.AgentPromptPageHandler = _ => refresh.Task;
+    var creating = model.CreateAgentPromptAsync("committed", cancellationToken: Token);
+    Assert.Equal(1, posts);
+    Assert.True(model.IsLoading);
+    var mutations = service.MutationCalls.Count;
+    Assert.False(await model.DeleteAgentPromptAsync("prompt-1", Token));
+    Assert.Equal(mutations, service.MutationCalls.Count);
+    refresh.SetResult(Fixture());
+    Assert.True(await creating);
+    Assert.False(model.IsLoading);
+    Assert.False(model.HasAgentPromptRefreshError);
+  }
+
   internal static CommunityAgentPromptsResponse Fixture() => JsonSerializer.Deserialize<CommunityAgentPromptsResponse>(
       ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default"), VouchaApiJson.Options)!;
 
