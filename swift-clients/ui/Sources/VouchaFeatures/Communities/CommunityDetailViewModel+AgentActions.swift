@@ -9,7 +9,7 @@ private struct CommunityAgentPromptTestResult: Decodable {
 
 extension CommunityDetailViewModel {
     var canMutateCommunityAgentPrompt: Bool {
-        state != .loading && !agentPromptWorkspace.isCreating
+        state != .loading && !agentPromptWorkspace.isCreating && !agentPromptWorkspace.pagination.isLoading
     }
 
     func enableCommunityAiAgent(agentSlug: String) async {

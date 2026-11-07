@@ -205,6 +205,69 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         XCTAssertTrue(try controls.inspect().find(button: "Update").isDisabled())
     }
 
+    func testInitialPageBlocksCreationWithoutLosingContinuationOrGlobalSlots() async throws {
+        CannedFeedURLProtocol.handlers[path] = try (page(ids: ["prompt-1"], more: true, cursor: "next-page"), 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let model = parent.agentPromptWorkspace
+        model.draftPrompt = "Retained draft"
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
+        let load = Task { await model.reload() }
+        _ = try await barrier.wait()
+        // An unexpected write must fail immediately rather than hang behind the suspended read.
+        CannedFeedURLProtocol.errors[path] = URLError(.notConnectedToInternet)
+        let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
+        XCTAssertTrue(try controls.inspect().find(button: "Create").isDisabled())
+        let created = await model.create(prompt: model.draftPrompt)
+        XCTAssertFalse(created)
+        await parent.createCommunityAgentPrompt(prompt: model.draftPrompt)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET"])
+        XCTAssertTrue(model.pagination.isLoading)
+        CannedFeedURLProtocol.errors.removeValue(forKey: path)
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await load.value
+        XCTAssertEqual(model.pagination.items.map(\.id), ["prompt-1"])
+        XCTAssertEqual(model.slotInfo?.used, 8)
+        XCTAssertEqual(model.slotInfo?.remaining, 2)
+        XCTAssertEqual(model.pagination.endCursor, "next-page")
+        XCTAssertTrue(model.pagination.hasMore)
+        XCTAssertEqual(model.draftPrompt, "Retained draft")
+        XCTAssertFalse(try controls.inspect().find(button: "Create").isDisabled())
+        XCTAssertNoThrow(try CommunityAgentPromptList(viewModel: model).inspect().find(button: "Load more"))
+    }
+
+    func testInitialReadErrorAndRetryRemainAvailableAfterCreationLimit() async throws {
+        CannedFeedURLProtocol.queuedHandlers[path] = try [
+            (Data("{}".utf8), 503, 0),
+            (page(ids: ["prompt-1"], more: false, cursor: nil), 200, 0)
+        ]
+        var conflict = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("native.chat.identity-conflict")
+        ) as? [String: Any])
+        conflict["code"] = "COMMUNITY_AGENT_PROMPT_LIMIT_REACHED"
+        conflict["message"] = "Community agent prompt limit reached"
+        CannedFeedURLProtocol.requestHandlers["POST \(path)"] = try (
+            JSONSerialization.data(withJSONObject: conflict),
+            409
+        )
+        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let model = parent.agentPromptWorkspace
+        await model.reload()
+        XCTAssertNotNil(model.pagination.lastError)
+        await parent.createCommunityAgentPrompt(prompt: "Retained draft")
+        XCTAssertTrue(model.creationLimitReached)
+        XCTAssertNotNil(model.pagination.lastError)
+        let list = CommunityAgentPromptList(viewModel: model)
+        try list.inspect().find(button: UiMessages.string(.nativeCommonRetry, locale: .english)).tap()
+        await settle { model.pagination.hasLoadedPage && !model.pagination.isLoading }
+        XCTAssertEqual(model.pagination.items.map(\.id), ["prompt-1"])
+        XCTAssertEqual(model.slotInfo?.used, 8)
+        XCTAssertNil(model.pagination.lastError)
+        XCTAssertThrowsError(try list.inspect().find(button: UiMessages.string(.nativeCommonRetry, locale: .english)))
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET", "POST", "GET"])
+    }
+
     private func page(ids: [String], more: Bool, cursor: String?) throws -> Data {
         var object = try XCTUnwrap(JSONSerialization.jsonObject(
             with: ApiFixtureLoader.data("web.communities.agent-prompts.default")

@@ -78,8 +78,8 @@ final class CommunityAgentPromptWorkspace {
     @discardableResult
     func create(prompt: String, modelName: String? = nil, modelProvider: String? = nil) async -> Bool {
         let prompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !isCreating, !prompt.isEmpty, let client else { return false }
-        invalidate()
+        guard !isCreating, !pagination.isLoading, !prompt.isEmpty, let client else { return false }
+        revision += 1
         let revision = revision
         isCreating = true
         creationLimitReached = false
