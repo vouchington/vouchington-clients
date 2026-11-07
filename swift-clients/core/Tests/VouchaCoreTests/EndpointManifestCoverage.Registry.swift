@@ -36,7 +36,8 @@ enum EndpointManifestCoverage {
         entityProvenanceFixtureEndpoints,
         copyrightNoticesFixtureEndpoints,
         topicClaimFixtureEndpoints,
-        nativeSessionFixtureEndpoints
+        nativeSessionFixtureEndpoints,
+        contractDriftFixtureEndpoints
     ].flatMap { endpoints in
         endpoints.map { id, endpoint in ManifestRegisteredEndpoint(id: id) { endpoint } }
     }

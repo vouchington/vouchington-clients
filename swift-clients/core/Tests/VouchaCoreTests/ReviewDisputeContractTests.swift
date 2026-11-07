@@ -14,9 +14,9 @@ final class ReviewDisputeContractTests: XCTestCase {
         XCTAssertEqual(dispute.staffContext?.review.rating, 1)
 
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        var dispute = try XCTUnwrap(object["dispute"] as? [String: Any])
-        dispute.removeValue(forKey: "staff_context")
-        object["dispute"] = dispute
+        var oldDispute = try XCTUnwrap(object["dispute"] as? [String: Any])
+        oldDispute.removeValue(forKey: "staff_context")
+        object["dispute"] = oldDispute
         let oldData = try JSONSerialization.data(withJSONObject: object)
         let oldResponse = try makeVouchaDecoder().decode(ReviewDisputeResponse.self, from: oldData)
         XCTAssertNil(oldResponse.dispute.staffContext)

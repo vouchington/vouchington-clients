@@ -9,25 +9,25 @@ public struct ReportIntegrityPenalty: Codable, Identifiable, Sendable {
     public let userId: String
     public let reason: String
     @TolerantNullable
-    public var sourceFlagType: String? = nil
+    public var sourceFlagType: String?
     @TolerantNullable
-    public var reviewDueAt: Date? = nil
+    public var reviewDueAt: Date?
     @TolerantNullable
-    public var reviewedAt: Date? = nil
+    public var reviewedAt: Date?
     @TolerantNullable
-    public var reviewedById: String? = nil
+    public var reviewedById: String?
     @TolerantNullable
-    public var userDisplayName: String? = nil
+    public var userDisplayName: String?
     @TolerantNullable
-    public var userUsername: String? = nil
+    public var userUsername: String?
     @TolerantNullable
-    public var creatorDisplayName: String? = nil
+    public var creatorDisplayName: String?
     @TolerantNullable
-    public var creatorUsername: String? = nil
+    public var creatorUsername: String?
     @TolerantNullable
-    public var revokerDisplayName: String? = nil
+    public var revokerDisplayName: String?
     @TolerantNullable
-    public var revokerUsername: String? = nil
+    public var revokerUsername: String?
     public let sourceFlagId: String?
     public let createdById: String?
     public let revokedAt: Date?
@@ -57,25 +57,25 @@ public struct VoteIntegrityPenalty: Codable, Identifiable, Sendable {
     public let penaltyMultiplier: Double
     public let reason: String
     @TolerantNullable
-    public var sourceFlagType: String? = nil
+    public var sourceFlagType: String?
     @TolerantNullable
-    public var reviewDueAt: Date? = nil
+    public var reviewDueAt: Date?
     @TolerantNullable
-    public var reviewedAt: Date? = nil
+    public var reviewedAt: Date?
     @TolerantNullable
-    public var reviewedById: String? = nil
+    public var reviewedById: String?
     @TolerantNullable
-    public var userDisplayName: String? = nil
+    public var userDisplayName: String?
     @TolerantNullable
-    public var userUsername: String? = nil
+    public var userUsername: String?
     @TolerantNullable
-    public var creatorDisplayName: String? = nil
+    public var creatorDisplayName: String?
     @TolerantNullable
-    public var creatorUsername: String? = nil
+    public var creatorUsername: String?
     @TolerantNullable
-    public var revokerDisplayName: String? = nil
+    public var revokerDisplayName: String?
     @TolerantNullable
-    public var revokerUsername: String? = nil
+    public var revokerUsername: String?
     public let sourceFlagId: String?
     public let createdById: String
     public let revokedAt: Date?

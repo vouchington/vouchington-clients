@@ -59,7 +59,7 @@ public struct UserList: Codable, Identifiable, Sendable {
 
 public struct ListItem: Codable, Identifiable, Sendable {
     @TolerantNullable
-    public var entityLabel: String? = nil
+    public var entityLabel: String?
     public let id: String
     public let listId: String
     public let itemType: ListItemType
@@ -67,7 +67,7 @@ public struct ListItem: Codable, Identifiable, Sendable {
     public let orderIndex: Int?
     public let createdAt: Date
     @TolerantNullable
-    public var mediaType: String? = nil
+    public var mediaType: String?
 }
 
 public struct ListReference: Codable, Identifiable, Sendable {

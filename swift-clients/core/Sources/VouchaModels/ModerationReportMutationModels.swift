@@ -19,11 +19,11 @@ public struct ModerationReportResolutionResponse: Codable, Sendable {
         public let createdAt: Date
         public let reviewedAt: Date
         @TolerantNullable
-        public var reporterDisplayName: String? = nil
+        public var reporterDisplayName: String?
         @TolerantNullable
-        public var resolverDisplayName: String? = nil
+        public var resolverDisplayName: String?
         @TolerantNullable
-        public var resolverUsername: String? = nil
+        public var resolverUsername: String?
         public let reporterUserId: String
         public let entityType: String
         public let entityId: String

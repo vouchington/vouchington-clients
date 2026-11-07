@@ -2,7 +2,7 @@ import Foundation
 
 public struct PublicReviewDispute: Codable, Identifiable, Sendable {
     @TolerantNullable
-    public var postLabel: String? = nil
+    public var postLabel: String?
     public let id: String
     public let postId: String
     public let topicId: String
@@ -51,7 +51,12 @@ public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
         switch self {
         case let .member(dispute): dispute.status
         case let .staff(dispute): dispute.status
-        case let .summary(dispute): ModerationDisputeStatus(rawValue: dispute.status.rawValue)!
+        case let .summary(dispute):
+            switch dispute.status {
+            case .pending: .pending
+            case .resolved: .resolved
+            case .dismissed: .dismissed
+            }
         }
     }
 

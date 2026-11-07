@@ -3,11 +3,11 @@ import Foundation
 public struct TopicClaim: Codable, Identifiable, Sendable {
     public let id: String
     @TolerantNullable
-    public var topicName: String? = nil
+    public var topicName: String?
     @TolerantNullable
-    public var claimantUsername: String? = nil
+    public var claimantUsername: String?
     @TolerantNullable
-    public var claimantDisplayName: String? = nil
+    public var claimantDisplayName: String?
     public let topicId: String
     public let claimantUserId: String
     @RequiredNullable

@@ -17,6 +17,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(communityAutomodFixtureEndpoints) { _, replacement in replacement }
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
+        .merging(contractDriftFixtureEndpoints) { _, replacement in replacement }
         .merging(currentContractFixtureEndpoints) { _, replacement in replacement }
         .merging([
             "web.admin.mq.queues.domains.default": .mqQueueDomains(name: "background"),

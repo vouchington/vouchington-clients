@@ -44,7 +44,7 @@ public struct ModerationAppealSubmissionRequest: Sendable {
         reason: ModerationAppealReason,
         details: String,
         postRemovalKind: ModerationAppealPostRemovalKind? = nil,
-        turnstileToken: String? = nil
+        turnstileToken: String?
     ) {
         self.targetType = targetType
         self.targetId = targetId
@@ -138,7 +138,7 @@ public enum ModerationDisputeStatus: String, Codable, Sendable {
 
 public struct ModerationDispute: Codable, Identifiable, Sendable {
     @TolerantNullable
-    public var postLabel: String? = nil
+    public var postLabel: String?
     public let aiDraftRequestedRunId: String
     @RequiredNullable
     public var aiDraftRunId: String?
