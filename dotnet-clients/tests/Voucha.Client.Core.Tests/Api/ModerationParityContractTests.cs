@@ -110,7 +110,7 @@ public sealed class ModerationParityContractTests
         throw new InvalidOperationException("Fixture must contain a JSON object.");
     var aggregate = root[collectionKey] ??
         throw new InvalidOperationException($"Fixture must contain {collectionKey}.");
-    IEnumerable<JsonNode?> rows = aggregate is JsonArray array ? array : Enumerable.Repeat(aggregate, 1);
+    IEnumerable<JsonNode?> rows = aggregate is JsonArray array ? array : Enumerable.Repeat<JsonNode?>(aggregate, 1);
     foreach (var row in rows)
     {
       var value = row?.AsObject() ??
