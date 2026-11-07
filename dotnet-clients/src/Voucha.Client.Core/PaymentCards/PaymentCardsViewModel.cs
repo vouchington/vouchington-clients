@@ -67,7 +67,7 @@ public sealed partial class PaymentCardsViewModel : ObservableObject, IDisposabl
   public string? LocalizedErrorMessage => errorText is { } value ? localization.Resolve(value) : null;
   public bool HasError => errorText is not null;
   public bool HasContinuationError { get => hasContinuationError; private set => SetProperty(ref hasContinuationError, value); }
-  public bool IsLoading { get => isLoading; private set { if (SetProperty(ref isLoading, value)) OnPropertyChanged(nameof(ShowsEmptyState)); } }
+  public bool IsLoading { get => isLoading; private set => SetPropertyAndNotify(ref isLoading, value, nameof(ShowsEmptyState)); }
   public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }
   public bool IsMutating { get => isMutating; private set => SetProperty(ref isMutating, value); }
 

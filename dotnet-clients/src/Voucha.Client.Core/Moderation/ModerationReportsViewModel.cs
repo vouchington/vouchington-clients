@@ -66,19 +66,13 @@ public sealed partial class ModerationReportsViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value)) OnPropertyChanged(nameof(IsQueueInteractionBlocked));
-    }
+    private set => SetPropertyAndNotify(ref state, value, nameof(IsQueueInteractionBlocked));
   }
   public bool IsLoading => State == LoadState.Loading;
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
   public string? Notice { get => notice; private set => SetProperty(ref notice, value); }

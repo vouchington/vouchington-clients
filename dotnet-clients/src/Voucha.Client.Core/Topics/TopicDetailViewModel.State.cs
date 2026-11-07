@@ -38,37 +38,25 @@ public sealed partial class TopicDetailViewModel
   public bool IsFollowingTopic
   {
     get => isFollowingTopic;
-    private set
-    {
-      if (SetProperty(ref isFollowingTopic, value)) OnPropertyChanged(nameof(TopicFollowActionLabel));
-    }
+    private set => SetPropertyAndNotify(ref isFollowingTopic, value, nameof(TopicFollowActionLabel));
   }
 
   public bool IsFollowingSource
   {
     get => isFollowingSource;
-    private set
-    {
-      if (SetProperty(ref isFollowingSource, value)) OnPropertyChanged(nameof(SourceFollowActionLabel));
-    }
+    private set => SetPropertyAndNotify(ref isFollowingSource, value, nameof(SourceFollowActionLabel));
   }
 
   public bool IsMutedTopic
   {
     get => isMutedTopic;
-    private set
-    {
-      if (SetProperty(ref isMutedTopic, value)) OnPropertyChanged(nameof(TopicMuteActionLabel));
-    }
+    private set => SetPropertyAndNotify(ref isMutedTopic, value, nameof(TopicMuteActionLabel));
   }
 
   public bool IsMutedSource
   {
     get => isMutedSource;
-    private set
-    {
-      if (SetProperty(ref isMutedSource, value)) OnPropertyChanged(nameof(SourceMuteActionLabel));
-    }
+    private set => SetPropertyAndNotify(ref isMutedSource, value, nameof(SourceMuteActionLabel));
   }
 
   public bool CanFollowSource => Topic?.TopicType == "rss_feed" && !string.IsNullOrWhiteSpace(SourceRssFeedId);
@@ -155,10 +143,7 @@ public sealed partial class TopicDetailViewModel
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);

@@ -48,7 +48,7 @@ public sealed partial class NotificationPreferencesViewModel : ObservableObject,
   public bool ShowsModerationSchedule => ModerationEmailsEnabled;
   public string NewsDigestFrequency { get => newsDigestFrequency; set => SetProperty(ref newsDigestFrequency, value); }
   public string CommunityDigestFrequency { get => communityDigestFrequency; set => SetProperty(ref communityDigestFrequency, value); }
-  public string ModerationEmailCadence { get => moderationEmailCadence; set { if (SetProperty(ref moderationEmailCadence, value)) OnPropertyChanged(nameof(ShowsSelectedDays)); } }
+  public string ModerationEmailCadence { get => moderationEmailCadence; set => SetPropertyAndNotify(ref moderationEmailCadence, value, nameof(ShowsSelectedDays)); }
   public bool ShowsSelectedDays => ShowsModerationSchedule && ModerationEmailCadence == "selected_days";
   public IReadOnlyList<int> ModerationEmailDaysOfWeek { get => moderationEmailDaysOfWeek; private set => SetProperty(ref moderationEmailDaysOfWeek, value); }
   public string ModerationEmailTimeOfDay { get => moderationEmailTimeOfDay; set => SetProperty(ref moderationEmailTimeOfDay, value); }

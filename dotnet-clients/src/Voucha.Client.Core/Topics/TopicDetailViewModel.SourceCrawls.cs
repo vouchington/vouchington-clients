@@ -64,10 +64,7 @@ public sealed partial class TopicDetailViewModel
   public RssFeedCrawl? SelectedSourceCrawl
   {
     get => selectedSourceCrawl;
-    private set
-    {
-      if (SetProperty(ref selectedSourceCrawl, value)) OnPropertyChanged(nameof(HasSelectedSourceCrawl));
-    }
+    private set => SetPropertyAndNotify(ref selectedSourceCrawl, value, nameof(HasSelectedSourceCrawl));
   }
 
   public bool HasSelectedSourceCrawl => SelectedSourceCrawl is not null;

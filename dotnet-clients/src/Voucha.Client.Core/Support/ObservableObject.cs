@@ -18,6 +18,17 @@ public abstract class ObservableObject : INotifyPropertyChanged
     return true;
   }
 
+  protected bool SetPropertyAndNotify<T>(
+      ref T field,
+      T value,
+      string dependentProperty,
+      [CallerMemberName] string? propertyName = null)
+  {
+    if (!SetProperty(ref field, value, propertyName)) return false;
+    OnPropertyChanged(dependentProperty);
+    return true;
+  }
+
   protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

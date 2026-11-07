@@ -84,10 +84,7 @@ public sealed partial class ModerationAppealsViewModel :
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasMore
@@ -99,10 +96,7 @@ public sealed partial class ModerationAppealsViewModel :
   public string? MutatingAppealId
   {
     get => mutatingAppealId;
-    private set
-    {
-      if (SetProperty(ref mutatingAppealId, value)) OnPropertyChanged(nameof(IsMutating));
-    }
+    private set => SetPropertyAndNotify(ref mutatingAppealId, value, nameof(IsMutating));
   }
 
   public string DraftFor(ModerationAppeal appeal)

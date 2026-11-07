@@ -122,19 +122,13 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   public bool CanEdit
   {
     get => canEdit;
-    private set
-    {
-      if (SetProperty(ref canEdit, value)) OnPropertyChanged(nameof(CanMutateAvatar));
-    }
+    private set => SetPropertyAndNotify(ref canEdit, value, nameof(CanMutateAvatar));
   }
 
   public bool IsUploadingAvatar
   {
     get => isUploadingAvatar;
-    private set
-    {
-      if (SetProperty(ref isUploadingAvatar, value)) OnPropertyChanged(nameof(CanMutateAvatar));
-    }
+    private set => SetPropertyAndNotify(ref isUploadingAvatar, value, nameof(CanMutateAvatar));
   }
 
   public bool CanMutateAvatar => CanEdit && !IsUploadingAvatar;
@@ -148,10 +142,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value)) OnPropertyChanged(nameof(IsLoading));
-    }
+    private set => SetPropertyAndNotify(ref state, value, nameof(IsLoading));
   }
 
   public bool IsLoading => State == LoadState.Loading;

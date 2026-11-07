@@ -35,10 +35,7 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
   public IReadOnlyList<ModerationRow> Items
   {
     get => items;
-    private set
-    {
-      if (SetProperty(ref items, value)) OnPropertyChanged(nameof(HasItems));
-    }
+    private set => SetPropertyAndNotify(ref items, value, nameof(HasItems));
   }
 
   public bool HasItems => Items.Count > 0;

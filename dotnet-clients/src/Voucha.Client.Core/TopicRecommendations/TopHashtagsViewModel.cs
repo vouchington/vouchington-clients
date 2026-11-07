@@ -27,7 +27,7 @@ public sealed partial class TopHashtagsViewModel : ObservableObject
   public string Query { get => query; set => SetProperty(ref query, value); }
   public TopHashtagMapping Mapping { get => mapping; set => SetProperty(ref mapping, value); }
   public bool HasMore { get => hasMore; private set => SetProperty(ref hasMore, value); }
-  public bool IsLoading { get => isLoading; private set { if (SetProperty(ref isLoading, value)) OnPropertyChanged(nameof(CanMutate)); } }
+  public bool IsLoading { get => isLoading; private set => SetPropertyAndNotify(ref isLoading, value, nameof(CanMutate)); }
   public bool CanMutate => !IsLoading;
   public string? ErrorMessage { get => errorMessage; private set => SetProperty(ref errorMessage, value); }
 
