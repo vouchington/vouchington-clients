@@ -26,7 +26,8 @@ extension NativeRouteSurfaceViewModel {
         return response.disputes.map {
             row(
                 "exclamationmark.bubble",
-                rawText($0.claimText),
+                $0.postLabel.map(rawText)
+                    ?? appText(.nativeSwiftRouteMetadataStaffModerationDisputesDisputesTitle),
                 .joined(
                     [
                         appText($0.status.titleKey),
