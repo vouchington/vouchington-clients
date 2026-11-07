@@ -51,7 +51,8 @@ public sealed partial class VouchaApiClientTests
     var associations = await client.SearchCopyrightAssociationTargetsAsync("Harbour photo", "next cursor", 6, token);
     var accounts = await client.FetchCopyrightRepeatInfringerAccountsAsync("notice/id", token);
 
-    Assert.Single(queue.CopyrightNotices);
+    Assert.Equal(new[] { "00000000-0000-7000-8000-000000000804", "00000000-0000-7000-8000-000000000815" },
+        queue.CopyrightNotices.Select(notice => notice.Id));
     Assert.Equal("Harbour photograph", Assert.Single(associations.CopyrightNotices).WorkDescription);
     Assert.Equal("photo-author", Assert.Single(accounts.Accounts).AccountUsername);
     Assert.Equal("/api/v1/copyright-notices/review-queue?after=opaque%2B%2F%3D&limit=5", handler.Requests[0].PathAndQuery);
