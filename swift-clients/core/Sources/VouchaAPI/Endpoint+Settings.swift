@@ -114,7 +114,6 @@ public extension Endpoint {
         moderationEmailTimezone: String? = nil,
         processingRestrictedAt: Bool? = nil,
         thirdPartyMarketing: Bool? = nil,
-        hnDiscussions: Bool? = nil,
         country: String? = nil,
         uiLocale: String? = nil,
         clearUiLocale: Bool = false
@@ -147,7 +146,6 @@ public extension Endpoint {
                 moderationEmailTimezone: moderationEmailTimezone,
                 processingRestrictedAt: processingRestrictedAt,
                 thirdPartyMarketing: thirdPartyMarketing,
-                hnDiscussions: hnDiscussions,
                 country: country,
                 uiLocale: clearUiLocale ? .null : uiLocale.map(JsonNullableString.string)
             )

@@ -27,10 +27,15 @@ extension EndpointManifestCoverage {
             Endpoint.myEmailAddresses(after: "fixture-owner-scoped-email-cursor", limit: 1)
         },
         ManifestRegisteredEndpoint(id: "native.my.email-addresses.request.default") {
-            Endpoint.requestMyEmailAddressVerification(emailAddress: " Tests+Native-User@Voucha.ai ")
+            Endpoint.requestMyEmailAddressVerification(
+                emailAddress: " Tests+Native-User@Voucha.ai ",
+                reAuthToken: "fresh-auth-fixture"
+            )
         },
         ManifestRegisteredEndpoint(id: "native.my.email-addresses.verify.default") {
-            Endpoint.verifyMyEmailAddress(emailAddress: "tests+native-user@voucha.ai", token: "ABCD1234")
+            Endpoint.verifyMyEmailAddress(
+                emailAddress: "tests+native-user@voucha.ai", token: "ABCD1234", reAuthToken: "fresh-auth-fixture"
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.delete.default") {
             Endpoint.deleteUser(idOrSlug: "user-abc")

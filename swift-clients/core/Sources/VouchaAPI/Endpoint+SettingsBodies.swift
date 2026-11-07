@@ -52,7 +52,6 @@ struct UpdateUserSettingsBody: Encodable {
     let moderationEmailTimezone: String?
     let processingRestrictedAt: Bool?
     let thirdPartyMarketing: Bool?
-    let hnDiscussions: Bool?
     let country: String?
     let uiLocale: JsonNullableString?
 
@@ -81,7 +80,6 @@ struct UpdateUserSettingsBody: Encodable {
         case moderationEmailTimezone = "moderation_email_timezone"
         case processingRestrictedAt = "processing_restricted_at"
         case thirdPartyMarketing = "third_party_marketing"
-        case hnDiscussions = "hn_discussions"
         case country
         case uiLocale = "ui_locale"
     }

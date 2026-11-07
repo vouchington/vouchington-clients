@@ -360,7 +360,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.landing-page-detail.default": Endpoint.myLandingPage(id: "landing-page-1"),
             "native.landing-page-analytics.default": Endpoint.myLandingPageAnalytics(pageId: "landing-page-1"),
             "native.admin-user-landing-pages.default": Endpoint.adminUserLandingPages(userId: "user-abc"),
-            "native.admin-landing-page-analytics.default": Endpoint.adminLandingPageAnalytics(pageId: "landing-page-1"),
+            "native.admin-landing-page-analytics.default": Endpoint.adminLandingPageAnalytics(
+                username: "fixture-user",
+                slug: "links"
+            ),
             "native.landing-page-candidates.default": Endpoint.myLandingPageCandidates,
             "native.landing-page-items-mutation.default": nativeLandingPageItemsMutationEndpoint(),
             "native.landing-page-mutation.default": Endpoint.updateMyLandingPage(

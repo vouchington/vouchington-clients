@@ -79,7 +79,6 @@ public final class SettingsViewModel {
     public var defaultPostPrivacy = "public"
     public var processingRestrictedAt = false
     public var thirdPartyMarketing = false
-    public var hnDiscussions = false
     public var blueskyHandle = ""
 
     public var profileLinkType: ProfileLinkType = .url

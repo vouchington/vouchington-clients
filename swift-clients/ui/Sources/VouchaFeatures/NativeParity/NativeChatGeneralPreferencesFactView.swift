@@ -33,10 +33,7 @@ struct NativeChatGeneralPreferencesFactView: View {
                 value: preferences.uiLocale.map(UiVerbatimText.protocolValue)
                     ?? .message(.settingsLanguageUseSiteDefault)
             )
-            row(.extractedMyPreferencesFormHackerNewsDiscussions065664a4, value: .message(
-                preferences
-                    .shouldImportHackerNewsDiscussions ? .nativeSwiftRouteSurfaceTrue : .nativeSwiftRouteSurfaceFalse
-            ))
+
         }
         .accessibilityIdentifier("native-chat-general-preferences-fact")
     }

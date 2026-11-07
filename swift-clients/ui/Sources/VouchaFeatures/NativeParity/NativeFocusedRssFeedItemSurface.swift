@@ -95,10 +95,6 @@ struct NativeFocusedRssFeedItemSurface: View {
                 }
             }
 
-            HnDiscussionsPanel(
-                urls: [item.externalURLString].compactMap { $0 },
-                client: viewModel.client
-            )
         }
     }
 

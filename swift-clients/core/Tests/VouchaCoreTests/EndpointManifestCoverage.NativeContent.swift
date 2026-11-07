@@ -53,7 +53,7 @@ extension EndpointManifestCoverage {
             Endpoint.adminUserLandingPages(userId: "user-abc")
         },
         ManifestRegisteredEndpoint(id: "native.admin-landing-page-analytics.default") {
-            Endpoint.adminLandingPageAnalytics(pageId: "landing-page-1")
+            Endpoint.adminLandingPageAnalytics(username: "fixture-user", slug: "links")
         },
         ManifestRegisteredEndpoint(id: "native.landing-page-candidates.default") {
             Endpoint.myLandingPageCandidates
