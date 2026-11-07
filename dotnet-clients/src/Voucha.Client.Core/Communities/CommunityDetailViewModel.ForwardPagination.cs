@@ -27,6 +27,11 @@ public sealed partial class CommunityDetailViewModel
       string? threadId,
       CancellationToken cancellationToken)
   {
+    if (section == CommunityDetailSurfaceSection.AgentPrompts)
+    {
+      await LoadMoreAgentPromptPageAsync(after, revision, pageRequest, community, section, threadId, cancellationToken).ConfigureAwait(true);
+      return true;
+    }
     switch (section)
     {
       case CommunityDetailSurfaceSection.Members:

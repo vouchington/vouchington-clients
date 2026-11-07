@@ -107,6 +107,7 @@ internal sealed partial class ScriptedCommunitiesService
       CommunityAgentPromptUpsertRequest request,
       CancellationToken cancellationToken = default)
   {
+    if (AgentPromptCreateHandler is { } create) return create(request);
     MutationCalls.Add(("agent-prompt-create", idOrSlug));
     MutationDetails.Add(request.Prompt);
     return Task.FromResult(NewAgentPrompt("prompt-2", request.Prompt, request.ModelName ?? "gpt-5.4-nano", request.ModelProvider ?? "openai"));

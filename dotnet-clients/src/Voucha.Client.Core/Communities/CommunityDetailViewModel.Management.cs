@@ -89,9 +89,4 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(AiAgents));
   }
 
-  public async Task LoadAgentPromptsAsync(CancellationToken cancellationToken = default)
-  {
-    AgentPrompts = (await service.FetchAgentPromptsAsync(communityIdOrSlug, cancellationToken).ConfigureAwait(true)).CommunityAgentPrompts;
-    OnPropertyChanged(nameof(AgentPrompts));
-  }
 }

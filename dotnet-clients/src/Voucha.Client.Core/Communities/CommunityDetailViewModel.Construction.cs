@@ -13,6 +13,7 @@ public sealed partial class CommunityDetailViewModel
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     this.sessionStore = sessionStore;
+    if (sessionStore is not null) sessionStore.SessionChanged += OnAgentPromptSessionChanged;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }

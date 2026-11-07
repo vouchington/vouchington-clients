@@ -290,7 +290,8 @@ internal sealed partial class ScriptedCommunitiesService
                 "updated_at": "2026-07-01T00:00:00Z"
               }
             ],
-            "slot_info": {}
+            "page_info": { "end_cursor": null, "start_cursor": null, "has_next_page": false },
+            "slot_info": { "used": 1, "limit": 3, "remaining": 2, "limits_by_plan": { "plus": 3, "pro": 10 } }
           }
           """));
 

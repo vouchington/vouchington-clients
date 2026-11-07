@@ -35,7 +35,7 @@ public sealed partial class CommunityDetailViewModel
       CommunityDetailSurfaceSection.Modlog or
       CommunityDetailSurfaceSection.Moderation or
       CommunityDetailSurfaceSection.Modmail or
-      CommunityDetailSurfaceSection.Settings;
+      CommunityDetailSurfaceSection.Settings or CommunityDetailSurfaceSection.AgentPrompts;
 
   public string? CommunityListPaginationErrorMessage
   {
@@ -58,6 +58,7 @@ public sealed partial class CommunityDetailViewModel
       Justification = "This UI command must convert every non-cancellation continuation failure into retry state.")]
   public async Task LoadMoreCommunityListAsync(CancellationToken cancellationToken = default)
   {
+    if (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && (agentPromptDisposed || IsLoading || isLoadingAgentPrompts)) return;
     if (communityListEndCursor is not { } after || isLoadingMoreCommunityList) return;
 
     var revision = Volatile.Read(ref communityListRevision);

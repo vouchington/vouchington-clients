@@ -9,7 +9,7 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task CommunityAdministrationClientMethodsUseExpectedRoutesAndBodies()
   {
-    var handler = new RecordingHandler(RepeatEmptyResponses(45));
+    var handler = new RecordingHandler([.. RepeatEmptyResponses(22), new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default")), .. RepeatEmptyResponses(22)]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var token = TestContext.Current.CancellationToken;
 
@@ -38,7 +38,7 @@ public sealed partial class VouchaApiClientTests
     await client.FetchCommunityAiAgentsAsync("test community", token);
     await client.EnableCommunityAiAgentAsync("test community", "agent 1", token);
     await client.DeleteCommunityAiAgentAsync("test community", "agent 1", token);
-    await client.FetchCommunityAgentPromptsAsync("test community", token);
+    await client.FetchCommunityAgentPromptsAsync("test community", cancellationToken: token);
     await client.FetchCommunityAgentPromptAsync("test community", "prompt 1", token);
     await client.CreateCommunityAgentPromptAsync(
         "test community",

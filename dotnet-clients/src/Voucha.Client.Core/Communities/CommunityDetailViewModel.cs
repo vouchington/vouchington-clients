@@ -146,6 +146,7 @@ public sealed partial class CommunityDetailViewModel :
       throw new ArgumentException("Value cannot be empty.", nameof(idOrSlug));
     }
 
+    ResetAgentPromptContext();
     Interlocked.Increment(ref communityContextRevision);
     communityIdOrSlug = idOrSlug;
     BeginLoad();

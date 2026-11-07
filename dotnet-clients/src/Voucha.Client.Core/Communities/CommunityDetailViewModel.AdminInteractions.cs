@@ -94,18 +94,6 @@ public sealed partial class CommunityDetailViewModel
   public Task<bool> DisableAiAgentAsync(string agentSlug, CancellationToken cancellationToken = default) =>
       MutateAndReloadSectionAsync(() => service.DisableAiAgentAsync(communityIdOrSlug, agentSlug, cancellationToken), cancellationToken);
 
-  public Task<bool> CreateAgentPromptAsync(
-      string prompt,
-      string? modelName = null,
-      string? modelProvider = null,
-      CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(
-          () => service.CreateAgentPromptAsync(
-              communityIdOrSlug,
-              new CommunityAgentPromptUpsertRequest(prompt, modelName, modelProvider),
-              cancellationToken),
-          cancellationToken);
-
   public Task<bool> UpdateAgentPromptAsync(
       string promptId,
       string? prompt = null,
