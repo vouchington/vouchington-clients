@@ -212,13 +212,11 @@ final class UserFacingModelDecodingTests: XCTestCase {
 
         let appealList = try decoder.decode(
             ModerationAppealListResponse.self,
-            from: Data(
-                "{\"appeals\":[{\(appealObject)}],\"page_info\":{\"has_next_page\":false,\"start_cursor\":null,\"end_cursor\":null}}"
-                    .utf8
-            )
+            from: ApiFixtureLoader.data("native.moderation.appeals.default")
         )
-        XCTAssertEqual(appealList.appeals.first?.id, "appeal-1")
-        XCTAssertEqual(appealList.pageInfo.hasNextPage, false)
+        XCTAssertEqual(appealList.appeals.first?.id, "00000000-0000-7000-8000-000000000102")
+        XCTAssertEqual(appealList.appeals.first?.hasAiDraft, true)
+        XCTAssertEqual(appealList.pageInfo.hasNextPage, true)
 
         let conversationsJSON = Data(
             #"{"results":[{"id":"conversation-1","title":"Chat","created_at":"2026-03-01T11:55:00Z","created_by_id":"user-1","updated_at":"2026-03-01T12:00:00Z","participant_usernames":["alice","bob"]}],"page_info":{"has_next_page":false,"start_cursor":"conversation-1","end_cursor":null}}"#

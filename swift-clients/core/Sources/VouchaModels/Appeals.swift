@@ -44,7 +44,7 @@ public struct ModerationAppealSubmissionRequest: Sendable {
         reason: ModerationAppealReason,
         details: String,
         postRemovalKind: ModerationAppealPostRemovalKind? = nil,
-        turnstileToken: String?
+        turnstileToken: String? = nil
     ) {
         self.targetType = targetType
         self.targetId = targetId

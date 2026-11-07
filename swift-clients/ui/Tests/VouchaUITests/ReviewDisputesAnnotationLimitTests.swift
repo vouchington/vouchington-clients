@@ -52,7 +52,7 @@ final class ReviewDisputesAnnotationLimitTests: NativeRouteSurfaceViewModelTestC
 
     private func loadedViewModel() async throws -> (ReviewDisputesViewModel, ReviewDispute) {
         CannedFeedURLProtocol.handlers[disputesPath] = (
-            Support.list([Support.dispute(sentAt: "2026-07-01T12:00:00Z")]), 200
+            Support.staffList([Support.dispute(sentAt: "2026-07-01T12:00:00Z")]), 200
         )
         let viewModel = try ReviewDisputesViewModel(
             client: makeClient(),
