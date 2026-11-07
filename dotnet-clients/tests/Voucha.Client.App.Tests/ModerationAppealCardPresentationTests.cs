@@ -130,6 +130,7 @@ public sealed class ModerationAppealCardPresentationTests
     var appeal = Appeal(null) with
     {
       AiDraftedAt = Instant,
+      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
       LatestLifecycleChangeId = "initial-change",
     };
     var service = new PendingAIRerunService(appeal);
