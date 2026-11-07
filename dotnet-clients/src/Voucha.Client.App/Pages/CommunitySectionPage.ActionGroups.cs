@@ -64,6 +64,17 @@ public abstract partial class CommunitySectionPage
     application.SetBinding(Picker.ItemsSourceProperty, nameof(CommunityDetailViewModel.Applications));
     var status = TextField(UiMessageKey.NativeDotnetResidualStatus, UiText.Verbatim("approved"));
     var reason = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReason);
+    var review = ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReview);
+    review.AutomationId = "community-application-review";
+    review.IsEnabled = false;
+    bool HasSelection() => application.SelectedItem is CommunitySummaryRow selected &&
+        viewModel.Applications.Any(row => row.Id == selected.Id) && viewModel.CanModerateCommunity && !viewModel.IsLoading;
+    application.SelectedIndexChanged += (_, _) => review.IsEnabled = HasSelection();
+    review.Clicked += async (_, _) =>
+    {
+      if (!HasSelection() || application.SelectedItem is not CommunitySummaryRow selected) return;
+      await InvokeAndRenderAsync(ct => viewModel.ReviewApplicationAsync(selected.Id, status.Text ?? "approved", reason.Text, ct)).ConfigureAwait(true);
+    };
     return new HorizontalStackLayout
     {
       Spacing = 8,
@@ -72,7 +83,7 @@ public abstract partial class CommunitySectionPage
         application,
         status,
         reason,
-        ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReview).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ReviewApplicationAsync((application.SelectedItem as CommunitySummaryRow)?.Id ?? string.Empty, status.Text ?? "approved", reason.Text, ct)).ConfigureAwait(true)),
+        review,
       },
     };
   }

@@ -34,8 +34,19 @@ public sealed class CommunityApplicantRenderingTests
     Assert.Equal(expected, row.Title);
     Assert.Equal("application-1", row.Id);
     Assert.Equal(2, VisualTreeElements.Descendants<Entry>(page).Count());
+    var review = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "community-application-review");
+    Assert.False(review.IsEnabled);
+    review.SendClicked();
+    Assert.Null(((ApplicationsProxy)service).ReviewedId);
     picker.SelectedIndex = 0;
     Assert.Same(row, picker.SelectedItem);
+    Assert.True(review.IsEnabled);
+    review.SendClicked();
+    Assert.Equal("application-1", ((ApplicationsProxy)service).ReviewedId);
+    ((ApplicationsProxy)service).Empty = true;
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.Applications, TestContext.Current.CancellationToken);
+    review.SendClicked();
+    Assert.Equal(1, ((ApplicationsProxy)service).ReviewCount);
   }
 
   [Fact]
@@ -75,11 +86,21 @@ public sealed class CommunityApplicantRenderingTests
   public class ApplicationsProxy : CommunityModerationPageAutomodNavigationTests.CommunityServiceProxy
   {
     public bool Deleted { get; set; }
+    public bool Empty { get; set; }
+    public int ReviewCount { get; private set; }
+    public string? ReviewedId { get; private set; }
     protected override object? Invoke(MethodInfo? method, object?[]? args)
     {
+      if (method?.Name == nameof(ICommunitiesService.ReviewApplicationAsync))
+      {
+        ReviewCount++;
+        ReviewedId = (string)args![1]!;
+        return Task.CompletedTask;
+      }
       if (method?.Name != nameof(ICommunitiesService.FetchApplicationsPageAsync)) return base.Invoke(method, args);
       var response = JsonSerializer.Deserialize<CommunityApplicationsResponse>(File.ReadAllText(
           FilamentsContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!;
+      if (Empty) response = response with { Results = [], CommunityApplications = new Dictionary<string, CommunityApplicationSummary>() };
       return Task.FromResult(Deleted ? response with { Users = new Dictionary<string, PublicUser>() } : response);
     }
   }
