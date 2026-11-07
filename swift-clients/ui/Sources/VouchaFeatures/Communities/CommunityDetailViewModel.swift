@@ -87,6 +87,7 @@ final class CommunityDetailViewModel {
     var suppressCommunityDigestsWhileOnVacation = false
     var state: CommunitySurfaceState = .idle
 
+    let agentPromptWorkspace: CommunityAgentPromptWorkspace
     let client: APIClient?
     let isAdministrator: Bool
     let isSiteModerator: Bool
@@ -114,6 +115,7 @@ final class CommunityDetailViewModel {
         isApplicationFormRoute: Bool = false,
         modmailThreadId: String? = nil
     ) {
+        agentPromptWorkspace = CommunityAgentPromptWorkspace(client: client, slug: slug)
         self.client = client
         self.slug = slug
         self.isAdministrator = isAdministrator

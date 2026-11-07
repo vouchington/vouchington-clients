@@ -16,12 +16,6 @@ struct CommunityAgentAndAutomodControls: View {
     @State
     private var promptId = ""
     @State
-    private var promptText = ""
-    @State
-    private var promptModelName = ""
-    @State
-    private var promptModelProvider = ""
-    @State
     private var testText = ""
     @State
     private var feedbackSourceKey = ""
@@ -41,7 +35,8 @@ struct CommunityAgentAndAutomodControls: View {
 
 extension CommunityAgentAndAutomodControls {
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        @Bindable var prompts = viewModel.agentPromptWorkspace
+        return VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(UiMessages.string(.nativeSwiftCommunitiesAiAgentsAndAutomod, locale: nativeUiLocale))
                 .font(Typography.headline)
 
@@ -63,38 +58,40 @@ extension CommunityAgentAndAutomodControls {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(UiMessages.string(.nativeSwiftCommunitiesPrompts, locale: nativeUiLocale))
                     .font(Typography.subheadline)
+                CommunityAgentPromptList(viewModel: viewModel.agentPromptWorkspace)
                 TextField(UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: nativeUiLocale), text: $promptId)
                     .textFieldStyle(.roundedBorder)
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesPromptText, locale: nativeUiLocale),
-                    text: $promptText,
+                    text: $prompts.draftPrompt,
                     axis: .vertical
                 ).textFieldStyle(.roundedBorder)
                 HStack {
                     TextField(
                         UiMessages.string(.nativeSwiftCommunitiesModelName, locale: nativeUiLocale),
-                        text: $promptModelName
+                        text: $prompts.draftModelName
                     ).textFieldStyle(.roundedBorder)
                     TextField(
                         UiMessages.string(.nativeSwiftCommunitiesModelProvider, locale: nativeUiLocale),
-                        text: $promptModelProvider
+                        text: $prompts.draftModelProvider
                     ).textFieldStyle(.roundedBorder)
                 }
                 HStack {
                     actionButton(.nativeSwiftCommonCreate, systemImage: "plus") {
                         Task {
                             await viewModel.createCommunityAgentPrompt(
-                                prompt: promptText,
-                                modelName: promptModelName,
-                                modelProvider: promptModelProvider
+                                prompt: viewModel.agentPromptWorkspace.draftPrompt,
+                                modelName: viewModel.agentPromptWorkspace.draftModelName,
+                                modelProvider: viewModel.agentPromptWorkspace.draftModelProvider
                             )
                         }
                     }
+                    .disabled(isSignedIn && prompts.isCreating)
                     actionButton(.nativeSwiftCommunityActionsUpdate, systemImage: "pencil") {
                         Task {
                             await viewModel.updateCommunityAgentPrompt(
                                 promptId: promptId,
-                                prompt: promptText
+                                prompt: viewModel.agentPromptWorkspace.draftPrompt
                             )
                         }
                     }
