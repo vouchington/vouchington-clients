@@ -94,10 +94,15 @@ public sealed class RetiredFeatureFlagContractTests
       var stripe = new DynamicConfigField("membershipStripeBilling", "boolean", "",
           DynamicConfigValues.From(true), DynamicConfigValues.From(false));
       var fields = response.Namespace.Fields.Where(field => field.Name != stripe.Name).Append(stripe).ToArray();
-      response = response with { Namespace = response.Namespace with
+      response = response with
       {
-        Config = config, Fields = fields, FieldCount = fields.Length,
-      } };
+        Namespace = response.Namespace with
+        {
+          Config = config,
+          Fields = fields,
+          FieldCount = fields.Length,
+        }
+      };
     }
     response = JsonSerializer.Deserialize<DynamicConfigUpdateResponse>(
         JsonSerializer.Serialize(response, VouchaApiJson.Options), VouchaApiJson.Options)!;
