@@ -55,8 +55,7 @@ struct CommunityApplicationReviewControls: View {
                     ) }
                 }
             }
-            .disabled(isSignedIn && !viewModel.rowPagination.items
-                .contains { $0.id == viewModel.selectedApplicationId })
+            .disabled(isSignedIn && !viewModel.canReviewApplication(viewModel.selectedApplicationId))
         }
     }
 }

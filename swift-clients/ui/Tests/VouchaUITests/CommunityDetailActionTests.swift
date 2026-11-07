@@ -74,6 +74,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.removeListItem(itemType: .topic, itemId: "item-1")
 
         viewModel.selectedTab = .applications
+        await viewModel.load()
         await viewModel.approveApplication(applicationId: "application-1")
         await viewModel.rejectApplication(applicationId: "application-1", reason: "Needs more detail")
 
