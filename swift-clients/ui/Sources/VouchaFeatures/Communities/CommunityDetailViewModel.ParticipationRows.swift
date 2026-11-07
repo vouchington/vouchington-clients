@@ -26,14 +26,20 @@ extension CommunityDetailViewModel {
         let response: CommunityApplicationsResponse = try await client.send(
             .communityApplications(idOrSlug: slug, after: after, limit: 10)
         )
-        let items = response.results.map { result in
-            CommunityForwardRow(
+        let items = response.results.compactMap { result -> CommunityForwardRow? in
+            guard let application = response.communityApplicationSummaries[result.id] else { return nil }
+            let user = response.users[application.userId]
+            let label = [user?.name, user?.username].compactMap { $0 }
+                .first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            return CommunityForwardRow(
                 id: result.id,
                 row: .init(
+                    id: result.id,
                     icon: "doc.badge.clock",
                     title: .message(
                         .nativeSwiftCommunitiesApplicationValue,
-                        textParameters: ["id": .verbatim(result.id)]
+                        textParameters: ["id": label.map(UiVerbatimText.verbatim)
+                            ?? .message(.nativeSwiftDynamicConfigFeatureFlagsDeletedUser)]
                     ),
                     detail: .message(.nativeSwiftCommunitiesAwaitingReview)
                 )

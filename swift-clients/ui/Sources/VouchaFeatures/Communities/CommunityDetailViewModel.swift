@@ -26,6 +26,7 @@ final class CommunityDetailViewModel {
         }
     }
 
+    var selectedApplicationId = ""
     var applicationMessage = ""
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""

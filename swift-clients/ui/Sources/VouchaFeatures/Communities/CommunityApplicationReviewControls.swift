@@ -11,18 +11,21 @@ struct CommunityApplicationReviewControls: View {
     let showSignIn: () -> Void
 
     @State
-    private var applicationId = ""
-    @State
     private var rejectionReason = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(UiMessages.string(.nativeSwiftCommunitiesApplicationReview, locale: nativeUiLocale))
                 .font(Typography.headline)
-            TextField(
+            Picker(
                 UiMessages.string(.nativeSwiftCommunitiesApplicationId, locale: nativeUiLocale),
-                text: $applicationId
-            ).textFieldStyle(.roundedBorder)
+                selection: $viewModel.selectedApplicationId
+            ) {
+                Text(UiMessages.string(.nativeSwiftCommunityRowsNone, locale: nativeUiLocale)).tag("")
+                ForEach(viewModel.rowPagination.items) { item in
+                    Text(verbatim: UiMessages.string(item.row.titleText, locale: nativeUiLocale)).tag(item.id)
+                }
+            }
             TextField(
                 UiMessages.string(.nativeSwiftCommunitiesRejectionReason, locale: nativeUiLocale),
                 text: $rejectionReason
@@ -36,7 +39,7 @@ struct CommunityApplicationReviewControls: View {
                         showSignIn()
                         return
                     }
-                    Task { await viewModel.approveApplication(applicationId: applicationId) }
+                    Task { await viewModel.approveApplication(applicationId: viewModel.selectedApplicationId) }
                 }
                 Button(
                     UiMessages.string(.nativeSwiftCommunitiesReject, locale: nativeUiLocale),
@@ -46,9 +49,13 @@ struct CommunityApplicationReviewControls: View {
                         showSignIn()
                         return
                     }
-                    Task { await viewModel.rejectApplication(applicationId: applicationId, reason: rejectionReason) }
+                    Task { await viewModel.rejectApplication(
+                        applicationId: viewModel.selectedApplicationId,
+                        reason: rejectionReason
+                    ) }
                 }
             }
+            .disabled(!viewModel.rowPagination.items.contains { $0.id == viewModel.selectedApplicationId })
         }
     }
 }
