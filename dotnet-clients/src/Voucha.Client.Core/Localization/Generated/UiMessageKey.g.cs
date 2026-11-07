@@ -14,9 +14,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedAiCostsPageRequestsAda27592 = new("extracted.aiCosts.page.requests_ada27592");
     public static readonly UiMessageKey ExtractedAiCostsPageTotalCostUsdEed03fbf = new("extracted.aiCosts.page.totalCostUsd_eed03fbf");
     public static readonly UiMessageKey ExtractedAiCostsPageUnpricedRequestCount = new("extracted.aiCosts.page.unpricedRequestCount");
-    public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideCommentsComments29834540 = new("extracted.asides.hnDiscussionsAside.commentsComments_29834540");
-    public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsideHackerNews619f304a = new("extracted.asides.hnDiscussionsAside.hackerNews_619f304a");
-    public static readonly UiMessageKey ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8 = new("extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8");
     public static readonly UiMessageKey ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971 = new("extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971");
     public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1 = new("extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1");
     public static readonly UiMessageKey ExtractedCommunitiesCommunityAutomodActionFormAutomodAction83211784 = new("extracted.communities.communityAutomodActionForm.automodAction_83211784");
@@ -211,8 +208,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedMyFriendRecommendationsListNoFriendRecommendationsAtThisTimeFb21db17 = new("extracted.my.friendRecommendationsList.noFriendRecommendationsAtThisTime_fb21db17");
     public static readonly UiMessageKey ExtractedMyFriendRecommendationsListViaProviderlabel3c6f79cf = new("extracted.my.friendRecommendationsList.viaProviderlabel_3c6f79cf");
     public static readonly UiMessageKey ExtractedMyPointValuationsManagerPleaseEnterAvalidValuePerPoint67b38bc3 = new("extracted.my.pointValuationsManager.pleaseEnterAValidValuePerPoint_67b38bc3");
-    public static readonly UiMessageKey ExtractedMyPreferencesFormHackerNewsDiscussions065664a4 = new("extracted.my.preferencesForm.hackerNewsDiscussions_065664a4");
-    public static readonly UiMessageKey ExtractedMyPreferencesFormShowRelatedHackerNewsThreadsWhen00754911 = new("extracted.my.preferencesForm.showRelatedHackerNewsThreadsWhen_00754911");
     public static readonly UiMessageKey ExtractedMyRewardsProgramStatusesManagerSinceMustBeBeforeUntilA4745364 = new("extracted.my.rewardsProgramStatusesManager.sinceMustBeBeforeUntil_a4745364");
     public static readonly UiMessageKey ExtractedMySpendingCategoriesManagerPleaseEnterAvalidAmount010f1dd6 = new("extracted.my.spendingCategoriesManager.pleaseEnterAValidAmount_010f1dd6");
     public static readonly UiMessageKey ExtractedPointValuationsManagerAddValuationFormOptionalNote951ddd37 = new("extracted.pointValuationsManager.addValuationForm.optionalNote_951ddd37");
@@ -2039,9 +2034,6 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedAiCostsPageRequestsAda27592,
         ExtractedAiCostsPageTotalCostUsdEed03fbf,
         ExtractedAiCostsPageUnpricedRequestCount,
-        ExtractedAsidesHnDiscussionsAsideCommentsComments29834540,
-        ExtractedAsidesHnDiscussionsAsideHackerNews619f304a,
-        ExtractedAsidesHnDiscussionsAsidePointsPoints29c78cd8,
         ExtractedCommentsCommentAncestorTrailShowEarlierReplies56b87971,
         ExtractedCommunitiesCommunityAutomodActionFormAutomodActionSaved5a7127b1,
         ExtractedCommunitiesCommunityAutomodActionFormAutomodAction83211784,
@@ -2236,8 +2228,6 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedMyFriendRecommendationsListNoFriendRecommendationsAtThisTimeFb21db17,
         ExtractedMyFriendRecommendationsListViaProviderlabel3c6f79cf,
         ExtractedMyPointValuationsManagerPleaseEnterAvalidValuePerPoint67b38bc3,
-        ExtractedMyPreferencesFormHackerNewsDiscussions065664a4,
-        ExtractedMyPreferencesFormShowRelatedHackerNewsThreadsWhen00754911,
         ExtractedMyRewardsProgramStatusesManagerSinceMustBeBeforeUntilA4745364,
         ExtractedMySpendingCategoriesManagerPleaseEnterAvalidAmount010f1dd6,
         ExtractedPointValuationsManagerAddValuationFormOptionalNote951ddd37,
