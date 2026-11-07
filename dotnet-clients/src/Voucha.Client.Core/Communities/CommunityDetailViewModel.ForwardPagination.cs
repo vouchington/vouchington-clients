@@ -56,8 +56,8 @@ public sealed partial class CommunityDetailViewModel
         if (!IsCurrentCommunityPage(revision, pageRequest, community, section, threadId)) return true;
         var applicationRows = applications.Results
             .Select(reference => reference.Id)
-            .Where(id => id is not null && applications.CommunityApplications.ContainsKey(id))
-            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplications[id!]));
+            .Where(id => id is not null && applications.CommunityApplicationSummaries.ContainsKey(id))
+            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplicationSummaries[id!]));
         ApplicationRows = AppendUnique(ApplicationRows, applicationRows, row => row.Id);
         Applications = AppendUnique(Applications, ApplicationRows.Select(ApplicationSummary), row => row.Id);
         communityListEndCursor = applications.PageInfo.EndCursor;

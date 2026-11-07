@@ -141,7 +141,8 @@ public sealed record ModerationDispute(
     [property: JsonPropertyName("post_content")] ModerationDisputePostContent? PostContent = null,
     [property: JsonPropertyName("staff_context")] ModerationDisputeStaffContext? StaffContext = null,
     [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
-    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null);
+    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
+    [property: JsonPropertyName("post_label")] string? PostLabel = null);
 
 public sealed record AuthoredContentText
 {
