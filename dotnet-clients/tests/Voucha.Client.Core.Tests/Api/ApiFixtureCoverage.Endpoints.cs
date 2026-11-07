@@ -301,8 +301,8 @@ internal static partial class ApiFixtureCoverage
         ["native.my.email-addresses.empty"] = VouchaApiEndpoints.EmailAddresses("fixture-owner-scoped-email-cursor", 1),
         ["native.my.api-keys.paginated"] = VouchaApiEndpoints.ApiKeys("fixture-owner-scoped-api-key-cursor", 1),
         ["native.my.push-subscriptions.paginated"] = VouchaApiEndpoints.PushSubscriptions("fixture-owner-scoped-push-cursor", 1),
-        ["native.my.email-addresses.request.default"] = VouchaApiEndpoints.RequestEmailAddressVerification(" Tests+Native-User@Voucha.ai "),
-        ["native.my.email-addresses.verify.default"] = VouchaApiEndpoints.VerifyEmailAddress("tests+native-user@voucha.ai", "ABCD1234"),
+        ["native.my.email-addresses.request.default"] = VouchaApiEndpoints.RequestEmailAddressVerification(" Tests+Native-User@Voucha.ai ", "fresh-auth-fixture"),
+        ["native.my.email-addresses.verify.default"] = VouchaApiEndpoints.VerifyEmailAddress("tests+native-user@voucha.ai", "ABCD1234", "fresh-auth-fixture"),
         ["native.auth.sessions.default"] = VouchaApiEndpoints.AuthSessions("fixture-owner-scoped-session-cursor", 1),
         ["native.auth.bluesky.link.default"] = VouchaApiEndpoints.BeginBlueskyAccountLink("alice.bsky.social"),
         ["native.auth.bluesky.link.native"] = VouchaApiEndpoints.BeginNativeBlueskyAccountLink(

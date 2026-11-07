@@ -36,13 +36,15 @@ public sealed partial class ModerationDisputesViewModel
       CancellationToken cancellationToken = default)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(disputeId);
-    if (!CanAccess || IsMutating || !ambiguousMutationIds.Contains(disputeId)) return;
+    if (!CanAccess || IsMutating || !Disputes.Any(row => row.Id == disputeId) ||
+        (Disputes.First(row => row.Id == disputeId).AiDraftRequestedRunId is not null &&
+         !ambiguousMutationIds.Contains(disputeId))) return;
     _ = await MutateAsync(disputeId, async () =>
     {
       var response = await service.FetchDisputeAsync(
           disputeId,
           cancellationToken).ConfigureAwait(true);
-      if (!HasRerunReconciled(response.Dispute)) return;
+      if (response.Dispute.Id != disputeId || !HasRerunReconciled(response.Dispute)) return;
       UnlockRerun(disputeId);
       Replace(response.Dispute, preserveUnconfirmedDirtyDraft: true);
     }, cancellationToken).ConfigureAwait(true);

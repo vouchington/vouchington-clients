@@ -26,7 +26,7 @@ public sealed partial class ModerationAppealsViewModel
   public Task RefreshDeliveryStatusAsync(ModerationAppeal appeal, CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(appeal);
-    return IsDeliveryAmbiguous(appeal) ? RefreshAppealAsync(appeal.Id, cancellationToken) : Task.CompletedTask;
+    return CanAccess && (appeal.AiDraftRequestedRunId is null || IsDeliveryAmbiguous(appeal)) ? RefreshAppealAsync(appeal.Id, cancellationToken) : Task.CompletedTask;
   }
 
   private async Task LoadPageAsync(bool replace, CancellationToken cancellationToken)

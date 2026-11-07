@@ -35,6 +35,7 @@ public sealed partial class ModerationDisputesViewModel
   public void SetPublicResponseDraft(ModerationDispute dispute, string value)
   {
     ArgumentNullException.ThrowIfNull(dispute);
+    if (dispute.AiDraftRequestedRunId is null) return;
     var draft = value ?? string.Empty;
     publicResponseDrafts[dispute.Id] = draft;
     if (string.Equals(draft, PublicResponseSeed(dispute), StringComparison.Ordinal))
@@ -47,6 +48,7 @@ public sealed partial class ModerationDisputesViewModel
   public void SetAnnotationDraft(ModerationDispute dispute, string value)
   {
     ArgumentNullException.ThrowIfNull(dispute);
+    if (dispute.AiDraftRequestedRunId is null) return;
     annotationDrafts[dispute.Id] = value ?? string.Empty;
     OnPropertyChanged(nameof(Disputes));
   }
@@ -94,7 +96,7 @@ public sealed partial class ModerationDisputesViewModel
   private bool CanMutate(ModerationDispute dispute)
   {
     ArgumentNullException.ThrowIfNull(dispute);
-    return CanAccess &&
+    return CanAccess && dispute.AiDraftRequestedRunId is not null &&
         dispute.Status == ModerationDisputeStatus.Pending &&
         !IsMutating &&
         !ambiguousMutationIds.Contains(dispute.Id);
