@@ -8,6 +8,26 @@ public struct ReportIntegrityPenalty: Codable, Identifiable, Sendable {
     public let id: String
     public let userId: String
     public let reason: String
+    @TolerantNullable
+    public var sourceFlagType: String? = nil
+    @TolerantNullable
+    public var reviewDueAt: Date? = nil
+    @TolerantNullable
+    public var reviewedAt: Date? = nil
+    @TolerantNullable
+    public var reviewedById: String? = nil
+    @TolerantNullable
+    public var userDisplayName: String? = nil
+    @TolerantNullable
+    public var userUsername: String? = nil
+    @TolerantNullable
+    public var creatorDisplayName: String? = nil
+    @TolerantNullable
+    public var creatorUsername: String? = nil
+    @TolerantNullable
+    public var revokerDisplayName: String? = nil
+    @TolerantNullable
+    public var revokerUsername: String? = nil
     public let sourceFlagId: String?
     public let createdById: String?
     public let revokedAt: Date?
@@ -36,6 +56,26 @@ public struct VoteIntegrityPenalty: Codable, Identifiable, Sendable {
     public let userId: String
     public let penaltyMultiplier: Double
     public let reason: String
+    @TolerantNullable
+    public var sourceFlagType: String? = nil
+    @TolerantNullable
+    public var reviewDueAt: Date? = nil
+    @TolerantNullable
+    public var reviewedAt: Date? = nil
+    @TolerantNullable
+    public var reviewedById: String? = nil
+    @TolerantNullable
+    public var userDisplayName: String? = nil
+    @TolerantNullable
+    public var userUsername: String? = nil
+    @TolerantNullable
+    public var creatorDisplayName: String? = nil
+    @TolerantNullable
+    public var creatorUsername: String? = nil
+    @TolerantNullable
+    public var revokerDisplayName: String? = nil
+    @TolerantNullable
+    public var revokerUsername: String? = nil
     public let sourceFlagId: String?
     public let createdById: String
     public let revokedAt: Date?

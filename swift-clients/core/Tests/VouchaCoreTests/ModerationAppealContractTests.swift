@@ -5,9 +5,9 @@ import XCTest
 
 final class ModerationAppealContractTests: XCTestCase {
     func testAppealContextsDecodeFromSharedFixturesAndRemainOptionalForOldResponses() throws {
-        let data = ApiFixtureLoader.data("native.moderation.appeals.default")
-        let response = try makeVouchaDecoder().decode(ModerationAppealListResponse.self, from: data)
-        let appeal = try XCTUnwrap(response.appeals.first)
+        let data = ApiFixtureLoader.data("native.moderation.appeals.detail.default")
+        let response = try makeVouchaDecoder().decode(ModerationAppealEnvelope.self, from: data)
+        let appeal = try XCTUnwrap(Optional(response.appeal))
 
         let targetContext = try XCTUnwrap(appeal.targetContext)
         let encodedContext = try JSONEncoder.vouchaFixtureEncoder.encode(targetContext)
@@ -23,10 +23,15 @@ final class ModerationAppealContractTests: XCTestCase {
             "The post did not meet the content policy."
         )
 
-        let oldData = try removingKeys(["target_context", "staff_context"], fromFirstItem: "appeals", in: data)
-        let oldResponse = try makeVouchaDecoder().decode(ModerationAppealListResponse.self, from: oldData)
-        XCTAssertNil(oldResponse.appeals.first?.targetContext)
-        XCTAssertNil(oldResponse.appeals.first?.staffContext)
+        var oldObject = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var oldAppeal = try XCTUnwrap(oldObject["appeal"] as? [String: Any])
+        oldAppeal.removeValue(forKey: "target_context")
+        oldAppeal.removeValue(forKey: "staff_context")
+        oldObject["appeal"] = oldAppeal
+        let oldData = try JSONSerialization.data(withJSONObject: oldObject)
+        let oldResponse = try makeVouchaDecoder().decode(ModerationAppealEnvelope.self, from: oldData)
+        XCTAssertNil(oldResponse.appeal.targetContext)
+        XCTAssertNil(oldResponse.appeal.staffContext)
     }
 
     func testAppealTargetContextsRoundTripCommunityBanAndSuspension() throws {
@@ -101,12 +106,11 @@ final class ModerationAppealContractTests: XCTestCase {
     }
 
     func testAppealSubmissionResponsePreservesDuplicateResult() throws {
-        let listData = ApiFixtureLoader.data("native.moderation.appeals.default")
+        let listData = ApiFixtureLoader.data("native.moderation.appeals.detail.default")
         let listObject = try XCTUnwrap(
             JSONSerialization.jsonObject(with: listData) as? [String: Any]
         )
-        let appeals = try XCTUnwrap(listObject["appeals"] as? [[String: Any]])
-        var appeal = try XCTUnwrap(appeals.first)
+        var appeal = try XCTUnwrap(listObject["appeal"] as? [String: Any])
         appeal.removeValue(forKey: "staff_context")
         XCTAssertNil(appeal["staff_context"])
         let data = try JSONSerialization.data(withJSONObject: [

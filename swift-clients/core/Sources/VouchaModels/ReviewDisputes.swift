@@ -78,6 +78,8 @@ public struct ReviewDisputePostContent: Codable, Sendable {
 }
 
 public struct ReviewDispute: Codable, Identifiable, Sendable {
+    @TolerantNullable
+    public var postLabel: String? = nil
     public let aiDraftRequestedRunId: String
     @RequiredNullable
     public var aiDraftRunId: String?
@@ -114,8 +116,8 @@ public struct ReviewDispute: Codable, Identifiable, Sendable {
 }
 
 public struct ReviewDisputeListResponse: Codable, Sendable {
-    public let disputes: [ReviewDispute]
-    public let pageInfo: Page<ReviewDispute>.PageInfo
+    public let disputes: [ReviewDisputeSummary]
+    public let pageInfo: Page<ReviewDisputeSummary>.PageInfo
 }
 
 public struct ReviewDisputeResponse: Codable, Sendable {

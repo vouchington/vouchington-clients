@@ -5,37 +5,37 @@ import XCTest
 
 final class ReviewDisputeContractTests: XCTestCase {
     func testStaffContextDecodesFromFixtureAndRemainsOptionalForOldResponses() throws {
-        let data = ApiFixtureLoader.data("native.moderation.disputes.default")
-        let response = try makeVouchaDecoder().decode(ReviewDisputeListResponse.self, from: data)
-        let dispute = try XCTUnwrap(response.disputes.first)
+        let data = ApiFixtureLoader.data("native.moderation.disputes.detail.default")
+        let response = try makeVouchaDecoder().decode(ReviewDisputeResponse.self, from: data)
+        let dispute = try XCTUnwrap(Optional(response.dispute))
         XCTAssertEqual(dispute.staffContext?.disputant.username, "native-claimant")
         XCTAssertEqual(dispute.staffContext?.review.post.title, "A disputed review")
         XCTAssertEqual(dispute.staffContext?.review.topic?.name, "Native topic")
         XCTAssertEqual(dispute.staffContext?.review.rating, 1)
 
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        var disputes = try XCTUnwrap(object["disputes"] as? [[String: Any]])
-        disputes[0].removeValue(forKey: "staff_context")
-        object["disputes"] = disputes
+        var dispute = try XCTUnwrap(object["dispute"] as? [String: Any])
+        dispute.removeValue(forKey: "staff_context")
+        object["dispute"] = dispute
         let oldData = try JSONSerialization.data(withJSONObject: object)
-        let oldResponse = try makeVouchaDecoder().decode(ReviewDisputeListResponse.self, from: oldData)
-        XCTAssertNil(oldResponse.disputes.first?.staffContext)
+        let oldResponse = try makeVouchaDecoder().decode(ReviewDisputeResponse.self, from: oldData)
+        XCTAssertNil(oldResponse.dispute.staffContext)
     }
 
     func testStaffContextRejectsNullReviewRating() throws {
-        let data = ApiFixtureLoader.data("native.moderation.disputes.default")
+        let data = ApiFixtureLoader.data("native.moderation.disputes.detail.default")
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        var disputes = try XCTUnwrap(object["disputes"] as? [[String: Any]])
-        var staffContext = try XCTUnwrap(disputes[0]["staff_context"] as? [String: Any])
+        var dispute = try XCTUnwrap(object["dispute"] as? [String: Any])
+        var staffContext = try XCTUnwrap(dispute["staff_context"] as? [String: Any])
         var review = try XCTUnwrap(staffContext["review"] as? [String: Any])
         review["rating"] = NSNull()
         staffContext["review"] = review
-        disputes[0]["staff_context"] = staffContext
-        object["disputes"] = disputes
+        dispute["staff_context"] = staffContext
+        object["dispute"] = dispute
 
         let invalidData = try JSONSerialization.data(withJSONObject: object)
         XCTAssertThrowsError(
-            try makeVouchaDecoder().decode(ReviewDisputeListResponse.self, from: invalidData)
+            try makeVouchaDecoder().decode(ReviewDisputeResponse.self, from: invalidData)
         )
     }
 

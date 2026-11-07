@@ -195,7 +195,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.admin.mq.queues.resume.default": Endpoint.mqResumeQueue(name: "psql"),
             "web.admin.mq.scheduled-jobs.default": Endpoint.mqScheduledJobs,
             "web.admin.mq.scheduled-jobs.trigger.default": Endpoint.mqRunScheduledJob(
-                id: "kagi-smallweb-sync"
+                id: "imports-recover-stalled"
             ),
             "web.admin.mq.backfills.default": Endpoint.mqBackfills,
             "web.admin.mq.backfills.trigger.default": Endpoint.mqRunBackfill(

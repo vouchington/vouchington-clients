@@ -37,16 +37,21 @@ public struct AdminReviewQueueMediaReveal: Codable, Sendable {
 }
 
 public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
+    @TolerantNullable
+    public var postLabel: String? = nil
     public let id: String
     public let title: String
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
     public let slug: String?
     public let markdownPreview: String
     public let postType: String
     public let createdById: String?
     public let createdAt: Date
-    @RequiredNullable public var rootId: String?
+    @RequiredNullable
+    public var rootId: String?
     public let rootPostType: String?
     public let rootSlug: String?
     public let clearanceStatus: AdminReviewQueueClearanceStatus

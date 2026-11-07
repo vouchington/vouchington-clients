@@ -32,7 +32,7 @@ final class UserProfileEndpointTests: XCTestCase {
         )
         XCTAssertEqual(response.user.id, "user-abc")
         XCTAssertEqual(response.user.username, "alice")
-        XCTAssertEqual(response.userMetrics?.visibleCount("reviews"), 1)
+        XCTAssertEqual(response.userMetrics?.visibleCount("reviews"), 4)
         XCTAssertEqual(response.userMetrics?.visibleCount("communities_member"), 9)
         XCTAssertEqual(response.profileLinks.first?.url, "https://example.test")
     }

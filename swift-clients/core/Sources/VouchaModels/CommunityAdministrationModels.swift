@@ -42,6 +42,8 @@ public struct CommunityBanEvasionContext: Codable, Sendable {
     public let communityId: String
     public let communitySlug: String
     public let sourceUserId: String
+    @TolerantNullable
+    public var sourceDisplayName: String? = nil
     public let sourceUsername: String?
     public let score: Double
     public let flaggedAt: Date

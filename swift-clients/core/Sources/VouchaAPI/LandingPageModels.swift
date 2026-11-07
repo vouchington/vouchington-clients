@@ -38,14 +38,18 @@ public struct MyLandingPageListResponse: Codable, Sendable {
 }
 
 public struct LandingPageDetailResponse: Codable, Sendable {
+    public let itemLimit: Int
     public let landingPage: LandingPageDetail
 }
 
 public struct LandingPageSummaryResponse: Codable, Sendable {
+    public let itemLimit: Int
     public let landingPage: LandingPageSummary
 }
 
 public struct LandingPageCandidatesResponse: Codable, Sendable {
+    public let itemLimit: Int
+    public let pageInfo: Page<LandingPageReview>.PageInfo
     public let candidates: LandingPageCandidates
 }
 
@@ -75,8 +79,10 @@ public struct LandingPageReview: Codable, Identifiable, Sendable {
     public let markdown: String
     public let createdAt: Date
     public let reviewTopicRatings: [LandingPageReviewTopicRating]
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
 }
 
 public struct LandingPageReviewTopicRating: Codable, Sendable {
