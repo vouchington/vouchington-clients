@@ -328,6 +328,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers[pollPath] = (
             Support.envelope(Support.appeal()), 200
         )
+        let hydrationRequests = CannedFeedURLProtocol.capturedPathCount(pollPath)
         let firstPollCaptured = expectation(description: "First AI rerun poll captured")
         CannedFeedURLProtocol.suspendResponse(path: pollPath) { firstPollCaptured.fulfill() }
         let rerun = Task { await viewModel.rerunAI(for: appeal) }
@@ -337,7 +338,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.releaseResponse(path: pollPath)
         await rerun.value
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(pollPath), 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(pollPath), hydrationRequests + 1)
         XCTAssertEqual(viewModel.appeals.first?.aiPublicResponse, "AI draft")
         XCTAssertFalse(viewModel.isMutating)
     }
