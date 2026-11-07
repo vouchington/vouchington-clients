@@ -21,6 +21,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/ProfilePage.ImagePreview.cs" Link="Pages/ProfilePage.ImagePreview.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Controls/DirectMessageParticipantView.xaml" Link="Controls/DirectMessageParticipantView.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Controls/DirectMessageParticipantView.xaml.cs" Link="Controls/DirectMessageParticipantView.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/CommunityApplicationDetailPage.cs" Link="Pages/CommunityApplicationDetailPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityDetailPage.cs" Link="Pages/CommunityDetailPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityDetailPage.EmbedPreview.cs" Link="Pages/CommunityDetailPage.EmbedPreview.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityActionPage.cs" Link="Pages/CommunityActionPage.cs" />

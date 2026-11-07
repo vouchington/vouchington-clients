@@ -26,7 +26,14 @@ final class CommunityDetailViewModel {
         }
     }
 
-    var selectedApplicationId = ""
+    var applicationDetail: CommunityApplication?
+    var isLoadingApplicationDetail = false
+    var applicationDetailFailed = false
+    var applicationDetailRevision = 0
+
+    var applicationSummaries: [String: CommunityApplicationSummary] = [:]
+    var applicationUsers: [String: PublicUser] = [:]
+
     var applicationMessage = ""
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""

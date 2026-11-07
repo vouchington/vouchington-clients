@@ -88,6 +88,7 @@ public abstract partial class CommunitySectionPage
 
   private View RowTemplate()
   {
+    if (section == CommunityDetailSurfaceSection.Applications) return ApplicationRowTemplate();
     var title = new Label { FontAttributes = FontAttributes.Bold };
     title.SetBinding(Label.TextProperty, nameof(CommunitySummaryRow.Title));
     title.SetBinding(Label.FlowDirectionProperty, nameof(CommunitySummaryRow.TitleFlowDirection));

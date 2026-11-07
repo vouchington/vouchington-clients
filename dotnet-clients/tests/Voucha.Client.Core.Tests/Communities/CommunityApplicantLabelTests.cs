@@ -15,15 +15,15 @@ public sealed class CommunityApplicantLabelTests
   {
     var response = Read();
     var application = Assert.Single(response.CommunityApplicationSummaries).Value;
-    var row = CommunityApplicationRow.FromApplication(application, response.Users);
+    var row = CommunityApplicationRow.FromApplication(application, response.Users, UiLocalization.English);
     Assert.Equal("user-1", row.UserId);
     Assert.Equal("testuser", UiLocalization.English.Resolve(row.ApplicantText));
     Assert.Equal("pending", row.Status);
     Assert.Equal("I would like to join.", row.Message);
     var named = response.Users.ToDictionary();
     named[application.UserId] = named[application.UserId] with { Name = "Applicant name" };
-    Assert.Equal("Applicant name", UiLocalization.English.Resolve(CommunityApplicationRow.FromApplication(application, named).ApplicantText));
-    var deleted = CommunityApplicationRow.FromApplication(application, new Dictionary<string, PublicUser>());
+    Assert.Equal("Applicant name", UiLocalization.English.Resolve(CommunityApplicationRow.FromApplication(application, named, UiLocalization.English).ApplicantText));
+    var deleted = CommunityApplicationRow.FromApplication(application, new Dictionary<string, PublicUser>(), UiLocalization.English);
     Assert.Equal(UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsDeletedUser, deleted.ApplicantText.Key);
     Assert.Equal("Deleted user", UiLocalization.English.Resolve(deleted.ApplicantText));
   }

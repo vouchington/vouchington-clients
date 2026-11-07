@@ -6,17 +6,26 @@ import XCTest
 
 @MainActor
 final class CommunityApplicationPendingReviewTests: NativeRouteSurfaceViewModelTestCase {
-    func testApprovedAndRejectedApplicationsCannotBeSelectedOrSentForReview() async throws {
+    func testApprovedAndRejectedApplicationsHaveNoReviewRowsOrActions() async throws {
         let client = try makeClient()
-        let model = CommunityDetailViewModel(client: client, slug: "builders", initialTab: .applications)
+        let model = CommunityDetailViewModel(
+            client: client,
+            slug: "builders",
+            initialTab: .applications,
+            isAdministrator: true
+        )
         for status in ["approved", "rejected"] {
             CannedFeedURLProtocol.handlers[applicationsPath] = try (applicationFixture(status: status), 200)
             let page = try await model.loadApplicationRows(client: client, after: nil)
             XCTAssertTrue(page.items.isEmpty)
             model.rowPagination.reset(items: page.items)
-            model.selectedApplicationId = "application-1"
-            let controls = CommunityApplicationReviewControls(viewModel: model, isSignedIn: true, showSignIn: {})
-            XCTAssertThrowsError(try controls.inspect().find(ViewType.Picker.self).find(text: "Application testuser"))
+            let controls = CommunityApplicationReviewControls(
+                viewModel: model,
+                isSignedIn: true,
+                showSignIn: {},
+                applicationId: "application-1"
+            )
+            XCTAssertThrowsError(try controls.inspect().find(ViewType.Picker.self))
             XCTAssertTrue(try controls.inspect().find(button: "Approve").isDisabled())
             XCTAssertTrue(try controls.inspect().find(button: "Reject").isDisabled())
             await model.approveApplication(applicationId: "application-1")
@@ -28,7 +37,7 @@ final class CommunityApplicationPendingReviewTests: NativeRouteSurfaceViewModelT
         })
     }
 
-    func testSuccessfulReviewReloadRemovesSelectionAndPreventsAnotherReview() async throws {
+    func testSuccessfulReviewReloadRemovesRowAndPreventsAnotherReview() async throws {
         let client = try makeClient()
         let model = CommunityDetailViewModel(
             client: client, slug: "builders", initialTab: .applications, isAdministrator: true
@@ -36,8 +45,12 @@ final class CommunityApplicationPendingReviewTests: NativeRouteSurfaceViewModelT
         CannedFeedURLProtocol.handlers[applicationsPath] = try (applicationFixture(status: "pending"), 200)
         let page = try await model.loadApplicationRows(client: client, after: nil)
         model.rowPagination.reset(items: page.items)
-        model.selectedApplicationId = "application-1"
-        let controls = CommunityApplicationReviewControls(viewModel: model, isSignedIn: true, showSignIn: {})
+        let controls = CommunityApplicationReviewControls(
+            viewModel: model,
+            isSignedIn: true,
+            showSignIn: {},
+            applicationId: "application-1"
+        )
         XCTAssertFalse(try controls.inspect().find(button: "Approve").isDisabled())
         CannedFeedURLProtocol.handlers[applicationsPath + "/application-1"] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders"] = (
@@ -51,14 +64,14 @@ final class CommunityApplicationPendingReviewTests: NativeRouteSurfaceViewModelT
         )
         CannedFeedURLProtocol.handlers[applicationsPath] = try (applicationFixture(status: "approved"), 200)
 
-        await model.approveApplication(applicationId: model.selectedApplicationId)
+        await model.approveApplication(applicationId: "application-1")
 
         XCTAssertEqual(model.state, .loaded)
         XCTAssertTrue(model.rowPagination.items.isEmpty)
         XCTAssertTrue(try controls.inspect().find(button: "Approve").isDisabled())
         XCTAssertTrue(try controls.inspect().find(button: "Reject").isDisabled())
-        await model.approveApplication(applicationId: model.selectedApplicationId)
-        await model.rejectApplication(applicationId: model.selectedApplicationId, reason: "Already reviewed")
+        await model.approveApplication(applicationId: "application-1")
+        await model.rejectApplication(applicationId: "application-1", reason: "Already reviewed")
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 1)
     }
 
