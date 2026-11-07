@@ -184,7 +184,7 @@ public sealed class ModerationAppealCardPresentationTests
       Assert.True(viewModel.IsDeliveryAmbiguous(appeal));
     }
     var card = new ModerationAppealCardView(viewModel) { BindingContext = Assert.Single(viewModel.Appeals) };
-    var refresh = Assert.Single(card.Children.OfType<Button>().Where(button => button.IsVisible));
+    var refresh = Assert.Single(card.Children.OfType<Button>(), button => button.IsVisible);
 
     Assert.Equal(UiCopy.Localize(summary
         ? UiMessageKey.NativeDotnetCommonRefresh
@@ -240,9 +240,9 @@ public sealed class ModerationAppealCardPresentationTests
 
     public Task<ModerationAppealResponse> DeliverAsync(
         string id, CancellationToken cancellationToken = default) =>
-        throw ambiguousDelivery
+        throw (ambiguousDelivery
             ? new HttpRequestException("delivery outcome unavailable", null, System.Net.HttpStatusCode.BadGateway)
-            : new NotSupportedException();
+            : new NotSupportedException());
 
     public Task<ModerationAppealResponse> ResolveAsync(
         string id, ModerationAppealAction action, CancellationToken cancellationToken = default) =>
