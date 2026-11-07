@@ -20,6 +20,7 @@ enum IntegrityTestSupport {
           "hostname_id":\(json(hostnameId)),
           "rss_feed_item_id":\(json(rssFeedItemId)),
           "flag_type":"mass_report_suspected",
+          "entity_label":null,"reported_username":null,"resolver_display_name":null,"resolver_username":null,
           "reporter_count":5,
           "new_account_reporter_percent":0.6,
           "details":{"window_minutes":30,"evidence":"captured"},

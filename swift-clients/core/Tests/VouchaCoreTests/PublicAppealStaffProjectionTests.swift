@@ -47,4 +47,5 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
             from: JSONSerialization.data(withJSONObject: nullRequested)
         ))
     }
+
 }

@@ -143,7 +143,6 @@ internal static partial class ApiFixtureCoverage
     ["native.moderation.vote-integrity.penalties.page-2"] = typeof(VoteIntegrityPenaltiesResponse),
     ["native.moderation.vote-integrity.penalties.get"] = typeof(VoteWeightPenaltyResponse),
     ["native.moderation.vote-integrity.penalties.revoke"] = typeof(VoteWeightPenaltyResponse),
-    ["native.moderation.report-integrity.flag"] = typeof(ReportIntegrityFlagResponse),
     ["native.moderation.report-integrity.default"] = typeof(ReportIntegrityFlagsResponse),
     ["native.moderation.report-integrity.pending"] = typeof(ReportIntegrityFlagsResponse),
     ["native.moderation.report-integrity.resolved"] = typeof(ReportIntegrityFlagsResponse),
