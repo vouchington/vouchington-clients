@@ -60,7 +60,7 @@ public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
     public let mediaReveal: AdminReviewQueueMediaReveal
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, declaredLanguage, linguaRsDetectedLanguage, slug, markdownPreview
+        case id, title, postLabel, declaredLanguage, linguaRsDetectedLanguage, slug, markdownPreview
         case postType, createdById, createdAt, rootPostType, rootSlug, clearanceStatus
         case clearanceUpdatedAt, moderationSummary, mediaReveal
         case rootId = "rootPostId"

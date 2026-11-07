@@ -30,8 +30,10 @@ public struct ReportIntegrityPenalty: Codable, Identifiable, Sendable {
     public var revokerUsername: String?
     public let sourceFlagId: String?
     public let createdById: String?
-    public let revokedAt: Date?
-    public let revokedById: String?
+    @TolerantNullable
+    public var revokedAt: Date?
+    @TolerantNullable
+    public var revokedById: String?
     public let createdAt: Date
     public let updatedAt: Date
 }
@@ -78,8 +80,10 @@ public struct VoteIntegrityPenalty: Codable, Identifiable, Sendable {
     public var revokerUsername: String?
     public let sourceFlagId: String?
     public let createdById: String
-    public let revokedAt: Date?
-    public let revokedById: String?
+    @TolerantNullable
+    public var revokedAt: Date?
+    @TolerantNullable
+    public var revokedById: String?
     public let createdAt: Date
 }
 
