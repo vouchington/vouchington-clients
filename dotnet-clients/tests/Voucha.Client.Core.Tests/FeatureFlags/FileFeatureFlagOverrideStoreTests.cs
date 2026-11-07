@@ -16,7 +16,7 @@ public sealed class FileFeatureFlagOverrideStoreTests
       var path = Path.Combine(directory, "overrides.json");
       using var store = new FileFeatureFlagOverrideStore(path);
       var first = new Dictionary<string, bool> { ["fediverse"] = true };
-      var second = new Dictionary<string, bool> { ["chat"] = false, ["support"] = true };
+      var second = new Dictionary<string, bool> { ["memberships"] = false, ["fediverse"] = true };
 
       await Task.WhenAll(store.SaveAsync(first, token), store.SaveAsync(second, token));
 
