@@ -280,7 +280,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.landing-page-detail.default"] = VouchaApiEndpoints.MyLandingPage("landing-page-1"),
         ["native.landing-page-analytics.default"] = VouchaApiEndpoints.MyLandingPageAnalytics("landing-page-1"),
         ["native.admin-user-landing-pages.default"] = VouchaApiEndpoints.AdminUserLandingPages("user-abc"),
-        ["native.admin-landing-page-analytics.default"] = VouchaApiEndpoints.AdminLandingPageAnalytics("landing-page-1"),
+        ["native.admin-landing-page-analytics.default"] = VouchaApiEndpoints.AdminLandingPageAnalytics("admin", "my-links"),
         ["native.landing-page-candidates.default"] = VouchaApiEndpoints.MyLandingPageCandidates(),
         ["native.landing-page-items-mutation.default"] = ApiFixtureLandingPageItems.Request(),
         ["native.landing-page-mutation.default"] = VouchaApiEndpoints.UpdateMyLandingPage("landing-page-1", LandingPageUpdateBody()),

@@ -10,16 +10,16 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest EmailAddresses(string? after = null, int? limit = null) =>
       Get("/api/v1/my/email-addresses", Query(("limit", limit), ("after", after)));
 
-  public static ApiRequest RequestEmailAddressVerification(string emailAddress) =>
+  public static ApiRequest RequestEmailAddressVerification(string emailAddress, string? reAuthToken = null) =>
       new(HttpMethod.Post, "/api/v1/my/email-addresses")
       {
-        Body = new RequestEmailAddressVerificationBody(emailAddress),
+        Body = new RequestEmailAddressVerificationBody(emailAddress, reAuthToken),
       };
 
-  public static ApiRequest VerifyEmailAddress(string emailAddress, string token) =>
+  public static ApiRequest VerifyEmailAddress(string emailAddress, string token, string? reAuthToken = null) =>
       new(HttpMethod.Post, $"/api/v1/my/email-addresses/{Path(emailAddress)}/verifications")
       {
-        Body = new VerifyEmailAddressBody(token),
+        Body = new VerifyEmailAddressBody(token, reAuthToken),
       };
 
   public static ApiRequest UpdateMyIdentity(UpdateMyIdentityBody body) =>

@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
@@ -9,7 +7,6 @@ using Voucha.Client.Core.Localization;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
-using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.Posts;
 using Xunit;
 
@@ -101,45 +98,6 @@ public sealed class PostDetailFocusedPermalinkTests
     await binding.RefreshAfterSessionChangedAsync(TestContext.Current.CancellationToken);
     Assert.Equal(3, service.RootFetchCount);
     Assert.True(Assert.IsType<PostDetailPageRow>(binding.RootRow).HasStaffChannel);
-  }
-
-  [Fact]
-  public async Task RejectedRootHnDiscussionsFollowViewerPermissionChanges()
-  {
-    var root = Post("root", null) with
-    {
-      Markdown = "Private https://example.com/hidden-story",
-      ClearanceStatus = "rejected",
-    };
-    var service = new ThreadService(new PostResponse(root), Response([]), Response([root]));
-    var requests = new CountingHnHandler();
-    var session = new SessionStore(new(new User("other", "other")));
-    var binding = new PostDetailPageBinding(
-        new CommentThreadViewModel(service, root.Id),
-        session,
-        hnDiscussionsSettings: new MemoryHnDiscussionsSettings(true),
-        hnDiscussionsClient: new HnDiscussionsClient(new HttpClient(requests)));
-
-    await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
-
-    Assert.False(Assert.IsType<PostDetailPageRow>(binding.RootRow).ShowBodyContent);
-    Assert.False(binding.HasVisibleHnDiscussions);
-    Assert.Empty(binding.HnDiscussions.Threads);
-    Assert.Equal(0, requests.Count);
-
-    session.SetCurrent(new(new User("moderator", "moderator", Roles: ["moderator"])));
-    await binding.RefreshAfterSessionChangedAsync(TestContext.Current.CancellationToken);
-
-    Assert.True(Assert.IsType<PostDetailPageRow>(binding.RootRow).ShowBodyContent);
-    Assert.True(binding.HasVisibleHnDiscussions);
-    Assert.Single(binding.HnDiscussions.Threads);
-    Assert.Equal(1, requests.Count);
-
-    session.SetCurrent(new(new User("other", "other")));
-    await binding.RefreshAfterSessionChangedAsync(TestContext.Current.CancellationToken);
-    Assert.False(binding.HasVisibleHnDiscussions);
-    Assert.Empty(binding.HnDiscussions.Threads);
-    Assert.Equal(1, requests.Count);
   }
 
   [Fact]
@@ -243,21 +201,6 @@ public sealed class PostDetailFocusedPermalinkTests
     public void SetCurrent(SessionSnapshot next) => Current = next;
     public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-  }
-
-  private sealed class CountingHnHandler : HttpMessageHandler
-  {
-    public int Count { get; private set; }
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
-        CancellationToken cancellationToken)
-    {
-      Count++;
-      return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-      {
-        Content = new StringContent("{\"hits\":[{\"objectID\":\"123\",\"title\":\"Private discussion\",\"url\":\"https://example.com/hidden-story\",\"points\":4,\"num_comments\":1}]}", Encoding.UTF8, "application/json"),
-        RequestMessage = request,
-      });
-    }
   }
 
   private sealed class ThreadService(PostResponse root, PostThreadResponse descendants, PostThreadResponse ancestors) : ICommentThreadService

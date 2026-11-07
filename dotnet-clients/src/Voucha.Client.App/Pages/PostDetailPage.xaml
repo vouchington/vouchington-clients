@@ -7,7 +7,6 @@
     xmlns:app="clr-namespace:Voucha.Client.App"
     xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
     xmlns:pages="clr-namespace:Voucha.Client.App.Pages"
-    xmlns:hn="clr-namespace:Voucha.Client.Core.HnDiscussions;assembly=Voucha.Client.Core"
     x:DataType="pages:PostDetailPageBinding"
     Title="{DynamicResource native.dotnet.posts.post}">
     <ContentPage.Resources>
@@ -89,20 +88,6 @@
             </Border>
 
             <controls:NativeHtmlContentView AutomationId="post-author-bio" Html="{Binding AuthorBioHtml}" DetectedLanguage="{Binding AuthorBioLanguage}" />
-
-            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasVisibleHnDiscussions}">
-                <Label Text="{Binding HnDiscussions.LocalizedHeading}" Style="{StaticResource Headline}" />
-                <CollectionView ItemsSource="{Binding HnDiscussions.Threads}" SelectionMode="None">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="hn:HnDiscussionRow">
-                            <VerticalStackLayout Padding="0,0,0,8" Spacing="2">
-                                <Button Text="{Binding Title}" Clicked="OnHnDiscussionClicked" CommandParameter="{Binding .}" />
-                                <Label Text="{Binding LocalizedMetadata}" Style="{StaticResource Metadata}" />
-                            </VerticalStackLayout>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
 
             <Button
                 x:Name="AncestorsPagination"

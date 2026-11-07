@@ -149,7 +149,7 @@ public sealed class LandingPagesPageTests
     public Task DeleteAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageDetailResponse> ReplaceItemsAsync(string pageId, ReplaceLandingPageItemsBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPagesResponse> FetchAdminUserLandingPagesAsync(string userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(string username, string slug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     private static LandingPage CreatePageValue() => new(
         "landing-page-1", "user-1", "My Links", null, "links", true,
