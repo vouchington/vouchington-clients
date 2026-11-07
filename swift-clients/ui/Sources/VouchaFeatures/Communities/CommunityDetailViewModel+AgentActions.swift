@@ -8,6 +8,10 @@ private struct CommunityAgentPromptTestResult: Decodable {
 }
 
 extension CommunityDetailViewModel {
+    var canMutateCommunityAgentPrompt: Bool {
+        state != .loading && !agentPromptWorkspace.isCreating
+    }
+
     func enableCommunityAiAgent(agentSlug: String) async {
         let agentSlug = agentSlug.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !agentSlug.isEmpty else { return }
@@ -31,6 +35,7 @@ extension CommunityDetailViewModel {
         modelName: String? = nil,
         modelProvider: String? = nil
     ) async {
+        guard canMutateCommunityAgentPrompt else { return }
         if await agentPromptWorkspace.create(prompt: prompt, modelName: modelName, modelProvider: modelProvider) {
             statusMessage = UiMessage(.nativeSwiftCommunityStatusCreatedAgentPrompt)
         }
@@ -39,6 +44,7 @@ extension CommunityDetailViewModel {
     func deleteCommunityAgentPrompt(promptId: String) async {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !promptId.isEmpty else { return }
+        guard canMutateCommunityAgentPrompt else { return }
         let revision = agentPromptWorkspace.revision
         if await perform(
             .deleteCommunityAgentPrompt(idOrSlug: slug, promptId: promptId),
@@ -52,6 +58,7 @@ extension CommunityDetailViewModel {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
         let prompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !promptId.isEmpty, !prompt.isEmpty else { return }
+        guard canMutateCommunityAgentPrompt else { return }
         let revision = agentPromptWorkspace.revision
         if await perform(
             .updateCommunityAgentPrompt(idOrSlug: slug, promptId: promptId, prompt: prompt),
@@ -64,6 +71,7 @@ extension CommunityDetailViewModel {
     func allocateCommunityAgentPrompt(promptId: String) async {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !promptId.isEmpty else { return }
+        guard canMutateCommunityAgentPrompt else { return }
         let revision = agentPromptWorkspace.revision
         if await perform(
             .allocateCommunityAgentPromptSlot(idOrSlug: slug, promptId: promptId),
@@ -76,6 +84,7 @@ extension CommunityDetailViewModel {
     func deallocateCommunityAgentPrompt(promptId: String) async {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !promptId.isEmpty else { return }
+        guard canMutateCommunityAgentPrompt else { return }
         let revision = agentPromptWorkspace.revision
         if await perform(
             .deallocateCommunityAgentPromptSlot(idOrSlug: slug, promptId: promptId),

@@ -156,6 +156,55 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == path })
     }
 
+    func testPendingCreationSerializesPromptWritesAndRetainsLimitRefusal() async throws {
+        CannedFeedURLProtocol.handlers[path] = (
+            Data(#"{"code":"COMMUNITY_AGENT_PROMPT_LIMIT_REACHED","message":"Community agent prompt limit reached"}"#
+                .utf8), 409
+        )
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        let create = Task { await parent.createCommunityAgentPrompt(prompt: "Draft") }
+        _ = try await barrier.wait()
+        let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
+        for title in ["Create", "Update", "Allocate", "Deallocate", "Delete"] {
+            XCTAssertTrue(try controls.inspect().find(button: title).isDisabled(), title)
+        }
+        await parent.deleteCommunityAgentPrompt(promptId: "prompt-1")
+        await parent.updateCommunityAgentPrompt(promptId: "prompt-1", prompt: "Changed")
+        await parent.allocateCommunityAgentPrompt(promptId: "prompt-1")
+        await parent.deallocateCommunityAgentPrompt(promptId: "prompt-1")
+        await parent.createCommunityAgentPrompt(prompt: "Duplicate")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["POST"])
+        var signIns = 0
+        let signedOut = CommunityAgentAndAutomodControls(
+            viewModel: parent,
+            isSignedIn: false,
+            showSignIn: { signIns += 1 }
+        )
+        try signedOut.inspect().find(button: "Update").tap()
+        XCTAssertEqual(signIns, 1)
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await create.value
+        XCTAssertTrue(parent.agentPromptWorkspace.creationLimitReached)
+        XCTAssertFalse(try controls.inspect().find(button: "Create").isDisabled())
+    }
+
+    func testParentLoadingBlocksCreationAndPromptMutation() async throws {
+        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        parent.state = .loading
+        await parent.createCommunityAgentPrompt(prompt: "Draft")
+        await parent.deleteCommunityAgentPrompt(promptId: "prompt-1")
+        await parent.updateCommunityAgentPrompt(promptId: "prompt-1", prompt: "Changed")
+        await parent.allocateCommunityAgentPrompt(promptId: "prompt-1")
+        await parent.deallocateCommunityAgentPrompt(promptId: "prompt-1")
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
+        let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
+        XCTAssertTrue(try controls.inspect().find(button: "Create").isDisabled())
+        XCTAssertTrue(try controls.inspect().find(button: "Update").isDisabled())
+    }
+
     private func page(ids: [String], more: Bool, cursor: String?) throws -> Data {
         var object = try XCTUnwrap(JSONSerialization.jsonObject(
             with: ApiFixtureLoader.data("web.communities.agent-prompts.default")

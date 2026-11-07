@@ -86,7 +86,6 @@ extension CommunityAgentAndAutomodControls {
                             )
                         }
                     }
-                    .disabled(isSignedIn && prompts.isCreating)
                     actionButton(.nativeSwiftCommunityActionsUpdate, systemImage: "pencil") {
                         Task {
                             await viewModel.updateCommunityAgentPrompt(
@@ -108,6 +107,7 @@ extension CommunityAgentAndAutomodControls {
                         Task { await viewModel.deleteCommunityAgentPrompt(promptId: promptId) }
                     }
                 }
+                .disabled(isSignedIn && !viewModel.canMutateCommunityAgentPrompt)
                 HStack {
                     TextField(
                         UiMessages.string(.nativeSwiftCommunitiesTestText, locale: nativeUiLocale),
