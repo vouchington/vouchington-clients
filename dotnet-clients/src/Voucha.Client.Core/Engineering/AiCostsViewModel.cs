@@ -46,7 +46,11 @@ public sealed class AiCostsViewModel : ObservableObject, IDisposable, IUiLocaleC
   public bool ShowsEmptyState => pages.HasLoadedPage && !HasRows && !HasError;
   public bool HasContinuationError => pages.LastError is not null && HasRows;
   public bool HasError => !string.IsNullOrWhiteSpace(errorMessage);
-  public string? ErrorMessage { get => errorMessage; private set { if (SetProperty(ref errorMessage, value)) { OnPropertyChanged(nameof(HasError)); OnPropertyChanged(nameof(HasMore)); } } }
+  public string? ErrorMessage
+  {
+    get => errorMessage;
+    private set => SetPropertyAndNotify(ref errorMessage, value, [nameof(HasError), nameof(HasMore)]);
+  }
 
   public Task EnsureLoadedAsync(CancellationToken cancellationToken = default) =>
       pages.HasLoadedPage ? Task.CompletedTask : RefreshAsync(cancellationToken);

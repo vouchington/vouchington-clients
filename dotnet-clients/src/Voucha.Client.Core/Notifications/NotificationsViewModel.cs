@@ -66,13 +66,7 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public Task LoadAsync(CancellationToken cancellationToken = default) =>

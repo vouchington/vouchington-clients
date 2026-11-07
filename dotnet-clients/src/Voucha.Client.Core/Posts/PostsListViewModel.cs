@@ -70,13 +70,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public async Task LoadFeedAsync(

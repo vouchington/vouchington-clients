@@ -69,13 +69,7 @@ public sealed partial class TopicsViewModel : ObservableObject, IDisposable, IUi
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public Task LoadAsync(CancellationToken cancellationToken = default) =>
