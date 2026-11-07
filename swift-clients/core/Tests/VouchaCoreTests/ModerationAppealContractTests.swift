@@ -125,16 +125,6 @@ final class ModerationAppealContractTests: XCTestCase {
     }
 }
 
-private func removingKeys(_ keys: [String], fromFirstItem collectionKey: String, in data: Data) throws -> Data {
-    var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-    var items = try XCTUnwrap(object[collectionKey] as? [[String: Any]])
-    for key in keys {
-        items[0].removeValue(forKey: key)
-    }
-    object[collectionKey] = items
-    return try JSONSerialization.data(withJSONObject: object)
-}
-
 private extension JSONEncoder {
     static var vouchaFixtureEncoder: JSONEncoder {
         let encoder = JSONEncoder()
