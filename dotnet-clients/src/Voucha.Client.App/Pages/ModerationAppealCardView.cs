@@ -157,6 +157,9 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     accept.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Accept);
     reduce.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Reduce);
     deny.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Deny);
+    UiCopy.Bind(refreshDelivery, Button.TextProperty, appeal.AiDraftRequestedRunId is null
+        ? UiMessageKey.NativeDotnetCommonRefresh
+        : UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery);
     refreshDelivery.IsVisible = appeal.AiDraftRequestedRunId is null || viewModel.IsDeliveryAmbiguous(appeal);
   }
 
