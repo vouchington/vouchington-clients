@@ -245,7 +245,7 @@ internal static partial class ApiFixtureCoverage
         ["web.admin.mq.queues.pause.default"] = VouchaApiEndpoints.PauseQueue("psql"),
         ["web.admin.mq.queues.resume.default"] = VouchaApiEndpoints.ResumeQueue("psql"),
         ["web.admin.mq.scheduled-jobs.default"] = VouchaApiEndpoints.FetchScheduledJobs(),
-        ["web.admin.mq.scheduled-jobs.trigger.default"] = VouchaApiEndpoints.TriggerScheduledJob("kagi-smallweb-sync"),
+        ["web.admin.mq.scheduled-jobs.trigger.default"] = VouchaApiEndpoints.TriggerScheduledJob("imports-recover-stalled"),
         ["web.admin.mq.backfills.default"] = VouchaApiEndpoints.FetchBackfills(),
         ["web.admin.mq.backfills.trigger.default"] = VouchaApiEndpoints.TriggerBackfill("openai-moderation-posts"),
         ["web.admin.psql.migrations.default"] = VouchaApiEndpoints.FetchPsqlMigrations(),
@@ -469,5 +469,5 @@ internal static partial class ApiFixtureCoverage
         ["web.paid.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
-      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints()))).WithCurrentFixtureRequests();
+      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints()))).WithCurrentFixtureRequests().WithContractDriftEndpoints();
 }

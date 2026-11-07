@@ -2,6 +2,18 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class VouchaApiClient
 {
+  public Task<CopyrightStaffQueueResponse> FetchCopyrightStaffQueueAsync(
+      string? after = null, int? limit = null, CancellationToken cancellationToken = default) =>
+      SendAsync<CopyrightStaffQueueResponse>(VouchaApiEndpoints.CopyrightStaffQueue(after, limit), cancellationToken);
+
+  public Task<CopyrightAssociationTargetsResponse> SearchCopyrightAssociationTargetsAsync(
+      string query, string? after = null, int? limit = null, CancellationToken cancellationToken = default) =>
+      SendAsync<CopyrightAssociationTargetsResponse>(VouchaApiEndpoints.CopyrightAssociationTargets(query, after, limit), cancellationToken);
+
+  public Task<CopyrightRepeatInfringerAccountsResponse> FetchCopyrightRepeatInfringerAccountsAsync(
+      string id, CancellationToken cancellationToken = default) =>
+      SendAsync<CopyrightRepeatInfringerAccountsResponse>(VouchaApiEndpoints.CopyrightRepeatInfringerAccounts(id), cancellationToken);
+
   public Task<CopyrightEuDisputeSettlementsResponse> FetchCopyrightEuDisputeSettlementsAsync(
       string id, string? after = null, int? limit = null, CancellationToken cancellationToken = default) =>
       SendAsync<CopyrightEuDisputeSettlementsResponse>(VouchaApiEndpoints.CopyrightEuDisputeSettlements(id, after, limit), cancellationToken);
