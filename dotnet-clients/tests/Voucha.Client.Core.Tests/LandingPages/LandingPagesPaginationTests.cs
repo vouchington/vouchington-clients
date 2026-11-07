@@ -100,6 +100,33 @@ public sealed class LandingPagesPaginationTests
   }
 
   [Fact]
+  public async Task FailedDetailReloadPreservesCandidatesCursorAndLimit()
+  {
+    var service = new LandingPagesFeatureService
+    {
+      ItemLimit = 3,
+      CandidatePageInfo = new("original-cursor", true, null),
+    };
+    using var model = new LandingPagesViewModel(service);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var candidates = model.Candidates;
+    service.ItemLimit = 9;
+    service.CandidatePageInfo = new("replacement-cursor", true, null);
+    service.Candidates = service.Candidates with { Reviews = [] };
+    service.DetailFailure = new HttpRequestException("Detail unavailable");
+
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Same(candidates, model.Candidates);
+    Assert.Equal(3, model.ItemLimit);
+    Assert.True(model.HasMoreCandidates);
+    service.CandidatePageInfo = new(null, false, null);
+    await model.LoadMoreCandidatesAsync(TestContext.Current.CancellationToken);
+    Assert.Equal("original-cursor", service.LastCandidateCursor);
+    Assert.Equal(candidates.Reviews, model.Candidates.Reviews);
+  }
+
+  [Fact]
   public void DetailRequiresItemLimit() =>
       Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<LandingPageDetailResponse>(
           "{\"landing_page\":null}", VouchaApiJson.Options));
