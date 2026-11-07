@@ -63,6 +63,12 @@ public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
     public init(from decoder: any Decoder) throws {
         let staffFields = try decoder.container(keyedBy: ProtectedDisputeField.self)
         if staffFields.contains(.hasDraft) {
+            guard !staffFields.allKeys.contains(where: \.requiresStaffDetail) else {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "A dispute queue summary cannot contain protected detail fields."
+                ))
+            }
             self = try .summary(ReviewDisputeSummary(from: decoder))
             return
         }
@@ -96,6 +102,16 @@ private enum ProtectedDisputeField: String, CodingKey {
     case aiPublicResponse, aiInternalResponse, model, aiDraftedAt, aiDraftRunId, aiDraftRequestedRunId
     case internalNotes, draftedAt, editedAt, editedById, approvedById, resolvedById
     case latestLifecycleChangeId, staffContext
+
+    var requiresStaffDetail: Bool {
+        switch self {
+        case .hasDraft, .disputantUserId, .recommendedAction: false
+        case .claimText, .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt,
+             .aiDraftRunId, .aiDraftRequestedRunId, .internalNotes, .draftedAt,
+             .editedAt, .editedById, .approvedById, .resolvedById, .latestLifecycleChangeId, .staffContext:
+            true
+        }
+    }
 
     /// Explicit references keep protocol-driven keys visible to static analysis.
     var requiresStaffProjection: Bool {

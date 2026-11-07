@@ -30,6 +30,27 @@ final class ModerationQueueSummaryContractTests: XCTestCase {
         XCTAssertThrowsError(try makeVouchaDecoder().decode(ReviewDispute.self, from: detailData))
     }
 
+    func testSummaryMarkerCannotHideProtectedStaffDetailFields() throws {
+        let data = ApiFixtureLoader.data("native.moderation.disputes.default")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let summaries = try XCTUnwrap(object["disputes"] as? [[String: Any]])
+        let summary = try XCTUnwrap(summaries.first)
+        let valid = try makeVouchaDecoder().decode(
+            ModerationDisputeReadProjection.self, from: JSONSerialization.data(withJSONObject: summary)
+        )
+        guard case .summary = valid else { return XCTFail("Expected a legal summary projection") }
+        let detailFields = PublicDisputeProjectionTests.staffFields.subtracting([
+            "disputant_user_id", "recommended_action"
+        ])
+        for field in detailFields {
+            var mixed = summary
+            mixed[field] = NSNull()
+            XCTAssertThrowsError(try makeVouchaDecoder().decode(
+                ModerationDisputeReadProjection.self, from: JSONSerialization.data(withJSONObject: mixed)
+            ), field)
+        }
+    }
+
     func testMalformedSummaryCannotBecomeAnActionableDetail() throws {
         let data = ApiFixtureLoader.data("native.moderation.disputes.default")
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
