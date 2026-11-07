@@ -11,6 +11,7 @@ final class NativeRouteSurfaceLandingPageModelsTests: XCTestCase {
             NativePublicLandingPageResponse.self,
             from: Data("""
             {
+              "user": { "username": "alice" },
               "landing_page": {
                 "id": "page-1",
                 "title": "Home",
@@ -21,6 +22,7 @@ final class NativeRouteSurfaceLandingPageModelsTests: XCTestCase {
             }
             """.utf8)
         )
+        XCTAssertEqual(landingPageEnvelope.user?.username, "alice")
         XCTAssertEqual(landingPageEnvelope.landingPage.id, "page-1")
         XCTAssertEqual(landingPageEnvelope.landingPage.subtitle, "Public profile")
 

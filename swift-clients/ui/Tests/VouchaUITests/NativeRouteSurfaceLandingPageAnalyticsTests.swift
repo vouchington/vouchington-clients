@@ -284,10 +284,11 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
         })
     }
 
-    func testPublicLandingPageRouteLoadsAdminAnalyticsRowsForAdministrator() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/users/alice/landing-page"] = (
+    func testPublicLandingPageUUIDRouteUsesResolvedUsernameForAdminAnalytics() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/users/00000000-0000-7000-8000-000000000001/landing-page"] = (
             Data("""
             {
+              "user": { "username": "alice" },
               "landing_page": {
                 "id": "page-1",
                 "title": "Bonus",
@@ -332,7 +333,8 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             """.utf8),
             200
         )
-        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/user/alice/landing"))
+        let route = try XCTUnwrap(NativeRouteCatalog
+            .matchingRoute(for: "/user/00000000-0000-7000-8000-000000000001/landing"))
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: makeClient(),
@@ -345,7 +347,7 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
         await settleProductSignals(viewModel)
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/visits") }, [
-            "/api/v1/users/alice/landing-page",
+            "/api/v1/users/00000000-0000-7000-8000-000000000001/landing-page",
             "/api/v1/admin/users/alice/landing-pages/bonus/analytics"
         ])
         XCTAssertEqual(
@@ -367,6 +369,7 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
         CannedFeedURLProtocol.handlers["/api/v1/users/alice/landing-page"] = (
             Data("""
             {
+              "user": { "username": "alice" },
               "landing_page": {
                 "id": "page-1",
                 "title": "Bonus",
