@@ -88,7 +88,7 @@ public sealed class ModerationSummaryDetailTests
 
     var first = viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
     var duplicate = viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
-    Assert.Single(service.Calls.Where(call => call.StartsWith("detail:", StringComparison.Ordinal)));
+    Assert.Single(service.Calls, call => call.StartsWith("detail:", StringComparison.Ordinal));
     Assert.False(viewModel.CanEdit(Assert.Single(viewModel.Appeals)));
     held.SetResult(new ModerationAppealResponse(service.Current));
     await first;
@@ -99,7 +99,7 @@ public sealed class ModerationSummaryDetailTests
     await viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
 
     Assert.Equal("Moderator local edit", viewModel.DraftFor(Assert.Single(viewModel.Appeals)));
-    Assert.Single(service.Calls.Where(call => call.StartsWith("detail:", StringComparison.Ordinal)));
+    Assert.Single(service.Calls, call => call.StartsWith("detail:", StringComparison.Ordinal));
   }
 
   [Theory]
