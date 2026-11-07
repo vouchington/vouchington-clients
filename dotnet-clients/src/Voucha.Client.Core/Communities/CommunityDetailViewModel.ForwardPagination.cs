@@ -62,7 +62,7 @@ public sealed partial class CommunityDetailViewModel
         var applicationRows = applications.Results
             .Select(reference => reference.Id)
             .Where(id => id is not null && applications.CommunityApplicationSummaries.ContainsKey(id))
-            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplicationSummaries[id!]));
+            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplicationSummaries[id!], applications.Users));
         ApplicationRows = AppendUnique(ApplicationRows, applicationRows, row => row.Id);
         Applications = AppendUnique(Applications, ApplicationRows.Select(ApplicationSummary), row => row.Id);
         communityListEndCursor = applications.PageInfo.EndCursor;
@@ -139,7 +139,7 @@ public sealed partial class CommunityDetailViewModel
   }
 
   private CommunitySummaryRow ApplicationSummary(CommunityApplicationRow row) =>
-      Summary(row.Id, UiText.Verbatim(row.UserId), UiText.Verbatim(row.Status), Verbatim(row.Message));
+      Summary(row.Id, row.ApplicantText, UiText.Verbatim(row.Status), Verbatim(row.Message));
 
   private CommunitySummaryRow InviteSummary(CommunityInviteRow row) =>
       Summary(row.Id, row.RecipientText, UiText.Verbatim(row.Status), null);

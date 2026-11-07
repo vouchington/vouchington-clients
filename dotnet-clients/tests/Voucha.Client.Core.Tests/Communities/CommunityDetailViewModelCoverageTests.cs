@@ -331,7 +331,7 @@ public sealed class CommunityDetailViewModelCoverageTests
     var viewModel = new CommunityDetailViewModel(service, new TestSessionStore(SessionSnapshotForTests.Authenticated));
 
     await viewModel.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Applications, TestContext.Current.CancellationToken);
-    Assert.Equal("applicant-1", viewModel.Applications[0].Title);
+    Assert.Equal("Deleted user", viewModel.Applications[0].Title);
     Assert.Equal("pending", viewModel.ApplicationRows[0].Status);
 
     await viewModel.SelectSectionAsync(CommunityDetailSurfaceSection.Invites, TestContext.Current.CancellationToken);

@@ -20,7 +20,7 @@ public sealed partial class CommunityDetailViewModel
     ApplicationRows = response.Results
         .Select(reference => reference.Id)
         .Where(id => id is not null && response.CommunityApplicationSummaries.ContainsKey(id))
-        .Select(id => CommunityApplicationRow.FromApplication(response.CommunityApplicationSummaries[id!]))
+        .Select(id => CommunityApplicationRow.FromApplication(response.CommunityApplicationSummaries[id!], response.Users))
         .ToArray();
     OnPropertyChanged(nameof(ApplicationRows));
     SetCommunityContinuation(response.PageInfo.EndCursor);

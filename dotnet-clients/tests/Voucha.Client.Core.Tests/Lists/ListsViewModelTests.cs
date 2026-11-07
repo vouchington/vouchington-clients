@@ -407,6 +407,7 @@ public sealed partial class ListsViewModelTests
             "list_id": "list-2",
             "item_type": "post",
             "entity_id": "post-2",
+            "entity_label": null,
             "order_index": 0,
             "created_at": "2026-06-28T10:07:00Z",
             "media_type": "discussion"

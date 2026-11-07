@@ -166,7 +166,7 @@ public sealed partial class CommunityDetailViewModel
           Applications = ApplicationRows
               .Select(row => Summary(
                   row.Id,
-                  UiText.Verbatim(row.UserId),
+                  row.ApplicantText,
                   UiText.Verbatim(row.Status),
                   Verbatim(row.Message)))
               .ToArray();

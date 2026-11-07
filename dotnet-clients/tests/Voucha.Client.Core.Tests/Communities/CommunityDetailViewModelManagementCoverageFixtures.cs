@@ -47,7 +47,6 @@ internal sealed partial class ScriptedCommunitiesService
             "community_application_summaries": {
               "application-1": {
                 "id": "application-1",
-                "community_id": "community-1",
                 "user_id": "applicant-1",
                 "answer_count": 0,
                 "status": "pending",
