@@ -207,7 +207,7 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.False(await model.CreateAgentPromptAsync("duplicate", cancellationToken: Token));
     Assert.Equal(1, posts);
     delayed.SetResult(Fixture().CommunityAgentPrompts[0]);
-    Assert.False(await creating);
+    Assert.True(await creating);
     service.AgentPromptCreateHandler = _ => Task.FromResult(Fixture().CommunityAgentPrompts[0]);
     Assert.True(await model.CreateAgentPromptAsync("next draft", cancellationToken: Token));
   }
@@ -245,10 +245,148 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.False(model.HasReachedAgentPromptLimit);
     Assert.Null(model.AgentPromptCreationError);
     newPost.SetResult(Fixture().CommunityAgentPrompts[0]);
-    Assert.False(await newCreation);
+    Assert.True(await newCreation);
     Assert.False(model.IsLoading);
     service.AgentPromptCreateHandler = _ => Task.FromResult(Fixture().CommunityAgentPrompts[0]);
     Assert.True(await model.CreateAgentPromptAsync("later draft", cancellationToken: Token));
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ReloadFailureOrCancellationRetainsRowsSlotsAndContinuation(bool canceled)
+  {
+    var service = Service();
+    service.AgentPromptsResponses.Enqueue(Page(Fixture(), "preserved/+?", true));
+    using var model = new CommunityDetailViewModel(service, new Session());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var slots = model.AgentPromptSlots;
+    var pending = new TaskCompletionSource<CommunityAgentPromptsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptPageHandler = _ => pending.Task;
+    var reload = model.LoadAgentPromptsAsync(Token);
+    Assert.True(model.HasMoreCommunityList);
+    Assert.False(model.CanLoadMoreCommunityList);
+    Assert.True(model.IsLoadingMoreCommunityList);
+    var requests = service.ForwardPageRequests.Count;
+    await model.LoadMoreCommunityListAsync(Token);
+    Assert.Equal(requests, service.ForwardPageRequests.Count);
+    pending.SetException(canceled ? new OperationCanceledException(Token) : new HttpRequestException("offline"));
+    if (canceled) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reload);
+    else await Assert.ThrowsAsync<HttpRequestException>(() => reload);
+    Assert.Equal("prompt-1", Assert.Single(model.AgentPrompts).Id);
+    Assert.Equal(slots, model.AgentPromptSlots);
+    Assert.True(model.CanLoadMoreCommunityList);
+    service.AgentPromptPageHandler = _ => Task.FromResult(Page(Fixture(), null, false));
+    await model.LoadMoreCommunityListAsync(Token);
+    Assert.Equal("preserved/+?", service.ForwardPageRequests[^1].After);
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ConfirmedCreateRemainsSuccessfulWhenRefreshFailsOrCancelsAndRetryOnlyReads(bool canceled)
+  {
+    var service = Service();
+    service.AgentPromptsResponses.Enqueue(Page(Fixture(), "next", true));
+    using var model = new CommunityDetailViewModel(service, new Session());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var slots = model.AgentPromptSlots;
+    var posts = 0;
+    service.AgentPromptCreateHandler = _ => { posts++; return Task.FromResult(Fixture().CommunityAgentPrompts[0]); };
+    service.AgentPromptPageHandler = _ => Task.FromException<CommunityAgentPromptsResponse>(canceled
+        ? new OperationCanceledException(Token) : new HttpRequestException("offline"));
+    Assert.True(await model.CreateAgentPromptAsync("committed", cancellationToken: Token));
+    Assert.Equal(1, posts);
+    Assert.True(model.HasAgentPromptRefreshError);
+    Assert.False(model.HasReachedAgentPromptLimit);
+    Assert.Null(model.AgentPromptCreationError);
+    Assert.False(model.HasError);
+    Assert.False(model.IsLoading);
+    Assert.Single(model.AgentPrompts);
+    Assert.Equal(slots, model.AgentPromptSlots);
+    Assert.True(model.CanLoadMoreCommunityList);
+    service.AgentPromptPageHandler = _ => Task.FromResult(Page(Fixture(), null, false));
+    Assert.True(await model.RetryAgentPromptRefreshAsync(Token));
+    Assert.False(model.HasAgentPromptRefreshError);
+    Assert.Equal(1, posts);
+    Assert.Null(service.ForwardPageRequests[^1].After);
+  }
+
+  [Fact]
+  public async Task AccountChangeDuringFailedReloadDoesNotRestoreProtectedCursorOrRows()
+  {
+    var service = Service();
+    service.AgentPromptsResponses.Enqueue(Page(Fixture(), "old account", true));
+    var session = new Session();
+    using var model = new CommunityDetailViewModel(service, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var pending = new TaskCompletionSource<CommunityAgentPromptsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptPageHandler = _ => pending.Task;
+    var reload = model.LoadAgentPromptsAsync(Token);
+    session.Change();
+    pending.SetException(new HttpRequestException("old account failure"));
+    await reload;
+    Assert.Empty(model.AgentPrompts);
+    Assert.Null(model.AgentPromptSlots);
+    Assert.False(model.HasMoreCommunityList);
+    Assert.False(model.HasAgentPromptRefreshError);
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ReturningToPromptSectionUsesOnlyItsCurrentOwnerRowsAndCursor(bool changeAccount)
+  {
+    var service = Service();
+    service.AgentPromptsResponses.Enqueue(Page(Fixture(), "prompt cursor", true));
+    var session = new Session();
+    using var model = new CommunityDetailViewModel(service, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.Bans, Token);
+    if (changeAccount) session.Change();
+    service.AgentPromptPageHandler = _ => Task.FromException<CommunityAgentPromptsResponse>(new HttpRequestException("offline"));
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.AgentPrompts, Token);
+    if (changeAccount)
+    {
+      Assert.Empty(model.AgentPrompts);
+      Assert.Empty(model.Moderation);
+      Assert.Null(model.AgentPromptSlots);
+      Assert.False(model.HasMoreCommunityList);
+    }
+    else
+    {
+      Assert.Equal("prompt-1", Assert.Single(model.Moderation).Id);
+      Assert.True(model.HasMoreCommunityList);
+      service.AgentPromptPageHandler = _ => Task.FromResult(Page(Fixture(), null, false));
+      await model.LoadMoreCommunityListAsync(Token);
+      Assert.Equal("prompt cursor", service.ForwardPageRequests[^1].After);
+    }
+  }
+
+  [Fact]
+  public async Task AccountChangeDuringPendingCreationAndReloadReleasesMutationOwnedBusyState()
+  {
+    var service = Service();
+    var session = new Session();
+    using var model = new CommunityDetailViewModel(service, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var post = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var read = new TaskCompletionSource<CommunityAgentPromptsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptCreateHandler = _ => post.Task;
+    var creating = model.CreateAgentPromptAsync("old draft", cancellationToken: Token);
+    service.AgentPromptPageHandler = _ => read.Task;
+    var reload = model.LoadAgentPromptsAsync(Token);
+    session.Change();
+    Assert.False(model.IsLoading);
+    service.AgentPromptPageHandler = _ => Task.FromResult(Fixture());
+    service.AgentPromptCreateHandler = _ => Task.FromResult(Fixture().CommunityAgentPrompts[0]);
+    Assert.True(await model.CreateAgentPromptAsync("new owner", cancellationToken: Token));
+    post.SetException(new HttpRequestException("old post"));
+    read.SetException(new HttpRequestException("old reload"));
+    Assert.False(await creating);
+    await reload;
+    Assert.False(model.IsLoading);
+    Assert.Null(model.AgentPromptRefreshError);
   }
 
   internal static CommunityAgentPromptsResponse Fixture() => JsonSerializer.Deserialize<CommunityAgentPromptsResponse>(

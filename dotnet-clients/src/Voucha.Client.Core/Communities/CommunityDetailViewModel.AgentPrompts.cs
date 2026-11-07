@@ -7,6 +7,7 @@ namespace Voucha.Client.Core.Communities;
 public sealed partial class CommunityDetailViewModel
 {
   private int agentPromptReadRevision;
+  private string? agentPromptEndCursor;
   private bool isLoadingAgentPrompts;
   private bool agentPromptDisposed;
   public CommunityAgentPromptSlotInfo? AgentPromptSlots { get; private set; }
@@ -14,20 +15,23 @@ public sealed partial class CommunityDetailViewModel
   public async Task LoadAgentPromptsAsync(CancellationToken cancellationToken = default)
   {
     if (agentPromptDisposed) return;
+    isLoadingAgentPrompts = true;
     InvalidateCommunityListRequests();
     var request = Interlocked.Increment(ref agentPromptReadRevision);
     var community = communityIdOrSlug;
     var revision = Volatile.Read(ref communityContextRevision);
     var owner = sessionStore?.Current.Identity?.Id;
     var section = SelectedSection;
-    SetCommunityContinuation(null);
-    isLoadingAgentPrompts = true;
+    SetCommunityContinuation(agentPromptEndCursor);
+    ApplyAgentPromptRows();
     try
     {
       var page = await service.FetchAgentPromptsPageAsync(community, null, 25, cancellationToken).ConfigureAwait(true);
       if (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)) return;
       ApplyAgentPromptPage(page, false);
-      CompleteLoad();
+      agentPromptRefreshError = null;
+      NotifyAgentPromptRefresh();
+      if (!isCreatingAgentPrompt) CompleteLoad();
     }
     catch (Exception ex) when ((ex is HttpRequestException or OperationCanceledException or InvalidOperationException) &&
         (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)))
@@ -35,7 +39,11 @@ public sealed partial class CommunityDetailViewModel
     }
     finally
     {
-      if (request == agentPromptReadRevision) isLoadingAgentPrompts = false;
+      if (request == agentPromptReadRevision)
+      {
+        isLoadingAgentPrompts = false;
+        OnPropertyChanged(nameof(CanLoadMoreCommunityList));
+      }
     }
   }
 
@@ -54,15 +62,21 @@ public sealed partial class CommunityDetailViewModel
   {
     AgentPrompts = AppendUnique(append ? AgentPrompts : [], page.CommunityAgentPrompts, prompt => prompt.Id);
     AgentPromptSlots = page.SlotInfo;
+    ApplyAgentPromptRows();
+    agentPromptEndCursor = page.PageInfo.HasNextPage ? page.PageInfo.EndCursor : null;
+    SetCommunityContinuation(agentPromptEndCursor);
+    OnPropertyChanged(nameof(AgentPrompts));
+    OnPropertyChanged(nameof(AgentPromptSlots));
+  }
+
+  private void ApplyAgentPromptRows()
+  {
     Moderation = AgentPrompts.Select(prompt => Summary(
         prompt.Id, UiText.Verbatim(prompt.AgentId),
         UiText.Localized(prompt.IsSlotAllocated
             ? UiMessageKey.NativeDotnetCsharpCommunitiesAllocated
             : UiMessageKey.NativeDotnetCsharpCommunitiesUnallocated),
         Verbatim(prompt.ModelName))).ToArray();
-    SetCommunityContinuation(page.PageInfo.HasNextPage ? page.PageInfo.EndCursor : null);
-    OnPropertyChanged(nameof(AgentPrompts));
-    OnPropertyChanged(nameof(AgentPromptSlots));
   }
 
   private bool IsCurrentAgentPromptContext(string community, long revision, string? owner, CommunityDetailSurfaceSection section) =>
@@ -77,12 +91,15 @@ public sealed partial class CommunityDetailViewModel
     isLoadingAgentPrompts = false;
     AgentPrompts = [];
     AgentPromptSlots = null;
+    agentPromptEndCursor = null;
     agentPromptCreationError = null;
+    agentPromptRefreshError = null;
     HasReachedAgentPromptLimit = false;
     if (!notify) return;
     OnPropertyChanged(nameof(AgentPrompts));
     OnPropertyChanged(nameof(AgentPromptSlots));
     NotifyAgentPromptCreation();
+    NotifyAgentPromptRefresh();
   }
 
   private void OnAgentPromptSessionChanged(object? sender, SessionChangedEventArgs args)
@@ -99,9 +116,8 @@ public sealed partial class CommunityDetailViewModel
     Moderation = [];
   }
 
-  private void ReleaseAgentPromptMutationState(bool leavingSection = false)
+  private void ReleaseAgentPromptMutationState()
   {
-    if (isCreatingAgentPrompt && agentPromptCreationContext == Volatile.Read(ref communityContextRevision) &&
-        (leavingSection || agentPromptCreationRead == agentPromptReadRevision)) CompleteLoad();
+    if (isCreatingAgentPrompt && agentPromptCreationContext == Volatile.Read(ref communityContextRevision)) CompleteLoad();
   }
 }

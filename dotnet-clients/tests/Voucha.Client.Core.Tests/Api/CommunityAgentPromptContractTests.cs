@@ -62,6 +62,19 @@ public sealed class CommunityAgentPromptContractTests
     Assert.DoesNotContain("after=", handler.Paths[2], StringComparison.Ordinal);
   }
 
+  [Theory]
+  [InlineData(null, null)]
+  [InlineData(0, "25")]
+  [InlineData(-10, "25")]
+  [InlineData(7, "7")]
+  [InlineData(1000, "100")]
+  public void PageLimitsUseProducerDefaultAndMaximum(int? limit, string? expected)
+  {
+    var request = VouchaApiEndpoints.CommunityAgentPrompts("community", limit: limit);
+    if (expected is null) Assert.DoesNotContain("limit", request.Query);
+    else Assert.Equal(expected, request.Query["limit"]);
+  }
+
   private sealed class Handler : HttpMessageHandler
   {
     public List<string> Paths { get; } = [];

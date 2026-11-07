@@ -28,6 +28,12 @@ public abstract partial class CommunitySectionPage
     prompt.AutomationId = "community-agent-prompt-draft";
     var creationError = new Label { AutomationId = "community-agent-prompt-creation-error" };
     creationError.SetBinding(Label.TextProperty, nameof(CommunityDetailViewModel.AgentPromptCreationError));
+    var refreshError = new Label { AutomationId = "community-agent-prompt-refresh-error" };
+    refreshError.SetBinding(Label.TextProperty, nameof(CommunityDetailViewModel.AgentPromptRefreshError));
+    var retry = ActionButton(UiMessageKey.NativeSwiftCommonTryAgain);
+    retry.AutomationId = "community-agent-prompt-refresh-retry";
+    retry.SetBinding(IsVisibleProperty, nameof(CommunityDetailViewModel.HasAgentPromptRefreshError));
+    retry.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.RetryAgentPromptRefreshAsync(ct)).ConfigureAwait(true);
     var modelName = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesModelName);
     var modelProvider = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesModelProvider);
     return new VerticalStackLayout
@@ -36,13 +42,15 @@ public abstract partial class CommunitySectionPage
       Children =
       {
         creationError,
+        refreshError,
+        retry,
         new HorizontalStackLayout { Spacing = 8, Children = { promptId, prompt, modelName, modelProvider } },
         new HorizontalStackLayout
         {
           Spacing = 8,
           Children =
           {
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesCreate).Also(button => { button.AutomationId = "community-agent-prompt-create"; button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.CreateAgentPromptAsync(prompt.Text ?? string.Empty, OptionalText(modelName), OptionalText(modelProvider), ct)).ConfigureAwait(true); }),
+            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesCreate).Also(button => { button.AutomationId = "community-agent-prompt-create"; button.Clicked += async (_, _) => await SubmitAgentPromptAsync(prompt, modelName, modelProvider).ConfigureAwait(true); }),
             ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesUpdate).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.UpdateAgentPromptAsync(promptId.Text ?? string.Empty, prompt.Text, ct)).ConfigureAwait(true)),
             ActionButton(UiMessageKey.NativeDotnetCsharpDelete).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.DeleteAgentPromptAsync(promptId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
             ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesAllocate).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.AllocateAgentPromptSlotAsync(promptId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
@@ -53,6 +61,14 @@ public abstract partial class CommunitySectionPage
       },
     };
   }
+
+  private Task SubmitAgentPromptAsync(Entry prompt, Entry modelName, Entry modelProvider) =>
+      InvokeAndRenderAsync(async ct =>
+      {
+        var submitted = prompt.Text ?? string.Empty;
+        var committed = await viewModel.CreateAgentPromptAsync(submitted, OptionalText(modelName), OptionalText(modelProvider), ct).ConfigureAwait(true);
+        if (committed && prompt.Text == submitted) prompt.Text = string.Empty;
+      });
 
   private View BuildModerationActions()
   {

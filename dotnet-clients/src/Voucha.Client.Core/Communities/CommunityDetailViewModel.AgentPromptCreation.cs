@@ -10,7 +10,6 @@ public sealed partial class CommunityDetailViewModel
   private long agentPromptCreationOperation;
   private bool isCreatingAgentPrompt;
   private long agentPromptCreationContext;
-  private int agentPromptCreationRead;
   public bool HasReachedAgentPromptLimit { get; private set; }
   public string? AgentPromptCreationError => agentPromptCreationError is { } text ? localization.Resolve(text) : null;
 
@@ -24,25 +23,23 @@ public sealed partial class CommunityDetailViewModel
     var owner = sessionStore?.Current.Identity?.Id;
     var section = SelectedSection;
     agentPromptCreationError = null;
+    agentPromptRefreshError = null;
+    NotifyAgentPromptRefresh();
     HasReachedAgentPromptLimit = false;
     NotifyAgentPromptCreation();
     var operation = ++agentPromptCreationOperation;
     isCreatingAgentPrompt = true;
     agentPromptCreationContext = revision;
-    agentPromptCreationRead = readRevision;
     BeginMutation();
     try
     {
       await service.CreateAgentPromptAsync(community,
           new CommunityAgentPromptUpsertRequest(prompt, modelName, modelProvider), cancellationToken).ConfigureAwait(true);
-      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)) return false;
-      var reload = LoadAgentPromptsAsync(cancellationToken);
-      readRevision = agentPromptReadRevision;
-      agentPromptCreationRead = readRevision;
-      await reload.ConfigureAwait(true);
-      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)) return false;
-      CompleteLoad();
-      return true;
+      if (!IsCurrentAgentPromptContext(community, revision, owner, section)) return false;
+      await RefreshAgentPromptsAfterCreateAsync(cancellationToken).ConfigureAwait(true);
+      var current = IsCurrentAgentPromptContext(community, revision, owner, section);
+      if (current && !isLoadingAgentPrompts) CompleteLoad();
+      return current;
     }
     catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict && ex.ErrorCode == "COMMUNITY_AGENT_PROMPT_LIMIT_REACHED")
     {

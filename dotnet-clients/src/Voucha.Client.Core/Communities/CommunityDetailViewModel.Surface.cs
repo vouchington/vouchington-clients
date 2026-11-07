@@ -70,7 +70,7 @@ public sealed partial class CommunityDetailViewModel
     private set
     {
       if (selectedSection != value && selectedSection == CommunityDetailSurfaceSection.AgentPrompts)
-        ReleaseAgentPromptMutationState(leavingSection: true);
+        ReleaseAgentPromptMutationState();
       if (SetProperty(ref selectedSection, value))
       {
         Interlocked.Increment(ref communityContextRevision);

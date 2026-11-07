@@ -13,13 +13,13 @@ public sealed partial class CommunityDetailViewModel
   private int communityListPageRequestId;
 
   public bool CanLoadMoreCommunityList =>
-      communityListEndCursor is not null && !isLoadingMoreCommunityList &&
+      communityListEndCursor is not null && !IsLoadingMoreCommunityList &&
       IsPagedCommunitySection;
 
   public bool HasMoreCommunityList => communityListEndCursor is not null &&
       IsPagedCommunitySection;
 
-  public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList;
+  public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList || (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && isLoadingAgentPrompts);
 
   public bool CanAutomaticallyLoadCommunityList =>
       HasMoreCommunityList && modmailThreadSurfaceId is null;

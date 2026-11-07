@@ -17,6 +17,7 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(AutomodFlagError));
     OnPropertyChanged(nameof(AutomodFlagNotice));
     NotifyAgentPromptCreation();
+    NotifyAgentPromptRefresh();
   }
 
   public void Dispose()
