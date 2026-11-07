@@ -118,7 +118,9 @@ public sealed class ModerationAppealCardPresentationTests
   public async Task PendingAIRerunRendersReadOnlyRefreshAndDisablesDuplicatePost()
   {
     using var scope = UiCopy.PushLocalization(UiLocalization.English);
-    _ = new Application { Resources =
+    _ = new Application
+    {
+      Resources =
     {
       [UiMessageKey.NativeSwiftModerationAppealsRerunAi.Value] = UiCopy.Localize(
           UiMessageKey.NativeSwiftModerationAppealsRerunAi),
@@ -126,7 +128,8 @@ public sealed class ModerationAppealCardPresentationTests
           UiMessageKey.NativeSwiftReviewDisputesRefreshStatus),
       [UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing.Value] = UiCopy.Localize(
           UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing),
-    } };
+    }
+    };
     var appeal = Appeal(null) with
     {
       AiDraftedAt = Instant,
@@ -162,12 +165,15 @@ public sealed class ModerationAppealCardPresentationTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     using var scope = UiCopy.PushLocalization(UiLocalization.English);
-    _ = new Application { Resources =
+    _ = new Application
+    {
+      Resources =
     {
       [UiMessageKey.NativeDotnetCommonRefresh.Value] = UiCopy.Localize(UiMessageKey.NativeDotnetCommonRefresh),
       [UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery.Value] = UiCopy.Localize(
           UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery),
-    } };
+    }
+    };
     var appeal = Appeal(null) with
     {
       AiDraftRequestedRunId = summary ? null : "appeal_resolution_00000000-0000-7000-8000-000000000201",
