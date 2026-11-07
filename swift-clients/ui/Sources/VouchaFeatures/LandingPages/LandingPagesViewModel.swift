@@ -76,6 +76,7 @@ public final class LandingPagesViewModel {
     }
 
     public var isLoading: Bool {
+        if isLoadingMoreCandidates { return true }
         if case .loading = state {
             return true
         }
@@ -91,7 +92,7 @@ public final class LandingPagesViewModel {
     }
 
     public func load() async {
-        guard !isLoading, !isLoadingMoreCandidates, let client = requireClient() else { return }
+        guard !isLoading, let client = requireClient() else { return }
         state = .loading
         errorMessage = nil
         isItemLimitReached = false

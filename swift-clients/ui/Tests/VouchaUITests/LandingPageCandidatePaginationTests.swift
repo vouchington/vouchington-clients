@@ -151,6 +151,72 @@ final class LandingPageCandidatePaginationTests: NativeRouteSurfaceViewModelTest
         XCTAssertFalse(model.isItemLimitReached)
     }
 
+    func testPendingPaginationSerializesEditorOperationsOnSuccessAndFailure() async throws {
+        for status in [200, 500] {
+            let model = try LandingPagesViewModel(client: makeClient())
+            try model.setActivePage(decoder.decode(
+                LandingPageWithItemsResponse.self,
+                from: ApiFixtureLoader.data("native.landing-page-detail.default")
+            )
+            .landingPage)
+            let firstPage = try decoder.decode(
+                VouchaFeatures.LandingPageCandidatesResponse.self,
+                from: candidatePage(ids: ["eligible"], cursor: "opaque-next")
+            )
+            model.candidates = firstPage.candidates
+            model.candidatePageInfo = firstPage.pageInfo
+            model.state = .loaded
+            model.linkLabel = "Draft"
+            model.linkUrl = "https://example.com/draft"
+            let draft = model.draftItems
+            let path = "/api/v1/my/landing-pages/candidates"
+            CannedFeedURLProtocol.handlers[path] = try (candidatePage(ids: ["later"], cursor: nil), status)
+            let suspended = expectation(description: "candidate page suspended")
+            CannedFeedURLProtocol.suspendResponse(path: path) { suspended.fulfill() }
+            let pagination = Task { await model.loadMoreCandidates() }
+            await fulfillment(of: [suspended], timeout: 2)
+            XCTAssertTrue(model.isLoading)
+            XCTAssertFalse(model.canAddItem)
+            XCTAssertFalse(model.canCreatePage)
+            let requestCount = CannedFeedURLProtocol.capturedURLs.count
+            await model.saveContent()
+            await model.saveDetails()
+            await model.selectPage(id: "other-page")
+            await model.createPage(title: "New", slug: "new")
+            model.addSelectedItem()
+            try model.removeItem(id: XCTUnwrap(draft.first?.id))
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, requestCount)
+            XCTAssertEqual(model.draftItems, draft)
+            XCTAssertTrue(model.isLoading)
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await pagination.value
+            XCTAssertFalse(model.isLoading)
+            XCTAssertEqual(model.draftItems, draft)
+            XCTAssertEqual(model.hasMoreCandidates, status != 200)
+
+            let savePath = "/api/v1/my/landing-pages/landing-page-1/items"
+            CannedFeedURLProtocol.handlers[savePath] = (
+                ApiFixtureLoader.data("native.landing-page-items-mutation.default"),
+                200
+            )
+            let saveSuspended = expectation(description: "save suspended")
+            CannedFeedURLProtocol.suspendResponse(path: savePath) { saveSuspended.fulfill() }
+            let save = Task { await model.saveContent() }
+            await fulfillment(of: [saveSuspended], timeout: 2)
+            XCTAssertTrue(model.isLoading)
+            let savingRequestCount = CannedFeedURLProtocol.capturedURLs.count
+            await model.loadMoreCandidates()
+            model.addSelectedItem()
+            XCTAssertTrue(model.isLoading)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, savingRequestCount)
+            XCTAssertEqual(model.draftItems, draft)
+            CannedFeedURLProtocol.releaseResponse(path: savePath)
+            await save.value
+            XCTAssertFalse(model.isLoading)
+            if case .loaded = model.state {} else { XCTFail("Expected successful save") }
+        }
+    }
+
     private func cappedFixture(_ id: String, limit: Int) throws -> Data {
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: ApiFixtureLoader.data(id)) as? [String: Any])
         object["item_limit"] = limit

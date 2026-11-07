@@ -20,7 +20,7 @@ public extension LandingPagesViewModel {
     }
 
     func loadMoreCandidates() async {
-        guard !isLoading, !isLoadingMoreCandidates, hasMoreCandidates,
+        guard !isLoading, hasMoreCandidates,
               let cursor = candidatePageInfo?.endCursor, let client = requireClient() else { return }
         isLoadingMoreCandidates = true
         errorMessage = nil
