@@ -56,10 +56,15 @@ final class MemberAppealPublicReadTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.loadMoreForwardRows()
 
         guard case .loaded = viewModel.state else { return XCTFail("Expected loaded member appeals") }
-        XCTAssertEqual(viewModel.rows.map(\.title), [
+        XCTAssertEqual(viewModel.rows.map(\.title), ["A removed review", "Appeals"])
+        XCTAssertEqual(viewModel.forwardPagination.items.map(\.id), [
             "00000000-0000-7000-8000-000000000102",
             "00000000-0000-7000-8000-000000000101"
         ])
+        let displayedCopy = viewModel.rows.flatMap { [$0.title, $0.detail] }
+        for privateText in ["Please review this again.", "Partial reduction recommended."] {
+            XCTAssertFalse(displayedCopy.contains(privateText))
+        }
         let urls = CannedFeedURLProtocol.capturedURLs
         XCTAssertEqual(urls.count, 2)
         let query = try XCTUnwrap(URLComponents(url: XCTUnwrap(urls.last), resolvingAgainstBaseURL: false)?.queryItems)
