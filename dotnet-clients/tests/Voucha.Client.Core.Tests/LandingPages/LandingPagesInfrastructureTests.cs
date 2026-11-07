@@ -25,7 +25,7 @@ public sealed class LandingPagesInfrastructureTests
         new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
 
     await service.FetchPagesAsync(TestContext.Current.CancellationToken);
-    await service.FetchCandidatesAsync(TestContext.Current.CancellationToken);
+    await service.FetchCandidatesAsync(cancellationToken: TestContext.Current.CancellationToken);
     await service.FetchDetailAsync("landing-page-1", TestContext.Current.CancellationToken);
     await service.CreateAsync(
         new CreateLandingPageBody("New Page", JsonNullableString.Null, "new-page"),

@@ -4,7 +4,8 @@ public static partial class VouchaApiEndpoints
 {
   public static ApiRequest MyLandingPages() => Get("/api/v1/my/landing-pages");
 
-  public static ApiRequest MyLandingPageCandidates() => Get("/api/v1/my/landing-pages/candidates");
+  public static ApiRequest MyLandingPageCandidates(int? limit = null, string? after = null) =>
+      Get("/api/v1/my/landing-pages/candidates", Query(("limit", limit), ("after", after)));
 
   public static ApiRequest MyLandingPage(string pageId) =>
       Get($"/api/v1/my/landing-pages/{Path(pageId)}");

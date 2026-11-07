@@ -27,8 +27,8 @@ public sealed class ApiLandingPagesService : ILandingPagesService
       CancellationToken cancellationToken = default) =>
       client.FetchAdminLandingPageAnalyticsAsync(username, slug, cancellationToken);
 
-  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) =>
-      client.FetchLandingPageCandidatesAsync(cancellationToken);
+  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
+      client.FetchLandingPageCandidatesAsync(limit, after, cancellationToken);
 
   public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default) =>
       client.FetchLandingPageAsync(pageId, cancellationToken);

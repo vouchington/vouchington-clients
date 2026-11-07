@@ -295,7 +295,8 @@ public sealed class LandingPagesViewModelTests
                   "Travel Cards",
                   "travel-cards",
                   "Apply",
-                  new Uri("https://example.com/apply"))]));
+                  new Uri("https://example.com/apply"))]))
+      { ItemLimit = 100, PageInfo = new(null, false, null) };
 
   private static LandingPageDetailResponse MakeDetailResponse(
       string id = "landing-page-1",
@@ -370,7 +371,8 @@ public sealed class LandingPagesViewModelTests
                               new Uri("https://example.com/apply"))),
                     ]),
                 new LandingPageLinkItem("item-link-1", "Newsletter", new Uri("https://example.com/newsletter")),
-              ]));
+              ]))
+      { ItemLimit = 100 };
 
   private static LandingPage MakePage(
       string id,
@@ -437,7 +439,7 @@ public sealed class LandingPagesViewModelTests
           : Task.FromResult(PagesResponse ?? throw new InvalidOperationException("Missing pages response."));
     }
 
-    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default)
+    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default)
     {
       FetchCandidatesCalls++;
       return Task.FromResult(CandidatesResponse ?? throw new InvalidOperationException("Missing candidates response."));

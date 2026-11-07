@@ -60,10 +60,10 @@ public sealed class ApiModelsLandingPagesTests
         ]);
 
     var pagesResponse = new LandingPagesResponse([page], new PageInfo("cursor-1", true, "cursor-0"));
-    var detailResponse = new LandingPageDetailResponse(page);
+    var detailResponse = new LandingPageDetailResponse(page) { ItemLimit = 100 };
     var response = new LandingPageResponse(page);
     var candidates = new LandingPageCandidates(true, [profileLink], [review], [referralLink]);
-    var candidatesResponse = new LandingPageCandidatesResponse(candidates);
+    var candidatesResponse = new LandingPageCandidatesResponse(candidates) { ItemLimit = 100, PageInfo = new(null, false, null) };
 
     Assert.Equal("landing-page-1", page.Id);
     Assert.Equal("user-abc", page.UserId);

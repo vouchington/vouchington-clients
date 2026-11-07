@@ -37,6 +37,9 @@ internal sealed class LandingPagesFeatureService : ILandingPagesService
   public ReplaceLandingPageItemsBody? LastReplaceBody { get; private set; }
   public UpdateLandingPageBody? LastUpdateBody { get; private set; }
   public int PageFetchCount { get; private set; }
+  public int ItemLimit { get; set; } = 100;
+  public PageInfo CandidatePageInfo { get; set; } = new(null, false, null);
+  public string? LastCandidateCursor { get; private set; }
   public int CandidateFetchCount { get; private set; }
   public int DetailFetchCount { get; private set; }
 
@@ -46,10 +49,11 @@ internal sealed class LandingPagesFeatureService : ILandingPagesService
     return PagesGate?.Task ?? Result(LandingPagesFeatureTestData.Pages(Page), PagesFailure);
   }
 
-  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default)
+  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default)
   {
     CandidateFetchCount++;
-    return Result(new LandingPageCandidatesResponse(Candidates), CandidatesFailure);
+    LastCandidateCursor = after;
+    return Result(new LandingPageCandidatesResponse(Candidates) { ItemLimit = ItemLimit, PageInfo = CandidatePageInfo }, CandidatesFailure);
   }
 
   public Task<LandingPageDetailResponse> FetchDetailAsync(
@@ -57,7 +61,7 @@ internal sealed class LandingPagesFeatureService : ILandingPagesService
       CancellationToken cancellationToken = default)
   {
     DetailFetchCount++;
-    return Result(new LandingPageDetailResponse(Page), DetailFailure);
+    return Result(new LandingPageDetailResponse(Page) { ItemLimit = ItemLimit }, DetailFailure);
   }
 
   public Task<LandingPageDetailResponse> UpdateAsync(
@@ -66,7 +70,7 @@ internal sealed class LandingPagesFeatureService : ILandingPagesService
       CancellationToken cancellationToken = default)
   {
     LastUpdateBody = body;
-    return Result(new LandingPageDetailResponse(Page), UpdateFailure);
+    return Result(new LandingPageDetailResponse(Page) { ItemLimit = ItemLimit }, UpdateFailure);
   }
 
   public Task<LandingPageDetailResponse> ReplaceItemsAsync(
@@ -75,18 +79,18 @@ internal sealed class LandingPagesFeatureService : ILandingPagesService
       CancellationToken cancellationToken = default)
   {
     LastReplaceBody = body;
-    return Result(new LandingPageDetailResponse(Page), ReplaceFailure);
+    return Result(new LandingPageDetailResponse(Page) { ItemLimit = ItemLimit }, ReplaceFailure);
   }
 
   public Task<LandingPageDetailResponse> SetDefaultAsync(
       string pageId,
       CancellationToken cancellationToken = default) =>
-      Task.FromResult(new LandingPageDetailResponse(Page with { IsDefault = true }));
+      Task.FromResult(new LandingPageDetailResponse(Page with { IsDefault = true }) { ItemLimit = ItemLimit });
 
   public Task<LandingPageDetailResponse> CreateAsync(
       CreateLandingPageBody body,
       CancellationToken cancellationToken = default) =>
-      Task.FromResult(new LandingPageDetailResponse(Page));
+      Task.FromResult(new LandingPageDetailResponse(Page) { ItemLimit = ItemLimit });
 
   public Task DeleteAsync(string pageId, CancellationToken cancellationToken = default) =>
       Task.CompletedTask;

@@ -13,6 +13,23 @@ namespace Voucha.Client.App.Tests;
 public sealed class LandingPagesPageTests
 {
   [Fact]
+  public async Task RendersLoadMoreOnlyWhileCandidatesContinueAndShowsLimit()
+  {
+    var service = new Service { CandidatePageInfo = new("next", true, null) };
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
+    var localization = new UiLocalization(controller);
+    using var model = new LandingPagesViewModel(service, localization, controller);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var page = CreatePage(model, controller, localization);
+    var button = Find<Button>(page, "landing-pages-load-more-candidates");
+    Assert.True(button.IsVisible);
+    Assert.Contains("100", Find<Label>(page, "landing-pages-item-limit").Text);
+    service.CandidatePageInfo = new(null, false, null);
+    await model.LoadMoreCandidatesAsync(TestContext.Current.CancellationToken);
+    Assert.False(button.IsVisible);
+  }
+
+  [Fact]
   public async Task RendersFiveTypePickerContextualControlsAndHumanLabels()
   {
     var service = new Service();
@@ -130,6 +147,7 @@ public sealed class LandingPagesPageTests
   private sealed class Service : ILandingPagesService
   {
     public LandingPage Page { get; set; } = CreatePageValue();
+    public PageInfo CandidatePageInfo { get; set; } = new(null, false, null);
     public int PageFetchCount { get; private set; }
     public int CandidateFetchCount { get; private set; }
     public int DetailFetchCount { get; private set; }
@@ -137,10 +155,10 @@ public sealed class LandingPagesPageTests
 
     public Task<LandingPagesResponse> FetchPagesAsync(CancellationToken cancellationToken = default)
     { PageFetchCount++; return Task.FromResult(new LandingPagesResponse([Page], new PageInfo(null, false, null))); }
-    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default)
-    { CandidateFetchCount++; return Task.FromResult(new LandingPageCandidatesResponse(CreateCandidates())); }
+    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default)
+    { CandidateFetchCount++; return Task.FromResult(new LandingPageCandidatesResponse(CreateCandidates()) { ItemLimit = 100, PageInfo = CandidatePageInfo }); }
     public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default)
-    { DetailFetchCount++; return Task.FromResult(new LandingPageDetailResponse(Page)); }
+    { DetailFetchCount++; return Task.FromResult(new LandingPageDetailResponse(Page) { ItemLimit = 100 }); }
     public Task<LandingPageAnalyticsResponse> FetchMyLandingPageAnalyticsAsync(string pageId, CancellationToken cancellationToken = default)
     { AnalyticsFetchCount++; return Task.FromResult(new LandingPageAnalyticsResponse(new LandingPageAnalytics(0, 0, 0, 0, [], [], [], new LandingPageConversionFunnel(0, 0, 0, 0)))); }
     public Task<LandingPageDetailResponse> CreateAsync(CreateLandingPageBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
