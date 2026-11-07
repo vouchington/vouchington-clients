@@ -73,6 +73,35 @@ public sealed class ModerationSummaryDetailTests
     Assert.True(viewModel.CanEdit(detail));
   }
 
+  [Fact]
+  public async Task DuplicateSummaryHydrationCannotOverwriteAnEditedDetailDraft()
+  {
+    var page = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"), VouchaApiJson.Options)!;
+    var summary = Assert.Single(page.Appeals);
+    var service = new ModerationAppealsTestService();
+    service.Pages.Enqueue(page);
+    var held = new TaskCompletionSource<ModerationAppealResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingDetail = held;
+    using var viewModel = new ModerationAppealsViewModel(service, new NavigationViewer(true, ["moderator"]));
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    var first = viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
+    var duplicate = viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
+    Assert.Single(service.Calls.Where(call => call.StartsWith("detail:", StringComparison.Ordinal)));
+    Assert.False(viewModel.CanEdit(Assert.Single(viewModel.Appeals)));
+    held.SetResult(new ModerationAppealResponse(service.Current));
+    await first;
+    var detail = Assert.Single(viewModel.Appeals);
+    Assert.True(viewModel.CanEdit(detail));
+    viewModel.SetDraft(detail, "Moderator local edit");
+    await duplicate;
+    await viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
+
+    Assert.Equal("Moderator local edit", viewModel.DraftFor(Assert.Single(viewModel.Appeals)));
+    Assert.Single(service.Calls.Where(call => call.StartsWith("detail:", StringComparison.Ordinal)));
+  }
+
   [Theory]
   [InlineData("native.moderation.appeals.default", "appeals", true)]
   [InlineData("native.moderation.disputes.default", "disputes", false)]
