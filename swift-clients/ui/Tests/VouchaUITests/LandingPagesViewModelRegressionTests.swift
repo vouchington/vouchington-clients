@@ -57,6 +57,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
             Data(
                 """
                 {
+                  "item_limit": 100,
                   "landing_page": {
                     "id": "landing-page-2",
                     "user_id": "user-abc",
@@ -127,6 +128,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
                 Data(
                     """
                     {
+                      "item_limit": 100,
                       "landing_page": {
                         "id": "landing-page-2",
                         "user_id": "user-abc",
@@ -171,6 +173,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
             Data(
                 """
                 {
+                  "item_limit": 100,
                   "landing_page": {
                     "id": "landing-page-2",
                     "user_id": "user-abc",
@@ -203,7 +206,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/landing-page-2/items"] = (
             Data(
                 """
-                {"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Server Title","subtitle":"Server Subtitle","slug":"server-slug","is_default":false,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z","items":[{"id":"draft-link-1","type":"link","label":"Newsletter","url":"https://example.com/newsletter"}]}}
+                {"item_limit":100,"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Server Title","subtitle":"Server Subtitle","slug":"server-slug","is_default":false,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z","items":[{"id":"draft-link-1","type":"link","label":"Newsletter","url":"https://example.com/newsletter"}]}}
                 """.utf8
             ),
             200
@@ -238,7 +241,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/landing-page-2"] = (
             Data(
                 """
-                {"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Server Title","subtitle":"Server Subtitle","slug":"server-slug","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z"}}
+                {"item_limit":100,"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Server Title","subtitle":"Server Subtitle","slug":"server-slug","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z"}}
                 """.utf8
             ),
             200
@@ -289,7 +292,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/landing-page-2"] = (
             Data(
                 """
-                {"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Travel Stack","subtitle":null,"slug":"travel","is_default":false,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z","items":[]}}
+                {"item_limit":100,"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Travel Stack","subtitle":null,"slug":"travel","is_default":false,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z","items":[]}}
                 """.utf8
             ),
             200
@@ -374,6 +377,7 @@ final class LandingPagesViewModelRegressionTests: NativeRouteSurfaceViewModelTes
             Data(
                 """
                 {
+                  "item_limit": 100,
                   "landing_page": {
                     "id": "landing-page-2",
                     "user_id": "user-abc",

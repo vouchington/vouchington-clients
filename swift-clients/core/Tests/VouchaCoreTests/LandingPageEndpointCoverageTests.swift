@@ -3,6 +3,16 @@ import Foundation
 import XCTest
 
 final class LandingPageEndpointCoverageTests: XCTestCase {
+    func testCandidatePaginationForwardsOpaqueParameters() {
+        let cursor = "opaque+/= &cursor"
+        let endpoint = Endpoint.myLandingPageCandidates(limit: 37, after: cursor)
+        XCTAssertEqual(endpoint.queryItems, [
+            URLQueryItem(name: "limit", value: "37"),
+            URLQueryItem(name: "after", value: cursor)
+        ])
+        XCTAssertTrue(Endpoint.myLandingPageCandidates().queryItems.isEmpty)
+    }
+
     func testLandingPageEndpointsUseExpectedRoutesAndBodies() {
         assertEndpoint(Endpoint.myLandingPages, path: "/api/v1/my/landing-pages")
         assertEndpoint(Endpoint.myLandingPageCandidates, path: "/api/v1/my/landing-pages/candidates")

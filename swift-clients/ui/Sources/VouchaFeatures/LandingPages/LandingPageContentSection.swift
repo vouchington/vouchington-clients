@@ -8,6 +8,16 @@ struct LandingPageContentSection: View {
 
     var body: some View {
         Section(header: Text(verbatim: UiMessages.string(.nativeSwiftLandingPagesContent, locale: locale))) {
+            if let itemLimit = viewModel.itemLimit {
+                Text(verbatim: UiMessages.string(
+                    .nativeSwiftModerationReportsCharacterLimit,
+                    parameters: [
+                        "count": UiMessages.number(viewModel.draftItemCount, locale: locale),
+                        "limit": UiMessages.number(itemLimit, locale: locale)
+                    ],
+                    locale: locale
+                ))
+            }
             ForEach(viewModel.draftItems, id: \.id) { item in
                 itemRow(item)
             }
@@ -20,6 +30,12 @@ struct LandingPageContentSection: View {
                 }
             }
             pickerFields
+            if viewModel.hasMoreCandidates {
+                Button(UiMessages.string(.nativeSwiftCommonLoadMore, locale: locale)) {
+                    Task { await viewModel.loadMoreCandidates() }
+                }
+                .disabled(viewModel.isLoading || viewModel.isLoadingMoreCandidates)
+            }
             Button(UiMessages.string(addButtonKey, locale: locale)) {
                 viewModel.addSelectedItem()
             }

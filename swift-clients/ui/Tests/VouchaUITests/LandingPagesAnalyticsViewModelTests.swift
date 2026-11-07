@@ -238,7 +238,7 @@ final class LandingPagesAnalyticsViewModelTests: NativeRouteSurfaceViewModelTest
 
     private var pageDetailData: Data {
         Data(
-            #"{"landing_page":{"id":"page-1","user_id":"user-1","title":"Home Updated","subtitle":"Public profile","slug":"home","is_default":true,"created_at":"2024-05-27T00:26:40Z","updated_at":"2024-05-27T00:30:00Z","items":[]}}"#
+            #"{"item_limit":100,"landing_page":{"id":"page-1","user_id":"user-1","title":"Home Updated","subtitle":"Public profile","slug":"home","is_default":true,"created_at":"2024-05-27T00:26:40Z","updated_at":"2024-05-27T00:30:00Z","items":[]}}"#
                 .utf8
         )
     }

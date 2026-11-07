@@ -19,6 +19,9 @@ final class LandingPageModelDecodingTests: XCTestCase {
             LandingPageCandidatesResponse.self,
             from: ApiFixtureLoader.data("native.landing-page-candidates.default")
         )
+        XCTAssertEqual(candidates.itemLimit, 100)
+        XCTAssertFalse(candidates.pageInfo.hasNextPage)
+        XCTAssertNil(candidates.pageInfo.endCursor)
         XCTAssertTrue(candidates.candidates.canCreateLandingPages)
         XCTAssertEqual(candidates.candidates.profileLinks.first?.id, "profile-link-1")
         XCTAssertEqual(candidates.candidates.reviews.first?.reviewTopicRatings.first?.topicName, "Travel Cards")
@@ -28,6 +31,7 @@ final class LandingPageModelDecodingTests: XCTestCase {
             LandingPageDetailResponse.self,
             from: ApiFixtureLoader.data("native.landing-page-detail.default")
         )
+        XCTAssertEqual(detail.itemLimit, 100)
         XCTAssertEqual(detail.landingPage.id, "landing-page-1")
         XCTAssertEqual(detail.landingPage.items.count, 5)
         XCTAssertEqual(detail.landingPage.items.compactMap { item -> String? in
@@ -59,6 +63,7 @@ final class LandingPageModelDecodingTests: XCTestCase {
             LandingPageSummaryResponse.self,
             from: ApiFixtureLoader.data("native.landing-page-mutation.default")
         )
+        XCTAssertEqual(mutation.itemLimit, 100)
         XCTAssertEqual(mutation.landingPage.subtitle, nil)
 
         let ownerAnalytics = try decoder.decode(
@@ -77,6 +82,19 @@ final class LandingPageModelDecodingTests: XCTestCase {
         )
         XCTAssertEqual(adminAnalytics.landingPage.id, "landing-page-1")
         XCTAssertEqual(adminAnalytics.analytics.conversionFunnel.totalSignups, 2)
+    }
+
+    func testCandidateMetadataIsRequired() throws {
+        let data = ApiFixtureLoader.data("native.landing-page-candidates.default")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        for key in ["page_info", "item_limit"] {
+            var missing = object
+            missing.removeValue(forKey: key)
+            XCTAssertThrowsError(try makeVouchaDecoder().decode(
+                LandingPageCandidatesResponse.self,
+                from: JSONSerialization.data(withJSONObject: missing)
+            ))
+        }
     }
 
     func testRejectsUnsupportedLandingPageItemAndGroupEntryTypes() throws {

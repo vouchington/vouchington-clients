@@ -12,12 +12,14 @@ public extension LandingPagesViewModel {
         guard !metadata.title.isEmpty, !metadata.slug.isEmpty else { return }
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         do {
             let response: LandingPageResponse = try await client.send(.createMyLandingPage(
                 title: metadata.title,
                 subtitle: metadata.subtitlePatch,
                 slug: metadata.slug
             ))
+            itemLimit = response.itemLimit
             try await loadPage(id: response.landingPage.id)
             pages = sortedReplacing(page: selectedPage?.summary ?? response.landingPage, in: pages)
             if initialSlug != nil {
@@ -37,6 +39,7 @@ public extension LandingPagesViewModel {
         let metadata = trimmedMetadata(title: title, subtitle: subtitle, slug: slug)
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         do {
             let response: LandingPageResponse = try await client.send(.updateMyLandingPage(
                 id: selectedPage.id,
@@ -46,6 +49,7 @@ public extension LandingPagesViewModel {
                     slug: metadata.slug
                 )
             ))
+            itemLimit = response.itemLimit
             pages = sortedReplacing(page: response.landingPage, in: pages)
             replaceSelectedSummary(response.landingPage, items: draftItems)
             persistedMetadataBaseline = LandingPageMetadataBaseline(page: response.landingPage)
@@ -65,10 +69,12 @@ public extension LandingPagesViewModel {
         guard !isLoading, let client = requireClient(), let selectedPage else { return }
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         do {
             let response: LandingPageResponse = try await client.send(
                 .setDefaultMyLandingPage(id: selectedPage.id)
             )
+            itemLimit = response.itemLimit
             pages = pages
                 .map { page in
                     page.id == response.landingPage.id
@@ -92,6 +98,7 @@ public extension LandingPagesViewModel {
         guard !isLoading, let client = requireClient(), let selectedPage else { return }
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         do {
             let _: LandingPageEmptyResponse = try await client.send(.deleteMyLandingPage(id: selectedPage.id))
             setActivePage(nil)
@@ -112,11 +119,13 @@ public extension LandingPagesViewModel {
         guard !isLoading, let client = requireClient(), let selectedPage else { return }
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         do {
             let response: LandingPageWithItemsResponse = try await client.send(.replaceMyLandingPageItems(
                 id: selectedPage.id,
                 items: draftItems.map(\.input)
             ))
+            itemLimit = response.itemLimit
             draftItems = response.landingPage.items
             persistedItemInputBaseline = response.landingPage.items.map(\.input)
             replaceSelectedSummary(response.landingPage.summary, items: draftItems, preservingDraftMetadata: true)
