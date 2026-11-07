@@ -96,6 +96,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["web.communities.saved-reply.create.default"] = VouchaApiEndpoints.CreateCommunitySavedReply(
             "test-community",
             new CreateCommunitySavedReplyRequest("Greeting", "Thanks for writing in.")),
+        ["web.communities.application.default"] = VouchaApiEndpoints.CommunityApplication("test-community", "application-1"),
         ["web.communities.applications.default"] = VouchaApiEndpoints.CommunityApplications("test-community", limit: 25),
         ["web.communities.invites.default"] = VouchaApiEndpoints.CommunityInvites("test-community", limit: 25),
         ["web.communities.bans.default"] = VouchaApiEndpoints.CommunityBans("test-community"),

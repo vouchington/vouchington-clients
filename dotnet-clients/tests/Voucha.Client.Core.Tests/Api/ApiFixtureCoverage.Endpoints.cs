@@ -51,6 +51,7 @@ internal static partial class ApiFixtureCoverage
         ["web.communities.list-items.counts.default"] = VouchaApiEndpoints.CommunityListItemCounts("test-community"),
         ["web.communities.application-questions.default"] = VouchaApiEndpoints.CommunityApplicationQuestions("test-community"),
         ["web.communities.pinned-posts.default"] = VouchaApiEndpoints.CommunityPinnedPosts("test-community"),
+        ["web.communities.application.default"] = VouchaApiEndpoints.CommunityApplication("test-community", "application-1"),
         ["web.communities.applications.default"] = VouchaApiEndpoints.CommunityApplications("test-community", limit: 25),
         ["web.communities.invites.default"] = VouchaApiEndpoints.CommunityInvites("test-community", limit: 25),
         ["web.communities.bans.default"] = VouchaApiEndpoints.CommunityBans("test-community"),

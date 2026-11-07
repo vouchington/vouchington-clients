@@ -93,6 +93,9 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
             ignoring: ["automod_actions.feedback_label", "page_info.end_cursor", "page_info.start_cursor"]
         )
     },
+    RegisteredFixture(id: "web.communities.application.default") {
+        try assertFixtureCoversDTO($0, as: CommunityApplicationResponse.self)
+    },
     RegisteredFixture(id: "web.communities.application-questions.default") {
         try assertFixtureCoversDTO(
             $0,

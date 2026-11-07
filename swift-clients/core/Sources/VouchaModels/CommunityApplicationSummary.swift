@@ -28,3 +28,7 @@ public struct CommunityApplicationsResponse: Codable, Sendable {
     public let communityApplicationSummaries: [String: CommunityApplicationSummary]
     public let users: [String: PublicUser]
 }
+
+public struct CommunityApplicationResponse: Codable, Sendable {
+    public let communityApplication: CommunityApplication
+}

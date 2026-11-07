@@ -163,6 +163,7 @@ internal static partial class ApiFixtureCoverage
     ["web.communities.show.default"] = typeof(CommunityResponse),
     ["web.communities.ai-agent.default"] = typeof(UpsertCommunityAiAgentResponse),
     ["web.communities.news.default"] = typeof(RssFeedItemsFeedResponse),
+    ["web.communities.application.default"] = typeof(CommunityApplicationResponse),
     ["web.communities.applications.default"] = typeof(CommunityApplicationsResponse),
     ["web.communities.invites.default"] = typeof(CommunityInvitesResponse),
     ["web.communities.bans.default"] = typeof(CommunityBansResponse),

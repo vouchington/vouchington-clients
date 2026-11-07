@@ -90,6 +90,9 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 title: "Greeting",
                 body: "Thanks for writing in."
             ),
+            "web.communities.application.default": Endpoint.communityApplication(
+                idOrSlug: "test-community", applicationId: "application-1"
+            ),
             "web.communities.applications.default": Endpoint.communityApplications(idOrSlug: "test-community"),
             "web.communities.invites.default": Endpoint.communityInvites(idOrSlug: "test-community"),
             "web.communities.bans.default": Endpoint.communityBans(idOrSlug: "test-community"),
