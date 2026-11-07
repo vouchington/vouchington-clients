@@ -25,8 +25,11 @@ public sealed record LandingPageDetailResponse(
 }
 
 public sealed record LandingPageResponse(
-    [property: JsonPropertyName("landing_page")] LandingPage LandingPage,
-    [property: JsonPropertyName("item_limit")] int ItemLimit = 0);
+    [property: JsonPropertyName("landing_page")] LandingPage LandingPage)
+{
+  [JsonRequired, JsonPropertyName("item_limit")]
+  public int ItemLimit { get; init; }
+}
 
 public sealed record LandingPageCandidatesResponse(
     [property: JsonPropertyName("candidates")] LandingPageCandidates Candidates)

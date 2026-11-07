@@ -43,7 +43,12 @@ public sealed partial class VouchaApiClientTests
   {
     var (client, handler) = CreateClient("native.landing-page-candidates.default");
     await client.FetchLandingPageCandidatesAsync(7, "opaque/+==", TestContext.Current.CancellationToken);
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/my/landing-pages/candidates?limit=7&after=opaque%2F%2B%3D%3D");
+    Assert.Equal(HttpMethod.Get, handler.Method);
+    var request = Assert.IsType<string>(handler.PathAndQuery).Split('?', 2);
+    Assert.Equal("/api/v1/my/landing-pages/candidates", request[0]);
+    Assert.Equal(
+        ["after=opaque%2F%2B%3D%3D", "limit=7"],
+        request[1].Split('&').Order(StringComparer.Ordinal));
   }
 
   [Fact]
