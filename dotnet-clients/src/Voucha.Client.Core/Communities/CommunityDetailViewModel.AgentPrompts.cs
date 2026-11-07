@@ -69,7 +69,7 @@ public sealed partial class CommunityDetailViewModel
       !agentPromptDisposed && community == communityIdOrSlug && revision == Volatile.Read(ref communityContextRevision) &&
       owner == sessionStore?.Current.Identity?.Id && section == SelectedSection;
 
-  private void ResetAgentPromptContext()
+  private void ResetAgentPromptContext(bool notify = true)
   {
     Interlocked.Increment(ref agentPromptReadRevision);
     agentPromptCreationOperation++;
@@ -79,6 +79,7 @@ public sealed partial class CommunityDetailViewModel
     AgentPromptSlots = null;
     agentPromptCreationError = null;
     HasReachedAgentPromptLimit = false;
+    if (!notify) return;
     OnPropertyChanged(nameof(AgentPrompts));
     OnPropertyChanged(nameof(AgentPromptSlots));
     NotifyAgentPromptCreation();
@@ -88,7 +89,7 @@ public sealed partial class CommunityDetailViewModel
   {
     if (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts)
     {
-      Interlocked.Increment(ref agentPromptReadRevision);
+      ResetAgentPromptContext(notify: false);
       return;
     }
     ReleaseAgentPromptMutationState();

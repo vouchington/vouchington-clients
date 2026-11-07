@@ -212,6 +212,45 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.True(await model.CreateAgentPromptAsync("next draft", cancellationToken: Token));
   }
 
+  [Fact]
+  public async Task AccountChangeOffPromptPageSilentlyReleasesOldOperationWithoutClearingNewCreation()
+  {
+    var service = Service();
+    var session = new Session();
+    using var model = new CommunityDetailViewModel(service, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var oldPost = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptCreateHandler = _ => oldPost.Task;
+    var oldCreation = model.CreateAgentPromptAsync("old account draft", cancellationToken: Token);
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.Overview, Token);
+    var notifications = new List<string?>();
+    model.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+    session.Change();
+    Assert.Empty(notifications);
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var newPost = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var posts = 0;
+    service.AgentPromptCreateHandler = _ => { posts++; return newPost.Task; };
+    var newCreation = model.CreateAgentPromptAsync("new account draft", cancellationToken: Token);
+    Assert.False(newCreation.IsCompleted);
+    Assert.Equal(1, posts);
+    oldPost.SetException(new VouchaApiException(HttpStatusCode.Conflict, "{\"code\":\"COMMUNITY_AGENT_PROMPT_LIMIT_REACHED\",\"message\":\"old account\"}"));
+    Assert.False(await oldCreation);
+    Assert.True(model.IsLoading);
+    await model.LoadAgentPromptsAsync(Token);
+    var duplicate = model.CreateAgentPromptAsync("duplicate", cancellationToken: Token);
+    Assert.True(duplicate.IsCompleted);
+    Assert.False(await duplicate);
+    Assert.Equal(1, posts);
+    Assert.False(model.HasReachedAgentPromptLimit);
+    Assert.Null(model.AgentPromptCreationError);
+    newPost.SetResult(Fixture().CommunityAgentPrompts[0]);
+    Assert.False(await newCreation);
+    Assert.False(model.IsLoading);
+    service.AgentPromptCreateHandler = _ => Task.FromResult(Fixture().CommunityAgentPrompts[0]);
+    Assert.True(await model.CreateAgentPromptAsync("later draft", cancellationToken: Token));
+  }
+
   internal static CommunityAgentPromptsResponse Fixture() => JsonSerializer.Deserialize<CommunityAgentPromptsResponse>(
       ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default"), VouchaApiJson.Options)!;
 
