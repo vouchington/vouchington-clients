@@ -89,7 +89,7 @@ extension NativeRouteSurfaceViewModel {
                 forwardRow(
                     id: $0.id,
                     icon: "arrow.uturn.left.circle",
-                    title: rawText($0.id),
+                    title: appealSummaryTitle($0.targetContext),
                     detail: appText($0.status.titleKey)
                 )
             }
@@ -102,7 +102,7 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "arrow.uturn.left.circle",
-                title: rawText($0.id),
+                title: appealSummaryTitle($0.targetContext),
                 detail: appText($0.status.titleKey)
             )
         }
