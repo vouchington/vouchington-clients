@@ -77,7 +77,7 @@ public sealed partial class ModerationAppealsViewModel
           ownerRevision != Volatile.Read(ref accountRevision) ||
           !Appeals.Any(appeal => appeal.Id == id) || response.Appeal.Id != id) return;
       ambiguousDeliveryIds.Remove(id);
-      Replace(response.Appeal);
+      Replace(response.Appeal, readOwnerRevision: ownerRevision);
       ErrorMessage = null;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -9,15 +9,25 @@ namespace Voucha.Client.Core.Tests.Moderation;
 
 public sealed class ModerationSummaryDetailTests
 {
-  [Fact]
-  public async Task AppealSummaryRequiresTargetedDetailBeforeEditingOrMutating()
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task AppealSummaryRequiresTargetedDetailBeforeEditingOrMutating(bool accountRoundTrip)
   {
     var page = JsonSerializer.Deserialize<ModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"), VouchaApiJson.Options)!;
     var summary = Assert.Single(page.Appeals);
     var service = new ModerationAppealsTestService();
     service.Pages.Enqueue(page);
-    using var viewModel = new ModerationAppealsViewModel(service, new NavigationViewer(true, ["moderator"]));
+    var owner = new NavigationViewer(true, ["moderator"], IdentityId: "staff-1");
+    var provider = new MutableNavigationViewerProvider();
+    provider.SetViewer(owner);
+    using var viewModel = new ModerationAppealsViewModel(service, owner, viewerProvider: provider);
+    if (accountRoundTrip)
+    {
+      provider.SetViewer(new NavigationViewer(true, ["moderator"], IdentityId: "staff-2"));
+      provider.SetViewer(owner);
+    }
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
     Assert.Null(summary.AiDraftRequestedRunId);
