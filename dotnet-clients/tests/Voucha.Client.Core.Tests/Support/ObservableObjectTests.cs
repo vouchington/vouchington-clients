@@ -29,6 +29,27 @@ public sealed class ObservableObjectTests
   }
 
   [Fact]
+  public void NotifiesTheAssignedPropertyBeforeEachDependent()
+  {
+    var probe = new PropertyProbe();
+
+    probe.Label = "ada";
+
+    Assert.Equal(["Label", "HasLabel", "LabelLength"], probe.Changes);
+  }
+
+  [Fact]
+  public void SkipsEveryDependentWhenTheValueIsUnchanged()
+  {
+    var probe = new PropertyProbe { Label = "ada" };
+    probe.Changes.Clear();
+
+    probe.Label = "ada";
+
+    Assert.Empty(probe.Changes);
+  }
+
+  [Fact]
   public void NotifiesAgainWhenAValueTypeChanges()
   {
     var probe = new PropertyProbe();
@@ -64,5 +85,17 @@ public sealed class ObservableObjectTests
     }
 
     public bool IsPositive => Count > 0;
+
+    private string? label;
+
+    public string? Label
+    {
+      get => label;
+      set => SetPropertyAndNotify(ref label, value, [nameof(HasLabel), nameof(LabelLength)]);
+    }
+
+    public bool HasLabel => Label is not null;
+
+    public int LabelLength => Label?.Length ?? 0;
   }
 }

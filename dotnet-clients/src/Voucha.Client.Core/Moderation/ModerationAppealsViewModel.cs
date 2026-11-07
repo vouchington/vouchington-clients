@@ -70,15 +70,10 @@ public sealed partial class ModerationAppealsViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-        OnPropertyChanged(nameof(IsEmpty));
-      }
-    }
+    private set => SetPropertyAndNotify(
+        ref state,
+        value,
+        [nameof(IsLoading), nameof(HasError), nameof(IsEmpty)]);
   }
 
   public string? ErrorMessage

@@ -61,14 +61,7 @@ public sealed partial class FriendRecommendationsViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (state == value) return;
-      state = value;
-      OnPropertyChanged();
-      OnPropertyChanged(nameof(IsLoading));
-      OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
