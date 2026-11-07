@@ -164,6 +164,54 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.True(await model.CreateAgentPromptAsync("draft", cancellationToken: Token));
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task LeavingPromptSectionReleasesItsCreationBusyStateAndIgnoresLateConflict(bool reloadPending)
+  {
+    var service = Service();
+    using var model = new CommunityDetailViewModel(service, new Session());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var delayed = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptCreateHandler = _ => delayed.Task;
+    var creating = model.CreateAgentPromptAsync("draft", cancellationToken: Token);
+    var page = new TaskCompletionSource<CommunityAgentPromptsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    Task? reloading = null;
+    if (reloadPending)
+    {
+      service.AgentPromptPageHandler = _ => page.Task;
+      reloading = model.LoadAgentPromptsAsync(Token);
+    }
+    await model.SelectSectionAsync(CommunityDetailSurfaceSection.Overview, Token);
+    Assert.False(model.IsLoading);
+    delayed.SetException(new VouchaApiException(HttpStatusCode.Conflict, "{\"code\":\"COMMUNITY_AGENT_PROMPT_LIMIT_REACHED\",\"message\":\"old section\"}"));
+    Assert.False(await creating);
+    Assert.Null(model.AgentPromptCreationError);
+    Assert.False(model.HasError);
+    page.SetResult(Fixture());
+    if (reloading is not null) await reloading;
+    Assert.False(model.IsLoading);
+  }
+
+  [Fact]
+  public async Task ReloadDuringPendingCreateDoesNotAdmitAnotherPost()
+  {
+    var service = Service();
+    using var model = new CommunityDetailViewModel(service, new Session());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var delayed = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var posts = 0;
+    service.AgentPromptCreateHandler = _ => { posts++; return delayed.Task; };
+    var creating = model.CreateAgentPromptAsync("draft", cancellationToken: Token);
+    await model.LoadAgentPromptsAsync(Token);
+    Assert.False(await model.CreateAgentPromptAsync("duplicate", cancellationToken: Token));
+    Assert.Equal(1, posts);
+    delayed.SetResult(Fixture().CommunityAgentPrompts[0]);
+    Assert.False(await creating);
+    service.AgentPromptCreateHandler = _ => Task.FromResult(Fixture().CommunityAgentPrompts[0]);
+    Assert.True(await model.CreateAgentPromptAsync("next draft", cancellationToken: Token));
+  }
+
   internal static CommunityAgentPromptsResponse Fixture() => JsonSerializer.Deserialize<CommunityAgentPromptsResponse>(
       ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default"), VouchaApiJson.Options)!;
 

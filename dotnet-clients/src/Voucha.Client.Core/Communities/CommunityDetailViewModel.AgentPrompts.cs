@@ -86,13 +86,21 @@ public sealed partial class CommunityDetailViewModel
 
   private void OnAgentPromptSessionChanged(object? sender, SessionChangedEventArgs args)
   {
-    if (isCreatingAgentPrompt && SelectedSection == CommunityDetailSurfaceSection.AgentPrompts &&
-        agentPromptCreationContext == Volatile.Read(ref communityContextRevision) && agentPromptCreationRead == agentPromptReadRevision)
-      CompleteLoad();
+    if (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts)
+    {
+      Interlocked.Increment(ref agentPromptReadRevision);
+      return;
+    }
+    ReleaseAgentPromptMutationState();
     ResetAgentPromptContext();
-    if (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts) return;
     InvalidateCommunityListRequests();
     SetCommunityContinuation(null);
     Moderation = [];
+  }
+
+  private void ReleaseAgentPromptMutationState(bool leavingSection = false)
+  {
+    if (isCreatingAgentPrompt && agentPromptCreationContext == Volatile.Read(ref communityContextRevision) &&
+        (leavingSection || agentPromptCreationRead == agentPromptReadRevision)) CompleteLoad();
   }
 }

@@ -69,6 +69,8 @@ public sealed partial class CommunityDetailViewModel
     get => selectedSection;
     private set
     {
+      if (selectedSection != value && selectedSection == CommunityDetailSurfaceSection.AgentPrompts)
+        ReleaseAgentPromptMutationState(leavingSection: true);
       if (SetProperty(ref selectedSection, value))
       {
         Interlocked.Increment(ref communityContextRevision);

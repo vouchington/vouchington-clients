@@ -17,7 +17,7 @@ public sealed partial class CommunityDetailViewModel
   public async Task<bool> CreateAgentPromptAsync(
       string prompt, string? modelName = null, string? modelProvider = null, CancellationToken cancellationToken = default)
   {
-    if (!CanModerateCommunity || IsLoading || isLoadingAgentPrompts || isLoadingMoreCommunityList || agentPromptDisposed) return false;
+    if (!CanModerateCommunity || isCreatingAgentPrompt || IsLoading || isLoadingAgentPrompts || isLoadingMoreCommunityList || agentPromptDisposed) return false;
     var community = communityIdOrSlug;
     var revision = Volatile.Read(ref communityContextRevision);
     var readRevision = agentPromptReadRevision;
