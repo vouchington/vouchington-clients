@@ -3,6 +3,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.Tests.Api;
+using Xunit;
 
 namespace Voucha.Client.Core.Tests.Moderation;
 

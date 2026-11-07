@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Xunit;
 
 namespace Voucha.Client.Core.Tests.Api;
 
