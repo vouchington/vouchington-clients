@@ -100,8 +100,11 @@ extension CommunityDetailActionTests {
             .contains { $0.path == "/api/v1/communities/builders/agent-prompts" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedRequests
             .contains { $0.method == "DELETE" && $0.url.path == "/api/v1/communities/builders/agent-prompts/prompt-1" })
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
-            .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1/allocations" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests
+            .contains {
+                $0.method == "DELETE" && $0.url
+                    .path == "/api/v1/communities/builders/agent-prompts/prompt-1/allocations"
+            })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1/test-runs" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
