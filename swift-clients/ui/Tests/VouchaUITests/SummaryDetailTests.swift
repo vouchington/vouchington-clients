@@ -44,6 +44,19 @@ final class SummaryDetailTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try ReviewDisputeDetail(viewModel: model, id: summary.id).inspect().find(button: "Approve"))
     }
 
+    func testDisputeDetailFailureOffersRetryWithoutActionableData() async throws {
+        let model = try disputeModel()
+        let id = "00000000-0000-7000-8000-000000000201"
+        let path = "/api/v1/disputes/\(id)"
+        CannedFeedURLProtocol.handlers[path] = (Data(#"{"error":"unavailable"}"#.utf8), 500)
+        await model.loadDetail(id: id)
+        XCTAssertNotNil(model.detailError)
+        XCTAssertNil(model.detailReviewDispute)
+        let inspection = try ReviewDisputeDetail(viewModel: model, id: id).inspect()
+        XCTAssertNoThrow(try inspection.find(button: "Try Again"))
+        XCTAssertThrowsError(try inspection.find(button: "Approve"))
+    }
+
     func testAppealSummaryAndDetailFailureRenderErrorWithoutReviewActions() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
             ApiFixtureLoader.data("native.moderation.appeals.default"), 200
