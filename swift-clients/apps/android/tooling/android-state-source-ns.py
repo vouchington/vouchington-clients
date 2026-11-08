@@ -186,7 +186,7 @@ def main():
                                 "mtimeNs": str(after.st_mtime_ns)})
                 os.close(fd)
             else:
-                opened.append((fd, path, int(timestamp), before.st_mtime_ns, after.st_atime_ns))
+                opened.append((fd, path, int(timestamp), before.st_mtime_ns, before.st_atime_ns))
         # All tracked file hashes are valid before examining any directory. The
         # complete immediate-child graph rejects untracked or generated members.
         previous = ""
