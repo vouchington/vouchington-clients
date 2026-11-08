@@ -25,7 +25,9 @@ public sealed class CommunityApplicantRenderingTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var version = new UiLocaleVersion(locale);
-    InstallApplicationResources(locale, version);
+    var localization = new UiLocalization(locale);
+    using var copy = UiCopy.PushLocalization(localization);
+    InstallApplicationResources(localization, version);
     var service = DispatchProxy.Create<ICommunitiesService, ApplicationsProxy>();
     var proxy = (ApplicationsProxy)service;
     proxy.Deleted = deleted;
@@ -58,7 +60,9 @@ public sealed class CommunityApplicantRenderingTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var version = new UiLocaleVersion(locale);
-    InstallApplicationResources(locale, version);
+    var localization = new UiLocalization(locale);
+    using var copy = UiCopy.PushLocalization(localization);
+    InstallApplicationResources(localization, version);
     var service = DispatchProxy.Create<ICommunitiesService, ApplicationsProxy>();
     var proxy = (ApplicationsProxy)service;
     proxy.StatusAfterReview = reviewedStatus;
@@ -87,6 +91,35 @@ public sealed class CommunityApplicantRenderingTests
     Assert.Equal(1, proxy.ReviewCount);
   }
 
+  [Fact]
+  public async Task LeavingTheApplicationsSurfaceRejectsBothStaleRowActions()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
+    using var version = new UiLocaleVersion(locale);
+    var localization = new UiLocalization(locale);
+    using var copy = UiCopy.PushLocalization(localization);
+    InstallApplicationResources(localization, version);
+    var service = DispatchProxy.Create<ICommunitiesService, ApplicationsProxy>();
+    var proxy = (ApplicationsProxy)service;
+    var session = new SessionStore();
+    using var model = new CommunityDetailViewModel(service, session);
+    var page = new CommunityApplicationsPage(model, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Applications, TestContext.Current.CancellationToken);
+    var content = ApplicationRow(page, Assert.Single(model.ApplicationRows));
+    var approve = FindApplicationButton(content, "approve");
+    var reject = FindApplicationButton(content, "reject");
+    Assert.True(approve.IsEnabled);
+
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.Overview, TestContext.Current.CancellationToken);
+    Assert.Equal("pending", Assert.Single(model.ApplicationRows).Status);
+    approve.SendClicked();
+    reject.SendClicked();
+
+    Assert.Equal(0, proxy.ReviewCount);
+    Assert.Null(proxy.ReviewedId);
+  }
+
   private static View ApplicationRow(CommunityApplicationsPage page, CommunityApplicationRow row)
   {
     var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view =>
@@ -99,11 +132,11 @@ public sealed class CommunityApplicantRenderingTests
   private static Button FindApplicationButton(View row, string action) =>
       Assert.Single(VisualTreeElements.Descendants<Button>(row), button => button.AutomationId == $"community-application-{action}");
 
-  private static void InstallApplicationResources(UiLocaleController locale, UiLocaleVersion version) =>
+  private static void InstallApplicationResources(IUiLocalization localization, UiLocaleVersion version) =>
       _ = new Application { Resources =
       {
         ["UiLocaleVersion"] = version,
-        ["UiLocalizedValue"] = new UiLocalizedValueConverter(new UiLocalization(locale)),
+        ["UiLocalizedValue"] = new UiLocalizedValueConverter(localization),
       } };
 
   [Fact]

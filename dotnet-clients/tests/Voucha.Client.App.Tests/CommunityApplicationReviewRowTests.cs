@@ -21,7 +21,9 @@ public sealed class CommunityApplicationReviewRowTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     using var version = new UiLocaleVersion(controller);
-    InstallResources(new UiLocalization(controller), version);
+    var localization = new UiLocalization(controller);
+    using var copy = UiCopy.PushLocalization(localization);
+    InstallResources(localization, version);
     var service = DispatchProxy.Create<ICommunitiesService, ApplicationService>();
     var captured = (ApplicationService)service;
     var session = new SessionStore();

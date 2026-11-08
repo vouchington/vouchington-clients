@@ -56,6 +56,7 @@ public abstract partial class CommunitySectionPage
   }
 
   private bool CanReviewApplicationRow(CommunityApplicationRow row) =>
+      viewModel.SelectedSection == CommunityDetailSurfaceSection.Applications &&
       viewModel.CanModerateCommunity && !viewModel.IsLoading &&
       viewModel.ApplicationRows.Any(current => current.Id == row.Id && current.Status == "pending");
 

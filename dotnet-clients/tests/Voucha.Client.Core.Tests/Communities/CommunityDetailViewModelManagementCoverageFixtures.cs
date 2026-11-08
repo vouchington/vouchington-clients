@@ -43,7 +43,7 @@ internal sealed partial class ScriptedCommunitiesService
           {
             "results": [{ "id": "application-1" }],
             "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
-            "users": { "applicant-1": { "id": "applicant-1", "username": "applicant-1" } },
+            "users": {},
             "community_application_summaries": {
               "application-1": {
                 "id": "application-1", "user_id": "applicant-1", "status": "pending",
