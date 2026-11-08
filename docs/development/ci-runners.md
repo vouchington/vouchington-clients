@@ -119,6 +119,10 @@ and the app consumer saves its Gradle user home and bounded task-output cache af
 task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
 30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
 checks remain required on hits.
+After these persistent restores, the app consumer validates and atomically restores the complete
+exact-run Kotlin task-cache inventory. That artifact is authoritative for the selected task-cache
+root; native `.build` and Android `.gradle` state remain from the verified native-state handoff.
+The standalone Kotlin cache merge command continues to reject conflicting existing entries.
 Pull requests still compile from source on a miss, but do not write large per-PR cache copies
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
