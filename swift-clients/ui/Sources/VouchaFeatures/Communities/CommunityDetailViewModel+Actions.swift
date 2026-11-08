@@ -60,7 +60,7 @@ extension CommunityDetailViewModel {
 
     func approveApplication(applicationId: String) async {
         let applicationId = applicationId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !applicationId.isEmpty else { return }
+        guard canReviewApplication(applicationId) else { return }
         await perform(
             .approveCommunityApplication(idOrSlug: slug, applicationId: applicationId),
             success: UiMessage(.nativeSwiftCommunityStatusApprovedApplication)
@@ -69,7 +69,7 @@ extension CommunityDetailViewModel {
 
     func rejectApplication(applicationId: String, reason: String) async {
         let applicationId = applicationId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !applicationId.isEmpty else { return }
+        guard canReviewApplication(applicationId) else { return }
         await perform(
             .rejectCommunityApplication(
                 idOrSlug: slug,

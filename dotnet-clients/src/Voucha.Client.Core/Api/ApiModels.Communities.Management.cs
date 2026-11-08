@@ -37,8 +37,8 @@ public sealed record CommunityApplicationResponse(
 public sealed record CommunityApplicationsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo,
-    [property: JsonPropertyName("community_application_summaries")] IReadOnlyDictionary<string, CommunityApplicationSummary> CommunityApplicationSummaries,
-    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser> Users);
+    [property: JsonPropertyName("community_application_summaries"), JsonRequired] IReadOnlyDictionary<string, CommunityApplicationSummary> CommunityApplicationSummaries,
+    [property: JsonPropertyName("users"), JsonRequired] IReadOnlyDictionary<string, PublicUser> Users);
 
 public sealed record CommunityApplicationQuestionsResponse(
     [property: JsonPropertyName("questions")] IReadOnlyList<CommunityApplicationQuestion> Questions);

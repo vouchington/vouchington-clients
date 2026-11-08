@@ -134,7 +134,7 @@
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="{Binding LocalizedItemType}" Style="{StaticResource Eyebrow}" />
-                                <Label Text="{Binding EntityId}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding EntityLabel}" Style="{StaticResource Headline}" />
                                 <Label Text="{Binding LocalizedMediaType}" Style="{StaticResource Metadata}" />
                             </VerticalStackLayout>
                         </Border>

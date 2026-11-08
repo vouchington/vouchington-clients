@@ -24,22 +24,34 @@ extension CommunityDetailViewModel {
 
     func loadApplicationRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {
         let response: CommunityApplicationsResponse = try await client.send(
-            .communityApplications(idOrSlug: slug, after: after, limit: 10)
+            .communityApplications(idOrSlug: slug, after: after, limit: 10, status: "pending")
         )
-        let items = response.results.map { result in
-            CommunityForwardRow(
+        let items = response.results.compactMap { result -> CommunityForwardRow? in
+            guard let application = response.communityApplicationSummaries[result.id],
+                  application.status == "pending" else { return nil }
+            let user = response.users[application.userId]
+            let label = [user?.name, user?.username].compactMap { $0 }
+                .first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            return CommunityForwardRow(
                 id: result.id,
                 row: .init(
+                    id: result.id,
                     icon: "doc.badge.clock",
                     title: .message(
                         .nativeSwiftCommunitiesApplicationValue,
-                        textParameters: ["id": .verbatim(result.id)]
+                        textParameters: ["id": label.map(UiVerbatimText.verbatim)
+                            ?? .message(.nativeSwiftDynamicConfigFeatureFlagsDeletedUser)]
                     ),
                     detail: .message(.nativeSwiftCommunitiesAwaitingReview)
                 )
             )
         }
         return .init(items: items, endCursor: response.pageInfo.endCursor, hasMore: response.pageInfo.hasNextPage)
+    }
+
+    func canReviewApplication(_ applicationId: String) -> Bool {
+        selectedTab == .applications && state != .loading
+            && rowPagination.items.contains { $0.id == applicationId }
     }
 
     func loadInviteRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {

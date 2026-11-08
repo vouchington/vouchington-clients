@@ -4,13 +4,18 @@ using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
 
-public sealed record CommunityApplicationRow(string Id, string UserId, string Status, string? Message)
+public sealed record CommunityApplicationRow(string Id, string UserId, string Status, string? Message, UiText ApplicantText)
 {
-  public static CommunityApplicationRow FromApplication(CommunityApplicationSummary application)
+  public static CommunityApplicationRow FromApplication(
+      CommunityApplicationSummary application, IReadOnlyDictionary<string, PublicUser> users)
   {
     ArgumentNullException.ThrowIfNull(application);
-
-    return new(application.Id, application.UserId, application.Status, application.MessagePreview);
+    ArgumentNullException.ThrowIfNull(users);
+    users.TryGetValue(application.UserId, out var user);
+    var name = !string.IsNullOrWhiteSpace(user?.Name) ? user.Name : user?.Username;
+    var text = !string.IsNullOrWhiteSpace(name) ? UiText.UserContent(name) :
+        UiText.Localized(UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsDeletedUser);
+    return new(application.Id, application.UserId, application.Status, application.MessagePreview, text);
   }
 }
 

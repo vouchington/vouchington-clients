@@ -37,7 +37,11 @@ struct ListsItemRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(item.entityId).font(Typography.headline)
+            Text(verbatim: UiMessages.string(
+                item.entityLabel.map(UiVerbatimText.verbatim)
+                    ?? .message(.nativeSwiftModerationReportsReviewQueueUntitledPost),
+                locale: nativeUiLocale
+            )).font(Typography.headline)
             Text(verbatim: UiMessages.string(
                 .joined([
                     .message(item.itemType.titleKey),

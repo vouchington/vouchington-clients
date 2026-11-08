@@ -13,7 +13,8 @@ public struct CommunityApplicationSummary: Codable, Identifiable, Sendable {
     public let id: String
     public let userId: String
     public let status: String
-    public let messagePreview: String?
+    @RequiredNullable
+    public var messagePreview: String?
     public let answerCount: Int
     public let createdAt: Date
     private enum CodingKeys: String, CodingKey {

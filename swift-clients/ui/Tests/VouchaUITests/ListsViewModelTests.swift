@@ -61,7 +61,7 @@ final class ListsViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try sut.inspect().find(button: "Import"))
         XCTAssertNoThrow(try sut.inspect().find(button: "Delete"))
         XCTAssertEqual(try sut.inspect().find(text: "Reading Queue").string(), "Reading Queue")
-        XCTAssertEqual(try sut.inspect().find(text: "item-1").string(), "item-1")
+        XCTAssertEqual(try sut.inspect().find(text: "Saved article").string(), "Saved article")
         XCTAssertEqual(try sut.inspect().find(text: "News item · Article").string(), "News item · Article")
     }
 

@@ -152,7 +152,8 @@ final class CommunityModelDecodingTests: XCTestCase {
             CommunityApplicationsResponse.self,
             from: ApiFixtureLoader.data("web.communities.applications.default")
         )
-        XCTAssertEqual(applications.results.first?.id, "application-1")
+        XCTAssertEqual(applications.results.map(\.id), ["application-1"])
+        XCTAssertEqual(applications.users["user-1"]?.username, "testuser")
         XCTAssertEqual(applications.communityApplicationSummaries["application-1"]?.answerCount, 0)
 
         try assertFixtureContainsKeys(

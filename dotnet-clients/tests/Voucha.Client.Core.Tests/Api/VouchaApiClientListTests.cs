@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Xunit;
 
@@ -72,9 +73,9 @@ public sealed partial class VouchaApiClientTests
         new RecordedResponse(ListResponseJson),
         new RecordedResponse(ListResponseJson),
         new RecordedResponse("{}"),
-        new RecordedResponse(ListItemResponseJson),
+        new RecordedResponse(ListItemResponseJson("list-item-1")),
         new RecordedResponse("{}"),
-        new RecordedResponse(ListItemResponseJson),
+        new RecordedResponse(ListItemResponseJson("list-item-2")),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
@@ -110,7 +111,9 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("list-1", updated.List.Id);
     Assert.Equal("list-1", cleared.List.Id);
     Assert.Equal("list-item-1", rssItem.ListItem.Id);
-    Assert.Equal("list-item-1", postItem.ListItem.Id);
+    Assert.Equal("Saved article", rssItem.ListItem.EntityLabel);
+    Assert.Equal("list-item-2", postItem.ListItem.Id);
+    Assert.Null(postItem.ListItem.EntityLabel);
     Assert.Collection(
         handler.Requests,
         request =>
@@ -167,18 +170,8 @@ public sealed partial class VouchaApiClientTests
       }
       """;
 
-  private const string ListItemResponseJson = """
-      {
-        "list_item": {
-          "__entity_type": "list_item",
-          "id": "list-item-1",
-          "list_id": "list-1",
-          "item_type": "rss_feed_item",
-          "entity_id": "item-1",
-          "order_index": 0,
-          "created_at": "2026-06-28T10:05:00Z",
-          "media_type": "article"
-        }
-      }
-      """;
+  private static string ListItemResponseJson(string itemId) => new JsonObject
+  {
+    ["list_item"] = JsonNode.Parse(ApiFixtureLoader.LoadResponse("native.list-items.default"))!["list_items"]![itemId]!.DeepClone(),
+  }.ToJsonString();
 }

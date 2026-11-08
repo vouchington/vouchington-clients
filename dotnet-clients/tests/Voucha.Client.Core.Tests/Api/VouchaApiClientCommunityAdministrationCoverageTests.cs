@@ -9,7 +9,7 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task CommunityAdministrationClientMethodsUseExpectedRoutesAndBodies()
   {
-    var handler = new RecordingHandler([.. RepeatEmptyResponses(22), new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default")), .. RepeatEmptyResponses(22)]);
+    var handler = new RecordingHandler([new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.applications.default")), .. RepeatEmptyResponses(21), new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default")), .. RepeatEmptyResponses(22)]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var token = TestContext.Current.CancellationToken;
 
