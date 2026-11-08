@@ -8,6 +8,16 @@ import VouchaModels
 @MainActor
 @Observable
 final class CommunityAgentPromptWorkspace {
+    private(set) var selectedPromptId: String?
+    var selectedPrompt: CommunityAgentPrompt? {
+        pagination.items.first { $0.id == selectedPromptId }
+    }
+
+    func selectPrompt(_ id: String) {
+        guard pagination.items.contains(where: { $0.id == id }) else { return }
+        selectedPromptId = id
+    }
+
     var draftPrompt = ""
     var draftModelName = ""
     var draftModelProvider = ""
@@ -38,6 +48,7 @@ final class CommunityAgentPromptWorkspace {
     func reload() async {
         invalidate()
         pagination.reset()
+        selectedPromptId = nil
         creationLimitReached = false
         notice = nil
         await fetchPage()

@@ -13,8 +13,10 @@ struct CommunityAgentAndAutomodControls: View {
 
     @State
     private var agentSlug = ""
-    @State
-    private var promptId = ""
+    var promptId: String {
+        viewModel.agentPromptWorkspace.selectedPromptId ?? ""
+    }
+
     @State
     private var testText = ""
     @State
@@ -59,8 +61,12 @@ extension CommunityAgentAndAutomodControls {
                 Text(UiMessages.string(.nativeSwiftCommunitiesPrompts, locale: nativeUiLocale))
                     .font(Typography.subheadline)
                 CommunityAgentPromptList(viewModel: viewModel.agentPromptWorkspace)
-                TextField(UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: nativeUiLocale), text: $promptId)
-                    .textFieldStyle(.roundedBorder)
+                LabeledContent(UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: nativeUiLocale)) {
+                    Text(verbatim: UiMessages.string(
+                        prompts.selectedPrompt.map { .verbatim($0.prompt) } ?? .message(.nativeSwiftCommunityRowsNone),
+                        locale: nativeUiLocale
+                    ))
+                }
                 TextField(
                     UiMessages.string(.nativeSwiftCommunitiesPromptText, locale: nativeUiLocale),
                     text: $prompts.draftPrompt,
@@ -76,38 +82,7 @@ extension CommunityAgentAndAutomodControls {
                         text: $prompts.draftModelProvider
                     ).textFieldStyle(.roundedBorder)
                 }
-                HStack {
-                    actionButton(.nativeSwiftCommonCreate, systemImage: "plus") {
-                        Task {
-                            await viewModel.createCommunityAgentPrompt(
-                                prompt: viewModel.agentPromptWorkspace.draftPrompt,
-                                modelName: viewModel.agentPromptWorkspace.draftModelName,
-                                modelProvider: viewModel.agentPromptWorkspace.draftModelProvider
-                            )
-                        }
-                    }
-                    actionButton(.nativeSwiftCommunityActionsUpdate, systemImage: "pencil") {
-                        Task {
-                            await viewModel.updateCommunityAgentPrompt(
-                                promptId: promptId,
-                                prompt: viewModel.agentPromptWorkspace.draftPrompt
-                            )
-                        }
-                    }
-                    actionButton(.nativeSwiftCommunityActionsAllocate, systemImage: "person.crop.circle.badge.plus") {
-                        Task { await viewModel.allocateCommunityAgentPrompt(promptId: promptId) }
-                    }
-                    actionButton(
-                        .nativeSwiftCommunityActionsDeallocate,
-                        systemImage: "person.crop.circle.badge.minus"
-                    ) {
-                        Task { await viewModel.deallocateCommunityAgentPrompt(promptId: promptId) }
-                    }
-                    actionButton(.nativeSwiftCommonDelete, systemImage: "trash") {
-                        Task { await viewModel.deleteCommunityAgentPrompt(promptId: promptId) }
-                    }
-                }
-                .disabled(isSignedIn && !viewModel.canMutateCommunityAgentPrompt)
+                promptActions
                 HStack {
                     TextField(
                         UiMessages.string(.nativeSwiftCommunitiesTestText, locale: nativeUiLocale),
@@ -115,10 +90,12 @@ extension CommunityAgentAndAutomodControls {
                         axis: .vertical
                     ).textFieldStyle(.roundedBorder)
                     actionButton(.nativeSwiftCommonTest, systemImage: "testtube.2") {
+                        let selectedId = promptId
                         Task {
-                            await viewModel.testCommunityAgentPrompt(promptId: promptId, text: testText)
+                            await viewModel.testCommunityAgentPrompt(promptId: selectedId, text: testText)
                         }
                     }
+                    .disabled(isSignedIn && (prompts.selectedPrompt == nil || !viewModel.canMutateCommunityAgentPrompt))
                 }
             }
             VStack(alignment: .leading, spacing: Spacing.xs) {

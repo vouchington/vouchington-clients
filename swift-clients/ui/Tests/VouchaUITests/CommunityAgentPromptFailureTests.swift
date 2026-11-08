@@ -68,15 +68,23 @@ final class CommunityAgentPromptFailureTests: NativeRouteSurfaceViewModelTestCas
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture) as? [String: Any])
         object["slot_info"] = ["used": 10, "limit": 10, "remaining": 0, "limits_by_plan": ["plus": 3, "pro": 10]]
         let page = try JSONSerialization.data(withJSONObject: object)
-        CannedFeedURLProtocol.queuedHandlers[path] = [(page, 200, 0), (Data("{}".utf8), 200, 0), (page, 200, 0)]
+        var refreshedPrompts = try XCTUnwrap(object["community_agent_prompts"] as? [[String: Any]])
+        refreshedPrompts[0]["id"] = "created-prompt"
+        refreshedPrompts[0]["prompt"] = "Newly created prompt"
+        object["community_agent_prompts"] = refreshedPrompts
+        object["slot_info"] = ["used": 9, "limit": 10, "remaining": 1, "limits_by_plan": ["plus": 3, "pro": 10]]
+        let refreshed = try JSONSerialization.data(withJSONObject: object)
+        CannedFeedURLProtocol.queuedHandlers[path] = [(page, 200, 0), (Data("{}".utf8), 200, 0), (refreshed, 200, 0)]
         let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
         let model = parent.agentPromptWorkspace
         model.draftPrompt = "Keep draft"
         await model.reload()
         await parent.createCommunityAgentPrompt(prompt: model.draftPrompt)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET", "POST", "GET"])
-        XCTAssertEqual(model.slotInfo?.remaining, 0)
-        XCTAssertEqual(model.pagination.items.map(\.id), ["prompt-1"])
+        XCTAssertEqual(model.slotInfo?.used, 9)
+        XCTAssertEqual(model.slotInfo?.remaining, 1)
+        XCTAssertEqual(model.pagination.items.map(\.id), ["created-prompt"])
+        XCTAssertEqual(model.pagination.items.first?.prompt, "Newly created prompt")
         XCTAssertEqual(model.draftPrompt, "Keep draft")
         XCTAssertNotNil(parent.statusMessage)
         XCTAssertFalse(model.creationLimitReached)
