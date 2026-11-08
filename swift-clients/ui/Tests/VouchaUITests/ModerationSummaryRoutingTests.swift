@@ -19,9 +19,9 @@ final class ModerationSummaryRoutingTests: NativeRouteSurfaceViewModelTestCase {
             client: makeClient(), isSignedIn: true, isAdministrator: true, isSiteModerator: false
         )
         await viewModel.load()
-        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 3).map { "appeal-\($0)" })
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), (0 ..< 3).map { "appeal-\($0)" })
         await viewModel.loadMore()
-        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 6).map { "appeal-\($0)" })
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), (0 ..< 6).map { "appeal-\($0)" })
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertNil(viewModel.loadMoreErrorMessage)
         XCTAssertFalse(viewModel.hasMore)
@@ -44,9 +44,9 @@ final class ModerationSummaryRoutingTests: NativeRouteSurfaceViewModelTestCase {
             client: makeClient(), isSignedIn: true, isAdministrator: true, isSiteModerator: false
         )
         await viewModel.load()
-        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 3).map { "dispute-\($0)" })
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), (0 ..< 3).map { "dispute-\($0)" })
         await viewModel.loadMore()
-        XCTAssertEqual(viewModel.summaries.map(\.id), (0 ..< 6).map { "dispute-\($0)" })
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), (0 ..< 6).map { "dispute-\($0)" })
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertNil(viewModel.loadMoreErrorMessage)
         XCTAssertFalse(viewModel.summaryPagination.hasMore)
