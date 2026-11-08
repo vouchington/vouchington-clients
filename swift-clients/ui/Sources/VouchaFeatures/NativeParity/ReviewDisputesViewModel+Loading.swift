@@ -11,6 +11,9 @@ extension ReviewDisputesViewModel {
         summaryPagination.reset()
         guard let request = summaryPagination.beginNextPage() else { return }
         isLoading = true
+        defer {
+            if revision == loadRevision { isLoading = false }
+        }
         errorMessage = nil
         loadMoreErrorMessage = nil
         do {
@@ -37,8 +40,6 @@ extension ReviewDisputesViewModel {
             summaryPagination.fail(request, error: vouchaError(from: error))
             errorMessage = message(for: error)
         }
-        guard revision == loadRevision else { return }
-        isLoading = false
     }
 
     func selectStatus(_ status: ReviewDisputeStatus) async {

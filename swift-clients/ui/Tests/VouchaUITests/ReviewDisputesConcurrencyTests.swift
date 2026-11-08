@@ -62,6 +62,7 @@ final class ReviewDisputesConcurrencyTests: NativeRouteSurfaceViewModelTestCase 
         await load.value
 
         XCTAssertTrue(viewModel.disputes.isEmpty)
+        XCTAssertFalse(viewModel.isLoading)
         XCTAssertFalse(viewModel.summaryPagination.isLoading)
     }
 
