@@ -1,6 +1,7 @@
 private struct EngineeringPsqlJobBody: Encodable {
     let type: EngineeringPsqlJobType
     let classifierRange: EngineeringClassifierRange?
+    let requestRange: EngineeringRequestRange?
 }
 
 private struct EngineeringValkeyRebuildBody: Encodable {
@@ -61,7 +62,16 @@ public extension Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/psql/jobs",
-            body: EngineeringPsqlJobBody(type: type, classifierRange: classifierRange),
+            body: EngineeringPsqlJobBody(type: type, classifierRange: classifierRange, requestRange: nil),
+            bodyKeyEncodingStrategy: .useDefaultKeys
+        )
+    }
+
+    static func psqlJobs(type: EngineeringPsqlJobType, requestRange: EngineeringRequestRange) -> Endpoint {
+        Endpoint(
+            .POST,
+            path: "/api/v1/psql/jobs",
+            body: EngineeringPsqlJobBody(type: type, classifierRange: nil, requestRange: requestRange),
             bodyKeyEncodingStrategy: .useDefaultKeys
         )
     }
