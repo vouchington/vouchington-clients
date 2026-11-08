@@ -140,6 +140,7 @@ public sealed class ModerationAppealCardPresentationTests
     using var viewModel = new ModerationAppealsViewModel(
         service, new NavigationViewer(true, ["administrator"]));
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.FetchDetailAsync(appeal.Id, TestContext.Current.CancellationToken);
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
     var card = new ModerationAppealCardView(viewModel)
     {
@@ -158,43 +159,29 @@ public sealed class ModerationAppealCardPresentationTests
         label.IsVisible && label.Text == UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
   }
 
-  [Theory]
-  [InlineData(true)]
-  [InlineData(false)]
-  public async Task RefreshLabelDistinguishesSummaryLoadingFromAmbiguousDelivery(bool summary)
+  [Fact]
+  public async Task AmbiguousDeliveryRetainsItsLocalizedRefreshAction()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     using var scope = UiCopy.PushLocalization(UiLocalization.English);
-    _ = new Application
+    _ = new Application { Resources =
     {
-      Resources =
-    {
-      [UiMessageKey.NativeDotnetCommonRefresh.Value] = UiCopy.Localize(UiMessageKey.NativeDotnetCommonRefresh),
       [UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery.Value] = UiCopy.Localize(
           UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery),
-    }
-    };
+    } };
     var appeal = Appeal(null) with
     {
-      AiDraftRequestedRunId = summary ? null : "appeal_resolution_00000000-0000-7000-8000-000000000201",
-      PublicResponse = summary ? null : "Approved reply",
-      ApprovedAt = summary ? null : Instant,
+      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
+      PublicResponse = "Approved reply", ApprovedAt = Instant,
     };
-    using var viewModel = new ModerationAppealsViewModel(
-        new PendingAIRerunService(appeal, ambiguousDelivery: true),
+    using var viewModel = new ModerationAppealsViewModel(new PendingAIRerunService(appeal, ambiguousDelivery: true),
         new NavigationViewer(true, ["administrator"]));
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
-    if (!summary)
-    {
-      await viewModel.DeliverAsync(appeal, TestContext.Current.CancellationToken);
-      Assert.True(viewModel.IsDeliveryAmbiguous(appeal));
-    }
+    await viewModel.FetchDetailAsync(appeal.Id, TestContext.Current.CancellationToken);
+    await viewModel.DeliverAsync(appeal, TestContext.Current.CancellationToken);
+    Assert.True(viewModel.IsDeliveryAmbiguous(appeal));
     var card = new ModerationAppealCardView(viewModel) { BindingContext = Assert.Single(viewModel.Appeals) };
     var refresh = Assert.Single(card.Children.OfType<Button>(), button => button.IsVisible);
-
-    Assert.Equal(UiCopy.Localize(summary
-        ? UiMessageKey.NativeDotnetCommonRefresh
-        : UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery), refresh.Text);
+    Assert.Equal(UiCopy.Localize(UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery), refresh.Text);
   }
 
   [Fact]
@@ -209,6 +196,7 @@ public sealed class ModerationAppealCardPresentationTests
         new PendingAIRerunService(Appeal(null)), owner, viewerProvider: provider);
     var page = new ModerationAppealsPage(viewModel);
     await page.ReloadAsync();
+    await viewModel.FetchDetailAsync("appeal-1", TestContext.Current.CancellationToken);
     var original = Assert.Single(viewModel.Appeals);
     var content = new ShellContent { Content = page };
 
@@ -220,16 +208,43 @@ public sealed class ModerationAppealCardPresentationTests
     page.Dispose();
   }
 
+  [Fact]
+  public async Task OpenDetailClearsPrivateContentWhenViewerChanges()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    var provider = new MutableNavigationViewerProvider();
+    provider.SetViewer(owner);
+    var appeal = Appeal(null) with { AiInternalResponse = "Private analysis", InternalNotes = "Private note" };
+    using var model = new ModerationAppealsViewModel(new PendingAIRerunService(appeal),
+        owner, viewerProvider: provider);
+    await model.FetchDetailAsync(appeal.Id, TestContext.Current.CancellationToken);
+    var card = new ModerationAppealCardView(model) { BindingContext = appeal };
+    typeof(ModerationAppealCardView).GetMethod("OnLoaded",
+        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .Invoke(card, new object?[] { null, EventArgs.Empty });
+    Assert.Contains(card.Children.OfType<Label>(), label => label.Text?.Contains("Private analysis", StringComparison.Ordinal) == true);
+
+    provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2"));
+
+    Assert.Null(card.BindingContext);
+    Assert.Empty(card.Children);
+  }
+
   private sealed class PendingAIRerunService(ModerationAppeal appeal, bool ambiguousDelivery = false) : IModerationAppealsService
   {
-    public Task<ModerationAppealListResponse> FetchAppealsAsync(
+    private bool detailOpened;
+    public Task<StaffModerationAppealListResponse> FetchAppealsAsync(
         ModerationAppealStatus status, string? after = null, int limit = 25,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ModerationAppealListResponse([appeal], new PageInfo(null, false, null)));
+        Task.FromResult(new StaffModerationAppealListResponse([], new PageInfo(null, false, null)));
 
     public Task<ModerationAppealResponse> FetchAppealAsync(
         string id, CancellationToken cancellationToken = default) =>
-        throw new HttpRequestException("status unavailable");
+        !detailOpened && (detailOpened = true)
+            ? Task.FromResult(new ModerationAppealResponse(appeal))
+            : throw new HttpRequestException("status unavailable");
 
     public Task<ModerationAppealQueueResponse> RerunResolutionDraftAsync(
         string id, CancellationToken cancellationToken = default) =>

@@ -78,7 +78,7 @@ internal static class ModerationDisputeCardPresentation
   public static string Labeled(UiMessageKey key, string value) =>
       $"{UiCopy.Localize(key)}{Environment.NewLine}{value}";
 
-  private static string ActionLabel(string action) =>
+  public static string ActionLabel(string action) =>
       action.ToLowerInvariant() switch
       {
         "no_action" => UiCopy.Localize(

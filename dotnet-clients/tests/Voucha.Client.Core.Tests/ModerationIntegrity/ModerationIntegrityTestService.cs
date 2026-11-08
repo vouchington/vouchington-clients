@@ -135,7 +135,7 @@ internal sealed class ModerationIntegrityTestService : IModerationIntegrityServi
       string? resolvedById = null) =>
       new(
           id, postId, userId, hostnameId, null, "mass_report_suspected", 5, 0.6,
-          Details("""{"reporter_user_ids":["reporter-1"],"window_minutes":30}"""),
+          Details("""{"window_minutes":30}"""),
           resolvedAt, resolvedById, resolution, DateTimeOffset.Parse("2026-06-01T12:00:00Z"));
 
   public static VoteIntegrityFlag VoteFlag(

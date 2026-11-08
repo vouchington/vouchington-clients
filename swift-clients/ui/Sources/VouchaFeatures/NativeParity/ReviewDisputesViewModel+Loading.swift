@@ -3,59 +3,67 @@ import VouchaModels
 
 extension ReviewDisputesViewModel {
     func load() async {
+        await load(retryAfterOutcome: true)
+    }
+
+    private func load(retryAfterOutcome: Bool) async {
         guard canAccess, let client else { return }
         loadRevision += 1
         let revision = loadRevision
         let expectedOutcomeRevision = targetedOutcomeRevision
         let expectedStatus = selectedStatus
-        disputePagination.reset()
-        guard let request = disputePagination.beginNextPage() else { return }
+        summaryPagination.reset()
+        guard let request = summaryPagination.beginNextPage() else { return }
         isLoading = true
+        defer {
+            if revision == loadRevision { isLoading = false }
+        }
         errorMessage = nil
         loadMoreErrorMessage = nil
         do {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25)
             )
-            let details = try await hydrateModerationDetails(response.disputes) { summary in
-                let detail: ReviewDisputeResponse = try await client.send(.dispute(id: summary.id))
-                return detail.dispute
-            }
-            guard revision == loadRevision, expectedStatus == selectedStatus,
-                  expectedOutcomeRevision == targetedOutcomeRevision
-            else {
-                disputePagination.cancel(request)
+            guard revision == loadRevision, expectedStatus == selectedStatus else {
+                summaryPagination.cancel(request)
                 return
             }
-            disputePagination.complete(
+            guard expectedOutcomeRevision == targetedOutcomeRevision else {
+                if retryAfterOutcome {
+                    summaryPagination.cancel(request)
+                    await load(retryAfterOutcome: false)
+                } else {
+                    summaryPagination.fail(request, error: .api(statusCode: 0, preconditionCode: nil))
+                    errorMessage = .message(.nativeSwiftReviewDisputesGenericError)
+                }
+                return
+            }
+            summaryPagination.complete(
                 request,
-                items: details,
+                items: response.disputes,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
-            disputePagination.cancel(request)
+            summaryPagination.cancel(request)
         } catch {
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            disputePagination.fail(request, error: vouchaError(from: error))
+            summaryPagination.fail(request, error: vouchaError(from: error))
             errorMessage = message(for: error)
         }
-        guard revision == loadRevision else { return }
-        isLoading = false
     }
 
     func selectStatus(_ status: ReviewDisputeStatus) async {
         guard status != selectedStatus else { return }
         selectedStatus = status
-        disputePagination.reset()
+        summaryPagination.reset()
         await load()
     }
 
     func loadMore() async {
         guard canAccess, let client, !isLoading,
-              let request = disputePagination.beginNextPage()
+              let request = summaryPagination.beginNextPage()
         else { return }
         let revision = loadRevision
         let expectedOutcomeRevision = targetedOutcomeRevision
@@ -65,30 +73,25 @@ extension ReviewDisputesViewModel {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25, after: request.cursor)
             )
-            let details = try await hydrateModerationDetails(response.disputes) { summary in
-                let detail: ReviewDisputeResponse = try await client.send(.dispute(id: summary.id))
-                return detail.dispute
-            }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   expectedOutcomeRevision == targetedOutcomeRevision,
-                  disputePagination.isCurrent(request)
+                  summaryPagination.isCurrent(request)
             else {
-                disputePagination.cancel(request)
+                summaryPagination.cancel(request)
                 return
             }
-            disputePagination.complete(
+            summaryPagination.complete(
                 request,
-                items: details,
+                items: response.disputes,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
-            disputePagination.cancel(request)
+            summaryPagination.cancel(request)
         } catch {
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            disputePagination.fail(request, error: vouchaError(from: error))
+            summaryPagination.fail(request, error: vouchaError(from: error))
             loadMoreErrorMessage = message(for: error)
         }
     }

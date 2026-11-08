@@ -2,6 +2,7 @@ using Voucha.Client.App.Controls;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -31,8 +32,8 @@ public sealed class ModerationAppealsPage : ContentPage, IDisposable
     SetDynamicResource(TitleProperty, UiMessageKey.NativeDotnetModerationAppeals.Value);
     ConfigureStatusPicker();
     statusPicker.SelectedIndexChanged += StatusChangedAsync;
-    appealsView.ItemTemplate = new DataTemplate(() => new ModerationAppealCardView(viewModel));
-    appealsView.SetBinding(ItemsView.ItemsSourceProperty, nameof(ModerationAppealsViewModel.Appeals));
+    appealsView.ItemTemplate = new DataTemplate(() => new ModerationSummaryRow(viewModel, page => Navigation.PushModalAsync(page)));
+    appealsView.SetBinding(ItemsView.ItemsSourceProperty, nameof(ModerationAppealsViewModel.Summaries));
     paginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
     paginationControl.SetBinding(HybridPaginationControl.HasMoreProperty, nameof(ModerationAppealsViewModel.HasMore));
     paginationControl.SetBinding(HybridPaginationControl.IsLoadingProperty, nameof(ModerationAppealsViewModel.IsLoading));
@@ -51,7 +52,7 @@ public sealed class ModerationAppealsPage : ContentPage, IDisposable
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    if (disposed) return;
+    if (disposed || viewModel.State == LoadState.Loaded) return;
     await ReloadAsync().ConfigureAwait(true);
   }
 

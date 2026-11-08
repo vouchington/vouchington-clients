@@ -25,7 +25,12 @@ internal static class IntegrityFlagPresentation
       new(flag, ReportEntity(flag), UiText.Localized(
           UiMessageKey.NativeDotnetResidualReporterCount,
           ("count", flag.ReporterCount)), flag.NewAccountReporterPct,
-          Evidence(flag.Details, localization));
+          Evidence(flag.Details.Where(item => item.Key != "reporter_user_ids")
+              .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal), localization));
+
+  public static ReportIntegrityRow ReportDetailRow(
+      ReportIntegrityFlag flag, IUiLocalization localization) =>
+      ReportRow(flag, localization) with { Evidence = Evidence(flag.Details, localization) };
 
   public static VoteIntegrityRow VoteRow(
       VoteIntegrityFlag flag, IUiLocalization localization) =>

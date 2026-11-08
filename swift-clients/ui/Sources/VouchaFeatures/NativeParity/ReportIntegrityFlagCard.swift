@@ -11,6 +11,9 @@ struct ReportIntegrityFlagCard: View {
     let onNavigate: (String) -> Void
     let onRequestPenalty: () -> Void
 
+    @State
+    private var showsDetail = false
+
     var body: some View {
         let target = reportIntegrityTarget(flag)
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -28,14 +31,8 @@ struct ReportIntegrityFlagCard: View {
             )
             LabeledContent(text(.nativeSwiftIntegrityCreated), value: date(flag.createdAt))
             lifecycleRows
-            if !flag.details.isEmpty {
-                Divider()
-                Text(text(.nativeSwiftIntegrityEvidence)).font(Typography.subheadline.weight(.semibold))
-                ForEach(integrityDetails(flag.details, locale: nativeUiLocale), id: \.self) {
-                    Text(verbatim: UiMessages.string(.verbatim($0), locale: nativeUiLocale))
-                        .font(Typography.caption.monospaced())
-                }
-            }
+            Button(text(.nativeSwiftIntegrityEvidence)) { showsDetail = true }
+                .accessibilityIdentifier("report-integrity-\(flag.id)-open-detail")
             if let count = viewModel.penalizedReporterCounts[flag.id] {
                 Text(text(.nativeSwiftIntegrityPenalizedReporters, parameters: [
                     "count": UiMessages.number(count, locale: nativeUiLocale)
@@ -63,6 +60,9 @@ struct ReportIntegrityFlagCard: View {
         .background(Colors.background)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .accessibilityIdentifier("report-integrity-\(flag.id)")
+        .sheet(isPresented: $showsDetail) {
+            ReportIntegrityDetail(viewModel: viewModel, id: flag.id)
+        }
     }
 
     @ViewBuilder

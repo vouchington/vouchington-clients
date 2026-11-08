@@ -24,9 +24,13 @@ public interface IModerationService
 
   Task DeleteReportTargetAsync(string entityId, CancellationToken cancellationToken = default);
 
-  Task<ModerationAppealListResponse> FetchAppealsAsync(bool mine = false, string? after = null, int limit = 25, CancellationToken cancellationToken = default);
+  Task<ModerationAppealListResponse> FetchMemberAppealsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default);
 
-  Task<ModerationDisputeListResponse> FetchDisputesAsync(bool mine = false, string? after = null, int limit = 25, CancellationToken cancellationToken = default);
+  Task<ModerationDisputeListResponse> FetchMemberDisputesAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default);
+
+  Task<StaffModerationAppealListResponse> FetchStaffAppealsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default);
+
+  Task<StaffModerationDisputeListResponse> FetchStaffDisputesAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default);
 
   Task<AdminReviewQueueResponse> FetchReviewQueueAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default);
 

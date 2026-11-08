@@ -87,6 +87,8 @@ enum ModerationAppealsTestSupport {
             var summary = object.filter { summaryKeys.contains($0.key) }
             summary["has_draft"] = object["drafted_at"] is String
             summary["has_ai_draft"] = object["ai_drafted_at"] is String
+            summary["public_response"] = object["sent_at"] is String
+                ? object["public_response"] ?? NSNull() : NSNull()
             summary["appellant"] = [
                 "id": object["appellant_user_id"] ?? "user-1", "username": "test-member",
                 "verified_display_name": NSNull(), "profile_image_id": NSNull()
@@ -97,6 +99,13 @@ enum ModerationAppealsTestSupport {
             return text
         }
         return list(summaries, hasNextPage: hasNextPage, endCursor: endCursor)
+    }
+
+    @MainActor
+    static func openDetails(in viewModel: ModerationAppealsViewModel) async {
+        for summary in viewModel.summaryPagination.items.reversed() {
+            await viewModel.loadDetail(id: summary.id)
+        }
     }
 
     static func envelope(_ appeal: String) -> Data {

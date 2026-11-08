@@ -16,6 +16,14 @@ final class ReviewDisputesViewModel {
     let rerunPollAttempts: Int
     let rerunPollDelay: @Sendable () async throws -> Void
 
+    var detailReviewDispute: ReviewDispute?
+    var isLoadingDetail = false
+    var detailError: UiVerbatimText?
+    var detailRevision = 0
+    var selectedDetailId: String?
+
+    var summaryPagination = CursorPaginationState<ReviewDisputeSummary>()
+
     var disputePagination = CursorPaginationState<ReviewDispute>()
     var disputes: [ReviewDispute] {
         get { disputePagination.items }

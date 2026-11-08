@@ -5,6 +5,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.id
         case let .staff(appeal): appeal.id
+        case let .summary(appeal): appeal.id
         }
     }
 
@@ -12,6 +13,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.userWarningId
         case let .staff(appeal): appeal.userWarningId
+        case let .summary(appeal): appeal.userWarningId
         }
     }
 
@@ -19,6 +21,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.userSuspensionId
         case let .staff(appeal): appeal.userSuspensionId
+        case let .summary(appeal): appeal.userSuspensionId
         }
     }
 
@@ -26,6 +29,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.communityBanId
         case let .staff(appeal): appeal.communityBanId
+        case let .summary(appeal): appeal.communityBanId
         }
     }
 
@@ -33,6 +37,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.postId
         case let .staff(appeal): appeal.postId
+        case let .summary(appeal): appeal.postId
         }
     }
 
@@ -40,6 +45,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.postRemovalKind
         case let .staff(appeal): appeal.postRemovalKind
+        case let .summary(appeal): appeal.postRemovalKind
         }
     }
 
@@ -47,6 +53,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.status
         case let .staff(appeal): appeal.status
+        case let .summary(appeal): appeal.status
         }
     }
 
@@ -54,6 +61,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.publicResponse
         case let .staff(appeal): appeal.publicResponse
+        case let .summary(appeal): appeal.publicResponse
         }
     }
 
@@ -61,6 +69,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.approvedAt
         case let .staff(appeal): appeal.approvedAt
+        case let .summary(appeal): appeal.approvedAt
         }
     }
 
@@ -68,6 +77,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.sentAt
         case let .staff(appeal): appeal.sentAt
+        case let .summary(appeal): appeal.sentAt
         }
     }
 
@@ -75,6 +85,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.resolvedAt
         case let .staff(appeal): appeal.resolvedAt
+        case let .summary(appeal): appeal.resolvedAt
         }
     }
 
@@ -82,6 +93,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.resolutionAction
         case let .staff(appeal): appeal.resolutionAction
+        case let .summary(appeal): appeal.resolutionAction
         }
     }
 
@@ -89,6 +101,7 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.createdAt
         case let .staff(appeal): appeal.createdAt
+        case let .summary(appeal): appeal.createdAt
         }
     }
 
@@ -96,12 +109,13 @@ public extension ModerationAppealReadProjection {
         switch self {
         case let .member(appeal): appeal.targetContext
         case let .staff(appeal): appeal.targetContext
+        case let .summary(appeal): appeal.targetContext
         }
     }
 
     var caseId: String? {
         switch self {
-        case .member: nil
+        case .member, .summary: nil
         case let .staff(appeal): appeal.caseId
         }
     }

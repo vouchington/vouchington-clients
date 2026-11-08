@@ -28,8 +28,9 @@ final class IntegritySurfacesTests: XCTestCase {
         XCTAssertNoThrow(try inspection.find(text: "Mark penalized"))
         XCTAssertNoThrow(try inspection.find(text: "admin-1"))
         XCTAssertNoThrow(try inspection.find(text: "Penalized reporters: 3"))
-        XCTAssertNoThrow(try inspection.find(text: "evidence: captured"))
-        XCTAssertNoThrow(try inspection.find(text: "window_minutes: 30"))
+        XCTAssertThrowsError(try inspection.find(text: "evidence: captured"))
+        XCTAssertThrowsError(try inspection.find(text: "window_minutes: 30"))
+        XCTAssertNoThrow(try inspection.find(button: "Evidence"))
         XCTAssertThrowsError(try inspection.find(button: "Dismiss"))
 
         try inspection.find(button: "User user-1").tap()

@@ -189,7 +189,6 @@ public sealed partial class MemberAppealsPageTests
     var service = new MemberService { IncludeAppeal = true };
     service.Appeal = service.Appeal with
     {
-      AppealReason = null,
       PublicResponse = null,
       CreatedAt = createdAt,
       TargetContext = new ModerationAppealPostRemovalContext(
@@ -378,7 +377,12 @@ public sealed partial class MemberAppealsPageTests
     public int WarningCalls { get; private set; }
     public int SubmissionCalls { get; private set; }
     public string? LastToken { get; private set; }
-    public ModerationAppeal Appeal { get; set; } = CreateAppeal();
+    public ModerationAppealSummary Appeal { get; set; } = new(
+        Id: "appeal-1", Status: ModerationAppealStatus.Pending, RecommendedAction: null, IsOverdue: false,
+        PublicResponse: null, ApprovedAt: null, SentAt: null, ResolvedAt: null, ResolutionAction: null,
+        CreatedAt: DateTimeOffset.UtcNow, UpdatedAt: DateTimeOffset.UtcNow, HasAiDraft: null, HasDraft: null,
+        AppellantUserId: "user-1", UserWarningId: "warning-1", CommunityBanId: null, PostId: null,
+        UserSuspensionId: null, CommunityId: null, PostRemovalKind: null, TargetContext: null, Appellant: null);
 
     public Task<ModerationAppealListResponse> FetchAppealsAsync(
         ModerationAppealStatus status,
@@ -445,7 +449,7 @@ public sealed partial class MemberAppealsPageTests
     {
       SubmissionCalls++;
       LastToken = request.TurnstileToken;
-      return Task.FromResult(new ModerationAppealSubmissionResponse(Appeal, false));
+      return Task.FromResult(new ModerationAppealSubmissionResponse(CreateAppeal(), false));
     }
 
     public void BlockWarnings()

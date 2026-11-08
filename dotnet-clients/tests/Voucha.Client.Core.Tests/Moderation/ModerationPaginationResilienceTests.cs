@@ -16,10 +16,10 @@ public sealed class ModerationPaginationResilienceTests
     var duplicate = first.Appeals[0];
     var service = new RacingModerationService
     {
-      AppealResponses = new Queue<Func<CancellationToken, Task<ModerationAppealListResponse>>>([
+      AppealResponses = new Queue<Func<CancellationToken, Task<StaffModerationAppealListResponse>>>([
         _ => Task.FromResult(first),
-        _ => Task.FromResult(new ModerationAppealListResponse(
-            [duplicate, duplicate with { Id = "appeal-2", CaseId = "case-2" }],
+        _ => Task.FromResult(new StaffModerationAppealListResponse(
+            [duplicate, duplicate with { Id = "appeal-2" }],
             new PageInfo(null, false, null))),
       ]),
     };
@@ -40,10 +40,10 @@ public sealed class ModerationPaginationResilienceTests
     var first = AppealFixture() with { PageInfo = new PageInfo("appeals-next", true, null) };
     var service = new RacingModerationService
     {
-      AppealResponses = new Queue<Func<CancellationToken, Task<ModerationAppealListResponse>>>([
+      AppealResponses = new Queue<Func<CancellationToken, Task<StaffModerationAppealListResponse>>>([
         _ => Task.FromResult(first),
-        token => Task.FromCanceled<ModerationAppealListResponse>(token),
-        _ => Task.FromResult(new ModerationAppealListResponse([], new PageInfo(null, false, null))),
+        token => Task.FromCanceled<StaffModerationAppealListResponse>(token),
+        _ => Task.FromResult(new StaffModerationAppealListResponse([], new PageInfo(null, false, null))),
       ]),
     };
     var viewModel = ViewModel(service, "/appeals");
@@ -61,13 +61,13 @@ public sealed class ModerationPaginationResilienceTests
   [Fact]
   public async Task ContextChangeRejectsStaleContinuationCompletion()
   {
-    var continuation = new TaskCompletionSource<ModerationAppealListResponse>(
+    var continuation = new TaskCompletionSource<StaffModerationAppealListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     var first = AppealFixture() with { PageInfo = new PageInfo("appeals-next", true, null) };
     var disputes = DisputeFixture();
     var service = new RacingModerationService
     {
-      AppealResponses = new Queue<Func<CancellationToken, Task<ModerationAppealListResponse>>>([
+      AppealResponses = new Queue<Func<CancellationToken, Task<StaffModerationAppealListResponse>>>([
         _ => Task.FromResult(first),
         _ => continuation.Task,
       ]),
@@ -80,7 +80,7 @@ public sealed class ModerationPaginationResilienceTests
     viewModel.SetContext(disputesContext);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    continuation.SetResult(new ModerationAppealListResponse(
+    continuation.SetResult(new StaffModerationAppealListResponse(
         [first.Appeals[0] with { Id = "stale-appeal" }], new PageInfo(null, false, null)));
     await staleLoad;
 
@@ -95,10 +95,10 @@ public sealed class ModerationPaginationResilienceTests
     var first = AppealFixture() with { PageInfo = new PageInfo("appeals-next", true, null) };
     var service = new RacingModerationService
     {
-      AppealResponses = new Queue<Func<CancellationToken, Task<ModerationAppealListResponse>>>([
+      AppealResponses = new Queue<Func<CancellationToken, Task<StaffModerationAppealListResponse>>>([
         _ => Task.FromResult(first),
-        _ => Task.FromCanceled<ModerationAppealListResponse>(new CancellationToken(true)),
-        _ => Task.FromResult(new ModerationAppealListResponse([], new PageInfo(null, false, null))),
+        _ => Task.FromCanceled<StaffModerationAppealListResponse>(new CancellationToken(true)),
+        _ => Task.FromResult(new StaffModerationAppealListResponse([], new PageInfo(null, false, null))),
       ]),
     };
     var viewModel = ViewModel(service, "/appeals");
@@ -124,26 +124,25 @@ public sealed class ModerationPaginationResilienceTests
     return viewModel;
   }
 
-  private static ModerationAppealListResponse AppealFixture() =>
-      JsonSerializer.Deserialize<ModerationAppealListResponse>(
+  private static StaffModerationAppealListResponse AppealFixture() =>
+      JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
           ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"),
           VouchaApiJson.Options)!;
 
-  private static ModerationDisputeListResponse DisputeFixture() =>
-      JsonSerializer.Deserialize<ModerationDisputeListResponse>(
+  private static StaffModerationDisputeListResponse DisputeFixture() =>
+      JsonSerializer.Deserialize<StaffModerationDisputeListResponse>(
           ApiFixtureLoader.LoadResponse("native.moderation.disputes.default"),
           VouchaApiJson.Options)!;
 
   private sealed class RacingModerationService : ReviewQueueModerationServiceStub
   {
-    public required Queue<Func<CancellationToken, Task<ModerationAppealListResponse>>>
+    public required Queue<Func<CancellationToken, Task<StaffModerationAppealListResponse>>>
         AppealResponses
     { get; init; }
-    public ModerationDisputeListResponse? DisputeResponse { get; init; }
+    public StaffModerationDisputeListResponse? DisputeResponse { get; init; }
     public List<string?> AppealCursors { get; } = [];
 
-    public override Task<ModerationAppealListResponse> FetchAppealsAsync(
-        bool mine = false,
+    public override Task<StaffModerationAppealListResponse> FetchStaffAppealsAsync(
         string? after = null,
         int limit = 25,
         CancellationToken cancellationToken = default)
@@ -152,8 +151,7 @@ public sealed class ModerationPaginationResilienceTests
       return AppealResponses.Dequeue()(cancellationToken);
     }
 
-    public override Task<ModerationDisputeListResponse> FetchDisputesAsync(
-        bool mine = false,
+    public override Task<StaffModerationDisputeListResponse> FetchStaffDisputesAsync(
         string? after = null,
         int limit = 25,
         CancellationToken cancellationToken = default) =>

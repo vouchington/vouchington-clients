@@ -12,7 +12,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
   {
     var service = new ModerationDisputesTestService();
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     viewModel.SetPublicResponseDraft(dispute, "Locally edited response");
     service.FailNext(ModerationDisputesTestService.AmbiguousFailure());
@@ -33,7 +33,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
   {
     var service = new ModerationDisputesTestService();
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     viewModel.SetPublicResponseDraft(dispute, "Locally edited response");
     service.Refreshes.Enqueue(dispute with
@@ -63,29 +63,29 @@ public sealed class ModerationDisputesViewModelReconciliationTests
       },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var pending = viewModel.Disputes.Single();
-    var stalePage = new TaskCompletionSource<ModerationDisputeListResponse>(
+    var stalePage = new TaskCompletionSource<StaffModerationDisputeListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingFetch = stalePage;
 
-    var load = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var load = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await service.PendingFetchStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
     await viewModel.ResolveAsync(
         pending,
         ModerationDisputeResolutionAction.Remove,
         TestContext.Current.CancellationToken);
-    stalePage.SetResult(new([pending], new PageInfo(null, false, null)));
+    stalePage.SetResult(new([ModerationDisputesTestService.Summary(pending)], new PageInfo(null, false, null)));
     await load;
 
-    Assert.Empty(viewModel.Disputes);
+    Assert.Empty(viewModel.Summaries);
     Assert.False(viewModel.IsLoading);
   }
 
   [Fact]
   public async Task ResolutionOutcomeRejectsARefreshStartedDuringTheMutation()
   {
-    var stalePage = new TaskCompletionSource<ModerationDisputeListResponse>(
+    var stalePage = new TaskCompletionSource<StaffModerationDisputeListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     var pendingResolution = new TaskCompletionSource<ModerationDisputeResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
@@ -99,7 +99,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
       PendingResolve = pendingResolution,
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var pending = viewModel.Disputes.Single();
     service.PendingFetch = stalePage;
 
@@ -108,15 +108,15 @@ public sealed class ModerationDisputesViewModelReconciliationTests
         ModerationDisputeResolutionAction.Remove,
         TestContext.Current.CancellationToken);
     await service.ResolveStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
-    var refresh = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var refresh = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await service.PendingFetchStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
     var resolved = service.Current with { Status = ModerationDisputeStatus.Resolved };
     pendingResolution.SetResult(new(resolved));
     await resolution;
-    stalePage.SetResult(new([pending], new PageInfo(null, false, null)));
+    stalePage.SetResult(new([ModerationDisputesTestService.Summary(pending)], new PageInfo(null, false, null)));
     await refresh;
 
-    Assert.Empty(viewModel.Disputes);
+    Assert.Empty(viewModel.Summaries);
     Assert.False(viewModel.IsLoading);
   }
 

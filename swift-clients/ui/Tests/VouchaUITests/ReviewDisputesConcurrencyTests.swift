@@ -58,11 +58,16 @@ final class ReviewDisputesConcurrencyTests: NativeRouteSurfaceViewModelTestCase 
         )
         XCTAssertTrue(suspended)
         await viewModel.resolve(dispute, action: .remove)
+        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (Support.staffList([]), 200)
         CannedFeedURLProtocol.releaseResponse(path: "/api/v1/disputes")
         await load.value
 
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes"), 2)
+        XCTAssertTrue(viewModel.summaryPagination.hasLoadedPage)
         XCTAssertTrue(viewModel.disputes.isEmpty)
-        XCTAssertFalse(viewModel.disputePagination.isLoading)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertTrue(viewModel.summaryPagination.items.isEmpty)
+        XCTAssertFalse(viewModel.summaryPagination.isLoading)
     }
 
     func testCardDisappearanceCancelsOwnedRerunPolling() async throws {

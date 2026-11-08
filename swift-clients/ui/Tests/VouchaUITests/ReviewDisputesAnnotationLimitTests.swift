@@ -62,6 +62,7 @@ final class ReviewDisputesAnnotationLimitTests: NativeRouteSurfaceViewModelTestC
             rerunPollDelay: {}
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         return try (viewModel, XCTUnwrap(viewModel.disputes.first))
     }
 }

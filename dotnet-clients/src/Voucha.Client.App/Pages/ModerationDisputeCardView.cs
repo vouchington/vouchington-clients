@@ -10,6 +10,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
 {
   private readonly ModerationDisputesViewModel viewModel;
   private readonly Func<CancellationToken> lifecycleToken;
+  private readonly ModerationActionErrorLabel actionError;
   private readonly Label heading = new() { FontAttributes = FontAttributes.Bold };
   private readonly Label context = new() { FontSize = 12 };
   private readonly Label postContent = new();
@@ -62,8 +63,10 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.lifecycleToken =
         lifecycleToken ?? throw new ArgumentNullException(nameof(lifecycleToken));
+    actionError = new(viewModel, nameof(ModerationDisputesViewModel.ErrorMessage), nameof(ModerationDisputesViewModel.HasError), "review-dispute-action-error");
     Padding = 12;
     Spacing = 8;
+    Children.Add(actionError);
     Children.Add(heading);
     Children.Add(context);
     Children.Add(postContent);
@@ -111,12 +114,20 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     Unloaded += OnUnloaded;
   }
 
-  private ModerationDispute? Dispute => BindingContext as ModerationDispute;
+  private ModerationDispute? Dispute => BindingContext is ModerationDispute selected
+      ? viewModel.Disputes.FirstOrDefault(item => item.Id == selected.Id) ?? selected : null;
 
   private void Populate()
   {
+    if (!viewModel.CanAccess || BindingContext is not ModerationDispute)
+    {
+      actionError.ClearPrivateState();
+      BindingContext = null;
+      Children.Clear();
+      return;
+    }
     if (Dispute is not { } dispute) return;
-    AutomationId = $"review-dispute-{dispute.Id}";
+    AutomationId ??= $"review-dispute-{dispute.Id}";
     heading.Text = ModerationDisputeCardPresentation.Heading(dispute);
     context.Text = ModerationDisputeCardPresentation.Context(dispute);
     postContent.Text = dispute.PostContent?.Text;
@@ -157,7 +168,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     remove.IsEnabled = viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Remove);
     annotate.IsEnabled = viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Annotate);
     dismiss.IsEnabled = viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Dismiss);
-    refresh.IsVisible = dispute.AiDraftRequestedRunId is null || viewModel.IsMutationAmbiguous(dispute);
+    refresh.IsVisible = viewModel.IsMutationAmbiguous(dispute);
   }
 
   private void ViewModelChanged(object? sender, PropertyChangedEventArgs args) => Populate();

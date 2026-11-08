@@ -4,11 +4,18 @@ import VouchaModels
 
 extension ReviewDisputesViewModel {
     func replace(with dispute: ReviewDispute) {
+        if selectedDetailId == nil || selectedDetailId == dispute.id {
+            detailReviewDispute = dispute
+        }
         publicResponseDrafts[dispute.id] = publicDraftSeed(for: dispute)
         locallyEditedPublicResponseIds.remove(dispute.id)
         if annotationDrafts[dispute.id] == nil {
             annotationDrafts[dispute.id] = ""
         }
+        summaryPagination.replaceItems(summaryPagination.items.compactMap { summary in
+            guard summary.id == dispute.id else { return summary }
+            return dispute.status == selectedStatus ? summary.updating(from: dispute) : nil
+        })
         guard dispute.status == selectedStatus else {
             disputes.removeAll { $0.id == dispute.id }
             return

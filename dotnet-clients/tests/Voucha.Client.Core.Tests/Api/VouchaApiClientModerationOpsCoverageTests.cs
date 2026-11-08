@@ -9,8 +9,8 @@ public sealed partial class VouchaApiClientTests
   public async Task ModerationClientMethodsUseExpectedRoutes()
   {
     var handler = new RecordingHandler([
-      new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.appeals.default")),
-      new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.disputes.default")),
+      new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.appeals.member.default")),
+      new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.disputes.member.default")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.reports.clustered.default")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.moderation.reports.default")),
       new RecordedResponse("{}"),
@@ -29,8 +29,8 @@ public sealed partial class VouchaApiClientTests
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var token = TestContext.Current.CancellationToken;
 
-    await client.FetchAppealsAsync(status: ModerationAppealStatus.Pending, limit: 11, after: "cursor-1", mine: true, cancellationToken: token);
-    await client.FetchDisputesAsync(status: "pending", limit: 12, after: "cursor-2", mine: true, cancellationToken: token);
+    await client.FetchMemberAppealsAsync(status: ModerationAppealStatus.Pending, limit: 11, after: "cursor-1", cancellationToken: token);
+    await client.FetchMemberDisputesAsync(status: "pending", limit: 12, after: "cursor-2", cancellationToken: token);
     await client.FetchClusteredModerationReportsAsync(after: "cursor-3", limit: 13, cancellationToken: token);
     await client.FetchStaffModerationReportsAsync(status: "pending", sort: "severity", after: "cursor-4", limit: 14, cancellationToken: token);
     await client.ResolveModerationReportAsync("report-1", ModerationReportResolution.Reviewed, token);

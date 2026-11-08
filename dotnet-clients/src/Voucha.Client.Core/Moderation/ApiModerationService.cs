@@ -36,11 +36,17 @@ public sealed class ApiModerationService(VouchaApiClient client)
   public Task DeleteReportTargetAsync(string entityId, CancellationToken cancellationToken = default) =>
       client.DeletePostAsync(entityId, cancellationToken);
 
-  public Task<ModerationAppealListResponse> FetchAppealsAsync(bool mine = false, string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
-      client.FetchAppealsAsync(status: ModerationAppealStatus.Pending, limit: limit, after: after, mine: mine, cancellationToken: cancellationToken);
+  public Task<ModerationAppealListResponse> FetchMemberAppealsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      client.FetchMemberAppealsAsync(status: ModerationAppealStatus.Pending, limit: limit, after: after, cancellationToken: cancellationToken);
 
-  public Task<ModerationDisputeListResponse> FetchDisputesAsync(bool mine = false, string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
-      client.FetchDisputesAsync(status: "pending", limit: limit, after: after, mine: mine, cancellationToken: cancellationToken);
+  public Task<ModerationDisputeListResponse> FetchMemberDisputesAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      client.FetchMemberDisputesAsync(status: "pending", limit: limit, after: after, cancellationToken: cancellationToken);
+
+  public Task<StaffModerationAppealListResponse> FetchStaffAppealsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      client.FetchStaffAppealsAsync(ModerationAppealStatus.Pending, after, limit, cancellationToken);
+
+  public Task<StaffModerationDisputeListResponse> FetchStaffDisputesAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      client.FetchStaffDisputesAsync(ModerationDisputeStatus.Pending, after, limit, cancellationToken);
 
   public Task<AdminReviewQueueResponse> FetchReviewQueueAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
       client.FetchAdminReviewQueueAsync(after, limit, cancellationToken);
@@ -88,8 +94,8 @@ public sealed class ApiModerationService(VouchaApiClient client)
       CancellationToken cancellationToken = default) =>
       client.FetchPersonalRemovedPostsAsync(after, limit, cancellationToken);
 
-  Task<ModerationAppealListResponse> IModerationAppealsService.FetchAppealsAsync(ModerationAppealStatus status, string? after, int limit, CancellationToken cancellationToken) =>
-      client.FetchAppealsAsync(status, limit, after, mine: false, cancellationToken);
+  Task<StaffModerationAppealListResponse> IModerationAppealsService.FetchAppealsAsync(ModerationAppealStatus status, string? after, int limit, CancellationToken cancellationToken) =>
+      client.FetchStaffAppealsAsync(status, after, limit, cancellationToken);
 
   public Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default) =>
       client.FetchAppealAsync(id, cancellationToken);
@@ -109,23 +115,12 @@ public sealed class ApiModerationService(VouchaApiClient client)
   public Task<ModerationAppealQueueResponse> RerunResolutionDraftAsync(string id, CancellationToken cancellationToken = default) =>
       client.RerunAppealResolutionDraftAsync(id, cancellationToken);
 
-  Task<ModerationDisputeListResponse> IModerationDisputesService.FetchDisputesAsync(
+  Task<StaffModerationDisputeListResponse> IModerationDisputesService.FetchDisputesAsync(
       ModerationDisputeStatus status,
       string? after,
       int limit,
       CancellationToken cancellationToken) =>
-      client.FetchDisputesAsync(
-          status switch
-          {
-            ModerationDisputeStatus.Pending => "pending",
-            ModerationDisputeStatus.Resolved => "resolved",
-            ModerationDisputeStatus.Dismissed => "dismissed",
-            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
-          },
-          limit,
-          after,
-          mine: false,
-          cancellationToken);
+      client.FetchStaffDisputesAsync(status, after, limit, cancellationToken);
 
   public Task<ModerationDisputeResponse> FetchDisputeAsync(
       string id,

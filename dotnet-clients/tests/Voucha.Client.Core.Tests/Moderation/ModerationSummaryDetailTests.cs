@@ -14,11 +14,11 @@ public sealed class ModerationSummaryDetailTests
   [InlineData(true)]
   public async Task AppealSummaryRequiresTargetedDetailBeforeEditingOrMutating(bool accountRoundTrip)
   {
-    var page = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var page = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"), VouchaApiJson.Options)!;
     var summary = Assert.Single(page.Appeals);
     var service = new ModerationAppealsTestService();
-    service.Pages.Enqueue(page);
+    service.SummaryPages.Enqueue(page);
     var owner = new NavigationViewer(true, ["moderator"], IdentityId: "staff-1");
     var provider = new MutableNavigationViewerProvider();
     provider.SetViewer(owner);
@@ -30,16 +30,9 @@ public sealed class ModerationSummaryDetailTests
     }
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    Assert.Null(summary.AiDraftRequestedRunId);
     Assert.Equal("appealing-reviewer", summary.Appellant?.Username);
-    Assert.False(viewModel.CanEdit(summary));
-    Assert.False(viewModel.CanRerun(summary));
-    viewModel.SetDraft(summary, "Premature draft");
-    Assert.Equal(string.Empty, viewModel.DraftFor(summary));
-    await viewModel.ApproveAsync(summary, TestContext.Current.CancellationToken);
-    Assert.DoesNotContain(service.Calls, call => call.StartsWith("approve:", StringComparison.Ordinal));
-
-    await viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
+    Assert.Empty(viewModel.Appeals);
+    await viewModel.FetchDetailAsync(summary.Id, TestContext.Current.CancellationToken);
     var detail = Assert.Single(viewModel.Appeals);
     Assert.Contains($"detail:{summary.Id}", service.Calls);
     Assert.NotNull(detail.AiDraftRequestedRunId);
@@ -50,24 +43,17 @@ public sealed class ModerationSummaryDetailTests
   [Fact]
   public async Task DisputeSummaryRequiresTargetedDetailBeforeEditingOrMutating()
   {
-    var page = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
+    var page = JsonSerializer.Deserialize<StaffModerationDisputeListResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.disputes.default"), VouchaApiJson.Options)!;
     var summary = Assert.Single(page.Disputes);
     var service = new ModerationDisputesTestService();
-    service.Pages.Enqueue(page);
+    service.SummaryPages.Enqueue(page);
     using var viewModel = new ModerationDisputesViewModel(service, new NavigationViewer(true, ["moderator"]));
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    Assert.Null(summary.AiDraftRequestedRunId);
     Assert.Equal("native-claimant", summary.Disputant?.Username);
-    Assert.False(viewModel.CanEdit(summary));
-    Assert.False(viewModel.CanRerun(summary));
-    viewModel.SetPublicResponseDraft(summary, "Premature draft");
-    Assert.Equal(string.Empty, viewModel.PublicResponseDraftFor(summary));
-    await viewModel.ApproveAsync(summary, TestContext.Current.CancellationToken);
-    Assert.DoesNotContain(service.Calls, call => call.StartsWith("approve:", StringComparison.Ordinal));
-
-    await viewModel.RefreshAmbiguousAsync(summary.Id, TestContext.Current.CancellationToken);
+    Assert.Empty(viewModel.Disputes);
+    await viewModel.FetchDetailAsync(summary.Id, TestContext.Current.CancellationToken);
     var detail = Assert.Single(viewModel.Disputes);
     Assert.NotNull(detail.AiDraftRequestedRunId);
     Assert.True(viewModel.CanEdit(detail));
@@ -76,30 +62,73 @@ public sealed class ModerationSummaryDetailTests
   [Fact]
   public async Task DuplicateSummaryHydrationCannotOverwriteAnEditedDetailDraft()
   {
-    var page = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var page = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"), VouchaApiJson.Options)!;
     var summary = Assert.Single(page.Appeals);
     var service = new ModerationAppealsTestService();
-    service.Pages.Enqueue(page);
+    service.SummaryPages.Enqueue(page);
     var held = new TaskCompletionSource<ModerationAppealResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingDetail = held;
     using var viewModel = new ModerationAppealsViewModel(service, new NavigationViewer(true, ["moderator"]));
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    var first = viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
-    var duplicate = viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
+    var first = viewModel.FetchDetailAsync(summary.Id, TestContext.Current.CancellationToken);
+    var duplicate = viewModel.FetchDetailAsync(summary.Id, TestContext.Current.CancellationToken);
     Assert.Single(service.Calls, call => call.StartsWith("detail:", StringComparison.Ordinal));
-    Assert.False(viewModel.CanEdit(Assert.Single(viewModel.Appeals)));
+    Assert.Empty(viewModel.Appeals);
     held.SetResult(new ModerationAppealResponse(service.Current));
     await first;
     var detail = Assert.Single(viewModel.Appeals);
     Assert.True(viewModel.CanEdit(detail));
     viewModel.SetDraft(detail, "Moderator local edit");
     await duplicate;
-    await viewModel.RefreshDeliveryStatusAsync(summary, TestContext.Current.CancellationToken);
 
     Assert.Equal("Moderator local edit", viewModel.DraftFor(Assert.Single(viewModel.Appeals)));
     Assert.Single(service.Calls, call => call.StartsWith("detail:", StringComparison.Ordinal));
+  }
+
+  [Fact]
+  public async Task HeldDetailCannotReplaceStateWhileDeliveryIsInFlight()
+  {
+    var service = new ModerationAppealsTestService();
+    service.Current = service.Current with { PublicResponse = "Approved response", ApprovedAt = DateTimeOffset.UtcNow };
+    using var viewModel = new ModerationAppealsViewModel(service, new NavigationViewer(true, ["moderator"]));
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var original = Assert.Single(viewModel.Appeals);
+    var heldRead = new TaskCompletionSource<ModerationAppealResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var heldDelivery = new TaskCompletionSource<ModerationAppealResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingDetail = heldRead;
+    service.PendingDelivery = heldDelivery;
+    var detailRead = viewModel.FetchDetailAsync(original.Id, TestContext.Current.CancellationToken);
+    var delivery = viewModel.DeliverAsync(original, TestContext.Current.CancellationToken);
+    Assert.True(viewModel.IsMutating);
+
+    heldRead.SetResult(new ModerationAppealResponse(original with { AiPublicResponse = "Stale detail" }));
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => detailRead);
+    Assert.Same(original, Assert.Single(viewModel.Appeals));
+    heldDelivery.SetResult(new ModerationAppealResponse(original with { SentAt = DateTimeOffset.UtcNow }));
+    await delivery;
+    Assert.NotNull(Assert.Single(viewModel.Appeals).SentAt);
+  }
+
+  [Fact]
+  public async Task HeldDisputeDetailCannotRepopulateAChangedStatusQueue()
+  {
+    var service = new ModerationDisputesTestService();
+    using var viewModel = new ModerationDisputesViewModel(service, new NavigationViewer(true, ["moderator"]));
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var original = Assert.Single(viewModel.Disputes);
+    var held = new TaskCompletionSource<ModerationDisputeResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingDetail = held;
+    var detailRead = viewModel.FetchDetailAsync(original.Id, TestContext.Current.CancellationToken);
+    await viewModel.SelectStatusAsync(ModerationDisputeStatus.Resolved, TestContext.Current.CancellationToken);
+
+    held.SetResult(new ModerationDisputeResponse(original));
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => detailRead);
+    Assert.Empty(viewModel.Disputes);
+    Assert.Equal(ModerationDisputeStatus.Resolved, Assert.Single(viewModel.Summaries).Status);
   }
 
   [Theory]

@@ -37,7 +37,7 @@ public sealed class ModerationIntegrityPageTests
     Assert.Equal(["Pending", "Resolved", "All"], Assert.IsAssignableFrom<IEnumerable>(
         status.ItemsSource).Cast<string>());
     Assert.Contains(VisualTreeElements.Descendants<Label>(page), label =>
-        label.Text?.Contains("reporter_user_ids", StringComparison.Ordinal) == true);
+        label.Text?.Contains("window_minutes", StringComparison.Ordinal) == true);
     Assert.Equal(
         "/user/user-1",
         Find<Button>(page, "integrity-entity-user-1").CommandParameter);
@@ -273,7 +273,13 @@ public sealed class ModerationIntegrityPageTests
     await penalties.SelectStatusAsync(
         IntegrityPenaltyStatus.Revoked, TestContext.Current.CancellationToken);
 
+    var detailPage = new ModerationDetailPage<ReportIntegrityRow>(
+        _ => Task.FromResult(reports.PresentDetail(evidenceFlag)),
+        detail => IntegrityPageViews.CardLines(reports.PresentDetail(detail.Flag).Evidence), reports);
+    var lifecycle = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
+    detailPage.GetType().GetMethod("OnAppearing", lifecycle)!.Invoke(detailPage, null);
     AssertRenderedEvidence(reportPage, "12.5", "3.25");
+    AssertRenderedEvidence(detailPage, "12.5", "3.25");
 
     foreach (var locale in new[] { "es", "fr", "pt" })
     {
@@ -282,7 +288,9 @@ public sealed class ModerationIntegrityPageTests
       AssertPicker(votePage, "vote-integrity-status", localization, true);
       AssertPicker(penaltyPage, "report-integrity-penalties-status", localization, false);
       AssertRenderedEvidence(reportPage, "12,5", "3,25");
+      AssertRenderedEvidence(detailPage, "12,5", "3,25");
     }
+    detailPage.GetType().GetMethod("OnDisappearing", lifecycle)!.Invoke(detailPage, null);
   }
 
   [Fact]
@@ -360,7 +368,7 @@ public sealed class ModerationIntegrityPageTests
       new(
           id, userId is null ? "post-1" : null, userId, null, null,
           "mass_report_suspected", 5, 0.6,
-          Details("""{"reporter_user_ids":["reporter-1"],"window_minutes":30}"""),
+          Details("""{"window_minutes":30}"""),
           resolvedAt, resolvedById, resolution, DateTimeOffset.Parse("2026-06-01T12:00:00Z"));
 
   private static VoteIntegrityFlag VoteFlag(
@@ -381,19 +389,26 @@ public sealed class ModerationIntegrityPageTests
   private sealed class PageService : IModerationIntegrityService
   {
     public Func<IntegrityFlagStatus, string?, CancellationToken, Task<ReportIntegrityFlagsResponse>>
-        Reports { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        Reports
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<IntegrityFlagStatus, string?, CancellationToken, Task<VoteIntegrityFlagsResponse>>
-        Votes { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        Votes
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<string, CancellationToken, Task<ReportIntegrityPenaltyResponse>>
-        ReportPenalty { get; init; } = (_, _) => throw new InvalidOperationException();
+        ReportPenalty
+    { get; init; } = (_, _) => throw new InvalidOperationException();
     public Func<string, VoteIntegrityResolution, CancellationToken, Task<VoteIntegrityFlagResponse>>
-        VoteResolution { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        VoteResolution
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<string, CancellationToken, Task<VoteIntegrityPenaltyApplicationResponse>>
-        VotePenalty { get; init; } = (_, _) => throw new InvalidOperationException();
+        VotePenalty
+    { get; init; } = (_, _) => throw new InvalidOperationException();
     public Func<IntegrityPenaltyStatus, string?, CancellationToken, Task<ReportIntegrityPenaltiesResponse>>
-        ReportPenalties { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        ReportPenalties
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<string, CancellationToken, Task<ReportAbusePenaltyResponse>>
-        ReportRevoke { get; init; } = (_, _) => throw new InvalidOperationException();
+        ReportRevoke
+    { get; init; } = (_, _) => throw new InvalidOperationException();
     public TaskCompletionSource ReportStarted { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource VoteStarted { get; } =

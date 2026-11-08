@@ -89,14 +89,10 @@ public sealed record ModerationAppeal(
     [property: JsonPropertyName("target_context")] ModerationAppealTargetContext? TargetContext = null,
     [property: JsonPropertyName("staff_context")] ModerationAppealStaffContext? StaffContext = null,
     [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
-    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
-    [property: JsonPropertyName("appellant")] ModerationActorSummary? Appellant = null,
-    [property: JsonPropertyName("has_ai_draft")] bool? HasAiDraft = null,
-    [property: JsonPropertyName("has_draft")] bool? HasDraft = null);
+    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null);
 
-[JsonConverter(typeof(ModerationAppealListConverter))]
 public sealed record ModerationAppealListResponse(
-    [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppeal> Appeals,
+    [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppealSummary> Appeals,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record ModerationAppealResponse(
@@ -146,10 +142,6 @@ public sealed record ModerationDispute(
     [property: JsonPropertyName("staff_context")] ModerationDisputeStaffContext? StaffContext = null,
     [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
     [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
-    [property: JsonPropertyName("disputant")] ModerationActorSummary? Disputant = null,
-    [property: JsonPropertyName("post_slug")] string? PostSlug = null,
-    [property: JsonPropertyName("has_ai_draft")] bool? HasAiDraft = null,
-    [property: JsonPropertyName("has_draft")] bool? HasDraft = null,
     [property: JsonPropertyName("post_label")] string? PostLabel = null);
 
 public sealed record AuthoredContentText
@@ -182,9 +174,8 @@ public sealed record AuthoredContentText
   public string? LinguaRsDetectedLanguage { get; }
 }
 
-[JsonConverter(typeof(ModerationDisputeListConverter))]
 public sealed record ModerationDisputeListResponse(
-    [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDispute> Disputes,
+    [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDisputeSummary> Disputes,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record ModerationCaseCountResponse(

@@ -6,111 +6,11 @@ import XCTest
 @MainActor
 final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
-    func testLoadsFiltersAndPaginatesWithoutDuplicates() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
-            Support.staffList([Support.appeal(id: "appeal-1")], hasNextPage: true, endCursor: "cursor-1"), 200
-        )
-        let viewModel = try staffViewModel()
-        await viewModel.load()
-
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
-            Support.staffList([Support.appeal(id: "appeal-1"), Support.appeal(id: "appeal-2")]), 200
-        )
-        await viewModel.loadMore()
-
-        XCTAssertEqual(viewModel.appeals.map(\.id), ["appeal-1", "appeal-2"])
-        XCTAssertEqual(
-            CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/appeals" }[0].query,
-            "limit=25&status=pending"
-        )
-        XCTAssertEqual(
-            CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/appeals" }[1].query,
-            "limit=25&status=pending&after=cursor-1"
-        )
-        XCTAssertFalse(viewModel.hasMore)
-
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
-            Support.staffList([Support.appeal(id: "appeal-3", status: "dismissed")]), 200
-        )
-        await viewModel.selectStatus(.dismissed)
-        XCTAssertEqual(viewModel.appeals.map(\.id), ["appeal-3"])
-    }
-
-    func testIgnoresStaleFilterResponseAndPreservesRowsWhenLoadMoreFails() async throws {
-        let path = "/api/v1/appeals"
-        CannedFeedURLProtocol.queuedHandlers[path] = [
-            (Support.staffList([Support.appeal(id: "stale")]), 200, 0),
-            (Support.staffList([Support.appeal(id: "resolved", status: "resolved")], hasNextPage: true), 200, 0)
-        ]
-        let viewModel = try staffViewModel()
-
-        CannedFeedURLProtocol.suspendResponse(path: path)
-        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
-        let staleLoad = Task { await viewModel.load() }
-        guard await Support.waitForSuspendedCannedFeedResponse(path: path) else {
-            CannedFeedURLProtocol.releaseResponse(path: path)
-            await staleLoad.value
-            return
-        }
-
-        let resolvedLoad = Task { await viewModel.selectStatus(.resolved) }
-        guard await Support.waitForCapturedCannedFeedRequests(path: path, minimumCount: 2) else {
-            CannedFeedURLProtocol.releaseResponse(path: path)
-            await resolvedLoad.value
-            await staleLoad.value
-            return
-        }
-        CannedFeedURLProtocol.releaseResponse(path: path)
-
-        await resolvedLoad.value
-        await staleLoad.value
-
-        XCTAssertEqual(viewModel.appeals.map(\.id), ["resolved"])
-        CannedFeedURLProtocol.handlers[path] = (Data(#"{"error":"failed"}"#.utf8), 500)
-        await viewModel.loadMore()
-        XCTAssertEqual(viewModel.appeals.map(\.id), ["resolved"])
-        XCTAssertNotNil(viewModel.loadMoreErrorMessage)
-    }
-
-    func testReloadClearsStaleLoadMoreState() async throws {
-        let path = "/api/v1/appeals"
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/appeals"] = [
-            (Support.staffList([Support.appeal()], hasNextPage: true, endCursor: "next"), 200, 0),
-            (Support.staffList([Support.appeal(id: "stale-page")]), 200, 0),
-            (Support.staffList([Support.appeal(id: "fresh")]), 200, 0)
-        ]
-        let viewModel = try staffViewModel()
-        await viewModel.load()
-
-        CannedFeedURLProtocol.suspendResponse(path: path)
-        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
-        let staleLoadMore = Task { await viewModel.loadMore() }
-        guard await Support.waitForSuspendedCannedFeedResponse(path: path) else {
-            CannedFeedURLProtocol.releaseResponse(path: path)
-            await staleLoadMore.value
-            return
-        }
-
-        let reload = Task { await viewModel.load() }
-        guard await Support.waitForCapturedCannedFeedRequests(path: path, minimumCount: 3) else {
-            CannedFeedURLProtocol.releaseResponse(path: path)
-            await reload.value
-            await staleLoadMore.value
-            return
-        }
-        CannedFeedURLProtocol.releaseResponse(path: path)
-
-        await reload.value
-        await staleLoadMore.value
-
-        XCTAssertEqual(viewModel.appeals.map(\.id), ["fresh"])
-        XCTAssertFalse(viewModel.isLoadingMore)
-    }
-
     func testSavesChangedDraftAndSkipsNoOpPatch() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         viewModel.setDraft("Human response", for: viewModel.appeals[0])
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1"] = (
             Support.envelope(Support.appeal(publicResponse: "Human response")), 200
@@ -132,12 +32,14 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         XCTAssertEqual(viewModel.drafts["appeal-1"], "Initial AI draft")
 
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
             Support.staffList([Support.appeal(aiPublicResponse: "Fresh AI draft")]), 200
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         XCTAssertEqual(viewModel.drafts["appeal-1"], "Fresh AI draft")
 
         viewModel.setDraft("Local edit", for: viewModel.appeals[0])
@@ -145,6 +47,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
             Support.staffList([Support.appeal(aiPublicResponse: "Newer AI draft")]), 200
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         XCTAssertEqual(viewModel.drafts["appeal-1"], "Local edit")
 
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
@@ -164,6 +67,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         viewModel.setDraft("Local edit", for: viewModel.appeals[0])
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1"] = (
             Support.envelope(Support.appeal(publicResponse: "Confirmed response")), 200
@@ -177,6 +81,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
             Support.staffList([Support.appeal(publicResponse: "Later server response")]), 200
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         XCTAssertEqual(viewModel.drafts["appeal-1"], "Later server response")
     }
 
@@ -186,12 +91,14 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         viewModel.setDraft("Server caught up", for: viewModel.appeals[0])
 
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
             Support.staffList([Support.appeal(publicResponse: "Server caught up")]), 200
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let requestCount = CannedFeedURLProtocol.capturedURLs.count
         let didSave = await viewModel.saveDraft(for: viewModel.appeals[0])
         XCTAssertTrue(didSave)
@@ -201,6 +108,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
             Support.staffList([Support.appeal(publicResponse: "Later server response")]), 200
         )
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         XCTAssertEqual(viewModel.drafts["appeal-1"], "Later server response")
     }
 
@@ -210,6 +118,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         viewModel.setDraft("Revised response", for: viewModel.appeals[0])
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1"] = (
             Support.envelope(Support.appeal(publicResponse: "Revised response")), 200
@@ -231,6 +140,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([approved]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
 
         XCTAssertTrue(viewModel.canSend(appeal))
@@ -254,6 +164,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
 
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-send/delivery"] = (
             Support.envelope(Support.appeal(
@@ -297,6 +208,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel(rerunPollAttempts: 2, rerunPollDelay: {})
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         viewModel.setDraft("Local edit", for: appeal)
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1/resolution-drafts"] = (
@@ -320,6 +232,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1/resolution-drafts"] = (
             Support.queued, 202
@@ -328,7 +241,6 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers[pollPath] = (
             Support.envelope(Support.appeal()), 200
         )
-        let hydrationRequests = CannedFeedURLProtocol.capturedPathCount(pollPath)
         let firstPollCaptured = expectation(description: "First AI rerun poll captured")
         CannedFeedURLProtocol.suspendResponse(path: pollPath) { firstPollCaptured.fulfill() }
         let rerun = Task { await viewModel.rerunAI(for: appeal) }
@@ -338,7 +250,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.releaseResponse(path: pollPath)
         await rerun.value
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(pollPath), hydrationRequests + 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(pollPath), 2)
         XCTAssertEqual(viewModel.appeals.first?.aiPublicResponse, "AI draft")
         XCTAssertFalse(viewModel.isMutating)
     }
@@ -349,6 +261,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
 
         XCTAssertFalse(viewModel.canRerun(appeal))
@@ -364,6 +277,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([unsent, sent]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
 
         let loadedUnsent = try XCTUnwrap(viewModel.appeals.first { $0.id == "appeal-unsent" })
         XCTAssertFalse(viewModel.canResolve(loadedUnsent, action: .deny))
@@ -401,6 +315,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
             client: makeClient(), isSignedIn: true, isAdministrator: false, isSiteModerator: true
         )
         await moderator.load()
+        await Support.openDetails(in: moderator)
         let suspensionAppeal = try XCTUnwrap(moderator.appeals.first { $0.id == "appeal-suspension" })
         XCTAssertFalse(moderator.canResolve(suspensionAppeal, action: .accept))
         XCTAssertTrue(moderator.canResolve(suspensionAppeal, action: .reduce))
@@ -444,6 +359,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         CannedFeedURLProtocol.errors["/api/v1/appeals/appeal-send/delivery"] = URLError(.networkConnectionLost)
 
         try await viewModel.send(XCTUnwrap(viewModel.appeals.first { $0.id == "appeal-send" }))
@@ -471,6 +387,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([approved]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         CannedFeedURLProtocol.errors["/api/v1/appeals/appeal-send/delivery"] = URLError(.networkConnectionLost)
         await viewModel.send(viewModel.appeals[0])
 

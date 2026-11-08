@@ -12,17 +12,17 @@ public sealed class PublicDisputeProjectionTests
   {
     var member = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.disputes.member.default"), VouchaApiJson.Options);
-    var staff = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
+    var staff = JsonSerializer.Deserialize<StaffModerationDisputeListResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.disputes.default"), VouchaApiJson.Options);
     var memberDispute = Assert.Single(Assert.IsType<ModerationDisputeListResponse>(member).Disputes);
-    var staffDispute = Assert.Single(Assert.IsType<ModerationDisputeListResponse>(staff).Disputes);
+    var staffDispute = Assert.Single(Assert.IsType<StaffModerationDisputeListResponse>(staff).Disputes);
 
     Assert.Equal(staffDispute.Id, memberDispute.Id);
     Assert.Equal(staffDispute.PostId, memberDispute.PostId);
     Assert.Equal(staffDispute.Status, memberDispute.Status);
-    Assert.Null(memberDispute.ClaimText);
+    Assert.False(JsonSerializer.SerializeToElement(memberDispute, VouchaApiJson.Options).TryGetProperty("claim_text", out _));
     Assert.Null(memberDispute.DisputantUserId);
-    Assert.Null(memberDispute.StaffContext);
+    Assert.False(JsonSerializer.SerializeToElement(memberDispute, VouchaApiJson.Options).TryGetProperty("staff_context", out _));
     AssertNoProtectedFields(JsonSerializer.SerializeToElement(memberDispute, VouchaApiJson.Options));
   }
 

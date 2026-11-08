@@ -15,7 +15,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     using var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     service.NextError = new VouchaApiDecodeException(HttpStatusCode.Accepted, "invalid queue response");
 
@@ -32,7 +32,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     using var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     using var cancellation = new CancellationTokenSource();
     cancellation.Cancel();
@@ -54,7 +54,7 @@ public sealed partial class ModerationAppealsViewModelTests
     var first = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: new Uri("https://example.test/api"));
-    await first.LoadAsync(TestContext.Current.CancellationToken);
+    await first.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = first.Appeals.Single();
     var held = new TaskCompletionSource<ModerationAppealResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
@@ -66,7 +66,7 @@ public sealed partial class ModerationAppealsViewModelTests
     using var reopened = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: new Uri("https://EXAMPLE.test:443/api/"));
-    await reopened.LoadAsync(TestContext.Current.CancellationToken);
+    await reopened.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.False(reopened.CanRerun(reopened.Appeals.Single()));
     var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     reopened.PropertyChanged += (_, args) =>
@@ -77,7 +77,7 @@ public sealed partial class ModerationAppealsViewModelTests
     using var otherApi = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: new Uri("https://example.test/other"));
-    await otherApi.LoadAsync(TestContext.Current.CancellationToken);
+    await otherApi.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var otherOwnerNotifications = 0;
     otherApi.PropertyChanged += (_, args) =>
     {
@@ -110,7 +110,7 @@ public sealed partial class ModerationAppealsViewModelTests
         service, owner, viewerProvider: provider, uiDispatcher: dispatcher);
     using (viewModel)
     {
-      await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+      await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
       Assert.Single(viewModel.Appeals);
       var notifications = 0;
       viewModel.PropertyChanged += (_, args) =>
@@ -122,14 +122,14 @@ public sealed partial class ModerationAppealsViewModelTests
         }
       };
       var originalAppealId = viewModel.Appeals.Single().Id;
-      var heldLoad = new TaskCompletionSource<ModerationAppealListResponse>(
+      var heldLoad = new TaskCompletionSource<StaffModerationAppealListResponse>(
           TaskCreationOptions.RunContinuationsAsynchronously);
       service.PendingFetch = heldLoad;
-      var reload = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+      var reload = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
 
       await Task.Run(() => provider.SetViewer(NavigationViewer.Anonymous), TestContext.Current.CancellationToken);
-      heldLoad.SetResult(new ModerationAppealListResponse(
-          [service.Appeal("stale-appeal")], new PageInfo(null, false, null)));
+      heldLoad.SetResult(new StaffModerationAppealListResponse(
+          [ModerationAppealsTestService.Summary(service.Appeal("stale-appeal"))], new PageInfo(null, false, null)));
       await reload;
       Assert.False(viewModel.CanAccess);
       Assert.Equal(originalAppealId, viewModel.Appeals.Single().Id);

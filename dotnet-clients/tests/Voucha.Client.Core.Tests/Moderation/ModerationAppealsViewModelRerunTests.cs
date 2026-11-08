@@ -13,7 +13,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     service.Details.Enqueue(service.Current);
     service.Details.Enqueue(service.Current with
     {
@@ -26,7 +26,7 @@ public sealed partial class ModerationAppealsViewModelTests
 
     Assert.Equal("New AI draft", viewModel.Appeals.Single().AiPublicResponse);
     var id = service.Current.Id;
-    Assert.Equal([$"rerun:{id}", $"detail:{id}", $"detail:{id}"], service.Calls.Skip(1));
+    Assert.Equal([$"rerun:{id}", $"detail:{id}", $"detail:{id}"], service.Calls.Skip(2));
   }
 
   [Fact]
@@ -34,7 +34,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 2);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     viewModel.SetDraft(appeal, "Local edit");
 
@@ -54,7 +54,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.True(viewModel.IsAIRerunPending(appeal));
@@ -79,7 +79,7 @@ public sealed partial class ModerationAppealsViewModelTests
     var viewModel = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: apiBaseUrl);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
     var ownerKey = AppealAIRerunAdmissionStore.ForOwner(owner.IdentityId, apiBaseUrl);
@@ -107,7 +107,7 @@ public sealed partial class ModerationAppealsViewModelTests
     provider.SetViewer(owner);
     using var viewModel = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     var held = new TaskCompletionSource<ModerationAppealResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
@@ -117,8 +117,11 @@ public sealed partial class ModerationAppealsViewModelTests
     provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2"));
     provider.SetViewer(owner);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.Empty(viewModel.Appeals);
     held.SetResult(new ModerationAppealResponse(appeal with { ApprovedAt = DateTimeOffset.UtcNow }));
     await approval;
+    Assert.Empty(viewModel.Appeals);
+    await viewModel.FetchDetailAsync(viewModel.Summaries.Single().Id, TestContext.Current.CancellationToken);
 
     Assert.Null(viewModel.Appeals.Single().ApprovedAt);
   }
@@ -128,7 +131,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     viewModel.SetDraft(appeal, "Local edit");
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
@@ -167,7 +170,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
 
@@ -175,12 +178,12 @@ public sealed partial class ModerationAppealsViewModelTests
     {
       AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
     };
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.True(viewModel.IsAIRerunPending(appeal));
     Assert.False(viewModel.CanRerun(viewModel.Appeals.Single()));
 
     service.Current = service.Current with { LatestLifecycleChangeId = "new-change" };
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.False(viewModel.IsAIRerunPending(appeal));
     Assert.True(viewModel.CanRerun(viewModel.Appeals.Single()));
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
@@ -191,7 +194,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var rejected = new ModerationAppealsTestService { QueueAccepted = false };
     var rejectedViewModel = PollingStaffViewModel(rejected, attempts: 1);
-    await rejectedViewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await rejectedViewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = rejectedViewModel.Appeals.Single();
     await rejectedViewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.False(rejectedViewModel.IsAIRerunPending(appeal));
@@ -199,7 +202,7 @@ public sealed partial class ModerationAppealsViewModelTests
 
     var ambiguous = new ModerationAppealsTestService();
     var ambiguousViewModel = PollingStaffViewModel(ambiguous, attempts: 1);
-    await ambiguousViewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await ambiguousViewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     appeal = ambiguousViewModel.Appeals.Single();
     ambiguous.NextError = new HttpRequestException("response lost");
     await ambiguousViewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
@@ -214,7 +217,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     service.NextError = new HttpRequestException("rejected", null, HttpStatusCode.BadRequest);
 
@@ -230,7 +233,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     service.NextError = new HttpRequestException("timed out", null, HttpStatusCode.RequestTimeout);
 
@@ -251,14 +254,14 @@ public sealed partial class ModerationAppealsViewModelTests
     var first = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: new Uri("https://EXAMPLE.test/api/"));
-    await first.LoadAsync(TestContext.Current.CancellationToken);
+    await first.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = first.Appeals.Single();
     await first.RerunAsync(appeal, TestContext.Current.CancellationToken);
 
     var reopened = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: new Uri("https://example.test:443/api"));
-    await reopened.LoadAsync(TestContext.Current.CancellationToken);
+    await reopened.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var reopenedAppeal = reopened.Appeals.Single();
     Assert.False(reopened.CanRerun(reopenedAppeal));
     await reopened.RerunAsync(reopenedAppeal, TestContext.Current.CancellationToken);
@@ -267,7 +270,7 @@ public sealed partial class ModerationAppealsViewModelTests
     var otherApi = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask,
         admissionStore: store, apiBaseUrl: new Uri("https://example.test/other"));
-    await otherApi.LoadAsync(TestContext.Current.CancellationToken);
+    await otherApi.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.True(otherApi.CanRerun(otherApi.Appeals.Single()));
 
     service.Details.Enqueue(appeal with
@@ -292,7 +295,7 @@ public sealed partial class ModerationAppealsViewModelTests
     using var viewModel = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider,
         admissionStore: store, apiBaseUrl: apiBaseUrl);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     var held = new TaskCompletionSource<ModerationAppealResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
@@ -325,14 +328,14 @@ public sealed partial class ModerationAppealsViewModelTests
     provider.SetViewer(owner);
     using var viewModel = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider);
-    var held = new TaskCompletionSource<ModerationAppealListResponse>(
+    var held = new TaskCompletionSource<StaffModerationAppealListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingFetch = held;
-    var load = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var load = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
 
     provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "owner-b"));
-    held.SetResult(new ModerationAppealListResponse(
-        [service.Current], new PageInfo(null, false, null)));
+    held.SetResult(new StaffModerationAppealListResponse(
+        [ModerationAppealsTestService.Summary(service.Current)], new PageInfo(null, false, null)));
     await load;
 
     Assert.Empty(viewModel.Appeals);
@@ -344,7 +347,7 @@ public sealed partial class ModerationAppealsViewModelTests
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
     var held = new TaskCompletionSource<ModerationAppealResponse>(
@@ -360,7 +363,7 @@ public sealed partial class ModerationAppealsViewModelTests
     }));
     await refresh;
 
-    Assert.Equal("other", viewModel.Appeals.Single().Id);
+    Assert.Equal("other", viewModel.Summaries.Single().Id);
     Assert.True(viewModel.IsAIRerunPending(appeal));
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
   }
@@ -379,7 +382,7 @@ public sealed partial class ModerationAppealsViewModelTests
           delayStarted.SetResult();
           await Task.Delay(Timeout.InfiniteTimeSpan, token);
         });
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var original = viewModel.Appeals.Single();
     using var cancellation = new CancellationTokenSource();
     var rerun = viewModel.RerunAsync(original, cancellation.Token);
@@ -389,7 +392,7 @@ public sealed partial class ModerationAppealsViewModelTests
 
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => rerun);
     Assert.Equal(original.AiPublicResponse, viewModel.Appeals.Single().AiPublicResponse);
-    Assert.Single(service.Calls, call => call == $"detail:{original.Id}");
+    Assert.Equal(2, service.Calls.Count(call => call == $"detail:{original.Id}"));
     Assert.False(viewModel.IsMutating);
   }
 
@@ -406,7 +409,7 @@ public sealed partial class ModerationAppealsViewModelTests
       },
     };
     var viewModel = StaffViewModel(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
 
     Assert.False(viewModel.CanRerun(appeal));
