@@ -43,9 +43,11 @@ public sealed class CommunityAgentPromptMutationSettlementTests
     Assert.Equal(hasMore, model.HasMoreCommunityList);
     Assert.Equal(postFailure == "cap", model.HasReachedAgentPromptLimit);
     Assert.Equal(postFailure == "cap" ? "cap" : null, model.AgentPromptCreationError);
+    Assert.Equal(postFailure == "error", model.HasError);
+    Assert.Equal(postFailure == "error" ? "post offline" : null, model.ErrorMessage);
     if (readOutcome != "before")
     {
-      Assert.True(model.IsLoading);
+      Assert.Equal(postFailure != "error", model.IsLoading);
       var mutations = service.MutationCalls.Count;
       Assert.False(await model.DeleteAgentPromptAsync("prompt-1", Token));
       Assert.Equal(mutations, service.MutationCalls.Count);
@@ -89,6 +91,24 @@ public sealed class CommunityAgentPromptMutationSettlementTests
     Assert.False(await creating);
     service.AgentPromptPageHandler = _ => Task.FromResult(Fresh());
     Assert.True(await model.DeleteAgentPromptAsync("prompt-1", Token));
+  }
+
+  [Fact]
+  public async Task OldAccountGenericPostFailureDoesNotPublishErrorToNewOwner()
+  {
+    var service = Service();
+    var session = new Session();
+    using var model = new CommunityDetailViewModel(service, session);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var post = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptCreateHandler = _ => post.Task;
+    var creating = model.CreateAgentPromptAsync("old draft", cancellationToken: Token);
+    session.Change();
+    Fail(post, "error");
+    Assert.False(await creating);
+    Assert.Null(model.ErrorMessage);
+    Assert.False(model.HasError);
+    Assert.Empty(model.AgentPrompts);
   }
 
   [Fact]

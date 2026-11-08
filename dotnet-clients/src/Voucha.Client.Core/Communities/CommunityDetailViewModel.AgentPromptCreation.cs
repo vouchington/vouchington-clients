@@ -64,7 +64,7 @@ public sealed partial class CommunityDetailViewModel
     }
     catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
     {
-      if (readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) HandleLoadException(ex);
+      if (operation == agentPromptCreationOperation && IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) HandleLoadException(ex);
       return false;
     }
     finally

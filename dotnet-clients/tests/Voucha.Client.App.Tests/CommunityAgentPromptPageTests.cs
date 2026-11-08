@@ -18,13 +18,15 @@ namespace Voucha.Client.App.Tests;
 public sealed class CommunityAgentPromptPageTests
 {
   [Theory]
-  [InlineData(false)]
-  [InlineData(true)]
-  public async Task MountedFormPreservesDraftRowsCursorAndSlotsAfterCodedCapAndCanRetry(bool readCompletesFirst)
+  [InlineData(false, false)]
+  [InlineData(true, false)]
+  [InlineData(false, true)]
+  [InlineData(true, true)]
+  public async Task MountedFormPreservesDraftRowsCursorAndSlotsAfterFailedCreateAndCanRetry(bool readCompletesFirst, bool genericFailure)
   {
     DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
-    var handler = new PromptHandler();
+    var handler = new PromptHandler { GenericCreateFailure = genericFailure };
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
     var service = DispatchProxy.Create<ICommunitiesService, PromptProxy>();
     ((PromptProxy)service).Api = new ApiCommunitiesService(new VouchaApiClient(http));
@@ -42,13 +44,14 @@ public sealed class CommunityAgentPromptPageTests
     var reload = model.LoadAgentPromptsAsync(TestContext.Current.CancellationToken);
     if (readCompletesFirst) await reload;
     postGate.SetResult();
-    await WaitAsync(() => model.HasReachedAgentPromptLimit);
-    Assert.Equal("Prompt creation limit reached for this community", Find<Label>(page, "community-agent-prompt-creation-error").Text);
+    await WaitAsync(() => genericFailure ? model.HasError : model.HasReachedAgentPromptLimit);
+    if (genericFailure) Assert.Equal("Create temporarily unavailable", model.ErrorMessage);
+    else Assert.Equal("Prompt creation limit reached for this community", Find<Label>(page, "community-agent-prompt-creation-error").Text);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Assert.Single(model.AgentPrompts);
     Assert.Equal(slots, model.AgentPromptSlots);
     Assert.True(model.HasMoreCommunityList);
-    Assert.False(model.HasError);
+    Assert.Equal(genericFailure, model.HasError);
     readGate.SetResult();
     await reload;
     await WaitAsync(() => !model.IsLoading);
@@ -127,6 +130,7 @@ public sealed class CommunityAgentPromptPageTests
     public Task? WaitForPost { get; set; }
     public Task? WaitForRead { get; set; }
     public bool CommitCreates { get; init; }
+    public bool GenericCreateFailure { get; init; }
     public bool CancelRefresh { get; init; }
     private bool refreshFailed;
     public List<string> Paths { get; } = [];
@@ -150,6 +154,7 @@ public sealed class CommunityAgentPromptPageTests
             Content = new StringContent(new JsonObject { ["community_agent_prompt"] = created }.ToJsonString()),
           };
         }
+        if (GenericCreateFailure) throw new HttpRequestException("Create temporarily unavailable");
         var conflict = JsonNode.Parse(Fixture("native.chat.identity-conflict"))!;
         conflict["code"] = "COMMUNITY_AGENT_PROMPT_LIMIT_REACHED";
         conflict["message"] = "Prompt creation limit reached for this community";
