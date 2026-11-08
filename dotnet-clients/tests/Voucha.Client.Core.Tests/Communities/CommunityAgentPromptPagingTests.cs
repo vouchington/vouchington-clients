@@ -316,10 +316,29 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.Single(model.AgentPrompts);
     Assert.Equal(slots, model.AgentPromptSlots);
     Assert.True(model.CanLoadMoreCommunityList);
-    service.AgentPromptPageHandler = _ => Task.FromResult(Page(Fixture(), null, false));
+    var refreshError = model.AgentPromptRefreshError;
+    service.AgentPromptCreateHandler = _ =>
+    {
+      posts++;
+      return Task.FromException<CommunityAgentPrompt>(new VouchaApiException(HttpStatusCode.Conflict,
+          "{\"code\":\"COMMUNITY_AGENT_PROMPT_LIMIT_REACHED\",\"message\":\"cap\"}"));
+    };
+    Assert.False(await model.CreateAgentPromptAsync("second draft", cancellationToken: Token));
+    Assert.Equal(refreshError, model.AgentPromptRefreshError);
+    Assert.True(model.HasAgentPromptRefreshError);
+    Assert.Equal(slots, model.AgentPromptSlots);
+    Assert.True(model.HasMoreCommunityList);
+    Assert.Single(model.AgentPrompts);
+    var reads = service.ForwardPageRequests.Count;
+    service.AgentPromptPageHandler = _ => Task.FromResult(Page(Fixture() with
+    {
+      CommunityAgentPrompts = [Fixture().CommunityAgentPrompts[0] with { Id = "created" }],
+    }, null, false));
     Assert.True(await model.RetryAgentPromptRefreshAsync(Token));
     Assert.False(model.HasAgentPromptRefreshError);
-    Assert.Equal(1, posts);
+    Assert.Equal("created", Assert.Single(model.AgentPrompts).Id);
+    Assert.Equal(reads + 1, service.ForwardPageRequests.Count);
+    Assert.Equal(2, posts);
     Assert.Null(service.ForwardPageRequests[^1].After);
   }
 

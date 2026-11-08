@@ -76,7 +76,7 @@ public sealed class CommunityAgentPromptPageTests
   {
     DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
-    var handler = new PromptHandler { CommitCreates = true, CancelRefresh = canceled };
+    var handler = new PromptHandler { CommitCreates = true, RejectLaterCreates = true, CancelRefresh = canceled };
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
     var service = DispatchProxy.Create<ICommunitiesService, PromptProxy>();
     ((PromptProxy)service).Api = new ApiCommunitiesService(new VouchaApiClient(http));
@@ -95,12 +95,22 @@ public sealed class CommunityAgentPromptPageTests
     Assert.False(model.HasError);
     Assert.Null(model.AgentPromptCreationError);
     Assert.False(string.IsNullOrWhiteSpace(Find<Label>(page, "community-agent-prompt-refresh-error").Text));
+    Find<Entry>(page, "community-agent-prompt-draft").Text = "Second draft";
+    Find<Button>(page, "community-agent-prompt-create").SendClicked();
+    await WaitAsync(() => model.HasReachedAgentPromptLimit && !model.IsLoading);
+    Assert.True(model.HasAgentPromptRefreshError);
+    Assert.Equal("Second draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
+    Assert.Equal("prompt-1", Assert.Single(model.AgentPrompts).Id);
+    Assert.Equal(slots, model.AgentPromptSlots);
+    Assert.True(model.HasMoreCommunityList);
+    var requests = handler.Paths.Count;
     var retry = Find<Button>(page, "community-agent-prompt-refresh-retry");
     Assert.True(retry.IsVisible);
     retry.SendClicked();
     await WaitAsync(() => !model.HasAgentPromptRefreshError && model.AgentPrompts.Any(prompt => prompt.Id == "prompt-created"));
-    Assert.Equal(1, handler.Posts);
-    Assert.Equal(string.Empty, Find<Entry>(page, "community-agent-prompt-draft").Text);
+    Assert.Equal(2, handler.Posts);
+    Assert.Equal(requests + 1, handler.Paths.Count);
+    Assert.Equal("Second draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Assert.False(Find<Button>(page, "community-agent-prompt-refresh-retry").IsVisible);
   }
 
@@ -130,6 +140,7 @@ public sealed class CommunityAgentPromptPageTests
     public Task? WaitForPost { get; set; }
     public Task? WaitForRead { get; set; }
     public bool CommitCreates { get; init; }
+    public bool RejectLaterCreates { get; init; }
     public bool GenericCreateFailure { get; init; }
     public bool CancelRefresh { get; init; }
     private bool refreshFailed;
@@ -144,7 +155,7 @@ public sealed class CommunityAgentPromptPageTests
         if (WaitForPost is { } post) await post;
         var input = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!;
         Drafts.Add(input["prompt"]!.GetValue<string>());
-        if (CommitCreates)
+        if (CommitCreates && (!RejectLaterCreates || Posts == 1))
         {
           var created = JsonNode.Parse(Fixture("web.communities.agent-prompts.default"))!["community_agent_prompts"]![0]!.DeepClone();
           created["id"] = "prompt-created";

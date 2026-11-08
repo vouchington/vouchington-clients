@@ -21,8 +21,6 @@ public sealed partial class CommunityDetailViewModel
     var revision = Volatile.Read(ref communityContextRevision);
     var owner = sessionStore?.Current.Identity?.Id;
     var section = SelectedSection;
-    agentPromptRefreshError = null;
-    NotifyAgentPromptRefresh();
     var refresh = LoadAgentPromptsAsync(cancellationToken);
     var readRevision = agentPromptReadRevision;
     try

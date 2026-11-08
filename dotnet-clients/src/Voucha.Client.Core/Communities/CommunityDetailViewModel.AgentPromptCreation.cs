@@ -26,8 +26,6 @@ public sealed partial class CommunityDetailViewModel
     var owner = sessionStore?.Current.Identity?.Id;
     var section = SelectedSection;
     agentPromptCreationError = null;
-    agentPromptRefreshError = null;
-    NotifyAgentPromptRefresh();
     HasReachedAgentPromptLimit = false;
     NotifyAgentPromptCreation();
     var operation = ++agentPromptCreationOperation;
