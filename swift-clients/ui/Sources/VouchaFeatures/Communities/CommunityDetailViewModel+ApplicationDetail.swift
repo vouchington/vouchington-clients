@@ -5,6 +5,10 @@ extension CommunityDetailViewModel {
         guard !canModerateCommunity else { return }
         applicationSummaries = [:]
         applicationUsers = [:]
+        if selectedTab == .applications {
+            rowPagination.reset()
+            summary.rows = []
+        }
         discardApplicationDetail()
     }
 

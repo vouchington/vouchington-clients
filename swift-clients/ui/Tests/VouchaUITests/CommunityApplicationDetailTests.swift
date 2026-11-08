@@ -8,7 +8,8 @@ import XCTest
 @MainActor
 final class CommunityApplicationDetailTests: NativeRouteSurfaceViewModelTestCase {
     func testApplicationDetailHidesRetainedDataAfterCommunityModerationAccessIsRemoved() async throws {
-        let model = try CommunityDetailViewModel(client: makeClient(), slug: "test-community")
+        let client = try makeClient()
+        let model = CommunityDetailViewModel(client: client, slug: "test-community", initialTab: .applications)
         var community = try XCTUnwrap(JSONSerialization.jsonObject(
             with: ApiFixtureLoader.data("web.communities.show.default")
         ) as? [String: Any])
@@ -19,6 +20,11 @@ final class CommunityApplicationDetailTests: NativeRouteSurfaceViewModelTestCase
         model.communityDetail = try JSONDecoder.vouchaFixtureDecoder.decode(
             CommunityResponse.self, from: JSONSerialization.data(withJSONObject: community)
         )
+        let listPath = "/api/v1/communities/test-community/applications"
+        CannedFeedURLProtocol.handlers[listPath] = (ApiFixtureLoader.data("web.communities.applications.default"), 200)
+        let page = try await model.loadApplicationRows(client: client, after: nil)
+        model.rowPagination.reset(items: page.items)
+        model.summary.rows = page.items.map(\.row)
         let path = "/api/v1/communities/test-community/applications/application-1"
         CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("web.communities.application.default"), 200)
         await model.loadApplicationDetail(id: "application-1")
@@ -26,12 +32,31 @@ final class CommunityApplicationDetailTests: NativeRouteSurfaceViewModelTestCase
             .inspect().find(text: "I would like to join."))
         model.communityDetail = nil
         XCTAssertNil(model.applicationDetail)
+        XCTAssertTrue(model.rowPagination.items.isEmpty)
+        XCTAssertTrue(model.summary.rows.isEmpty)
+        XCTAssertThrowsError(try CommunityWorkspaceSurface(viewModel: model).inspect()
+            .find(text: "Application testuser"))
         XCTAssertThrowsError(try CommunityApplicationDetail(viewModel: model, id: "application-1")
             .inspect().find(text: "I would like to join."))
         let requestCount = CannedFeedURLProtocol.capturedPathCount(path)
         await model.loadApplicationDetail(id: "application-1")
         XCTAssertNil(model.applicationDetail)
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), requestCount)
+    }
+
+    func testApplicationAuthorityCleanupPreservesRowsOutsideApplicationsTab() throws {
+        let model = CommunityDetailViewModel(client: nil, slug: "test-community", initialTab: .posts)
+        model.communityDetail = try JSONDecoder.vouchaFixtureDecoder.decode(
+            CommunityResponse.self, from: ApiFixtureLoader.data("web.communities.show.default")
+        )
+        let row = NativeRouteDestinationRow(
+            id: "post-1", icon: "doc.text", title: .verbatim("Public post"), detail: .verbatim("Public summary")
+        )
+        model.rowPagination.reset(items: [CommunityForwardRow(id: "post-1", row: row)])
+        model.summary.rows = [row]
+        model.communityDetail = nil
+        XCTAssertEqual(model.rowPagination.items.map(\.id), ["post-1"])
+        XCTAssertEqual(model.summary.rows.map(\.id), ["post-1"])
     }
 
     func testMismatchedApplicationIdentityShowsDetailError() async throws {
