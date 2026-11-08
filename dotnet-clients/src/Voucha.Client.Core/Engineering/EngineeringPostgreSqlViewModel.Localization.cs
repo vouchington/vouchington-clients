@@ -6,7 +6,12 @@ public sealed partial class EngineeringPostgreSqlViewModel
 {
   public void OnUiLocaleChanged() => OnPropertyChanged(nameof(ArticleSyncStatusMessage));
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    localeSubscription?.Dispose();
+    if (sessionStore is not null) sessionStore.SessionChanged -= OnRangeSessionChanged;
+    rangeCancellation?.Cancel();
+  }
 
   private string? FormatArticleSyncStatus()
   {

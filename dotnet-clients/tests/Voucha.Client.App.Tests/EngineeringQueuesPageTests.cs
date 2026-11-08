@@ -126,6 +126,9 @@ public sealed class EngineeringQueuesPageTests
     public Task<EngineeringSuccessResponse> TriggerBackfillAsync(string id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PsqlMigrationsResponse> FetchMigrationsAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<PartitionStatusResponse> FetchPartitionsAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(PsqlJobBody body, CancellationToken cancellationToken = default) =>
+        EnqueuePsqlJobAsync(body.Type, cancellationToken);
+
     public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(string type, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ArticleSyncTriggerResponse> TriggerArticleSyncAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ArticleSyncJobStatusResponse> FetchArticleSyncStatusAsync(string jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();

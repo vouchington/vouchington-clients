@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
 
@@ -26,8 +27,11 @@ public sealed partial class EngineeringPostgreSqlViewModel :
   public EngineeringPostgreSqlViewModel(
       IEngineeringService service,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      ISessionStore? sessionStore = null)
   {
+    this.sessionStore = sessionStore;
+    if (sessionStore is not null) sessionStore.SessionChanged += OnRangeSessionChanged;
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);

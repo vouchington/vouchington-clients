@@ -20,6 +20,7 @@ public interface IEngineeringService
   Task<PsqlMigrationsResponse> FetchMigrationsAsync(CancellationToken cancellationToken = default);
   Task<PartitionStatusResponse> FetchPartitionsAsync(CancellationToken cancellationToken = default);
   Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(string type, CancellationToken cancellationToken = default);
+  Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(PsqlJobBody body, CancellationToken cancellationToken = default);
   Task<ArticleSyncTriggerResponse> TriggerArticleSyncAsync(CancellationToken cancellationToken = default);
   Task<ArticleSyncJobStatusResponse> FetchArticleSyncStatusAsync(string jobId, CancellationToken cancellationToken = default);
   Task<CacheGroupsResponse> FetchCacheGroupsAsync(CancellationToken cancellationToken = default);
