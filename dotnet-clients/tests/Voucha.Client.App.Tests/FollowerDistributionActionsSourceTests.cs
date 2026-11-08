@@ -33,8 +33,7 @@ public sealed class FollowerDistributionActionsSourceTests
   {
     var page = AppSource.Read("Pages", "RssFeedItemDetailPage.cs");
 
-    Assert.Contains("sessionStore.SessionChanged += sessionChangedHandler", page, StringComparison.Ordinal);
-    Assert.Contains("sessionStore.SessionChanged -= sessionChangedHandler", page, StringComparison.Ordinal);
+    AssertSessionSubscriptionLifecycle(page);
     Assert.Contains("MainThread.BeginInvokeOnMainThread(RefreshFollowerSendVisibility)", page, StringComparison.Ordinal);
     Assert.Contains("followerSend.IsVisible =", page, StringComparison.Ordinal);
     Assert.Contains("FollowerDistributionActions.CanSendRssItem(sessionStore)", page, StringComparison.Ordinal);
@@ -73,11 +72,19 @@ public sealed class FollowerDistributionActionsSourceTests
     Assert.Contains("sessionStore.Current.Identity?.Id == userId", actions, StringComparison.Ordinal);
     Assert.Contains("new FollowerDistributionSendPage(", actions, StringComparison.Ordinal);
     Assert.Contains("services.GetRequiredService<AppConfig>()", actions, StringComparison.Ordinal);
-    Assert.Contains("sessionStore.SessionChanged += sessionChangedHandler", page, StringComparison.Ordinal);
-    Assert.Contains("sessionStore.SessionChanged -= sessionChangedHandler", page, StringComparison.Ordinal);
+    AssertSessionSubscriptionLifecycle(page);
     Assert.Contains("args.Snapshot.Identity?.Id != userId", page, StringComparison.Ordinal);
     Assert.Contains("MainThread.BeginInvokeOnMainThread(() => _ = DismissAsync())", page, StringComparison.Ordinal);
     Assert.Contains("state.SetAudience(true);\n      Refresh();\n      await state.SearchFollowersAsync", page, StringComparison.Ordinal);
+  }
+
+  private static void AssertSessionSubscriptionLifecycle(string page)
+  {
+    Assert.Contains("SessionChangedSubscription sessionChangedSubscription = new()", page, StringComparison.Ordinal);
+    Assert.Contains("sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler)", page, StringComparison.Ordinal);
+    Assert.Contains("sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler)", page, StringComparison.Ordinal);
+    Assert.Contains("base.OnAppearing();\n    AttachSessionChanged();", page, StringComparison.Ordinal);
+    Assert.Contains("OnDisappearing()\n  {\n    DetachSessionChanged();", page, StringComparison.Ordinal);
   }
 
   [Fact]

@@ -25,6 +25,8 @@ const archiveValidator = fileURLToPath(new URL('./paired-exporter-archive.mjs', 
 const outputCollector = fileURLToPath(
   new URL('./paired-exporter-output-collector.mjs', import.meta.url),
 )
+const failureHelper = fileURLToPath(new URL('./prefixed-failure.mjs', import.meta.url))
+const pathHelper = fileURLToPath(new URL('./path-within.mjs', import.meta.url))
 const maximumDiagnosticBytes = 4 * 1024 * 1024
 const defaultExecutionTimeoutMs = 5 * 60 * 1000
 const maximumExecutionTimeoutMs = defaultExecutionTimeoutMs
@@ -129,6 +131,10 @@ export async function runIsolatedNativeExporter({
     `type=bind,src=${archiveValidator},dst=/trusted/paired-exporter-archive.mjs,readonly`,
     '--mount',
     `type=bind,src=${outputCollector},dst=/trusted/paired-exporter-output-collector.mjs,readonly`,
+    '--mount',
+    `type=bind,src=${failureHelper},dst=/trusted/prefixed-failure.mjs,readonly`,
+    '--mount',
+    `type=bind,src=${pathHelper},dst=/trusted/path-within.mjs,readonly`,
     image,
     'node',
     '/trusted/bootstrap.mjs',

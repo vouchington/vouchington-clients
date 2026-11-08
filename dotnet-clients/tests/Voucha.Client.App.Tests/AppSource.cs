@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Tests.Support;
 
 namespace Voucha.Client.App.Tests;
@@ -8,7 +9,12 @@ internal static class AppSource
       File.ReadAllText(Locate(relativeParts));
 
   internal static string Locate(params string[] relativeParts) =>
-      RepositoryFilePath.Find(Prefixed(relativeParts));
+      LocateFromSource(SourceFile(), relativeParts);
+
+  internal static string LocateFromSource(string sourceFile, params string[] relativeParts) =>
+      RepositoryFilePath.Find(new DirectoryInfo(Path.GetDirectoryName(sourceFile)!), Prefixed(relativeParts));
+
+  private static string SourceFile([CallerFilePath] string sourceFile = "") => sourceFile;
 
   private static string[] Prefixed(string[] relativeParts)
   {
