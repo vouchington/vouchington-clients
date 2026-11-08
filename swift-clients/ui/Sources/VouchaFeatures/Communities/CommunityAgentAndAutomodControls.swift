@@ -61,7 +61,7 @@ extension CommunityAgentAndAutomodControls {
                 Text(UiMessages.string(.nativeSwiftCommunitiesPrompts, locale: nativeUiLocale))
                     .font(Typography.subheadline)
                 CommunityAgentPromptList(viewModel: viewModel.agentPromptWorkspace)
-                LabeledContent(UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: nativeUiLocale)) {
+                LabeledContent(UiMessages.string(.nativeSwiftCommunitiesPromptText, locale: nativeUiLocale)) {
                     Text(verbatim: UiMessages.string(
                         prompts.selectedPrompt.map { .verbatim($0.prompt) } ?? .message(.nativeSwiftCommunityRowsNone),
                         locale: nativeUiLocale

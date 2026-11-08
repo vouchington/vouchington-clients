@@ -46,6 +46,8 @@ struct CommunityAgentPromptList: View {
                 await viewModel.loadMore()
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: nativeUiLocale))
         .task { await viewModel.reload() }
         .onDisappear { viewModel.invalidate() }
     }

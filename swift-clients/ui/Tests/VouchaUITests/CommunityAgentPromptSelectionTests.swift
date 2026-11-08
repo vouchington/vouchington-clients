@@ -3,6 +3,7 @@ import Observation
 import SwiftUI
 import ViewInspector
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
@@ -24,6 +25,10 @@ final class CommunityAgentPromptSelectionTests: NativeRouteSurfaceViewModelTestC
         let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
         try await ViewHosting.host(controls) {
             await settle { model.pagination.hasLoadedPage }
+            XCTAssertEqual(
+                try CommunityAgentPromptList(viewModel: model).inspect().vStack().accessibilityLabel().string(),
+                UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: .english)
+            )
             XCTAssertTrue(try controls.inspect().find(button: "Update").isDisabled())
             try row(in: controls, id: "first").tap()
             XCTAssertEqual(model.selectedPromptId, "first")
