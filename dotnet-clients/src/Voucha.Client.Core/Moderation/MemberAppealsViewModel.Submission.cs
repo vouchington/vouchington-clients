@@ -45,7 +45,7 @@ public sealed partial class MemberAppealsViewModel
       var pending = appealStates[ModerationAppealStatus.Pending];
       if (pending.Items.All(item => item.Id != response.Appeal.Id))
       {
-        pending.Items.Insert(0, response.Appeal);
+        pending.Items.Insert(0, PublicSummary(response.Appeal));
       }
       LastSubmissionWasDuplicate = response.IsDuplicate;
       drafts.Clear(viewer.IdentityId, target);
@@ -74,4 +74,14 @@ public sealed partial class MemberAppealsViewModel
 
   public void SetSubmissionFailure() =>
       SubmissionOutcome = MemberAppealSubmissionOutcome.Failed;
+
+  private static ModerationAppealSummary PublicSummary(ModerationAppeal appeal) =>
+      new(appeal.Id, appeal.Status, RecommendedAction: null, appeal.IsOverdue,
+          PublicResponse: appeal.SentAt is not null ? appeal.PublicResponse : null,
+          appeal.ApprovedAt, appeal.SentAt, appeal.ResolvedAt, appeal.ResolutionAction,
+          appeal.CreatedAt, appeal.UpdatedAt, HasAiDraft: null, HasDraft: null,
+          AppellantUserId: null, appeal.UserWarningId, appeal.CommunityBanId, appeal.PostId,
+          appeal.UserSuspensionId, appeal.CommunityId, appeal.PostRemovalKind,
+          appeal.TargetContext, Appellant: null);
+
 }

@@ -43,19 +43,19 @@ public sealed partial class ModerationAppealsViewModelTests
     var service = new ModerationAppealsTestService();
     var first = service.Appeal("appeal-1");
     var second = service.Appeal("appeal-2");
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-appeal-cursor", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationAppealsTestService.Summary(first)], new PageInfo("opaque-appeal-cursor", true, null)));
+    service.Pages.Enqueue(new([ModerationAppealsTestService.Summary(first), ModerationAppealsTestService.Summary(second)], new PageInfo(null, false, null)));
     var viewModel = StaffViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
     Assert.Equal(["appeal-1", "appeal-2"], viewModel.Summaries.Select(appeal => appeal.Id));
 
-    var pending = new TaskCompletionSource<ModerationAppealListResponse>();
+    var pending = new TaskCompletionSource<StaffModerationAppealListResponse>();
     service.PendingFetch = pending;
     var staleLoad = viewModel.SelectStatusAsync(ModerationAppealStatus.Dismissed, TestContext.Current.CancellationToken);
     service.Current = service.Appeal("appeal-resolved", ModerationAppealStatus.Resolved);
     var currentLoad = viewModel.SelectStatusAsync(ModerationAppealStatus.Resolved, TestContext.Current.CancellationToken);
-    pending.SetResult(new([service.Appeal("appeal-stale", ModerationAppealStatus.Dismissed)], new PageInfo(null, false, null)));
+    pending.SetResult(new([ModerationAppealsTestService.Summary(service.Appeal("appeal-stale", ModerationAppealStatus.Dismissed))], new PageInfo(null, false, null)));
     await Task.WhenAll(staleLoad, currentLoad);
 
     Assert.Equal(ModerationAppealStatus.Resolved, viewModel.SelectedStatus);
@@ -66,7 +66,7 @@ public sealed partial class ModerationAppealsViewModelTests
   public async Task UnexpectedStaleLoadFailureDoesNotReplaceCurrentState()
   {
     var service = new ModerationAppealsTestService();
-    var pending = new TaskCompletionSource<ModerationAppealListResponse>();
+    var pending = new TaskCompletionSource<StaffModerationAppealListResponse>();
     service.PendingFetch = pending;
     var viewModel = StaffViewModel(service);
     var staleLoad = viewModel.SelectStatusAsync(
@@ -88,7 +88,7 @@ public sealed partial class ModerationAppealsViewModelTests
   public async Task LoadCancellationDistinguishesCallerIntentFromTransportFailure()
   {
     var callerService = new ModerationAppealsTestService();
-    var callerPending = new TaskCompletionSource<ModerationAppealListResponse>();
+    var callerPending = new TaskCompletionSource<StaffModerationAppealListResponse>();
     callerService.PendingFetch = callerPending;
     var callerViewModel = StaffViewModel(callerService);
     using var cancellation = new CancellationTokenSource();
@@ -113,7 +113,7 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.Equal("transport timeout", transportViewModel.ErrorMessage);
 
     var paginationService = new ModerationAppealsTestService();
-    paginationService.Pages.Enqueue(new([paginationService.Current], new PageInfo("next", true, null)));
+    paginationService.Pages.Enqueue(new([ModerationAppealsTestService.Summary(paginationService.Current)], new PageInfo("next", true, null)));
     var paginationViewModel = StaffViewModel(paginationService);
     await paginationViewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     paginationService.NextError = new TaskCanceledException("pagination transport timeout");
@@ -129,7 +129,7 @@ public sealed partial class ModerationAppealsViewModelTests
   public async Task StaleTransportCancellationCannotReplaceCurrentLoadState()
   {
     var service = new ModerationAppealsTestService();
-    var pending = new TaskCompletionSource<ModerationAppealListResponse>();
+    var pending = new TaskCompletionSource<StaffModerationAppealListResponse>();
     service.PendingFetch = pending;
     var viewModel = StaffViewModel(service);
     var staleLoad = viewModel.SelectStatusAsync(
@@ -272,7 +272,7 @@ public sealed partial class ModerationAppealsViewModelTests
     var service = new ModerationAppealsTestService();
     var first = service.Appeal("appeal-1");
     var second = service.Appeal("appeal-2");
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationAppealsTestService.Summary(first), ModerationAppealsTestService.Summary(second)], new PageInfo(null, false, null)));
     service.Current = second;
     var viewModel = StaffViewModel(service);
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
@@ -324,7 +324,7 @@ public sealed partial class ModerationAppealsViewModelTests
   public async Task SuccessfulEmptyLoadIsDistinctFromLoading()
   {
     var service = new ModerationAppealsTestService();
-    var pending = new TaskCompletionSource<ModerationAppealListResponse>();
+    var pending = new TaskCompletionSource<StaffModerationAppealListResponse>();
     service.PendingFetch = pending;
     var viewModel = StaffViewModel(service);
 
@@ -389,13 +389,13 @@ public sealed partial class ModerationAppealsViewModelTests
   public async Task LoadingGuardsDuplicateRequestsContainsStaleCancellationAndPreservesRowsOnPaginationFailure()
   {
     var service = new ModerationAppealsTestService();
-    var pending = new TaskCompletionSource<ModerationAppealListResponse>();
+    var pending = new TaskCompletionSource<StaffModerationAppealListResponse>();
     service.PendingFetch = pending;
     var viewModel = StaffViewModel(service);
     var firstLoad = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.Single(service.Calls);
-    pending.SetResult(new([service.Current], new PageInfo(null, false, null)));
+    pending.SetResult(new([ModerationAppealsTestService.Summary(service.Current)], new PageInfo(null, false, null)));
     await firstLoad;
 
     pending = new();
@@ -408,7 +408,7 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.Equal("appeal-resolved", viewModel.Summaries.Single().Id);
 
     var paginationService = new ModerationAppealsTestService();
-    paginationService.Pages.Enqueue(new([paginationService.Current], new PageInfo("next", true, null)));
+    paginationService.Pages.Enqueue(new([ModerationAppealsTestService.Summary(paginationService.Current)], new PageInfo("next", true, null)));
     var paginationViewModel = StaffViewModel(paginationService);
     await paginationViewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     paginationService.NextError = new HttpRequestException("load more failed");

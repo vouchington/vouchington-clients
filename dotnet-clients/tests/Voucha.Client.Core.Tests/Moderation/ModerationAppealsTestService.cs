@@ -15,13 +15,13 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
 
   public List<string> Calls { get; } = [];
   public Queue<StaffModerationAppealListResponse> SummaryPages { get; } = new();
-  public Queue<ModerationAppealListResponse> Pages { get; } = [];
+  public Queue<StaffModerationAppealListResponse> Pages { get; } = [];
   public Queue<ModerationAppeal> Details { get; } = [];
   public Exception? NextError { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingDelivery { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingApproval { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingDetail { get; set; }
-  public TaskCompletionSource<ModerationAppealListResponse>? PendingFetch { get; set; }
+  public TaskCompletionSource<StaffModerationAppealListResponse>? PendingFetch { get; set; }
   public ModerationAppeal Current { get; set; }
   public bool QueueAccepted { get; set; } = true;
 
@@ -46,12 +46,10 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
       CancellationToken cancellationToken = default)
   {
     if (SummaryPages.TryDequeue(out var summaryPage)) return summaryPage;
-    var page = await FetchPageAsync(status, after, limit, cancellationToken);
-    return JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
-        JsonSerializer.Serialize(page, VouchaApiJson.Options), VouchaApiJson.Options)!;
+    return await FetchPageAsync(status, after, limit, cancellationToken).ConfigureAwait(false);
   }
 
-  private Task<ModerationAppealListResponse> FetchPageAsync(
+  private Task<StaffModerationAppealListResponse> FetchPageAsync(
       ModerationAppealStatus status,
       string? after = null,
       int limit = 25,
@@ -65,8 +63,12 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
       return pending.Task;
     }
     if (Pages.TryDequeue(out var page)) return Task.FromResult(page);
-    return Task.FromResult(new ModerationAppealListResponse([Current], new PageInfo(null, false, null)));
+    return Task.FromResult(new StaffModerationAppealListResponse([Summary(Current)], new PageInfo(null, false, null)));
   }
+
+  public static ModerationAppealSummary Summary(ModerationAppeal appeal) =>
+      JsonSerializer.Deserialize<ModerationAppealSummary>(
+          JsonSerializer.Serialize(appeal, VouchaApiJson.Options), VouchaApiJson.Options)!;
 
   public Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default)
   {

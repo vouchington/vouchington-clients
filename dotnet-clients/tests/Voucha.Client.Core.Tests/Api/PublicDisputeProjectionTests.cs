@@ -20,9 +20,9 @@ public sealed class PublicDisputeProjectionTests
     Assert.Equal(staffDispute.Id, memberDispute.Id);
     Assert.Equal(staffDispute.PostId, memberDispute.PostId);
     Assert.Equal(staffDispute.Status, memberDispute.Status);
-    Assert.Null(memberDispute.ClaimText);
+    Assert.False(JsonSerializer.SerializeToElement(memberDispute, VouchaApiJson.Options).TryGetProperty("claim_text", out _));
     Assert.Null(memberDispute.DisputantUserId);
-    Assert.Null(memberDispute.StaffContext);
+    Assert.False(JsonSerializer.SerializeToElement(memberDispute, VouchaApiJson.Options).TryGetProperty("staff_context", out _));
     AssertNoProtectedFields(JsonSerializer.SerializeToElement(memberDispute, VouchaApiJson.Options));
   }
 

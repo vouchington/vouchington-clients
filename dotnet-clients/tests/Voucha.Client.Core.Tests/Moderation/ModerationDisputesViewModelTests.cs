@@ -15,12 +15,12 @@ public sealed class ModerationDisputesViewModelTests
     var service = new ModerationDisputesTestService();
     var first = service.Current;
     var second = first with { Id = "dispute-2" };
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-pending", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-resolved", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-dismissed", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first)], new PageInfo("opaque-pending", true, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first), ModerationDisputesTestService.Summary(second)], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first)], new PageInfo("opaque-resolved", true, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first), ModerationDisputesTestService.Summary(second)], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first)], new PageInfo("opaque-dismissed", true, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first), ModerationDisputesTestService.Summary(second)], new PageInfo(null, false, null)));
     var viewModel = Staff(service);
 
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);

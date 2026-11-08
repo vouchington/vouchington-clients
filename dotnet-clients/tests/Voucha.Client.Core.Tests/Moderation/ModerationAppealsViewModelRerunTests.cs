@@ -328,14 +328,14 @@ public sealed partial class ModerationAppealsViewModelTests
     provider.SetViewer(owner);
     using var viewModel = new ModerationAppealsViewModel(
         service, owner, 1, _ => Task.CompletedTask, viewerProvider: provider);
-    var held = new TaskCompletionSource<ModerationAppealListResponse>(
+    var held = new TaskCompletionSource<StaffModerationAppealListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingFetch = held;
     var load = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
 
     provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "owner-b"));
-    held.SetResult(new ModerationAppealListResponse(
-        [service.Current], new PageInfo(null, false, null)));
+    held.SetResult(new StaffModerationAppealListResponse(
+        [ModerationAppealsTestService.Summary(service.Current)], new PageInfo(null, false, null)));
     await load;
 
     Assert.Empty(viewModel.Appeals);

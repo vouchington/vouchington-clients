@@ -122,14 +122,14 @@ public sealed partial class ModerationAppealsViewModelTests
         }
       };
       var originalAppealId = viewModel.Appeals.Single().Id;
-      var heldLoad = new TaskCompletionSource<ModerationAppealListResponse>(
+      var heldLoad = new TaskCompletionSource<StaffModerationAppealListResponse>(
           TaskCreationOptions.RunContinuationsAsynchronously);
       service.PendingFetch = heldLoad;
       var reload = viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
 
       await Task.Run(() => provider.SetViewer(NavigationViewer.Anonymous), TestContext.Current.CancellationToken);
-      heldLoad.SetResult(new ModerationAppealListResponse(
-          [service.Appeal("stale-appeal")], new PageInfo(null, false, null)));
+      heldLoad.SetResult(new StaffModerationAppealListResponse(
+          [ModerationAppealsTestService.Summary(service.Appeal("stale-appeal"))], new PageInfo(null, false, null)));
       await reload;
       Assert.False(viewModel.CanAccess);
       Assert.Equal(originalAppealId, viewModel.Appeals.Single().Id);

@@ -65,7 +65,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
     var viewModel = Staff(service);
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var pending = viewModel.Disputes.Single();
-    var stalePage = new TaskCompletionSource<ModerationDisputeListResponse>(
+    var stalePage = new TaskCompletionSource<StaffModerationDisputeListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingFetch = stalePage;
 
@@ -75,7 +75,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
         pending,
         ModerationDisputeResolutionAction.Remove,
         TestContext.Current.CancellationToken);
-    stalePage.SetResult(new([pending], new PageInfo(null, false, null)));
+    stalePage.SetResult(new([ModerationDisputesTestService.Summary(pending)], new PageInfo(null, false, null)));
     await load;
 
     Assert.Empty(viewModel.Summaries);
@@ -85,7 +85,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
   [Fact]
   public async Task ResolutionOutcomeRejectsARefreshStartedDuringTheMutation()
   {
-    var stalePage = new TaskCompletionSource<ModerationDisputeListResponse>(
+    var stalePage = new TaskCompletionSource<StaffModerationDisputeListResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     var pendingResolution = new TaskCompletionSource<ModerationDisputeResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
@@ -113,7 +113,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
     var resolved = service.Current with { Status = ModerationDisputeStatus.Resolved };
     pendingResolution.SetResult(new(resolved));
     await resolution;
-    stalePage.SetResult(new([pending], new PageInfo(null, false, null)));
+    stalePage.SetResult(new([ModerationDisputesTestService.Summary(pending)], new PageInfo(null, false, null)));
     await refresh;
 
     Assert.Empty(viewModel.Summaries);

@@ -16,19 +16,25 @@ public sealed partial class ModerationAppealsViewModel
     }
   }
 
-  private readonly Dictionary<(int OwnerRevision, string Id), Task<ModerationAppeal>> pendingDetailReads = [];
+  private readonly Dictionary<(int OwnerRevision, string Id), PendingDetailRead> pendingDetailReads = [];
 
   public async Task<ModerationAppeal> FetchDetailAsync(string id, CancellationToken cancellationToken = default)
   {
     if (!CanAccess) throw new InvalidOperationException("Staff access required.");
     var ownerRevision = Volatile.Read(ref accountRevision);
     var key = (ownerRevision, id);
-    if (pendingDetailReads.TryGetValue(key, out var pending))
-      return await pending.WaitAsync(cancellationToken).ConfigureAwait(true);
+    if (pendingDetailReads.TryGetValue(key, out var pending) &&
+        !pending.OwnerToken.IsCancellationRequested && !pending.Read.IsCompleted)
+      return await pending.Read.WaitAsync(cancellationToken).ConfigureAwait(true);
     var read = FetchDetailCoreAsync(id, ownerRevision, cancellationToken);
-    pendingDetailReads[key] = read;
+    var entry = new PendingDetailRead(read, cancellationToken);
+    pendingDetailReads[key] = entry;
     try { return await read.ConfigureAwait(true); }
-    finally { pendingDetailReads.Remove(key); }
+    finally
+    {
+      if (pendingDetailReads.TryGetValue(key, out var current) && ReferenceEquals(current, entry))
+        pendingDetailReads.Remove(key);
+    }
   }
 
   private async Task<ModerationAppeal> FetchDetailCoreAsync(
@@ -62,4 +68,7 @@ public sealed partial class ModerationAppealsViewModel
             HasAiDraft = detail.AiDraftedAt is not null,
             RecommendedAction = detail.RecommendedAction,
           }).ToArray();
+
+  private sealed record PendingDetailRead(Task<ModerationAppeal> Read, CancellationToken OwnerToken);
+
 }

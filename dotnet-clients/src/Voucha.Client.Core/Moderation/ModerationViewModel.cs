@@ -146,7 +146,7 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
     ];
   }
 
-  private string AppealDescription(ModerationAppeal appeal) =>
+  private string AppealDescription(ModerationAppealSummary appeal) =>
       appeal.PostId is not null
           ? localization.Format(UiMessageKey.NativeDotnetResidualPostReference, ("id", appeal.PostId))
           : appeal.CommunityBanId is not null

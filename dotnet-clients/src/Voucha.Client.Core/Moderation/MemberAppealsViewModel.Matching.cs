@@ -4,7 +4,7 @@ namespace Voucha.Client.Core.Moderation;
 
 public sealed partial class MemberAppealsViewModel
 {
-  private static bool Matches(ModerationAppeal appeal, MemberAppealTarget target) =>
+  private static bool Matches(ModerationAppealSummary appeal, MemberAppealTarget target) =>
       target.TargetType switch
       {
         ModerationAppealTargetType.Warning => appeal.UserWarningId == target.TargetId,
@@ -16,7 +16,7 @@ public sealed partial class MemberAppealsViewModel
       };
 
   private static bool MatchesSuspension(
-      ModerationAppeal appeal,
+      ModerationAppealSummary appeal,
       MemberAppealTarget target)
   {
     if (appeal.UserSuspensionId is not { } suspensionId) return false;

@@ -92,7 +92,7 @@ public sealed record ModerationAppeal(
     [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null);
 
 public sealed record ModerationAppealListResponse(
-    [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppeal> Appeals,
+    [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppealSummary> Appeals,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record ModerationAppealResponse(
@@ -175,7 +175,7 @@ public sealed record AuthoredContentText
 }
 
 public sealed record ModerationDisputeListResponse(
-    [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDispute> Disputes,
+    [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDisputeSummary> Disputes,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record ModerationCaseCountResponse(
