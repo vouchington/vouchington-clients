@@ -65,9 +65,19 @@ public sealed class ReportIntegrityDetailTests
   [Fact]
   public async Task UnauthorizedDetailDoesNotReadService()
   {
-    using var viewModel = new ReportIntegrityViewModel(new ModerationIntegrityTestService(),
+    var reads = 0;
+    var service = new ModerationIntegrityTestService
+    {
+      FetchReport = (_, _) =>
+      {
+        reads++;
+        throw new InvalidOperationException("Unexpected report reload.");
+      },
+    };
+    using var viewModel = new ReportIntegrityViewModel(service,
         new NavigationViewer(true, []));
     await Assert.ThrowsAsync<InvalidOperationException>(() =>
         viewModel.FetchDetailAsync("flag-1", TestContext.Current.CancellationToken));
+    Assert.Equal(0, reads);
   }
 }
