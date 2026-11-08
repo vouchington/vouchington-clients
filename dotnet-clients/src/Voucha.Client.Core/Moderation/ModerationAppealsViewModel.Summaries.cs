@@ -38,7 +38,7 @@ public sealed partial class ModerationAppealsViewModel
     var original = Appeals.FirstOrDefault(row => row.Id == id);
     var response = await service.FetchAppealAsync(id, cancellationToken).ConfigureAwait(true);
     cancellationToken.ThrowIfCancellationRequested();
-    if (!CanAccess || ownerRevision != Volatile.Read(ref accountRevision) ||
+    if (!CanAccess || IsMutating || ownerRevision != Volatile.Read(ref accountRevision) ||
         revision != Volatile.Read(ref loadRevision) ||
         !ReferenceEquals(Appeals.FirstOrDefault(row => row.Id == id), original))
       throw new OperationCanceledException("Detail owner or state changed.", cancellationToken);

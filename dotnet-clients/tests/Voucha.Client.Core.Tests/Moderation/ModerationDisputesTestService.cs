@@ -17,6 +17,7 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   public bool QueueAccepted { get; set; } = true;
   public Queue<ModerationDispute> Refreshes { get; } = new();
   public TaskCompletionSource<ModerationDisputeListResponse>? PendingFetch { get; set; }
+  public TaskCompletionSource<ModerationDisputeResponse>? PendingDetail { get; set; }
   public TaskCompletionSource<ModerationDisputeResponse>? PendingResolve { get; set; }
   public TaskCompletionSource PendingFetchStarted { get; } =
       new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -58,6 +59,7 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   {
     Calls.Add($"fetch:{id}");
     ThrowNext();
+    if (PendingDetail is { } pending) { PendingDetail = null; return pending.Task; }
     if (Refreshes.TryDequeue(out var refreshed)) Current = refreshed;
     return Task.FromResult(new ModerationDisputeResponse(Current));
   }

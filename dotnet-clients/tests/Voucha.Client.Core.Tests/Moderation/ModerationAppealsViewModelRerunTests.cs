@@ -116,9 +116,12 @@ public sealed partial class ModerationAppealsViewModelTests
 
     provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2"));
     provider.SetViewer(owner);
-    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.Empty(viewModel.Appeals);
     held.SetResult(new ModerationAppealResponse(appeal with { ApprovedAt = DateTimeOffset.UtcNow }));
     await approval;
+    Assert.Empty(viewModel.Appeals);
+    await viewModel.FetchDetailAsync(viewModel.Summaries.Single().Id, TestContext.Current.CancellationToken);
 
     Assert.Null(viewModel.Appeals.Single().ApprovedAt);
   }

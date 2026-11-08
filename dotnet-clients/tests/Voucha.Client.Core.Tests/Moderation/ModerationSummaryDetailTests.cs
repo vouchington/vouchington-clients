@@ -87,6 +87,50 @@ public sealed class ModerationSummaryDetailTests
     Assert.Single(service.Calls, call => call.StartsWith("detail:", StringComparison.Ordinal));
   }
 
+  [Fact]
+  public async Task HeldDetailCannotReplaceStateWhileDeliveryIsInFlight()
+  {
+    var service = new ModerationAppealsTestService();
+    service.Current = service.Current with { PublicResponse = "Approved response", ApprovedAt = DateTimeOffset.UtcNow };
+    using var viewModel = new ModerationAppealsViewModel(service, new NavigationViewer(true, ["moderator"]));
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var original = Assert.Single(viewModel.Appeals);
+    var heldRead = new TaskCompletionSource<ModerationAppealResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var heldDelivery = new TaskCompletionSource<ModerationAppealResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingDetail = heldRead;
+    service.PendingDelivery = heldDelivery;
+    var detailRead = viewModel.FetchDetailAsync(original.Id, TestContext.Current.CancellationToken);
+    var delivery = viewModel.DeliverAsync(original, TestContext.Current.CancellationToken);
+    Assert.True(viewModel.IsMutating);
+
+    heldRead.SetResult(new ModerationAppealResponse(original with { AiPublicResponse = "Stale detail" }));
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => detailRead);
+    Assert.Same(original, Assert.Single(viewModel.Appeals));
+    heldDelivery.SetResult(new ModerationAppealResponse(original with { SentAt = DateTimeOffset.UtcNow }));
+    await delivery;
+    Assert.NotNull(Assert.Single(viewModel.Appeals).SentAt);
+  }
+
+  [Fact]
+  public async Task HeldDisputeDetailCannotRepopulateAChangedStatusQueue()
+  {
+    var service = new ModerationDisputesTestService();
+    using var viewModel = new ModerationDisputesViewModel(service, new NavigationViewer(true, ["moderator"]));
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var original = Assert.Single(viewModel.Disputes);
+    var held = new TaskCompletionSource<ModerationDisputeResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.PendingDetail = held;
+    var detailRead = viewModel.FetchDetailAsync(original.Id, TestContext.Current.CancellationToken);
+    await viewModel.SelectStatusAsync(ModerationDisputeStatus.Resolved, TestContext.Current.CancellationToken);
+
+    held.SetResult(new ModerationDisputeResponse(original));
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => detailRead);
+    Assert.Empty(viewModel.Disputes);
+    Assert.Equal(ModerationDisputeStatus.Resolved, Assert.Single(viewModel.Summaries).Status);
+  }
+
   [Theory]
   [InlineData("native.moderation.appeals.default", "appeals", true)]
   [InlineData("native.moderation.disputes.default", "disputes", false)]

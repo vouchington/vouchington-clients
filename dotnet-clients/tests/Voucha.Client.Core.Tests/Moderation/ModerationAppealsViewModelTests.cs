@@ -46,7 +46,7 @@ public sealed partial class ModerationAppealsViewModelTests
     service.Pages.Enqueue(new([first], new PageInfo("opaque-appeal-cursor", true, null)));
     service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
     var viewModel = StaffViewModel(service);
-    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
     Assert.Equal(["appeal-1", "appeal-2"], viewModel.Summaries.Select(appeal => appeal.Id));
 
