@@ -5,10 +5,11 @@ using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Content;
 namespace Voucha.Client.App.Pages;
 
-internal sealed class ModerationAppealCardView : VerticalStackLayout
+internal sealed partial class ModerationAppealCardView : VerticalStackLayout
 {
   private readonly ModerationAppealsViewModel viewModel;
   private readonly Func<CancellationToken> lifecycleToken;
+  private readonly ModerationActionErrorLabel actionError;
   private readonly Label heading = new() { FontAttributes = FontAttributes.Bold };
   private readonly Label context = new() { FontSize = 12 };
   private readonly Label removalTitle = new();
@@ -22,23 +23,23 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
       Editor.PlaceholderProperty,
       UiMessageKey.NativeSwiftModerationAppealsPublicResponse);
   private readonly Button save = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-save" },
       Button.TextProperty,
       UiMessageKey.CommonSave);
   private readonly Button approve = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-approve" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsApprove);
   private readonly Button deliver = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-deliver" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsSend);
   private readonly Button rerun = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-rerun" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsRerunAi);
   private readonly Button refreshAIRerun = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-refreshAIRerun" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftReviewDisputesRefreshStatus);
   private readonly Label aiRerunPending = UiCopy.Bind(
@@ -46,19 +47,19 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
       Label.TextProperty,
       UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing);
   private readonly Button accept = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-accept" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsAccept);
   private readonly Button reduce = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-reduce" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsReduce);
   private readonly Button deny = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-deny" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsDeny);
   private readonly Button refreshDelivery = UiCopy.Bind(
-      new Button(),
+      new Button { AutomationId = "moderation-appeal-refreshDelivery" },
       Button.TextProperty,
       UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery);
 
@@ -66,8 +67,10 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
   {
     this.viewModel = viewModel;
     this.lifecycleToken = lifecycleToken ?? (() => default);
+    actionError = new(viewModel, nameof(ModerationAppealsViewModel.ErrorMessage), nameof(ModerationAppealsViewModel.HasError), "moderation-appeal-action-error");
     Padding = 12;
     Spacing = 8;
+    Children.Add(actionError);
     Children.Add(heading);
     Children.Add(context);
     Children.Add(removalTitle);
@@ -88,18 +91,7 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     Children.Add(refreshDelivery);
     BindingContextChanged += (_, _) => Populate();
     publicResponse.TextChanged += (_, _) => UpdateDraft();
-    save.Clicked += async (_, _) => await WithAppeal(async (appeal, token) =>
-    {
-      _ = await viewModel.SaveDraftAsync(appeal, token).ConfigureAwait(true);
-    }).ConfigureAwait(true);
-    approve.Clicked += async (_, _) => await WithAppeal(viewModel.ApproveAsync).ConfigureAwait(true);
-    deliver.Clicked += async (_, _) => await WithAppeal(viewModel.DeliverAsync).ConfigureAwait(true);
-    rerun.Clicked += async (_, _) => await WithAppeal(viewModel.RerunAsync).ConfigureAwait(true);
-    refreshAIRerun.Clicked += async (_, _) => await WithAppeal(viewModel.RefreshPendingAIRerunAsync).ConfigureAwait(true);
-    accept.Clicked += async (_, _) => await ResolveAsync(ModerationAppealAction.Accept).ConfigureAwait(true);
-    reduce.Clicked += async (_, _) => await ResolveAsync(ModerationAppealAction.Reduce).ConfigureAwait(true);
-    deny.Clicked += async (_, _) => await ResolveAsync(ModerationAppealAction.Deny).ConfigureAwait(true);
-    refreshDelivery.Clicked += async (_, _) => await WithAppeal(viewModel.RefreshDeliveryStatusAsync).ConfigureAwait(true);
+    ConfigureActions();
     Loaded += OnLoaded;
     Unloaded += OnUnloaded;
   }
@@ -108,8 +100,9 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
 
   private void Populate()
   {
-    if (!viewModel.CanAccess)
+    if (!viewModel.CanAccess || BindingContext is not ModerationAppeal)
     {
+      actionError.ClearPrivateState();
       BindingContext = null;
       Children.Clear();
       return;
@@ -166,14 +159,6 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     deny.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Deny);
     refreshDelivery.IsVisible = viewModel.IsDeliveryAmbiguous(appeal);
   }
-
-  private async Task WithAppeal(Func<ModerationAppeal, CancellationToken, Task> action)
-  {
-    if (Appeal is { } appeal) await action(appeal, lifecycleToken()).ConfigureAwait(true);
-  }
-
-  private Task ResolveAsync(ModerationAppealAction action) =>
-      Appeal is { } appeal ? viewModel.ResolveAsync(appeal, action, lifecycleToken()) : Task.CompletedTask;
 
   private void ViewModelChanged(object? sender, PropertyChangedEventArgs args) => Populate();
 
