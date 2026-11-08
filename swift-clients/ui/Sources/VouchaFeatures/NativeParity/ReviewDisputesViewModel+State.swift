@@ -12,6 +12,10 @@ extension ReviewDisputesViewModel {
         if annotationDrafts[dispute.id] == nil {
             annotationDrafts[dispute.id] = ""
         }
+        summaryPagination.replaceItems(summaryPagination.items.compactMap { summary in
+            guard summary.id == dispute.id else { return summary }
+            return dispute.status == selectedStatus ? summary.updating(from: dispute) : nil
+        })
         guard dispute.status == selectedStatus else {
             disputes.removeAll { $0.id == dispute.id }
             return

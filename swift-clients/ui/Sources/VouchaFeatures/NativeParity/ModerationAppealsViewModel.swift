@@ -57,6 +57,7 @@ final class ModerationAppealsViewModel {
     var locallyEditedDraftAppealIds: Set<String> = []
 
     var loadRevision = 0
+    var targetedOutcomeRevision = 0
 
     init(
         client: APIClient?,
@@ -92,77 +93,4 @@ final class ModerationAppealsViewModel {
         mutatingAppealId != nil
     }
 
-    func load() async {
-        guard canAccess, let client else { return }
-        loadRevision += 1
-        let revision = loadRevision
-        let expectedStatus = selectedStatus
-        summaryPagination.reset()
-        guard let request = summaryPagination.beginNextPage() else { return }
-        isLoading = true
-        errorMessage = nil
-        loadMoreErrorMessage = nil
-        do {
-            let response: ModerationAppealListResponse = try await client.send(
-                .appeals(status: expectedStatus, limit: 25)
-            )
-            guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            summaryPagination.complete(
-                request,
-                items: response.appeals,
-                endCursor: response.pageInfo.endCursor,
-                hasNextPage: response.pageInfo.hasNextPage
-            )
-        } catch is CancellationError {
-            guard revision == loadRevision else { return }
-            summaryPagination.cancel(request)
-        } catch {
-            guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            summaryPagination.fail(request, error: vouchaError(from: error))
-            errorMessage = message(for: error)
-        }
-        guard revision == loadRevision else { return }
-        isLoading = false
-    }
-
-    func selectStatus(_ status: ModerationAppealStatus) async {
-        guard status != selectedStatus else { return }
-        selectedStatus = status
-        summaryPagination.reset()
-        await load()
-    }
-
-    func loadMore() async {
-        guard canAccess, let client, !isLoading,
-              let request = summaryPagination.beginNextPage()
-        else { return }
-        let revision = loadRevision
-        let expectedStatus = selectedStatus
-        loadMoreErrorMessage = nil
-        do {
-            let response: ModerationAppealListResponse = try await client.send(
-                .appeals(status: expectedStatus, limit: 25, after: request.cursor)
-            )
-            guard revision == loadRevision, expectedStatus == selectedStatus,
-                  summaryPagination.isCurrent(request)
-            else { return }
-            summaryPagination.complete(
-                request,
-                items: response.appeals,
-                endCursor: response.pageInfo.endCursor,
-                hasNextPage: response.pageInfo.hasNextPage
-            )
-        } catch is CancellationError {
-            guard revision == loadRevision else { return }
-            summaryPagination.cancel(request)
-        } catch {
-            guard revision == loadRevision, expectedStatus == selectedStatus else { return }
-            summaryPagination.fail(request, error: vouchaError(from: error))
-            loadMoreErrorMessage = message(for: error)
-        }
-    }
-
-    private func vouchaError(from error: Error) -> VouchaError {
-        (error as? VouchaError) ?? .api(statusCode: 0, preconditionCode: nil)
-    }
 }

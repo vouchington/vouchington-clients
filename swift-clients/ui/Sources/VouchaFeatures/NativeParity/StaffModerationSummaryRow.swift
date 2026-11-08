@@ -14,8 +14,16 @@ struct StaffModerationSummaryRow: View {
     private let hasDraft: Bool
     private let hasAiDraft: Bool
     private let response: String?
+    private let isOverdue: Bool
+    private let overdueKey: UiMessageKey
+    private let recommendation: UiMessageKey?
+    private let recommendationKey: UiMessageKey
 
     init(dispute: ReviewDisputeSummary) {
+        isOverdue = dispute.isOverdue == true
+        overdueKey = .nativeSwiftReviewDisputesOverdue
+        recommendation = dispute.recommendedAction?.titleKey
+        recommendationKey = .nativeSwiftReviewDisputesAiRecommendation
         actor = dispute.disputant
         status = dispute.status.titleKey
         reason = .protocolValue(dispute.reason.rawValue)
@@ -27,6 +35,10 @@ struct StaffModerationSummaryRow: View {
     }
 
     init(appeal: ModerationAppealSummary) {
+        isOverdue = appeal.isOverdue == true
+        overdueKey = .nativeSwiftModerationAppealsOverdue
+        recommendation = appeal.recommendedAction?.titleKey
+        recommendationKey = .nativeSwiftModerationAppealsAiRecommendation
         actor = appeal.appellant
         status = appeal.status.titleKey
         switch appeal.targetContext {
@@ -57,6 +69,15 @@ struct StaffModerationSummaryRow: View {
             Text(actorLabel)
                 .font(Typography.headline)
             Text(UiMessages.string(status, locale: locale))
+            if isOverdue {
+                Text(UiMessages.string(overdueKey, locale: locale))
+                    .foregroundStyle(.red)
+            }
+            if let recommendation {
+                Label(UiMessages.string(recommendationKey, parameters: [
+                    "recommendation": UiMessages.string(recommendation, locale: locale)
+                ], locale: locale), systemImage: "sparkles")
+            }
             if let context { Text(verbatim: context) }
             if let reason { Text(UiMessages.string(reason, locale: locale)) }
             Text(UiMessages.abbreviatedDateTime(createdAt, locale: locale))

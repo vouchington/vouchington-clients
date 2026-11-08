@@ -3,6 +3,10 @@ import VouchaModels
 
 extension ReviewDisputesViewModel {
     func load() async {
+        await load(retryAfterOutcome: true)
+    }
+
+    private func load(retryAfterOutcome: Bool) async {
         guard canAccess, let client else { return }
         loadRevision += 1
         let revision = loadRevision
@@ -20,10 +24,18 @@ extension ReviewDisputesViewModel {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25)
             )
-            guard revision == loadRevision, expectedStatus == selectedStatus,
-                  expectedOutcomeRevision == targetedOutcomeRevision
-            else {
+            guard revision == loadRevision, expectedStatus == selectedStatus else {
                 summaryPagination.cancel(request)
+                return
+            }
+            guard expectedOutcomeRevision == targetedOutcomeRevision else {
+                if retryAfterOutcome {
+                    summaryPagination.cancel(request)
+                    await load(retryAfterOutcome: false)
+                } else {
+                    summaryPagination.fail(request, error: .api(statusCode: 0, preconditionCode: nil))
+                    errorMessage = .message(.nativeSwiftReviewDisputesGenericError)
+                }
                 return
             }
             summaryPagination.complete(

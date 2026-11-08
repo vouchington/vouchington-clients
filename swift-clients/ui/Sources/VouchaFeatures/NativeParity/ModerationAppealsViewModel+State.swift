@@ -4,6 +4,7 @@ import VouchaModels
 
 extension ModerationAppealsViewModel {
     func replace(with appeal: ModerationAppeal, preservingEditedDraft: Bool = false) {
+        targetedOutcomeRevision += 1
         if selectedDetailId == nil || selectedDetailId == appeal.id {
             detailModerationAppeal = appeal
         }
@@ -20,6 +21,10 @@ extension ModerationAppealsViewModel {
             drafts[appeal.id] = editedDraft
             locallyEditedDraftAppealIds.insert(appeal.id)
         }
+        summaryPagination.replaceItems(summaryPagination.items.compactMap { summary in
+            guard summary.id == appeal.id else { return summary }
+            return appeal.status == selectedStatus ? summary.updating(from: appeal) : nil
+        })
         guard appeal.status == selectedStatus else {
             appeals.removeAll { $0.id == appeal.id }
             return

@@ -107,7 +107,7 @@ struct ReviewDisputesSurface: View {
                 }
             }
         }
-        .sheet(item: $selectedSummary, onDismiss: { Task { await viewModel.load() } }, content: { summary in
+        .sheet(item: $selectedSummary, content: { summary in
             ReviewDisputeDetail(viewModel: viewModel, id: summary.id)
         })
     }

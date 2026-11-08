@@ -110,7 +110,7 @@ struct ModerationAppealsSurface: View {
                 }
             }
         }
-        .sheet(item: $selectedSummary, onDismiss: { Task { await viewModel.load() } }, content: { summary in
+        .sheet(item: $selectedSummary, content: { summary in
             ModerationAppealDetail(viewModel: viewModel, id: summary.id)
         })
     }
