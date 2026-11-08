@@ -106,6 +106,26 @@ describe('workflow step block', () => {
     assert.doesNotMatch(block, /echo last/u)
   })
 
+  it('ignores deeper-indented run content impersonating a step', () => {
+    const source = [
+      '      - name: Run',
+      '        run: |',
+      '          - name: Target [literal]',
+      '          echo nested',
+      '      - name: Target [literal]',
+      '        run: echo actual',
+      '',
+    ].join('\n')
+
+    assert.equal(
+      stepBlock(source, 'Target [literal]'),
+      '      - name: Target [literal]\n        run: echo actual\n',
+    )
+    assert.throws(() =>
+      stepBlock(source.replace(/^ {6}- name: Target \[literal\]\n/mu, ''), 'Target [literal]'),
+    )
+  })
+
   it('returns the last step through the end of the source', () => {
     const block = stepBlock(steps, 'Last')
 

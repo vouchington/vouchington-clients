@@ -18,10 +18,9 @@ export function jobBlock(workflow, job, missingMessage = `missing job ${job}`) {
 // the next step at the same indent. A longer step name is not a match.
 export function stepBlock(source, name, missingMessage = `missing step ${name}`, indent = 6) {
   const prefix = ' '.repeat(indent)
-  const marker = `${prefix}- name: ${name}\n`
-  const start = source.indexOf(marker)
-  assert.notEqual(start, -1, missingMessage)
-  const remainder = source.slice(start)
+  const marker = new RegExp(`^${prefix}- name: ${escapeRegExp(name)}\\n`, 'mu').exec(source)
+  assert.notEqual(marker, null, missingMessage)
+  const remainder = source.slice(marker.index)
   const nextStep = remainder.search(new RegExp(`\\n${prefix}- name:`, 'u'))
   return remainder.slice(0, nextStep === -1 ? remainder.length : nextStep)
 }

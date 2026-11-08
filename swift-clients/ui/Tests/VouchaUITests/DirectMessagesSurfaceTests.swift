@@ -154,7 +154,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             (messagesPageData(conversationId: "conversation-99"), 200, 0)
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -264,7 +264,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-2/participants"] = (
-            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-2", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
