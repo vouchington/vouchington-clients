@@ -38,10 +38,15 @@ internal sealed class ModerationModalAppealsService : ModerationModalActionServi
       string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
       Task.FromResult(new StaffModerationAppealListResponse([], new PageInfo(null, false, null)));
 
-  public Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default) =>
-      Mode is "seed-ai" or "seed-delivery"
-          ? Task.FromException<ModerationAppealResponse>(new HttpRequestException("Refresh is temporarily unavailable."))
-          : RespondAsync(new ModerationAppealResponse(Current), cancellationToken);
+  public int DetailFetches { get; private set; }
+
+  public Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default)
+  {
+    DetailFetches++;
+    return Mode is "seed-ai" or "seed-delivery"
+        ? Task.FromException<ModerationAppealResponse>(new HttpRequestException("Refresh is temporarily unavailable."))
+        : RespondAsync(new ModerationAppealResponse(Current), cancellationToken);
+  }
 
   public Task<ModerationAppealResponse> UpdatePublicResponseAsync(string id, string response, CancellationToken cancellationToken = default) =>
       RespondAsync(new ModerationAppealResponse(Current with { PublicResponse = response }), cancellationToken);

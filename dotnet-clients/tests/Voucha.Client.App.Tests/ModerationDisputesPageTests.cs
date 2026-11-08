@@ -256,16 +256,11 @@ public sealed class ModerationDisputesPageTests
         """,
         VouchaApiJson.Options)!;
 
-    public async Task<StaffModerationDisputeListResponse> FetchDisputesAsync(
+    public Task<StaffModerationDisputeListResponse> FetchDisputesAsync(
         ModerationDisputeStatus status, string? after = null, int limit = 25,
-        CancellationToken cancellationToken = default)
-    {
-      var page = await FetchPageAsync(status, after, limit, cancellationToken);
-      return JsonSerializer.Deserialize<StaffModerationDisputeListResponse>(
-          JsonSerializer.Serialize(page, VouchaApiJson.Options), VouchaApiJson.Options)!;
-    }
+        CancellationToken cancellationToken = default) => FetchPageAsync(status, after, limit, cancellationToken);
 
-    private async Task<ModerationDisputeListResponse> FetchPageAsync(
+    private async Task<StaffModerationDisputeListResponse> FetchPageAsync(
         ModerationDisputeStatus status,
         string? after = null,
         int limit = 25,
@@ -277,8 +272,9 @@ public sealed class ModerationDisputesPageTests
         LoadStarted.SetResult();
         await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
       }
-      return new ModerationDisputeListResponse(
-          Empty ? [] : [Current with { Status = status }],
+      return new StaffModerationDisputeListResponse(
+          Empty ? [] : [JsonSerializer.SerializeToElement(Current with { Status = status }, VouchaApiJson.Options)
+              .Deserialize<ModerationDisputeSummary>(VouchaApiJson.Options)!],
           new PageInfo(null, false, null));
     }
 

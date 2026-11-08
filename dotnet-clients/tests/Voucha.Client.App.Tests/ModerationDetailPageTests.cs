@@ -2,6 +2,10 @@ using System.Reflection;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Moderation;
+using Voucha.Client.Core.Navigation;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -59,6 +63,83 @@ public sealed class ModerationDetailPageTests
     await response.Task.ContinueWith(_ => { }, TestContext.Current.CancellationToken, TaskContinuationOptions.None, TaskScheduler.Default);
     Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page),
         label => label.AutomationId == "moderation-detail-error");
+  }
+
+  [Fact]
+  public void FailedDetailCanRetryToLoadTheEditorWithoutReopening()
+  {
+    Prepare();
+    Application.Current!.Resources[UiMessageKey.NativeCommonRetry.Value] = UiLocalization.English.Localize(UiMessageKey.NativeCommonRetry);
+    var first = new TaskCompletionSource<string>();
+    var second = new TaskCompletionSource<string>();
+    var reads = 0;
+    var page = new ModerationDetailPage<string>(_ => ++reads == 1 ? first.Task : second.Task,
+        draft => new Editor { Text = draft });
+    Lifecycle(page, "OnAppearing");
+    first.SetException(new HttpRequestException("Temporary failure"));
+    var retry = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "moderation-detail-retry");
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeCommonRetry), retry.Text);
+    Assert.Empty(VisualTreeElements.Descendants<Editor>(page));
+
+    retry.SendClicked();
+    retry.SendClicked();
+
+    Assert.Equal(2, reads);
+    Assert.True(Assert.Single(VisualTreeElements.Descendants<ActivityIndicator>(page)).IsRunning);
+    second.SetResult("Authoritative draft");
+    Assert.Equal("Authoritative draft", Assert.Single(VisualTreeElements.Descendants<Editor>(page)).Text);
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label => label.AutomationId == "moderation-detail-error");
+    Lifecycle(page, "OnDisappearing");
+  }
+
+  [Fact]
+  public void ClosingRetryCancelsItsReadAndDisablesTheOldRetryAction()
+  {
+    Prepare();
+    var late = new TaskCompletionSource<string>();
+    var reads = 0;
+    CancellationToken retryToken = default;
+    var page = new ModerationDetailPage<string>(token =>
+    {
+      if (++reads == 1) return Task.FromException<string>(new HttpRequestException("Temporary failure"));
+      retryToken = token;
+      return late.Task;
+    }, draft => new Editor { Text = draft });
+    Lifecycle(page, "OnAppearing");
+    var retry = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "moderation-detail-retry");
+    retry.SendClicked();
+
+    Lifecycle(page, "OnDisappearing");
+    retry.SendClicked();
+    late.SetResult("Late private draft");
+
+    Assert.True(retryToken.IsCancellationRequested);
+    Assert.Equal(2, reads);
+    Assert.Empty(VisualTreeElements.Descendants<Editor>(page));
+  }
+
+  [Fact]
+  public void RetryRechecksViewerAuthorityBeforeReadingPrivateDetail()
+  {
+    Prepare();
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    var provider = new MutableNavigationViewerProvider();
+    provider.SetViewer(owner);
+    var service = new ModerationModalAppealsService { Mode = "reject" };
+    using var model = new ModerationAppealsViewModel(service, owner, viewerProvider: provider);
+    var page = new ModerationDetailPage<ModerationAppeal>(token => model.FetchDetailAsync(service.Current.Id, token),
+        _ => new Editor());
+    Lifecycle(page, "OnAppearing");
+    var retry = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.AutomationId == "moderation-detail-retry");
+    provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "staff-2"));
+    service.Mode = "normal";
+
+    retry.SendClicked();
+
+    Assert.Equal(1, service.DetailFetches);
+    Assert.Empty(VisualTreeElements.Descendants<Editor>(page));
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.AutomationId == "moderation-detail-error");
+    Lifecycle(page, "OnDisappearing");
   }
 
   private static void Prepare()

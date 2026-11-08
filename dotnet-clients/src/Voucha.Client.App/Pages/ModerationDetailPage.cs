@@ -12,6 +12,7 @@ internal sealed class ModerationDetailPage<T> : ContentPage
   private readonly INotifyPropertyChanged? updates;
   private T detail = default!;
   private bool hasDetail;
+  private Task? activeLoad;
 
   public ModerationDetailPage(Func<CancellationToken, Task<T>> load, Func<T, View> render, INotifyPropertyChanged? updates = null)
       : this(load, (detail, _) => render(detail), updates) { }
@@ -39,6 +40,21 @@ internal sealed class ModerationDetailPage<T> : ContentPage
       updates.PropertyChanged -= Updated;
       updates.PropertyChanged += Updated;
     }
+    activeLoad = LoadAsync(token);
+    await activeLoad.ConfigureAwait(true);
+  }
+
+  private Task RetryAsync()
+  {
+    if (cancellation is not { IsCancellationRequested: false } active || activeLoad is { IsCompleted: false })
+      return Task.CompletedTask;
+    return activeLoad = LoadAsync(active.Token);
+  }
+
+  private async Task LoadAsync(CancellationToken token)
+  {
+    hasDetail = false;
+    detail = default!;
     body.Children.Clear();
     body.Children.Add(new ActivityIndicator { IsRunning = true, AutomationId = "moderation-detail-loading" });
     try
@@ -57,6 +73,10 @@ internal sealed class ModerationDetailPage<T> : ContentPage
       body.Children.Clear();
       body.Children.Add(UiCopy.Bind(new Label { AutomationId = "moderation-detail-error" },
           Label.TextProperty, UiMessageKey.NativeSwiftModerationReportsActionFailed));
+      var retry = UiCopy.Bind(new Button { AutomationId = "moderation-detail-retry" },
+          Button.TextProperty, UiMessageKey.NativeCommonRetry);
+      retry.Clicked += async (_, _) => await RetryAsync().ConfigureAwait(true);
+      body.Children.Add(retry);
     }
   }
 
@@ -65,6 +85,7 @@ internal sealed class ModerationDetailPage<T> : ContentPage
     if (updates is not null) updates.PropertyChanged -= Updated;
     hasDetail = false;
     detail = default!;
+    activeLoad = null;
     cancellation?.Cancel();
     cancellation?.Dispose();
     cancellation = null;
