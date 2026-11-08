@@ -161,6 +161,7 @@ public sealed partial class LandingPagesViewModel
   private void NotifyDraftItemState()
   {
     OnPropertyChanged(nameof(HasUnsavedItems));
+    OnPropertyChanged(nameof(ItemLimitContext));
     NotifyCandidateState();
   }
 

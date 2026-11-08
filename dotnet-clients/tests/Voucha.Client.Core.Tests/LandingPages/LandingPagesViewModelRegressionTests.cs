@@ -29,7 +29,7 @@ public sealed class LandingPagesViewModelRegressionTests
 
     Assert.Equal(0, service.FetchDetailCalls);
 
-    createGate.SetResult(new LandingPageDetailResponse(MakePage("landing-page-2", "New page", "new-page", false)));
+    createGate.SetResult(new LandingPageDetailResponse(MakePage("landing-page-2", "New page", "new-page", false)) { ItemLimit = 100 });
     Assert.True(await createTask);
   }
 
@@ -40,9 +40,9 @@ public sealed class LandingPagesViewModelRegressionTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([createdPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      CreateResponse = new LandingPageDetailResponse(createdPage),
-      DetailResponse = new LandingPageDetailResponse(createdPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      CreateResponse = new LandingPageDetailResponse(createdPage) { ItemLimit = 100 },
+      DetailResponse = new LandingPageDetailResponse(createdPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     viewModel.SetInitialSlug("travel");
@@ -61,8 +61,8 @@ public sealed class LandingPagesViewModelRegressionTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([page], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(page),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(page) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
 
@@ -93,9 +93,9 @@ public sealed class LandingPagesViewModelRegressionTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([initialPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(initialPage),
-      ReplaceItemsResponse = new LandingPageDetailResponse(updatedPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(initialPage) { ItemLimit = 100 },
+      ReplaceItemsResponse = new LandingPageDetailResponse(updatedPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
 
@@ -124,8 +124,8 @@ public sealed class LandingPagesViewModelRegressionTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([selectedPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(selectedPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(selectedPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
 
@@ -202,7 +202,7 @@ public sealed class LandingPagesViewModelRegressionTests
       return Task.FromResult(PagesResponse ?? throw new InvalidOperationException("Missing pages response."));
     }
 
-    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) =>
+    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
         Task.FromResult(CandidatesResponse ?? throw new InvalidOperationException("Missing candidates response."));
 
     public Task<LandingPageAnalyticsResponse> FetchMyLandingPageAnalyticsAsync(

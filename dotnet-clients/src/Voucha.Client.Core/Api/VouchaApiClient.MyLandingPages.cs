@@ -5,8 +5,8 @@ public sealed partial class VouchaApiClient
   public Task<LandingPagesResponse> FetchLandingPagesAsync(CancellationToken cancellationToken = default) =>
       SendAsync<LandingPagesResponse>(VouchaApiEndpoints.MyLandingPages(), cancellationToken);
 
-  public Task<LandingPageCandidatesResponse> FetchLandingPageCandidatesAsync(CancellationToken cancellationToken = default) =>
-      SendAsync<LandingPageCandidatesResponse>(VouchaApiEndpoints.MyLandingPageCandidates(), cancellationToken);
+  public Task<LandingPageCandidatesResponse> FetchLandingPageCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
+      SendAsync<LandingPageCandidatesResponse>(VouchaApiEndpoints.MyLandingPageCandidates(limit, after), cancellationToken);
 
   public Task<LandingPageDetailResponse> FetchLandingPageAsync(
       string pageId,

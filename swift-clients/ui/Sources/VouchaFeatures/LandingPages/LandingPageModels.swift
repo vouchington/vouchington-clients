@@ -1,18 +1,23 @@
 import Foundation
+import VouchaAPI
 
 public struct LandingPagesResponse: Decodable, Sendable {
     public let results: [LandingPage]
 }
 
 public struct LandingPageResponse: Decodable, Sendable {
+    public let itemLimit: Int
     public let landingPage: LandingPage
 }
 
 public struct LandingPageWithItemsResponse: Decodable, Sendable {
+    public let itemLimit: Int
     public let landingPage: LandingPageWithItems
 }
 
 public struct LandingPageCandidatesResponse: Decodable, Sendable {
+    public let pageInfo: LandingPageCandidatePageInfo
+    public let itemLimit: Int
     public let candidates: LandingPageCandidates
 }
 

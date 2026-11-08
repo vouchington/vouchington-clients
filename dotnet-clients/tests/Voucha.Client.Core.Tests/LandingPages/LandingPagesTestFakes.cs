@@ -79,7 +79,7 @@ internal sealed class RecordingLandingPagesService : ILandingPagesService
     return Task.FromResult(AdminLandingPageAnalyticsResponse);
   }
 
-  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) =>
+  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
       Task.FromResult(CandidatesResponse);
 
   public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default) =>

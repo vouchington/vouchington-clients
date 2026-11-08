@@ -79,6 +79,9 @@ public partial class LandingPagesPage : ContentPage, IQueryAttributable
   private async void OnDeleteClicked(object? sender, EventArgs e) =>
       await viewModel.DeleteSelectedAsync().ConfigureAwait(true);
 
+  private async void OnLoadMoreCandidatesClicked(object? sender, EventArgs e) =>
+      await viewModel.LoadMoreCandidatesAsync().ConfigureAwait(true);
+
   private void OnAddItemClicked(object? sender, EventArgs e) => viewModel.AddSelectedItem();
 
   private void OnGroupMemberCheckedChanged(object? sender, CheckedChangedEventArgs e)

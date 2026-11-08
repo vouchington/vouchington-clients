@@ -8,6 +8,7 @@ public sealed partial class LandingPagesViewModel
     DraftItems = [.. DraftItems];
     ItemTypeOptions = [.. ItemTypeOptions];
     OnPropertyChanged(nameof(ItemTypeOptions));
+    OnPropertyChanged(nameof(ItemLimitContext));
     NotifyPickerState();
   }
 

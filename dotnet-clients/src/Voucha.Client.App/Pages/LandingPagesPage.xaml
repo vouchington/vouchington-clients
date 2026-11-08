@@ -153,6 +153,8 @@
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                     <HorizontalStackLayout Spacing="8">
+                        <Label AutomationId="landing-pages-item-limit" Text="{Binding ItemLimitContext}" />
+                        <Button AutomationId="landing-pages-load-more-candidates" Text="{DynamicResource native.swift.common.loadMore}" Clicked="OnLoadMoreCandidatesClicked" IsVisible="{Binding HasMoreCandidates}" IsEnabled="{Binding IsNotLoading}" />
                         <Button AutomationId="landing-pages-add-item" Text="{Binding LocalizedAddButtonText}" Clicked="OnAddItemClicked" IsEnabled="{Binding CanAddItem}" />
                         <Button AutomationId="landing-pages-save-content" Text="{DynamicResource native.dotnet.landingPages.saveContent}" Clicked="OnSaveContentClicked" IsEnabled="{Binding IsContentEditable}" />
                     </HorizontalStackLayout>

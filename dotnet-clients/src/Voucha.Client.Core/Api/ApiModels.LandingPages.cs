@@ -18,17 +18,28 @@ public sealed record LandingPagesResponse(
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record LandingPageDetailResponse(
-    [property: JsonPropertyName("landing_page")] LandingPage LandingPage,
-    [property: JsonPropertyName("item_limit")] int ItemLimit = 0);
+    [property: JsonPropertyName("landing_page")] LandingPage LandingPage)
+{
+  [JsonRequired, JsonPropertyName("item_limit")]
+  public int ItemLimit { get; init; }
+}
 
 public sealed record LandingPageResponse(
-    [property: JsonPropertyName("landing_page")] LandingPage LandingPage,
-    [property: JsonPropertyName("item_limit")] int ItemLimit = 0);
+    [property: JsonPropertyName("landing_page")] LandingPage LandingPage)
+{
+  [JsonRequired, JsonPropertyName("item_limit")]
+  public int ItemLimit { get; init; }
+}
 
 public sealed record LandingPageCandidatesResponse(
-    [property: JsonPropertyName("candidates")] LandingPageCandidates Candidates,
-    [property: JsonPropertyName("item_limit")] int ItemLimit = 0,
-    [property: JsonPropertyName("page_info")] PageInfo? PageInfo = null);
+    [property: JsonPropertyName("candidates")] LandingPageCandidates Candidates)
+{
+  [JsonRequired, JsonPropertyName("page_info")]
+  public PageInfo PageInfo { get; init; } = null!;
+
+  [JsonRequired, JsonPropertyName("item_limit")]
+  public int ItemLimit { get; init; }
+}
 
 public sealed record LandingPageCandidates(
     [property: JsonPropertyName("can_create_landing_pages")] bool CanCreateLandingPages,

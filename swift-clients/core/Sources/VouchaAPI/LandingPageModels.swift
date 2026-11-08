@@ -48,8 +48,8 @@ public struct LandingPageSummaryResponse: Codable, Sendable {
 }
 
 public struct LandingPageCandidatesResponse: Codable, Sendable {
+    public let pageInfo: LandingPageCandidatePageInfo
     public let itemLimit: Int
-    public let pageInfo: Page<LandingPageReview>.PageInfo
     public let candidates: LandingPageCandidates
 }
 
@@ -107,4 +107,10 @@ public struct LandingPageTopic: Codable, Identifiable, Sendable {
     public let name: String
     public let slug: String
     public let topicType: String
+}
+
+public struct LandingPageCandidatePageInfo: Codable, Sendable {
+    public let hasNextPage: Bool
+    @RequiredNullable public var startCursor: String?
+    @RequiredNullable public var endCursor: String?
 }
