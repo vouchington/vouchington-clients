@@ -64,7 +64,8 @@ public sealed partial class EngineeringPostgreSqlViewModel
           () => { isMutating = false; IsLoading = false; },
           async () =>
           {
-            if (!await confirm(body).ConfigureAwait(true)) return;
+            token.ThrowIfCancellationRequested();
+            if (!await confirm(body).WaitAsync(token).ConfigureAwait(true)) return;
             token.ThrowIfCancellationRequested();
             if (version != sessionVersion || !IsRangeAuthorized) return;
             var result = await service.EnqueuePsqlJobAsync(body, token).ConfigureAwait(true);

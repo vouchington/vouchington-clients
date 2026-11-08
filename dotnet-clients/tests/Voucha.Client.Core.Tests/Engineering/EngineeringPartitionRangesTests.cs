@@ -210,6 +210,60 @@ public sealed class EngineeringPartitionRangesTests
     Assert.Empty(handler.Requests);
   }
 
+  [Theory]
+  [InlineData("operation")]
+  [InlineData("caller")]
+  [InlineData("dispose")]
+  public async Task CancellationReleasesBusyStateWithoutWaitingForConfirmation(string cancellationKind)
+  {
+    var (vm, handler, _) = Create();
+    using (vm)
+    using (var callerCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken))
+    {
+      var confirmation = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+      var pending = vm.ConfirmRangeAsync(false, false, _ => confirmation.Task, callerCancellation.Token);
+      Assert.True(vm.IsLoading);
+      Assert.False(confirmation.Task.IsCompleted);
+      switch (cancellationKind)
+      {
+        case "operation": vm.CancelRangeOperation(); break;
+        case "caller": callerCancellation.Cancel(); break;
+        case "dispose": vm.Dispose(); break;
+      }
+      await pending.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+      Assert.False(confirmation.Task.IsCompleted);
+      Assert.False(vm.IsLoading);
+      Assert.False(vm.RangeQueued);
+      Assert.Null(vm.ErrorMessage);
+      Assert.Empty(handler.Requests);
+      confirmation.SetResult(true);
+      await confirmation.Task;
+      Assert.Empty(handler.Requests);
+      Assert.False(vm.RangeQueued);
+    }
+  }
+
+  [Fact]
+  public async Task AlreadyCanceledCallerDoesNotOpenConfirmation()
+  {
+    var (vm, handler, _) = Create();
+    using (vm)
+    using (var cancellation = new CancellationTokenSource())
+    {
+      cancellation.Cancel();
+      var confirmations = 0;
+      await vm.ConfirmRangeAsync(false, false, _ =>
+      {
+        confirmations++;
+        return Task.FromResult(true);
+      }, cancellation.Token);
+      Assert.Equal(0, confirmations);
+      Assert.Empty(handler.Requests);
+      Assert.False(vm.IsLoading);
+      Assert.Null(vm.ErrorMessage);
+    }
+  }
+
   private static (EngineeringPostgreSqlViewModel Vm, RecordingHandler Handler, SessionStore Session) Create(
       HttpStatusCode status = HttpStatusCode.OK)
   {
