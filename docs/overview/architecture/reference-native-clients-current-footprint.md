@@ -46,6 +46,13 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   local generation is text-only and never silently falls back to another provider.
 - Session cookies are stored through platform-secure stores and keyed by API origin. Native OAuth,
   passkey, and deep-link callbacks remain inside their platform app boundaries.
+- PostgreSQL API helpers support separate classifier-result and export-request partition ranges,
+  including optional DEFAULT-row budgets. Omitted ranges retain the monthly partition requests.
+  The .NET view model can prepare and confirm an immutable range request with session guards;
+  these entry points are not wired to rendered controls. Operator range inputs and localized
+  confirmations remain blocked on Vouchington-owned copy and native consumer claims in
+  [#497](https://github.com/vouchington/vouchington-clients/issues/497). The `engineering-core`
+  parity status remains partial.
 - Direct media playback is native where a direct URL is available. Embed-only media keeps its
   explicit external-source action and does not launch a browser as an implicit playback route.
 - Subscription screens are status and plan presentation only. Purchase, cancellation, and store

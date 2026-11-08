@@ -59,6 +59,9 @@ public sealed class ApiEngineeringService : IEngineeringService
   public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(string type, CancellationToken cancellationToken = default) =>
       client.SendAsync<EngineeringSuccessResponse>(VouchaApiEndpoints.EnqueuePsqlJob(new PsqlJobBody(type)), cancellationToken);
 
+  public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(PsqlJobBody body, CancellationToken cancellationToken = default) =>
+      client.SendAsync<EngineeringSuccessResponse>(VouchaApiEndpoints.EnqueuePsqlJob(body), cancellationToken);
+
   public Task<ArticleSyncTriggerResponse> TriggerArticleSyncAsync(CancellationToken cancellationToken = default) =>
       client.SendAsync<ArticleSyncTriggerResponse>(VouchaApiEndpoints.TriggerArticleSync(), cancellationToken);
 
