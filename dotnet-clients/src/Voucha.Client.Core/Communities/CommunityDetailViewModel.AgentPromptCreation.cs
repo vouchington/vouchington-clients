@@ -48,12 +48,12 @@ public sealed partial class CommunityDetailViewModel
     }
     catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict && ex.ErrorCode == "COMMUNITY_AGENT_PROMPT_LIMIT_REACHED")
     {
-      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) return false;
+      if (operation != agentPromptCreationOperation || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) return false;
       HasReachedAgentPromptLimit = true;
       agentPromptCreationError = string.IsNullOrWhiteSpace(ex.ApiMessage)
           ? UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed)
           : UiText.UserContent(ex.ApiMessage);
-      CompleteLoad();
+      if (!isLoadingAgentPrompts) CompleteLoad();
       NotifyAgentPromptCreation();
       return false;
     }

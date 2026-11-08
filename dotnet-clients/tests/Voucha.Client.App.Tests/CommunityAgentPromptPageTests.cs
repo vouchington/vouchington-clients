@@ -17,8 +17,10 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class CommunityAgentPromptPageTests
 {
-  [Fact]
-  public async Task MountedFormPreservesDraftRowsCursorAndSlotsAfterCodedCapAndCanRetry()
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task MountedFormPreservesDraftRowsCursorAndSlotsAfterCodedCapAndCanRetry(bool readCompletesFirst)
   {
     DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
     _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
@@ -32,14 +34,25 @@ public sealed class CommunityAgentPromptPageTests
     await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, TestContext.Current.CancellationToken);
     var slots = model.AgentPromptSlots;
     Find<Entry>(page, "community-agent-prompt-draft").Text = "My unsubmitted draft";
+    var postGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var readGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    handler.WaitForPost = postGate.Task;
     Find<Button>(page, "community-agent-prompt-create").SendClicked();
-    await WaitAsync(() => model.HasReachedAgentPromptLimit && !model.IsLoading);
+    if (!readCompletesFirst) handler.WaitForRead = readGate.Task;
+    var reload = model.LoadAgentPromptsAsync(TestContext.Current.CancellationToken);
+    if (readCompletesFirst) await reload;
+    postGate.SetResult();
+    await WaitAsync(() => model.HasReachedAgentPromptLimit);
     Assert.Equal("Prompt creation limit reached for this community", Find<Label>(page, "community-agent-prompt-creation-error").Text);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Assert.Single(model.AgentPrompts);
     Assert.Equal(slots, model.AgentPromptSlots);
     Assert.True(model.HasMoreCommunityList);
     Assert.False(model.HasError);
+    readGate.SetResult();
+    await reload;
+    await WaitAsync(() => !model.IsLoading);
+    Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Find<Button>(page, "community-agent-prompt-create").SendClicked();
     await WaitAsync(() => handler.Posts == 2 && !model.IsLoading);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
@@ -111,6 +124,8 @@ public sealed class CommunityAgentPromptPageTests
   private sealed class PromptHandler : HttpMessageHandler
   {
     public int Posts { get; private set; }
+    public Task? WaitForPost { get; set; }
+    public Task? WaitForRead { get; set; }
     public bool CommitCreates { get; init; }
     public bool CancelRefresh { get; init; }
     private bool refreshFailed;
@@ -122,6 +137,7 @@ public sealed class CommunityAgentPromptPageTests
       if (request.Method == HttpMethod.Post)
       {
         Posts++;
+        if (WaitForPost is { } post) await post;
         var input = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!;
         Drafts.Add(input["prompt"]!.GetValue<string>());
         if (CommitCreates)
@@ -148,6 +164,7 @@ public sealed class CommunityAgentPromptPageTests
           Content = new StringContent("{\"message\":\"Refresh temporarily unavailable\"}"),
         };
       }
+      if (WaitForRead is { } read) await read;
       var body = JsonNode.Parse(Fixture("web.communities.agent-prompts.default"))!;
       if (CommitCreates && Posts > 0) body["community_agent_prompts"]![0]!["id"] = "prompt-created";
       body["slot_info"] = JsonSerializer.SerializeToNode(new CommunityAgentPromptSlotInfo(9, 10, 1, new(3, 10)), VouchaApiJson.Options);

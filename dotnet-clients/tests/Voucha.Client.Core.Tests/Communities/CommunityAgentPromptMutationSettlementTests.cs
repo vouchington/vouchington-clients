@@ -33,8 +33,16 @@ public sealed class CommunityAgentPromptMutationSettlementTests
     service.AgentPromptPageHandler = _ => read.Task;
     var reload = model.LoadAgentPromptsAsync(Token);
     if (readOutcome == "before") { read.SetResult(Fresh()); await reload; }
+    var rows = model.AgentPrompts;
+    var slots = model.AgentPromptSlots;
+    var hasMore = model.HasMoreCommunityList;
     Fail(post, postFailure);
     Assert.False(await creating);
+    Assert.Equal(rows, model.AgentPrompts);
+    Assert.Equal(slots, model.AgentPromptSlots);
+    Assert.Equal(hasMore, model.HasMoreCommunityList);
+    Assert.Equal(postFailure == "cap", model.HasReachedAgentPromptLimit);
+    Assert.Equal(postFailure == "cap" ? "cap" : null, model.AgentPromptCreationError);
     if (readOutcome != "before")
     {
       Assert.True(model.IsLoading);
@@ -55,7 +63,7 @@ public sealed class CommunityAgentPromptMutationSettlementTests
     }
     Assert.False(model.IsLoading);
     Assert.False(model.IsLoadingMoreCommunityList);
-    Assert.False(model.HasReachedAgentPromptLimit);
+    Assert.Equal(postFailure == "cap", model.HasReachedAgentPromptLimit);
     service.AgentPromptPageHandler = _ => Task.FromResult(Fresh());
     service.AgentPromptCreateHandler = _ => Task.FromResult(Fresh().CommunityAgentPrompts[0]);
     Assert.True(await model.CreateAgentPromptAsync("retry draft", cancellationToken: Token));
