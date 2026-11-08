@@ -117,7 +117,8 @@ extension Post {
         canDelete: Bool? = nil,
         canLock: Bool? = nil,
         postExplicitCategories: [PostExplicitCategory]? = nil,
-        postHashtags: [PostHashtag]? = nil
+        postHashtags: [PostHashtag]? = nil,
+        placeholderState: String? = nil
     ) {
         entityType = nil
         self.id = id
@@ -165,7 +166,7 @@ extension Post {
         updatedById = nil
         self.postExplicitCategories = postExplicitCategories
         self.postHashtags = postHashtags
-        placeholderState = nil
+        self.placeholderState = placeholderState
     }
 
     private enum CodingKeys: String, CodingKey {

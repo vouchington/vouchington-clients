@@ -54,10 +54,10 @@ public sealed partial class CommentThreadViewModel
   private static string NormalizeSort(string? value) =>
       string.Equals(value, CommentThreadSorts.New, StringComparison.Ordinal) ? CommentThreadSorts.New : CommentThreadSorts.Best;
 
-  public static string BuildCollapseStateKey(string rootPostId, string? currentUserId = null) =>
+  public static string? BuildCollapseStateKey(string rootPostId, string? currentUserId = null) =>
       string.IsNullOrWhiteSpace(currentUserId)
           ? $"comments-collapsed:{rootPostId}"
-          : $"comments-collapsed:{rootPostId}:{currentUserId}";
+          : null;
 
   private static string? EntityId(EntityReference result) => result.EntityId ?? result.Id;
 }

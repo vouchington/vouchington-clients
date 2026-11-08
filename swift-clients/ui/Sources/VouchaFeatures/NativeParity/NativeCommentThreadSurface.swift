@@ -19,7 +19,8 @@ struct NativeCommentThreadSurface: View {
     var viewModel: NativeCommentThreadViewModel
     @State
     var composer: NativeCommentThreadComposerState?
-    @State var showingTurnstile = false
+    @State
+    var showingTurnstile = false
 
     var imageConfig: AppConfig {
         guard let client else { return .shared }
@@ -61,7 +62,8 @@ struct NativeCommentThreadSurface: View {
             initialValue: NativeCommentThreadViewModel(
                 client: client,
                 rootPostId: routeMatch?.param("id") ?? routeMatch?.path.routeLastSegment ?? "",
-                currentUserId: currentUserId
+                currentUserId: currentUserId,
+                isSignedIn: isSignedIn
             )
         )
     }

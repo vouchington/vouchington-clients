@@ -29,98 +29,118 @@ struct CommentThreadPostSection: View {
     let onDelete: (() -> Void)?
     let onLock: (() -> Void)?
     let isSaved: Bool
+    var directReplyCount: Int?
+    var collapseIsLoading = false
     var currentUserId: String?
     var isStaffViewer = false
     var onViewAppeals: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .top, spacing: Spacing.sm) {
-                if !isRoot {
-                    Button(action: onToggleCollapse) {
-                        Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+            if post.isCommentPlaceholder {
+                CommentThreadPlaceholderHeader(
+                    post: post, isRoot: isRoot, isCollapsed: isCollapsed,
+                    directReplyCount: directReplyCount, collapseIsLoading: collapseIsLoading,
+                    onToggleCollapse: onToggleCollapse
+                )
+            } else {
+                HStack(alignment: .top, spacing: Spacing.sm) {
+                    if !isRoot {
+                        Button(action: onToggleCollapse) {
+                            Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(collapseIsLoading)
                     }
-                    .buttonStyle(.plain)
-                }
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    if isRoot {
-                        if showsAuthorAvatar {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        if isRoot {
+                            if showsAuthorAvatar {
+                                HStack(spacing: Spacing.xs) {
+                                    PostAuthorAvatar(post: post, imageConfig: imageConfig)
+                                    Text(UiMessages.string(authorName, locale: nativeUiLocale))
+                                        .font(Typography.caption)
+                                }
+                            }
+                            postTitle
+                        } else {
                             HStack(spacing: Spacing.xs) {
                                 PostAuthorAvatar(post: post, imageConfig: imageConfig)
-                                Text(UiMessages.string(authorName, locale: nativeUiLocale))
-                                    .font(Typography.caption)
+                                postTitle
+                                if isCollapsed, let directReplyCount {
+                                    Text(UiMessages.number(directReplyCount, locale: nativeUiLocale))
+                                        .accessibilityIdentifier("comment-direct-reply-count")
+                                }
                             }
                         }
-                        postTitle
-                    } else {
-                        HStack(spacing: Spacing.xs) {
-                            PostAuthorAvatar(post: post, imageConfig: imageConfig)
-                            postTitle
-                        }
+                        AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
+                            .accountType)
+                        ProvenanceBadge(
+                            provenance: post.provenance,
+                            staffProvenance: post.staffProvenance,
+                            isStaffViewer: isStaffViewer,
+                            showClient: isRoot
+                        )
+                        Text(pathText)
+                            .font(Typography.caption.monospaced())
+                            .foregroundStyle(Colors.secondaryLabel)
                     }
-                    AccountTypeBadge(accountType: post.isAnonymous || post.deletedAt != nil ? nil : post.createdBy?
-                        .accountType)
-                    ProvenanceBadge(
-                        provenance: post.provenance,
-                        staffProvenance: post.staffProvenance,
-                        isStaffViewer: isStaffViewer,
-                        showClient: isRoot
-                    )
-                    Text(pathText)
-                        .font(Typography.caption.monospaced())
-                        .foregroundStyle(Colors.secondaryLabel)
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
-            }
 
-            postBody
-            if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
-               let embed {
-                ProviderEmbedPreview(embed: embed)
+                if !isCollapsed {
+                    postBody
+                    if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
+                       let embed {
+                        ProviderEmbedPreview(embed: embed)
+                    }
+                }
+                NativeCommentThreadActionRow(
+                    isSignedIn: isSignedIn,
+                    canCreateVote: canCreateVote,
+                    hideDownCount: hideDownCount,
+                    post: post,
+                    election: post.election,
+                    voteChoice: voteChoice,
+                    isSaved: isSaved,
+                    onVote: onVote,
+                    showSignIn: showSignIn,
+                    onReply: onReply,
+                    onQuote: onQuote,
+                    canQuote: showsBodyContent,
+                    onSave: onSave,
+                    onReport: onReport,
+                    onEdit: onEdit,
+                    onDelete: onDelete,
+                    onLock: onLock
+                )
             }
-            NativeCommentThreadActionRow(
-                isSignedIn: isSignedIn,
-                canCreateVote: canCreateVote,
-                hideDownCount: hideDownCount,
-                post: post,
-                election: post.election,
-                voteChoice: voteChoice,
-                isSaved: isSaved,
-                onVote: onVote,
-                showSignIn: showSignIn,
-                onReply: onReply,
-                onQuote: onQuote,
-                canQuote: showsBodyContent,
-                onSave: onSave,
-                onReport: onReport,
-                onEdit: onEdit,
-                onDelete: onDelete,
-                onLock: onLock
-            )
         }
         .padding(Spacing.md)
         .background(Colors.background.opacity(0.75))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    private var showsBodyContent: Bool {
+}
+
+private extension CommentThreadPostSection {
+    var showsBodyContent: Bool {
         switch post.contentPresentation(viewerId: currentUserId, isStaffViewer: isStaffViewer) {
         case .content, .underReviewForStaff: true
         case .removedForAuthor, .unavailable: false
         }
     }
 
-    private var showsAuthorAvatar: Bool {
+    var showsAuthorAvatar: Bool {
         post.deletedAt == nil && !post.isAnonymous && post.createdBy != nil
     }
 
-    private var authorName: UiVerbatimText {
+    var authorName: UiVerbatimText {
         post.createdBy?.username.map(UiVerbatimText.verbatim)
             ?? post.createdById.map(UiVerbatimText.verbatim)
             ?? .message(.nativeSwiftPresentationValuesDeleted)
     }
 
-    private var postTitle: some View {
+    var postTitle: some View {
         Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
             .font(Typography.headline)
             .authoredContentLanguage(
@@ -130,7 +150,7 @@ struct CommentThreadPostSection: View {
     }
 
     @ViewBuilder
-    private var postBody: some View {
+    var postBody: some View {
         switch post.contentPresentation(viewerId: currentUserId, isStaffViewer: isStaffViewer) {
         case .removedForAuthor:
             VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -153,7 +173,7 @@ struct CommentThreadPostSection: View {
     }
 
     @ViewBuilder
-    private var postMarkdown: some View {
+    var postMarkdown: some View {
         if let markdown = post.markdown, !markdown.isEmpty {
             NativeHtmlContent(
                 html: post.html,

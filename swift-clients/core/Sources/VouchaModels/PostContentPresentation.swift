@@ -6,8 +6,13 @@ public enum PostContentPresentation: Equatable, Sendable {
 }
 
 public extension Post {
+    var isCommentPlaceholder: Bool {
+        placeholderState != nil
+    }
+
     /// Clearance is a coarse display state. Public eligibility also depends on server-owned context.
     func contentPresentation(viewerId: String?, isStaffViewer: Bool = false) -> PostContentPresentation {
+        guard !isCommentPlaceholder else { return .unavailable }
         guard clearanceStatus == .rejected else { return .content }
         if let viewerId, !viewerId.isEmpty, viewerId == createdById { return .removedForAuthor }
         if isStaffViewer { return .underReviewForStaff }
@@ -16,6 +21,6 @@ public extension Post {
 
     /// Web keeps media visible to staff even when the staff member is also the author.
     func canShowAuthoredMedia(isStaffViewer: Bool = false) -> Bool {
-        clearanceStatus != .rejected || isStaffViewer
+        !isCommentPlaceholder && (clearanceStatus != .rejected || isStaffViewer)
     }
 }

@@ -35,7 +35,8 @@ public partial class PostDetailPage : ContentPage
         new CommentThreadViewModel(commentThreadService, postsService, postId, sessionStore.Current.Identity?.Id),
         sessionStore,
         serviceProvider.GetRequiredService<IUiLocalization>(),
-        serviceProvider.GetRequiredService<IUiLocaleController>());
+        serviceProvider.GetRequiredService<IUiLocaleController>(),
+        new AnonymousCommentCollapseStore());
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ =
         binding.RefreshAfterSessionChangedAsync(focusedCommentId: this.focusedCommentId));
     BindingContext = binding;

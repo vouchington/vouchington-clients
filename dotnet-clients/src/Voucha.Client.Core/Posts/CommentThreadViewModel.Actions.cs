@@ -124,7 +124,9 @@ public sealed partial class CommentThreadViewModel
   public async Task DeleteAsync(string postId, CancellationToken cancellationToken = default)
   {
     await postsService.DeletePostAsync(postId, cancellationToken).ConfigureAwait(true);
-    if (postId == rootPostId || !TombstoneDescendant(postId))
+    if (postId == rootPostId || DirectReplyCount(postId) > 0 ||
+        descendantsResponse?.Posts.Values.Any(post => post.ParentId == postId) == true ||
+        !TombstoneDescendant(postId))
     {
       await ReloadAsync(cancellationToken).ConfigureAwait(true);
     }

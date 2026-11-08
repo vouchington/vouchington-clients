@@ -4,7 +4,7 @@ import VouchaModels
 
 extension NativeCommentThreadViewModel {
     public func loadMoreAncestors() async {
-        guard let client, let target = focusedCommentId,
+        guard sessionIsActive, let client, let target = focusedCommentId,
               let request = ancestorPagination.beginNextPage() else { return }
         do {
             let response: PostThreadEnvelope = try await client.send(
@@ -29,7 +29,7 @@ extension NativeCommentThreadViewModel {
     }
 
     public func loadMoreDescendants() async {
-        guard let client, let request = descendantPagination.beginNextPage() else { return }
+        guard sessionIsActive, let client, let request = descendantPagination.beginNextPage() else { return }
         do {
             let response: PostThreadEnvelope = try await client.send(
                 .postDescendants(postId: rootPostId, after: request.cursor)
@@ -65,6 +65,7 @@ extension NativeCommentThreadViewModel {
     }
 
     func resetThreadMetadata() {
+        resetCollapseRequests()
         usersById = [:]
         postMetricsById = [:]
         postElectionsById = [:]
@@ -125,13 +126,24 @@ extension NativeCommentThreadViewModel {
         }
     }
 
-    private func mergeThreadMetadata(from response: PostThreadEnvelope) {
+    func mergeThreadMetadata(from response: PostThreadEnvelope) {
         usersById.merge(response.users ?? [:]) { _, new in new }
         postMetricsById.merge(response.postsMetrics ?? [:]) { _, new in new }
         postElectionsById.merge(response.postElections ?? [:]) { _, new in new }
         electionVotesById.merge(response.electionVotes ?? [:]) { _, new in new }
         voteChoicesByPostId.merge((response.electionVotes ?? [:]).mapValues(\.choice)) { _, new in new }
-        bookmarksByPostId.merge(response.bookmarks ?? [:]) { _, new in new }
+        for (id, flags) in response.bookmarks ?? [:] {
+            var merged = flags
+            if let override = collapseOverrides[id] { merged["hide"] = override }
+            bookmarksByPostId[id] = merged
+            if isSignedIn {
+                if merged["hide"] == true {
+                    collapsedCommentIds.insert(id)
+                } else {
+                    collapsedCommentIds.remove(id)
+                }
+            }
+        }
         communitiesById.merge(response.communities ?? [:]) { _, new in new }
         storiesById.merge(response.stories ?? [:]) { _, new in new }
         rssFeedItemsById.merge(response.rssFeedItems ?? [:]) { _, new in new }

@@ -45,15 +45,13 @@ final class NativeCommentThreadViewModelTests: XCTestCase {
         XCTAssertEqual(bestTree.last?.children.map(\.post.id), ["comment-a-1"])
     }
 
-    func testCollapseStorageKeyIncludesOptionalUserId() {
+    func testCollapseStorageKeyIsRootScoped() {
         XCTAssertEqual(
             NativeCommentThreadViewModel.collapseStorageKey(rootPostId: "root-1"),
             "comments-collapsed:root-1"
         )
-        XCTAssertEqual(
-            NativeCommentThreadViewModel.collapseStorageKey(rootPostId: "root-1", userId: "user-1"),
-            "comments-collapsed:root-1:user-1"
-        )
+        XCTAssertNil(NativeCommentThreadViewModel(client: nil, rootPostId: "root-1", currentUserId: "user-1")
+            .collapseStorageKey)
     }
 
     func testLoadPermalinkTracksStatesAndBuildsTree() async throws {

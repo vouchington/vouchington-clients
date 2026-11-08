@@ -12,10 +12,10 @@ Apple's required-reason categories were checked across `swift-clients/apps`,
 `swift-clients/core`, and `swift-clients/ui`, excluding tests and `test-support`.
 Only the symbols below appear in shipped Swift.
 
-| Symbol         | Category                                     | Reason   | Production files                                                                                                                                                                                         |
-| -------------- | -------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `UserDefaults` | `NSPrivacyAccessedAPICategoryUserDefaults`   | `CA92.1` | `swift-clients/apps/shared-app/ViewModelFactory.swift`, `swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkStore.swift`, `swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkPersistence.swift` |
-| `systemUptime` | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` | `swift-clients/core/Sources/VouchaAPI/MemberMCPClient.swift`                                                                                                                                             |
+| Symbol         | Category                                     | Reason   | Production files                                                                                                                                                                                                                                                                                    |
+| -------------- | -------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UserDefaults` | `NSPrivacyAccessedAPICategoryUserDefaults`   | `CA92.1` | `swift-clients/apps/shared-app/ViewModelFactory.swift`, `swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkStore.swift`, `swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkPersistence.swift`, `swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeCommentThreadViewModel.swift` |
+| `systemUptime` | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` | `swift-clients/core/Sources/VouchaAPI/MemberMCPClient.swift`                                                                                                                                                                                                                                        |
 
 `CA92.1` matches app-private `UserDefaults.standard`. `ViewModelFactory` reads
 `requestSigningDisabled` only in the `DeviceCheck` build, which is the iOS app target.
@@ -24,6 +24,11 @@ Pending OAuth and Bluesky link state in that production initializer uses the key
 not user defaults. `UserDefaultsNativePendingState` is the injected storage used by
 tests and by `NativeBlueskyLinkStore.init(defaults:)`.
 
+`NativeCommentThreadViewModel` stores signed-out comment-collapse preferences under
+the root-post key in app-private user defaults. Signed-in collapse state uses server
+bookmarks and is not written to user defaults. This preference is not shared or used
+for tracking.
+
 `35F9.1` matches `MemberMCPRetryCooldown`, which uses `ProcessInfo.processInfo.systemUptime`
 as a local monotonic deadline for MCP rate-limit backoff. The uptime value is not sent
 off device. `retryAfterSeconds` is the server-provided limit or the remaining local
@@ -31,8 +36,9 @@ interval.
 
 The same two categories are declared on both app `PrivacyInfo.xcprivacy` files because
 those targets ship the calling code. `VouchaCore` declares only user defaults.
-`VouchaAPI` declares only system boot time. Both package manifests are copied into the
-target resource bundles with `.copy("PrivacyInfo.xcprivacy")`.
+`VouchaAPI` declares only system boot time. `VouchaFeatures` declares only user defaults.
+The package manifests are copied into the target resource bundles with
+`.copy("PrivacyInfo.xcprivacy")`.
 
 ## Reviewed and not declared
 
@@ -63,7 +69,7 @@ Pins are the committed `Package.resolved` revisions.
 
 ## Collected data in the app manifests
 
-All four manifests set `NSPrivacyTracking` to false and omit `NSPrivacyTrackingDomains`.
+All five manifests set `NSPrivacyTracking` to false and omit `NSPrivacyTrackingDomains`.
 No App Tracking Transparency framework or advertising identifier is linked. Sentry is
 linked from the iOS and macOS app targets and is not started when `VOUCHA_SENTRY_DSN`
 is empty. Package manifests declare no collected data types; collection is an app-level

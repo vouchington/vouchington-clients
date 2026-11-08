@@ -20,7 +20,8 @@ public partial class PostDetailPage
           ? row
           : throw new InvalidOperationException("Missing row binding.");
 
-  private void OnCollapseClicked(object? sender, EventArgs e) => binding.ToggleCollapse(RowFrom(sender).Id);
+  private async void OnCollapseClicked(object? sender, EventArgs e) =>
+      await binding.ToggleCollapseAsync(RowFrom(sender).Id).ConfigureAwait(true);
 
   private async void OnChooseVoteClicked(object? sender, EventArgs e)
   {

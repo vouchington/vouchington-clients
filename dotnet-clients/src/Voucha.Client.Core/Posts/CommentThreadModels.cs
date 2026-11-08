@@ -29,24 +29,24 @@ public sealed record CommentThreadRow(
 
   public string ProtocolPostType => Post.PostType ?? string.Empty;
 
-  public UiText TitleText => string.IsNullOrWhiteSpace(Post.Title)
+  public UiText TitleText => CommentPlaceholder.IsPlaceholder(Post) ? CommentPlaceholder.Label(Post) : string.IsNullOrWhiteSpace(Post.Title)
       ? UiTaxonomy.PostType(ProtocolPostType)
       : UiText.UserContent(Post.Title);
 
   public string LocalizedTitle => (Localization ?? UiLocalization.English).Resolve(TitleText);
 
-  public string Body => Post.Markdown ?? Post.Html ?? "";
+  public string Body => CommentPlaceholder.IsPlaceholder(Post) ? string.Empty : Post.Markdown ?? Post.Html ?? "";
 
-  public string Author => Post.CreatedBy?.Username
+  public string Author => CommentPlaceholder.IsPlaceholder(Post) ? string.Empty : Post.CreatedBy?.Username
       ?? Post.CreatedById
       ?? (Localization ?? UiLocalization.English).Localize(
           UiMessageKey.NativeDotnetPostsAnonymous);
 
-  public string? AuthorAccountTypeLabel => Post.IsAnonymous == true || Post.DeletedAt is not null
+  public string? AuthorAccountTypeLabel => CommentPlaceholder.IsPlaceholder(Post) || Post.IsAnonymous == true || Post.DeletedAt is not null
       ? null
       : AccountTypeLabels.Resolve(Post.CreatedBy?.AccountType, Localization ?? UiLocalization.English);
 
-  public string Metadata => Post.LockedAt is null
+  public string Metadata => CommentPlaceholder.IsPlaceholder(Post) ? LocalizedTitle : Post.LockedAt is null
       ? Author
       : (Localization ?? UiLocalization.English).Format(
           UiMessageKey.NativeDotnetPostsLocked,

@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaAPI
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -22,6 +23,10 @@ struct NativeCommentThreadNodeView: View {
     let bookmarksByPostId: [String: [String: Bool]]
     let postEmbedsByPostId: [String: UrlEmbed]
     let voteChoiceByPostId: [String: ElectionVoteChoice]
+    var postMetricsById: [String: PostMetrics] = [:]
+    var inFlightCollapseIds: Set<String> = []
+    var subtreePagination: [String: CursorPaginationState<Post>] = [:]
+    var onLoadHiddenDescendants: (String) async -> Void = { _ in }
     let onToggleCollapse: (String) -> Void
     let onVote: (String, ElectionVoteChoice?) -> Void
     let onReply: (String) -> Void
@@ -61,12 +66,22 @@ struct NativeCommentThreadNodeView: View {
                 onDelete: canDelete(post: post) ? { onDelete(post) } : nil,
                 onLock: canLock(post: post) ? { onLock(post) } : nil,
                 isSaved: bookmarksByPostId[post.id]?["save"] ?? false,
+                directReplyCount: postMetricsById[post.id]?.count.children ?? post.metrics?.count.children,
+                collapseIsLoading: inFlightCollapseIds.contains(post.id),
                 currentUserId: currentUserId,
                 isStaffViewer: isStaffViewer,
                 onViewAppeals: { onNavigate("/my/appeals") }
             )
 
             if !isCollapsed {
+                if let pagination = subtreePagination[post.id] {
+                    HybridPaginationControl(
+                        hasMore: !pagination.hasLoadedPage || pagination.hasMore,
+                        isLoading: pagination.isLoading,
+                        hasError: pagination.lastError != nil,
+                        accessibilityIdentifier: "comment-hidden-descendants-\(post.id)"
+                    ) { await onLoadHiddenDescendants(post.id) }
+                }
                 ForEach(node.children) { child in
                     NativeCommentThreadNodeView(
                         node: child,
@@ -86,6 +101,10 @@ struct NativeCommentThreadNodeView: View {
                         bookmarksByPostId: bookmarksByPostId,
                         postEmbedsByPostId: postEmbedsByPostId,
                         voteChoiceByPostId: voteChoiceByPostId,
+                        postMetricsById: postMetricsById,
+                        inFlightCollapseIds: inFlightCollapseIds,
+                        subtreePagination: subtreePagination,
+                        onLoadHiddenDescendants: onLoadHiddenDescendants,
                         onToggleCollapse: onToggleCollapse,
                         onVote: onVote,
                         onReply: onReply,

@@ -13,7 +13,7 @@ using Xunit;
 namespace Voucha.Client.App.Tests;
 
 [Collection(MauiPageTestCollection.Name)]
-public sealed class PostDetailFocusedPermalinkTests
+public sealed partial class PostDetailFocusedPermalinkTests
 {
   [Theory]
   [InlineData("en", false)]
@@ -203,7 +203,7 @@ public sealed class PostDetailFocusedPermalinkTests
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
-  private sealed class ThreadService(PostResponse root, PostThreadResponse descendants, PostThreadResponse ancestors) : ICommentThreadService
+  private sealed partial class ThreadService(PostResponse root, PostThreadResponse descendants, PostThreadResponse ancestors) : ICommentThreadService
   {
     public PostResponse? NextRoot { get; init; }
     public IReadOnlyList<PostResponse>? Roots { get; init; }
@@ -213,6 +213,7 @@ public sealed class PostDetailFocusedPermalinkTests
     public Task<PostResponse> FetchPostAsync(string id, CancellationToken cancellationToken = default)
     {
       RootFetchCount++;
+      if (RootHandler is not null) return RootHandler();
       return Task.FromResult(Roots is { Count: > 0 }
           ? Roots[Math.Min(RootFetchCount - 1, Roots.Count - 1)]
           : RootFetchCount > 1 ? NextRoot ?? root : root);

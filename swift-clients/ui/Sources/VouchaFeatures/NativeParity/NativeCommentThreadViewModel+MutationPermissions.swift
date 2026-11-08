@@ -30,7 +30,8 @@ extension NativeCommentThreadViewModel {
             lockedById: mutationPost.lockedById,
             canEditContent: mutationPost.canEditContent ?? true,
             canDelete: mutationPost.canDelete ?? true,
-            canLock: mutationPost.canLock ?? rootPost?.canLock ?? false
+            canLock: mutationPost.canLock ?? rootPost?.canLock ?? false,
+            placeholderState: mutationPost.placeholderState
         )
     }
 }
