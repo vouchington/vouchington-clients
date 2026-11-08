@@ -99,7 +99,7 @@ public sealed record CommunityBansResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo,
     [property: JsonPropertyName("community_bans")] IReadOnlyDictionary<string, CommunityBan> CommunityBans,
-    [property: JsonPropertyName("users"), JsonRequired] IReadOnlyDictionary<string, PublicUser> Users);
+    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser> Users);
 
 public sealed record CommunityRestriction(
     [property: JsonPropertyName("id")] string Id,
@@ -148,7 +148,7 @@ public sealed record ModlogResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo,
     [property: JsonPropertyName("moderator_actions")] IReadOnlyDictionary<string, ModeratorActionView> ModeratorActions,
-    [property: JsonPropertyName("users"), JsonRequired] IReadOnlyDictionary<string, PublicUser> Users);
+    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser> Users);
 
 public sealed record CommunityMemberVacation(
     [property: JsonPropertyName("community_id")] string CommunityId,

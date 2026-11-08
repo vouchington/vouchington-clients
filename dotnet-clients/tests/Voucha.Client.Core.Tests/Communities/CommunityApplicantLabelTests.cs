@@ -14,7 +14,7 @@ public sealed class CommunityApplicantLabelTests
   public void FixtureJoinsApplicantWithoutCommunityMembership()
   {
     var response = Read();
-    var application = Assert.Single(response.CommunityApplications).Value;
+    var application = Assert.Single(response.CommunityApplicationSummaries).Value;
     var row = CommunityApplicationRow.FromApplication(application, response.Users);
     Assert.Equal("user-1", row.UserId);
     Assert.Equal("testuser", UiLocalization.English.Resolve(row.ApplicantText));

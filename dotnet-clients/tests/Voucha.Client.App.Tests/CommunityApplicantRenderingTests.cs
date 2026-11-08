@@ -131,9 +131,9 @@ public sealed class CommunityApplicantRenderingTests
       var response = JsonSerializer.Deserialize<CommunityApplicationsResponse>(File.ReadAllText(
           FilamentsContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!;
       if (ReviewCount > 0 && StatusAfterReview is { } status)
-        response = response with { CommunityApplications = response.CommunityApplications.ToDictionary(
+        response = response with { CommunityApplicationSummaries = response.CommunityApplicationSummaries.ToDictionary(
             pair => pair.Key, pair => pair.Value with { Status = status }) };
-      if (Empty) response = response with { Results = [], CommunityApplications = new Dictionary<string, CommunityApplicationSummary>() };
+      if (Empty) response = response with { Results = [], CommunityApplicationSummaries = new Dictionary<string, CommunityApplicationSummary>() };
       return Task.FromResult(Deleted ? response with { Users = new Dictionary<string, PublicUser>() } : response);
     }
   }

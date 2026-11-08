@@ -24,8 +24,7 @@ public sealed record ListItem(
     [property: JsonPropertyName("order_index")] int? OrderIndex,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("media_type")] string? MediaType,
-    [property: JsonPropertyName("__entity_type")] string? EntityType = null,
-    [property: JsonPropertyName("entity_label")] string? EntityLabel = null);
+    [property: JsonPropertyName("__entity_type")] string? EntityType = null);
 
 public sealed record ListsSearchResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
