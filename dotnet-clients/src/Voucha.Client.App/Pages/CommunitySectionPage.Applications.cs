@@ -7,12 +7,14 @@ public abstract partial class CommunitySectionPage
 {
   private View ApplicationRowTemplate()
   {
-    var applicant = new Label { FontAttributes = FontAttributes.Bold };
-    applicant.SetBinding(Label.TextProperty, nameof(CommunityApplicationRow.Applicant));
-    var status = new Label();
-    status.SetBinding(Label.TextProperty, nameof(CommunityApplicationRow.StatusLabel));
-    var created = new Label();
-    var count = new Label();
+    var applicant = new Label { FontAttributes = FontAttributes.Bold, AutomationId = "community-application-applicant" };
+    applicant.SetBinding(Label.TextProperty, ApplicationRowValueBinding(nameof(CommunityApplicationRow.ApplicantText)));
+    var status = new Label { AutomationId = "community-application-status" };
+    status.SetBinding(Label.TextProperty, ApplicationRowValueBinding(nameof(CommunityApplicationRow.StatusText)));
+    var created = new Label { AutomationId = "community-application-created" };
+    created.SetBinding(Label.TextProperty, ApplicationRowValueBinding(nameof(CommunityApplicationRow.CreatedAt), "dateTime"));
+    var count = new Label { AutomationId = "community-application-answer-count" };
+    count.SetBinding(Label.TextProperty, ApplicationRowValueBinding(nameof(CommunityApplicationRow.AnswerCount), "number"));
     var preview = new Label();
     preview.SetBinding(Label.TextProperty, nameof(CommunityApplicationRow.Message));
     var open = ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReview);
@@ -46,8 +48,6 @@ public abstract partial class CommunitySectionPage
     layout.BindingContextChanged += (_, _) =>
     {
       if (layout.BindingContext is not CommunityApplicationRow row) return;
-      created.Text = UiCopy.FormatDateTime(row.CreatedAt);
-      count.Text = UiCopy.FormatNumber(row.AnswerCount);
       reason.Text = null;
       approve.IsVisible = reject.IsVisible = reason.IsVisible = row.Status == "pending" && viewModel.CanModerateCommunity;
       approve.IsEnabled = reject.IsEnabled = CanReviewApplicationRow(row);
