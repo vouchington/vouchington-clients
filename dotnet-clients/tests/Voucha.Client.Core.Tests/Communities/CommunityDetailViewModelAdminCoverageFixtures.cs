@@ -119,6 +119,7 @@ internal sealed partial class ScriptedCommunitiesService
       CommunityAgentPromptUpdateRequest request,
       CancellationToken cancellationToken = default)
   {
+    if (AgentPromptUpdateHandler is { } update) return update(request);
     MutationCalls.Add(("agent-prompt-update", idOrSlug));
     MutationDetails.Add($"{promptId}:{request.Prompt}");
     return Task.FromResult(NewAgentPrompt(promptId, request.Prompt ?? "Updated prompt", "gpt-5.4-nano", "openai"));

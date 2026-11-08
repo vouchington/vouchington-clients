@@ -42,6 +42,7 @@ public sealed partial class CommunityDetailViewModel
       if (request == agentPromptReadRevision)
       {
         isLoadingAgentPrompts = false;
+        SettleAgentPromptCreation();
         OnPropertyChanged(nameof(CanLoadMoreCommunityList));
       }
     }
@@ -97,6 +98,7 @@ public sealed partial class CommunityDetailViewModel
     Interlocked.Increment(ref agentPromptReadRevision);
     agentPromptCreationOperation++;
     isCreatingAgentPrompt = false;
+    agentPromptCreationSettled = false;
     isLoadingAgentPrompts = false;
     AgentPrompts = [];
     AgentPromptSlots = null;

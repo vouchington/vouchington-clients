@@ -10,6 +10,8 @@ public sealed partial class CommunityDetailViewModel
   private long agentPromptCreationOperation;
   private bool isCreatingAgentPrompt;
   private long agentPromptCreationContext;
+  private long agentPromptCreationSession;
+  private bool agentPromptCreationSettled;
   public bool HasReachedAgentPromptLimit { get; private set; }
   public string? AgentPromptCreationError => agentPromptCreationError is { } text ? localization.Resolve(text) : null;
 
@@ -31,6 +33,8 @@ public sealed partial class CommunityDetailViewModel
     var operation = ++agentPromptCreationOperation;
     isCreatingAgentPrompt = true;
     agentPromptCreationContext = revision;
+    agentPromptCreationSession = sessionRevision;
+    agentPromptCreationSettled = false;
     BeginMutation();
     try
     {
@@ -65,8 +69,20 @@ public sealed partial class CommunityDetailViewModel
     }
     finally
     {
-      if (operation == agentPromptCreationOperation && AcceptsAgentPromptSession(sessionRevision)) isCreatingAgentPrompt = false;
+      if (operation == agentPromptCreationOperation && AcceptsAgentPromptSession(sessionRevision))
+      {
+        agentPromptCreationSettled = true;
+        SettleAgentPromptCreation();
+      }
     }
+  }
+
+  private void SettleAgentPromptCreation()
+  {
+    if (!isCreatingAgentPrompt || !agentPromptCreationSettled || isLoadingAgentPrompts ||
+        !AcceptsAgentPromptSession(agentPromptCreationSession)) return;
+    isCreatingAgentPrompt = false;
+    if (agentPromptCreationContext == Volatile.Read(ref communityContextRevision) && IsLoading) CompleteLoad();
   }
 
   private void NotifyAgentPromptCreation()

@@ -107,6 +107,48 @@ public sealed class CommunityAgentPromptSessionTests
     Assert.True(await model.CreateAgentPromptAsync("new owner", cancellationToken: Token));
   }
 
+  [Fact]
+  public async Task ProfileOnlyRefreshPreservesPromptWorkspaceAndInFlightRead()
+  {
+    var dispatcher = new QueuedDispatcher();
+    var store = new TrackingStore();
+    var service = Service();
+    service.AgentPromptsResponses.Enqueue(CommunityAgentPromptPagingTests.Fixture() with { PageInfo = new("next", true, null) });
+    using var model = new CommunityDetailViewModel(service, store, uiDispatcher: dispatcher);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var slots = model.AgentPromptSlots;
+    var read = new TaskCompletionSource<CommunityAgentPromptsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptPageHandler = _ => read.Task;
+    var loading = model.LoadAgentPromptsAsync(Token);
+    await Task.Run(() => store.Update(store.Current.Identity! with { Name = "Updated name", Username = "new-profile-name" }), Token);
+    dispatcher.Flush();
+    Assert.Single(model.AgentPrompts);
+    Assert.Equal(slots, model.AgentPromptSlots);
+    Assert.True(model.HasMoreCommunityList);
+    read.SetResult(CommunityAgentPromptPagingTests.Fixture() with
+    {
+      CommunityAgentPrompts = [CommunityAgentPromptPagingTests.Fixture().CommunityAgentPrompts[0] with { Id = "fresh" }],
+    });
+    await loading;
+    Assert.Equal("fresh", Assert.Single(model.AgentPrompts).Id);
+  }
+
+  [Theory]
+  [InlineData("member")]
+  [InlineData("administrator")]
+  public async Task SameOwnerPermissionChangesStillFenceAndClearPromptWorkspace(string role)
+  {
+    var dispatcher = new QueuedDispatcher();
+    var store = new TrackingStore();
+    using var model = new CommunityDetailViewModel(Service(), store, uiDispatcher: dispatcher);
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    await Task.Run(() => store.Update(store.Current.Identity! with { Roles = [role] }), Token);
+    Assert.False(await model.CreateAgentPromptAsync("blocked before UI reset", cancellationToken: Token));
+    dispatcher.Flush();
+    Assert.Empty(model.AgentPrompts);
+    Assert.Null(model.AgentPromptSlots);
+  }
+
   [Theory]
   [InlineData(false)]
   [InlineData(true)]
@@ -169,13 +211,14 @@ public sealed class CommunityAgentPromptSessionTests
     }
     public int Subscribers { get { lock (gate) return changed?.GetInvocationList().Length ?? 0; } }
     public SessionSnapshot Current { get { lock (gate) return current; } }
-    public void Change(string id)
+    public void Change(string id) => Update(new User(id, id, Roles: ["moderator"]));
+    public void Update(User user)
     {
       EventHandler<SessionChangedEventArgs>? callback;
       SessionSnapshot snapshot;
       lock (gate)
       {
-        current = snapshot = new(new User(id, id, Roles: ["moderator"]));
+        current = snapshot = new(user);
         callback = changed;
       }
       callback?.Invoke(this, new SessionChangedEventArgs(snapshot));
