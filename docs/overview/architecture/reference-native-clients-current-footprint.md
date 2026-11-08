@@ -53,6 +53,14 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   confirmations remain blocked on Vouchington-owned copy and native consumer claims in
   [#497](https://github.com/vouchington/vouchington-clients/issues/497). The `engineering-core`
   parity status remains partial.
+- Annual integrity penalty review remains dependency-blocked in
+  [#492](https://github.com/vouchington/vouchington-clients/issues/492). Vouchington publishes
+  review-due and review submission APIs and fixtures for both report and vote integrity penalties,
+  and canonical web review copy is present in its [localization catalog](https://github.com/vouchington/vouchington/blob/main/localization/catalog/copies.json).
+  Rendered native annual-review controls await the Swift/.NET claims in the
+  [native consumer manifest](https://github.com/vouchington/vouchington/blob/main/ts-shared/ui-messages/native-consumer-manifest.mts)
+  and corresponding generated native keys.
+  Active penalties remain active unless revoked; annual review does not automatically expire them.
 - Direct media playback is native where a direct URL is available. Embed-only media keeps its
   explicit external-source action and does not launch a browser as an implicit playback route.
 - Subscription screens are status and plan presentation only. Purchase, cancellation, and store
