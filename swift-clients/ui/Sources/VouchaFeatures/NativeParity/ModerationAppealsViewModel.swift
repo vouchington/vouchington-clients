@@ -98,10 +98,9 @@ final class ModerationAppealsViewModel {
             let response: ModerationAppealListResponse = try await client.send(
                 .appeals(status: expectedStatus, limit: 25)
             )
-            var details: [ModerationAppeal] = []
-            for summary in response.appeals {
+            let details = try await hydrateModerationDetails(response.appeals) { summary in
                 let detail: ModerationAppealEnvelope = try await client.send(.appeal(id: summary.id))
-                details.append(detail.appeal)
+                return detail.appeal
             }
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
             appealPagination.complete(
@@ -142,10 +141,9 @@ final class ModerationAppealsViewModel {
             let response: ModerationAppealListResponse = try await client.send(
                 .appeals(status: expectedStatus, limit: 25, after: request.cursor)
             )
-            var details: [ModerationAppeal] = []
-            for summary in response.appeals {
+            let details = try await hydrateModerationDetails(response.appeals) { summary in
                 let detail: ModerationAppealEnvelope = try await client.send(.appeal(id: summary.id))
-                details.append(detail.appeal)
+                return detail.appeal
             }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   appealPagination.isCurrent(request)

@@ -17,10 +17,9 @@ extension ReviewDisputesViewModel {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25)
             )
-            var details: [ReviewDispute] = []
-            for summary in response.disputes {
+            let details = try await hydrateModerationDetails(response.disputes) { summary in
                 let detail: ReviewDisputeResponse = try await client.send(.dispute(id: summary.id))
-                details.append(detail.dispute)
+                return detail.dispute
             }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   expectedOutcomeRevision == targetedOutcomeRevision
@@ -66,10 +65,9 @@ extension ReviewDisputesViewModel {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25, after: request.cursor)
             )
-            var details: [ReviewDispute] = []
-            for summary in response.disputes {
+            let details = try await hydrateModerationDetails(response.disputes) { summary in
                 let detail: ReviewDisputeResponse = try await client.send(.dispute(id: summary.id))
-                details.append(detail.dispute)
+                return detail.dispute
             }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   expectedOutcomeRevision == targetedOutcomeRevision,
