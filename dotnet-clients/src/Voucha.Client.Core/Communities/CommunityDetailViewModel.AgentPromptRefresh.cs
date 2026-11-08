@@ -10,7 +10,7 @@ public sealed partial class CommunityDetailViewModel
   public string? AgentPromptRefreshError => agentPromptRefreshError is { } text ? localization.Resolve(text) : null;
 
   public Task<bool> RetryAgentPromptRefreshAsync(CancellationToken cancellationToken = default) =>
-      IsLoading || isLoadingAgentPrompts || agentPromptDisposed
+      IsLoading || isCreatingAgentPrompt || isWritingAgentPrompt || isLoadingAgentPrompts || agentPromptDisposed
           ? Task.FromResult(false) : RefreshAgentPromptsAfterCreateAsync(cancellationToken);
 
   private async Task<bool> RefreshAgentPromptsAfterCreateAsync(CancellationToken cancellationToken)

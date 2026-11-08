@@ -5,6 +5,7 @@ namespace Voucha.Client.Core.Tests.Communities;
 
 internal sealed partial class ScriptedCommunitiesService
 {
+  public Func<string, Task>? AgentPromptMutationHandler { get; set; }
   public Func<string?, Task<CommunityAgentPromptsResponse>>? AgentPromptPageHandler { get; set; }
   public Func<CommunityAgentPromptUpsertRequest, Task<CommunityAgentPrompt>>? AgentPromptCreateHandler { get; set; }
   public Func<CommunityAgentPromptUpdateRequest, Task<CommunityAgentPrompt>>? AgentPromptUpdateHandler { get; set; }

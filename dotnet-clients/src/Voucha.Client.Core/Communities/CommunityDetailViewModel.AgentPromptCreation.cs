@@ -19,7 +19,7 @@ public sealed partial class CommunityDetailViewModel
       string prompt, string? modelName = null, string? modelProvider = null, CancellationToken cancellationToken = default)
   {
     var sessionRevision = Volatile.Read(ref agentPromptSessionRevision);
-    if (!AcceptsAgentPromptSession(sessionRevision) || !CanModerateCommunity || isCreatingAgentPrompt || IsLoading || isLoadingAgentPrompts || isLoadingMoreCommunityList || agentPromptDisposed) return false;
+    if (!AcceptsAgentPromptSession(sessionRevision) || !CanModerateCommunity || isCreatingAgentPrompt || isWritingAgentPrompt || IsLoading || isLoadingAgentPrompts || isLoadingMoreCommunityList || agentPromptDisposed) return false;
     var community = communityIdOrSlug;
     var revision = Volatile.Read(ref communityContextRevision);
     var readRevision = agentPromptReadRevision;

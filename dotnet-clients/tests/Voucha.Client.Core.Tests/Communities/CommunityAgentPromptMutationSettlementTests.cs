@@ -156,14 +156,14 @@ public sealed class CommunityAgentPromptMutationSettlementTests
     Fail(post, "error");
     Assert.False(await creating);
     await model.SelectSectionAsync(CommunityDetailSurfaceSection.Overview, Token);
-    var update = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
-    service.AgentPromptUpdateHandler = _ => update.Task;
-    var updating = model.UpdateAgentPromptAsync("other prompt", "other action", Token);
+    var update = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.MemberRoleUpdateHandler = () => update.Task;
+    var updating = model.UpdateMemberRoleAsync("other member", "moderator", Token);
     Assert.True(model.IsLoading);
     read.SetResult(Fresh());
     await reloading;
     Assert.True(model.IsLoading);
-    update.SetResult(Fresh().CommunityAgentPrompts[0]);
+    update.SetResult();
     Assert.True(await updating);
     Assert.False(model.IsLoading);
   }

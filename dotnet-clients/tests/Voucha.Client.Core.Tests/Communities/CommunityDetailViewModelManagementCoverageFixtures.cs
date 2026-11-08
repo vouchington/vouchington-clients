@@ -313,8 +313,10 @@ internal sealed partial class ScriptedCommunitiesService
       CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
+  public Func<Task>? MemberRoleUpdateHandler { get; set; }
+
   public Task UpdateMemberRoleAsync(string idOrSlug, string userId, string role, CancellationToken cancellationToken = default) =>
-      RecordCompleted("member-role", idOrSlug, $"{userId}:{role}");
+      MemberRoleUpdateHandler?.Invoke() ?? RecordCompleted("member-role", idOrSlug, $"{userId}:{role}");
 
   public Task RemoveMemberAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
       RecordCompleted("member-remove", idOrSlug, userId);

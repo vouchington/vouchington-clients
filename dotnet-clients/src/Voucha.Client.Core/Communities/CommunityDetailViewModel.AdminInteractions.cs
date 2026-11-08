@@ -98,7 +98,7 @@ public sealed partial class CommunityDetailViewModel
       string promptId,
       string? prompt = null,
       CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(
+      MutateAgentPromptAsync(
           () => service.UpdateAgentPromptAsync(
               communityIdOrSlug,
               promptId,
@@ -121,13 +121,13 @@ public sealed partial class CommunityDetailViewModel
       MutateAndReloadSectionAsync(() => service.DeleteSavedReplyAsync(communityIdOrSlug, replyId, cancellationToken), cancellationToken);
 
   public Task<bool> DeleteAgentPromptAsync(string promptId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.DeleteAgentPromptAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
+      MutateAgentPromptAsync(() => service.DeleteAgentPromptAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
 
   public Task<bool> AllocateAgentPromptSlotAsync(string promptId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.AllocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
+      MutateAgentPromptAsync(() => service.AllocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
 
   public Task<bool> DeallocateAgentPromptSlotAsync(string promptId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.DeallocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
+      MutateAgentPromptAsync(() => service.DeallocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
 
   public Task<JsonElement> TestAgentPromptAsync(
       string promptId,

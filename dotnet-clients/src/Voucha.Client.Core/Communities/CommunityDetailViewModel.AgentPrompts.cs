@@ -31,7 +31,7 @@ public sealed partial class CommunityDetailViewModel
       ApplyAgentPromptPage(page, false);
       agentPromptRefreshError = null;
       NotifyAgentPromptRefresh();
-      if (!isCreatingAgentPrompt) CompleteLoad();
+      if (!isCreatingAgentPrompt && !isWritingAgentPrompt) CompleteLoad();
     }
     catch (Exception ex) when ((ex is HttpRequestException or OperationCanceledException or InvalidOperationException) &&
         (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)))
@@ -43,6 +43,7 @@ public sealed partial class CommunityDetailViewModel
       {
         isLoadingAgentPrompts = false;
         SettleAgentPromptCreation();
+        SettleAgentPromptWrite();
         OnPropertyChanged(nameof(CanLoadMoreCommunityList));
       }
     }
@@ -97,6 +98,7 @@ public sealed partial class CommunityDetailViewModel
   {
     Interlocked.Increment(ref agentPromptReadRevision);
     agentPromptCreationOperation++;
+    ResetAgentPromptWrite();
     isCreatingAgentPrompt = false;
     agentPromptCreationSettled = false;
     isLoadingAgentPrompts = false;
@@ -129,6 +131,8 @@ public sealed partial class CommunityDetailViewModel
 
   private void ReleaseAgentPromptMutationState()
   {
-    if (isCreatingAgentPrompt && agentPromptCreationContext == Volatile.Read(ref communityContextRevision)) CompleteLoad();
+    if ((isCreatingAgentPrompt && agentPromptCreationContext == Volatile.Read(ref communityContextRevision)) ||
+        (isWritingAgentPrompt && agentPromptWriteContext == Volatile.Read(ref communityContextRevision))) CompleteLoad();
+    ResetAgentPromptWrite();
   }
 }
