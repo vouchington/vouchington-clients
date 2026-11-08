@@ -25,6 +25,17 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertFalse(flow.contains("app.buttons[\"Sign In\"]"))
     }
 
+    func testSignedOutSubsectionControlDoesNotUseTheFixedSizePicker() throws {
+        let navigation = try repoSource("swift-clients/apps/shared-app/SectionDetailView+Navigation.swift")
+        let picker = try repoSource("swift-clients/apps/shared-app/SectionDetailView+SubsectionToolbar.swift")
+        let signedOutMenu = try XCTUnwrap(picker.components(separatedBy: "var signedOutSubsectionMenu").last)
+
+        XCTAssertFalse(navigation.contains(".fixedSize()"))
+        XCTAssertTrue(picker.contains("factory.sessionManager.isSignedIn"))
+        XCTAssertTrue(signedOutMenu.contains("Menu {"))
+        XCTAssertFalse(signedOutMenu.contains(".fixedSize()"))
+    }
+
     private func repoSource(_ relative: String, filePath: StaticString = #filePath) throws -> String {
         let current = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         var roots = [current, URL(fileURLWithPath: "\(filePath)").deletingLastPathComponent()]
