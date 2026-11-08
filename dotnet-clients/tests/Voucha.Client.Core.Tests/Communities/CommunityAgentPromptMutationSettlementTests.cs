@@ -62,6 +62,28 @@ public sealed class CommunityAgentPromptMutationSettlementTests
   }
 
   [Fact]
+  public async Task SelectedSectionReadFailureDoesNotAdmitSiblingWhilePostIsPending()
+  {
+    var service = Service();
+    using var model = new CommunityDetailViewModel(service, new Session());
+    await model.LoadSurfaceAsync("community-1", CommunityDetailSurfaceSection.AgentPrompts, Token);
+    var post = new TaskCompletionSource<CommunityAgentPrompt>(TaskCreationOptions.RunContinuationsAsynchronously);
+    service.AgentPromptCreateHandler = _ => post.Task;
+    var creating = model.CreateAgentPromptAsync("draft", cancellationToken: Token);
+    service.AgentPromptPageHandler = _ => Task.FromException<CommunityAgentPromptsResponse>(new HttpRequestException("reload offline"));
+    await model.LoadSelectedSectionAsync(Token);
+    Assert.True(model.HasError);
+    Assert.False(model.IsLoading);
+    var mutations = service.MutationCalls.Count;
+    Assert.False(await model.DeleteAgentPromptAsync("prompt-1", Token));
+    Assert.Equal(mutations, service.MutationCalls.Count);
+    Fail(post, "cap");
+    Assert.False(await creating);
+    service.AgentPromptPageHandler = _ => Task.FromResult(Fresh());
+    Assert.True(await model.DeleteAgentPromptAsync("prompt-1", Token));
+  }
+
+  [Fact]
   public async Task OldDeferredReadDoesNotReleaseNewAccountCreation()
   {
     var service = Service();

@@ -76,7 +76,8 @@ public sealed partial class CommunityDetailViewModel
       CancellationToken cancellationToken,
       Func<CancellationToken, Task>? reload = null)
   {
-    if (IsLoading || string.IsNullOrWhiteSpace(communityIdOrSlug))
+    if (IsLoading || string.IsNullOrWhiteSpace(communityIdOrSlug) ||
+        (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && (isCreatingAgentPrompt || isLoadingAgentPrompts)))
     {
       return false;
     }
