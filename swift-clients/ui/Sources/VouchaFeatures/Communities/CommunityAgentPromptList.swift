@@ -21,6 +21,10 @@ struct CommunityAgentPromptList: View {
                             ),
                             .verbatim(prompt.modelName), .verbatim(prompt.modelProvider)
                         ]), locale: nativeUiLocale)).font(Typography.caption)
+                        LabeledContent(UiMessages.string(.nativeSwiftCommunitiesPromptId, locale: nativeUiLocale)) {
+                            Text(verbatim: UiMessages.string(.protocolValue(prompt.id), locale: nativeUiLocale))
+                        }
+                        .font(Typography.caption)
                         if viewModel.selectedPromptId == prompt.id {
                             Image(systemName: "checkmark.circle.fill").accessibilityHidden(true)
                         }

@@ -43,6 +43,9 @@ final class CommunityAgentPromptSelectionTests: NativeRouteSurfaceViewModelTestC
             XCTAssertEqual(model.selectedPromptId, "first")
             try row(in: controls, id: "second").tap()
             XCTAssertEqual(model.selectedPromptId, "second")
+            XCTAssertNoThrow(try row(in: controls, id: "first").find(text: "first"))
+            XCTAssertNoThrow(try row(in: controls, id: "second").find(text: "second"))
+
             XCTAssertTrue(try row(in: controls, id: "second").accessibilityTraits().contains(.isSelected))
             XCTAssertFalse(try row(in: controls, id: "first").accessibilityTraits().contains(.isSelected))
             XCTAssertNoThrow(try controls.inspect().find(text: "Order 1 · gpt-5.4-nano · openai"))
@@ -63,6 +66,24 @@ final class CommunityAgentPromptSelectionTests: NativeRouteSurfaceViewModelTestC
             )
             CannedFeedURLProtocol.releaseResponse(path: mutationPath)
             await settle { parent.state != .loading }
+            let first = try XCTUnwrap(JSONSerialization.jsonObject(with: page(
+                id: "first",
+                more: false
+            )) as? [String: Any])
+            var reordered = try XCTUnwrap(JSONSerialization.jsonObject(with: page(
+                id: "second",
+                more: false
+            )) as? [String: Any])
+            reordered["community_agent_prompts"] =
+                try XCTUnwrap(reordered["community_agent_prompts"] as? [[String: Any]])
+                    + XCTUnwrap(first["community_agent_prompts"] as? [[String: Any]])
+            CannedFeedURLProtocol.handlers[path] = try (JSONSerialization.data(withJSONObject: reordered), 200)
+            await model.reload()
+            XCTAssertEqual(model.pagination.items.map(\.id), ["second", "first"])
+            XCTAssertNoThrow(try row(in: controls, id: "first").find(text: "first"))
+            XCTAssertNoThrow(try row(in: controls, id: "second").find(text: "second"))
+            XCTAssertEqual(model.selectedPromptId, "second")
+
         }
     }
 
