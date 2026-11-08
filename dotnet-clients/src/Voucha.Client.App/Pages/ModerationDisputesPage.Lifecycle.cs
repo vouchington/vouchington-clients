@@ -1,3 +1,5 @@
+using Voucha.Client.Core.Support;
+
 namespace Voucha.Client.App.Pages;
 
 public sealed partial class ModerationDisputesPage
@@ -24,6 +26,7 @@ public sealed partial class ModerationDisputesPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    if (disposed || viewModel.State == LoadState.Loaded) return;
     await ReloadAsync().ConfigureAwait(true);
   }
 

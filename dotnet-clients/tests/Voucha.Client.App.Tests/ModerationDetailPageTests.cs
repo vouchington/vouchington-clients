@@ -22,9 +22,9 @@ public sealed class ModerationDetailPageTests
         value => new Label { Text = value, AutomationId = "detail-value" });
     Lifecycle(page, "OnAppearing");
     Assert.True(Assert.Single(VisualTreeElements.Descendants<ActivityIndicator>(page)).IsRunning);
+    var load = ActiveLoad(page);
     response.SetResult("reporter-1, reporter-2");
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
-        .Any(label => label.AutomationId == "detail-value"));
+    await load;
     Assert.Equal("reporter-1, reporter-2", Assert.Single(VisualTreeElements.Descendants<Label>(page)).Text);
     Lifecycle(page, "OnDisappearing");
   }
@@ -36,9 +36,9 @@ public sealed class ModerationDetailPageTests
     var response = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
     var page = new ModerationDetailPage<string>(_ => response.Task, _ => new Editor());
     Lifecycle(page, "OnAppearing");
+    var load = ActiveLoad(page);
     response.SetException(new HttpRequestException("private server details"));
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
-        .Any(label => label.AutomationId == "moderation-detail-error"));
+    await load;
     Assert.Empty(VisualTreeElements.Descendants<Editor>(page));
     Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page),
         label => label.Text?.Contains("private server details", StringComparison.Ordinal) == true);
@@ -57,10 +57,11 @@ public sealed class ModerationDetailPageTests
       return response.Task;
     }, value => new Label { Text = value });
     Lifecycle(page, "OnAppearing");
+    var load = ActiveLoad(page);
     Lifecycle(page, "OnDisappearing");
     Assert.True(requestToken.IsCancellationRequested);
     response.SetException(new HttpRequestException("late failure"));
-    await response.Task.ContinueWith(_ => { }, TestContext.Current.CancellationToken, TaskContinuationOptions.None, TaskScheduler.Default);
+    await load;
     Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page),
         label => label.AutomationId == "moderation-detail-error");
   }
@@ -152,10 +153,6 @@ public sealed class ModerationDetailPageTests
       page.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)!
           .Invoke(page, null);
 
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
+  private static Task ActiveLoad<T>(ModerationDetailPage<T> page) =>
+      (Task)page.GetType().GetField("activeLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page)!;
 }

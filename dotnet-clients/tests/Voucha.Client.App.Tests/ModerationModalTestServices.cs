@@ -34,9 +34,15 @@ internal sealed class ModerationModalAppealsService : ModerationModalActionServi
   public ModerationAppeal Current { get; set; } = JsonSerializer.Deserialize<ModerationAppealResponse>(
       File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/native.moderation.appeals.detail.default.json")), VouchaApiJson.Options)!.Appeal;
 
+  public Queue<StaffModerationAppealListResponse> Pages { get; } = new();
+  public List<string?> Cursors { get; } = [];
+
   public Task<StaffModerationAppealListResponse> FetchAppealsAsync(ModerationAppealStatus status,
-      string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
-      Task.FromResult(new StaffModerationAppealListResponse([], new PageInfo(null, false, null)));
+      string? after = null, int limit = 25, CancellationToken cancellationToken = default)
+  {
+    Cursors.Add(after);
+    return Task.FromResult(Pages.Count > 0 ? Pages.Dequeue() : new StaffModerationAppealListResponse([], new PageInfo(null, false, null)));
+  }
 
   public int DetailFetches { get; private set; }
 
@@ -68,12 +74,18 @@ internal sealed class ModerationModalAppealsService : ModerationModalActionServi
 
 internal sealed class ModerationModalDisputesService : ModerationModalActionService, IModerationDisputesService
 {
-  public ModerationDispute Current { get; } = JsonSerializer.Deserialize<ModerationDisputeResponse>(
+  public ModerationDispute Current { get; set; } = JsonSerializer.Deserialize<ModerationDisputeResponse>(
       File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/native.moderation.disputes.detail.default.json")), VouchaApiJson.Options)!.Dispute;
 
+  public Queue<StaffModerationDisputeListResponse> Pages { get; } = new();
+  public List<string?> Cursors { get; } = [];
+
   public Task<StaffModerationDisputeListResponse> FetchDisputesAsync(ModerationDisputeStatus status,
-      string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
-      Task.FromResult(new StaffModerationDisputeListResponse([], new PageInfo(null, false, null)));
+      string? after = null, int limit = 25, CancellationToken cancellationToken = default)
+  {
+    Cursors.Add(after);
+    return Task.FromResult(Pages.Count > 0 ? Pages.Dequeue() : new StaffModerationDisputeListResponse([], new PageInfo(null, false, null)));
+  }
 
   public Task<ModerationDisputeResponse> FetchDisputeAsync(string id, CancellationToken cancellationToken = default) =>
       RespondAsync(new ModerationDisputeResponse(Current), cancellationToken);

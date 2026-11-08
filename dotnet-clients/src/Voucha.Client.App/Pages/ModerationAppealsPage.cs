@@ -2,6 +2,7 @@ using Voucha.Client.App.Controls;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -51,7 +52,7 @@ public sealed class ModerationAppealsPage : ContentPage, IDisposable
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    if (disposed) return;
+    if (disposed || viewModel.State == LoadState.Loaded) return;
     await ReloadAsync().ConfigureAwait(true);
   }
 
