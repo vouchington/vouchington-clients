@@ -39,8 +39,8 @@ struct CommunityAgentPromptList: View {
             }
             HybridPaginationControl(
                 hasMore: viewModel.pagination.hasMore,
-                isLoading: viewModel.pagination.isLoading,
-                hasError: viewModel.pagination.lastError != nil,
+                isLoading: viewModel.isLoading,
+                hasError: viewModel.refreshError != nil || viewModel.pagination.lastError != nil,
                 isDisabled: viewModel.isCreating
             ) {
                 await viewModel.loadMore()

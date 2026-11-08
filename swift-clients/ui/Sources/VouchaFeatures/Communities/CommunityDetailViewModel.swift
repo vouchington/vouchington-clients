@@ -88,6 +88,7 @@ final class CommunityDetailViewModel {
     var state: CommunitySurfaceState = .idle
 
     let agentPromptWorkspace: CommunityAgentPromptWorkspace
+    let currentUserId: String?
     let client: APIClient?
     let isAdministrator: Bool
     let isSiteModerator: Bool
@@ -110,12 +111,14 @@ final class CommunityDetailViewModel {
         client: APIClient?,
         slug: String,
         initialTab: CommunitySurfaceTab = .posts,
+        currentUserId: String? = nil,
         isAdministrator: Bool = false,
         isSiteModerator: Bool = false,
         isApplicationFormRoute: Bool = false,
         modmailThreadId: String? = nil
     ) {
         agentPromptWorkspace = CommunityAgentPromptWorkspace(client: client, slug: slug)
+        self.currentUserId = currentUserId
         self.client = client
         self.slug = slug
         self.isAdministrator = isAdministrator

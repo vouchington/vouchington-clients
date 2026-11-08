@@ -5,6 +5,7 @@ import VouchaDesignSystem
 struct CommunitySurface: View {
     private let client: APIClient?
     private let mode: CommunitySurfaceMode
+    private let currentUserId: String?
     private let isSignedIn: Bool
     private let isAdministrator: Bool
     private let isSiteModerator: Bool
@@ -16,6 +17,7 @@ struct CommunitySurface: View {
         client: APIClient?,
         routeMatch: NativeRouteMatch?,
         isSignedIn: Bool = true,
+        currentUserId: String? = nil,
         isAdministrator: Bool = false,
         isSiteModerator: Bool = false,
         turnstileSiteKey: String?,
@@ -23,6 +25,7 @@ struct CommunitySurface: View {
         onNavigate: @escaping (String) -> Void = { _ in }
     ) {
         self.client = client
+        self.currentUserId = currentUserId
         self.isSignedIn = isSignedIn
         self.isAdministrator = isAdministrator
         self.isSiteModerator = isSiteModerator
@@ -68,6 +71,7 @@ struct CommunitySurface: View {
                     client: client,
                     slug: slug,
                     initialTab: tab,
+                    currentUserId: currentUserId,
                     isAdministrator: isAdministrator,
                     isSiteModerator: isSiteModerator,
                     isApplicationFormRoute: isApplicationFormRoute,

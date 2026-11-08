@@ -19,7 +19,13 @@ final class CommunityAgentPromptSelectionTests: NativeRouteSurfaceViewModelTestC
         CannedFeedURLProtocol.handlers[mutationPath] = (Data("{}".utf8), 503)
         CannedFeedURLProtocol.suspendResponse(path: mutationPath)
         defer { CannedFeedURLProtocol.releaseResponse(path: mutationPath) }
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
         let model = parent.agentPromptWorkspace
         model.draftPrompt = "Unsent editing draft"
         let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
@@ -33,7 +39,7 @@ final class CommunityAgentPromptSelectionTests: NativeRouteSurfaceViewModelTestC
             try row(in: controls, id: "first").tap()
             XCTAssertEqual(model.selectedPromptId, "first")
             try controls.inspect().find(button: "Load more").tap()
-            await settle { model.pagination.items.count == 2 && !model.pagination.isLoading }
+            await settle { model.pagination.items.count == 2 && !model.isLoading }
             XCTAssertEqual(model.selectedPromptId, "first")
             try row(in: controls, id: "second").tap()
             XCTAssertEqual(model.selectedPromptId, "second")
@@ -73,6 +79,36 @@ final class CommunityAgentPromptSelectionTests: NativeRouteSurfaceViewModelTestC
         await model.reload()
         XCTAssertNil(model.selectedPromptId)
         XCTAssertEqual(model.draftPrompt, "Independent draft")
+    }
+
+    func testCreatorPermissionsGateRenderedActionsAndPublicMutationAdmission() async throws {
+        for (creator, owns) in [("user-1" as String?, true), ("another-user", false), (nil, false)] {
+            var object = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: ApiFixtureLoader.data("web.communities.agent-prompts.default")
+            ) as? [String: Any])
+            var prompts = try XCTUnwrap(object["community_agent_prompts"] as? [[String: Any]])
+            prompts[0]["created_by_id"] = creator as Any? ?? NSNull()
+            object["community_agent_prompts"] = prompts
+            CannedFeedURLProtocol.handlers[path] = try (JSONSerialization.data(withJSONObject: object), 200)
+            let parent = try CommunityDetailViewModel(
+                client: makeClient(), slug: "builders", initialTab: .moderation,
+                currentUserId: "user-1", isAdministrator: true
+            )
+            await parent.agentPromptWorkspace.reload()
+            parent.agentPromptWorkspace.selectPrompt("prompt-1")
+            let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
+            for title in ["Update", "Allocate", "Deallocate"] {
+                XCTAssertEqual(try controls.inspect().find(button: title).isDisabled(), !owns, title)
+            }
+            XCTAssertFalse(try controls.inspect().find(button: "Delete").isDisabled())
+            if !owns {
+                let count = CannedFeedURLProtocol.capturedMethods.count
+                await parent.updateCommunityAgentPrompt(promptId: "prompt-1", prompt: "No permission")
+                await parent.allocateCommunityAgentPrompt(promptId: "prompt-1")
+                await parent.deallocateCommunityAgentPrompt(promptId: "prompt-1")
+                XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.count, count)
+            }
+        }
     }
 
     private func row(in view: some View, id: String) throws -> InspectableView<ViewType.Button> {

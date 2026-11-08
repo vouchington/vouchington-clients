@@ -35,8 +35,17 @@ extension CommunityDetailActionTests {
 
     func testAgentPromptAutomodAndVacationActionsCallCommunityEndpoints() async throws {
         registerCommunityAdminFixtures()
-        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let viewModel = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
 
+        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/agent-prompts"] = (
+            ApiFixtureLoader.data("web.communities.agent-prompts.default"), 200
+        )
         await viewModel.enableCommunityAiAgent(agentSlug: "mod-bot")
         await viewModel.disableCommunityAiAgent(agentSlug: "mod-bot")
         await viewModel.createCommunityAgentPrompt(

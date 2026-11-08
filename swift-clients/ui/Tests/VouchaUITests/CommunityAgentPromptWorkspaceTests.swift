@@ -22,7 +22,7 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         let list = CommunityAgentPromptList(viewModel: model)
         XCTAssertNoThrow(try list.inspect().find(text: "Prompt prompt-1"))
         try list.inspect().find(button: "Load more").tap()
-        await settle { !model.pagination.isLoading && model.pagination.items.count == 2 }
+        await settle { !model.isLoading && model.pagination.items.count == 2 }
         XCTAssertEqual(model.pagination.items.map(\.id), ["prompt-1", "prompt-2"])
         XCTAssertEqual(model.slotInfo?.used, 8)
         XCTAssertEqual(model.slotInfo?.remaining, 2)
@@ -48,7 +48,13 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
 
     func testCreationLimitPreservesRowsDraftAndAllowsRetryDespiteGlobalSlots() async throws {
         CannedFeedURLProtocol.handlers[path] = try (page(ids: ["prompt-1"], more: false, cursor: nil), 200)
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
         let model = parent.agentPromptWorkspace
         var error = try XCTUnwrap(JSONSerialization.jsonObject(
             with: ApiFixtureLoader.data("native.chat.identity-conflict")
@@ -146,14 +152,22 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         CannedFeedURLProtocol.handlers[mutationPath] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.suspendResponse(path: mutationPath)
         defer { CannedFeedURLProtocol.releaseResponse(path: mutationPath) }
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
+        CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("web.communities.agent-prompts.default"), 200)
+        await parent.agentPromptWorkspace.reload()
         let barrier = CannedFeedURLProtocol.requestBarrier(path: mutationPath, method: "PATCH")
         let update = Task { await parent.updateCommunityAgentPrompt(promptId: "prompt-1", prompt: "Updated") }
         _ = try await barrier.wait()
         try CommunityAgentPromptList(viewModel: parent.agentPromptWorkspace).inspect().vStack().callOnDisappear()
         CannedFeedURLProtocol.releaseResponse(path: mutationPath)
         await update.value
-        XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == path })
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path == path }.count, 1)
     }
 
     func testPendingCreationSerializesPromptWritesAndRetainsLimitRefusal() async throws {
@@ -163,12 +177,18 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         )
         CannedFeedURLProtocol.suspendResponse(path: path)
         defer { CannedFeedURLProtocol.releaseResponse(path: path) }
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
         let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
         let create = Task { await parent.createCommunityAgentPrompt(prompt: "Draft") }
         _ = try await barrier.wait()
         let controls = CommunityAgentAndAutomodControls(viewModel: parent, isSignedIn: true, showSignIn: {})
-        for title in ["Create", "Update", "Allocate", "Deallocate", "Delete"] {
+        for title in ["Create", "Update", "Allocate", "Deallocate", "Delete", "Test"] {
             XCTAssertTrue(try controls.inspect().find(button: title).isDisabled(), title)
         }
         await parent.deleteCommunityAgentPrompt(promptId: "prompt-1")
@@ -176,6 +196,7 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         await parent.allocateCommunityAgentPrompt(promptId: "prompt-1")
         await parent.deallocateCommunityAgentPrompt(promptId: "prompt-1")
         await parent.createCommunityAgentPrompt(prompt: "Duplicate")
+        await parent.testCommunityAgentPrompt(promptId: "prompt-1", text: "Test")
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["POST"])
         var signIns = 0
         let signedOut = CommunityAgentAndAutomodControls(
@@ -192,7 +213,13 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
     }
 
     func testParentLoadingBlocksCreationAndPromptMutation() async throws {
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
         parent.state = .loading
         await parent.createCommunityAgentPrompt(prompt: "Draft")
         await parent.deleteCommunityAgentPrompt(promptId: "prompt-1")
@@ -209,7 +236,13 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         CannedFeedURLProtocol.handlers[path] = try (page(ids: ["prompt-1"], more: true, cursor: "next-page"), 200)
         CannedFeedURLProtocol.suspendResponse(path: path)
         defer { CannedFeedURLProtocol.releaseResponse(path: path) }
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
         let model = parent.agentPromptWorkspace
         model.draftPrompt = "Retained draft"
         let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
@@ -223,7 +256,7 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
         XCTAssertFalse(created)
         await parent.createCommunityAgentPrompt(prompt: model.draftPrompt)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET"])
-        XCTAssertTrue(model.pagination.isLoading)
+        XCTAssertTrue(model.isLoading)
         CannedFeedURLProtocol.errors.removeValue(forKey: path)
         CannedFeedURLProtocol.releaseResponse(path: path)
         await load.value
@@ -251,19 +284,25 @@ final class CommunityAgentPromptWorkspaceTests: NativeRouteSurfaceViewModelTestC
             JSONSerialization.data(withJSONObject: conflict),
             409
         )
-        let parent = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
         let model = parent.agentPromptWorkspace
         await model.reload()
-        XCTAssertNotNil(model.pagination.lastError)
+        XCTAssertNotNil(model.refreshError)
         await parent.createCommunityAgentPrompt(prompt: "Retained draft")
         XCTAssertTrue(model.creationLimitReached)
-        XCTAssertNotNil(model.pagination.lastError)
+        XCTAssertNotNil(model.refreshError)
         let list = CommunityAgentPromptList(viewModel: model)
         try list.inspect().find(button: UiMessages.string(.nativeCommonRetry, locale: .english)).tap()
-        await settle { model.pagination.hasLoadedPage && !model.pagination.isLoading }
+        await settle { model.pagination.hasLoadedPage && !model.isLoading }
         XCTAssertEqual(model.pagination.items.map(\.id), ["prompt-1"])
         XCTAssertEqual(model.slotInfo?.used, 8)
-        XCTAssertNil(model.pagination.lastError)
+        XCTAssertNil(model.refreshError)
         XCTAssertThrowsError(try list.inspect().find(button: UiMessages.string(.nativeCommonRetry, locale: .english)))
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["GET", "POST", "GET"])
     }

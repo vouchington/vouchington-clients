@@ -24,6 +24,12 @@ final class CommunityAgentPromptWorkspace {
     var pagination = CursorPaginationState<CommunityAgentPrompt>()
     private(set) var slotInfo: CommunityAgentPromptSlotInfo?
     private(set) var isCreating = false
+    private(set) var isRefreshing = false
+    private(set) var refreshError: VouchaError?
+    var isLoading: Bool {
+        isRefreshing || pagination.isLoading
+    }
+
     private(set) var creationLimitReached = false
     private(set) var notice: UiVerbatimText?
     private let client: APIClient?
@@ -38,6 +44,7 @@ final class CommunityAgentPromptWorkspace {
     func invalidate() {
         revision += 1
         pagination.invalidateRequestsPreservingPage()
+        isRefreshing = false
     }
 
     func reload(ifCurrent revision: Int) async {
@@ -46,17 +53,39 @@ final class CommunityAgentPromptWorkspace {
     }
 
     func reload() async {
+        guard let client else { return }
         invalidate()
-        pagination.reset()
-        selectedPromptId = nil
+        let revision = revision
+        isRefreshing = true
+        refreshError = nil
         creationLimitReached = false
         notice = nil
-        await fetchPage()
+        defer { if revision == self.revision { isRefreshing = false } }
+        do {
+            let response: CommunityAgentPromptsResponse = try await client.send(
+                .communityAgentPrompts(idOrSlug: slug, limit: 25)
+            )
+            guard revision == self.revision, !Task.isCancelled else { return }
+            pagination.reset(items: response.communityAgentPrompts)
+            pagination.restoreContinuation(
+                endCursor: response.pageInfo.endCursor,
+                hasMore: response.pageInfo.hasNextPage
+            )
+            slotInfo = response.slotInfo
+            if selectedPrompt == nil { selectedPromptId = nil }
+        } catch {
+            guard revision == self.revision, !Task.isCancelled, !(error is CancellationError) else { return }
+            refreshError = error as? VouchaError ?? .unexpected(error.localizedDescription)
+        }
     }
 
     func loadMore() async {
-        guard !isCreating else { return }
-        await fetchPage()
+        guard !isCreating, !isRefreshing else { return }
+        if refreshError != nil {
+            await reload()
+        } else {
+            await fetchPage()
+        }
     }
 
     private func fetchPage() async {
@@ -88,8 +117,9 @@ final class CommunityAgentPromptWorkspace {
 
     @discardableResult
     func create(prompt: String, modelName: String? = nil, modelProvider: String? = nil) async -> Bool {
+        let submittedPrompt = prompt
         let prompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !isCreating, !pagination.isLoading, !prompt.isEmpty, let client else { return false }
+        guard !isCreating, !isLoading, !prompt.isEmpty, let client else { return false }
         revision += 1
         let revision = revision
         isCreating = true
@@ -102,6 +132,9 @@ final class CommunityAgentPromptWorkspace {
                 modelName: modelName?.trimmedOrNil, modelProvider: modelProvider?.trimmedOrNil
             ))
             guard revision == self.revision, !Task.isCancelled else { return false }
+            if draftPrompt == submittedPrompt {
+                draftPrompt = ""
+            }
             await reload()
             return revision + 1 == self.revision
         } catch {

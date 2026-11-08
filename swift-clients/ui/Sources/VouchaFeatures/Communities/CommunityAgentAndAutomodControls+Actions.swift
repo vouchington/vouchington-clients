@@ -37,10 +37,12 @@ extension CommunityAgentAndAutomodControls {
                         )
                     }
                 }
+                .disabled(isSignedIn && !viewModel.canUpdateAgentPrompt(promptId))
                 actionButton(.nativeSwiftCommunityActionsAllocate, systemImage: "person.crop.circle.badge.plus") {
                     let selectedId = promptId
                     Task { await viewModel.allocateCommunityAgentPrompt(promptId: selectedId) }
                 }
+                .disabled(isSignedIn && !viewModel.canOwnAgentPrompt(promptId))
                 actionButton(
                     .nativeSwiftCommunityActionsDeallocate,
                     systemImage: "person.crop.circle.badge.minus"
@@ -48,10 +50,12 @@ extension CommunityAgentAndAutomodControls {
                     let selectedId = promptId
                     Task { await viewModel.deallocateCommunityAgentPrompt(promptId: selectedId) }
                 }
+                .disabled(isSignedIn && !viewModel.canOwnAgentPrompt(promptId))
                 actionButton(.nativeSwiftCommonDelete, systemImage: "trash") {
                     let selectedId = promptId
                     Task { await viewModel.deleteCommunityAgentPrompt(promptId: selectedId) }
                 }
+                .disabled(isSignedIn && !viewModel.canDeleteAgentPrompt(promptId))
             }
             .disabled(isSignedIn && viewModel.agentPromptWorkspace.selectedPrompt == nil)
         }
