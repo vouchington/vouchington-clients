@@ -35,8 +35,17 @@ extension CommunityDetailActionTests {
 
     func testAgentPromptAutomodAndVacationActionsCallCommunityEndpoints() async throws {
         registerCommunityAdminFixtures()
-        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .moderation)
+        let viewModel = try CommunityDetailViewModel(
+            client: makeClient(),
+            slug: "builders",
+            initialTab: .moderation,
+            currentUserId: "user-1",
+            isAdministrator: true
+        )
 
+        CannedFeedURLProtocol.handlers["/api/v1/communities/builders/agent-prompts"] = (
+            ApiFixtureLoader.data("web.communities.agent-prompts.default"), 200
+        )
         await viewModel.enableCommunityAiAgent(agentSlug: "mod-bot")
         await viewModel.disableCommunityAiAgent(agentSlug: "mod-bot")
         await viewModel.createCommunityAgentPrompt(
@@ -89,10 +98,13 @@ extension CommunityDetailActionTests {
             .contains { $0.path == "/api/v1/communities/builders/ai-agents/mod-bot" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/agent-prompts" })
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
-            .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1" })
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
-            .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1/allocations" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests
+            .contains { $0.method == "DELETE" && $0.url.path == "/api/v1/communities/builders/agent-prompts/prompt-1" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests
+            .contains {
+                $0.method == "DELETE" && $0.url
+                    .path == "/api/v1/communities/builders/agent-prompts/prompt-1/allocations"
+            })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1/test-runs" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs

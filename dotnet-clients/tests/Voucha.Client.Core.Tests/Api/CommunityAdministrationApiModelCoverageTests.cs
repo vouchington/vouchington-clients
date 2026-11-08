@@ -310,7 +310,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     var savedReply = new CommunitySavedReply("reply-1", "community-1", "Greeting", "Hello", createdAt);
 
     var queue = new CommunityModerationQueueResponse([queueEntry], pageInfo, "moderator");
-    var prompts = new CommunityAgentPromptsResponse([prompt], new Dictionary<string, object> { ["available"] = 1 });
+    var prompts = new CommunityAgentPromptsResponse([prompt], new(2, 3, 1, new(3, 10)), new(null, false, null));
     var historyResponse = new CommunityAgentPromptHistoryResponse([history], "cursor-1");
     var simulation = new CommunityAutomodSimulation(simulationSummary, [simulationResult]);
     var threads = new CommunityModmailThreadListResponse([thread], pageInfo);
@@ -365,7 +365,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(createdAt, prompts.CommunityAgentPrompts[0].ActivatedAt);
     Assert.Equal(createdAt, prompts.CommunityAgentPrompts[0].CreatedAt);
     Assert.Equal(updatedAt, prompts.CommunityAgentPrompts[0].UpdatedAt);
-    Assert.Equal(1, prompts.SlotInfo["available"]);
+    Assert.Equal(1, prompts.SlotInfo.Remaining);
     Assert.Equal("history-1", historyResponse.Entries[0].Id);
     Assert.Equal("prompt-1", historyResponse.Entries[0].AgentPromptId);
     Assert.Equal("community-1", historyResponse.Entries[0].CommunityId);

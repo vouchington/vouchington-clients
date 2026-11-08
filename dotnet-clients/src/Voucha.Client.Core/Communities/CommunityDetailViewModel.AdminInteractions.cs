@@ -94,23 +94,11 @@ public sealed partial class CommunityDetailViewModel
   public Task<bool> DisableAiAgentAsync(string agentSlug, CancellationToken cancellationToken = default) =>
       MutateAndReloadSectionAsync(() => service.DisableAiAgentAsync(communityIdOrSlug, agentSlug, cancellationToken), cancellationToken);
 
-  public Task<bool> CreateAgentPromptAsync(
-      string prompt,
-      string? modelName = null,
-      string? modelProvider = null,
-      CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(
-          () => service.CreateAgentPromptAsync(
-              communityIdOrSlug,
-              new CommunityAgentPromptUpsertRequest(prompt, modelName, modelProvider),
-              cancellationToken),
-          cancellationToken);
-
   public Task<bool> UpdateAgentPromptAsync(
       string promptId,
       string? prompt = null,
       CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(
+      MutateAgentPromptAsync(
           () => service.UpdateAgentPromptAsync(
               communityIdOrSlug,
               promptId,
@@ -133,13 +121,13 @@ public sealed partial class CommunityDetailViewModel
       MutateAndReloadSectionAsync(() => service.DeleteSavedReplyAsync(communityIdOrSlug, replyId, cancellationToken), cancellationToken);
 
   public Task<bool> DeleteAgentPromptAsync(string promptId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.DeleteAgentPromptAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
+      MutateAgentPromptAsync(() => service.DeleteAgentPromptAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
 
   public Task<bool> AllocateAgentPromptSlotAsync(string promptId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.AllocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
+      MutateAgentPromptAsync(() => service.AllocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
 
   public Task<bool> DeallocateAgentPromptSlotAsync(string promptId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.DeallocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
+      MutateAgentPromptAsync(() => service.DeallocateAgentPromptSlotAsync(communityIdOrSlug, promptId, cancellationToken), cancellationToken);
 
   public Task<JsonElement> TestAgentPromptAsync(
       string promptId,
