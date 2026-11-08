@@ -17,7 +17,8 @@ test('readonly trusted mounts contain the complete bootstrap module dependency c
     if (visited.has(mountedName)) continue
     visited.add(mountedName)
     assert.ok(mounts.has(mountedName), `missing readonly trusted mount: ${mountedName}`)
-    const sourceName = mountedName === 'bootstrap.mjs' ? 'paired-exporter-bootstrap.mjs' : mountedName
+    const sourceName =
+      mountedName === 'bootstrap.mjs' ? 'paired-exporter-bootstrap.mjs' : mountedName
     const source = await readFile(new URL(sourceName, scripts), 'utf8')
     for (const match of source.matchAll(/from ['"]\.\/([^'"]+)['"]/gu)) {
       pending.push(match[1])
