@@ -3,10 +3,9 @@ import VouchaModels
 import XCTest
 
 final class GeneralPreferencesTests: XCTestCase {
-    func testRoundTripRetainsAllTwelveFieldsIncludingFalseAndExplicitNulls() throws {
+    func testRoundTripRetainsAllElevenFieldsIncludingExplicitNulls() throws {
         let payload = settings()
         let preferences = try decode(payload)
-        XCTAssertFalse(preferences.shouldImportHackerNewsDiscussions)
         XCTAssertNil(preferences.country)
         XCTAssertNil(preferences.uiLocale)
         XCTAssertEqual(preferences.followersVisibility, .users)
@@ -16,7 +15,7 @@ final class GeneralPreferencesTests: XCTestCase {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(preferences)) as? NSDictionary)
-        XCTAssertEqual(encoded.count, 12)
+        XCTAssertEqual(encoded.count, 11)
         XCTAssertTrue(encoded.isEqual(to: payload))
     }
 
@@ -45,7 +44,7 @@ final class GeneralPreferencesTests: XCTestCase {
             values[key] = "unrecognized"
             XCTAssertThrowsError(try decode(values), key)
         }
-        for key in ["country", "ui_locale", "should_import_hacker_news_discussions"] {
+        for key in ["country", "ui_locale"] {
             var values = settings()
             values[key] = 42
             XCTAssertThrowsError(try decode(values), key)
@@ -64,8 +63,7 @@ final class GeneralPreferencesTests: XCTestCase {
             "rss_feed_follows_visibility": "mutual_followers", "community_memberships_visibility": "nobody",
             "followers_visibility": "users", "likes_visibility": "nobody",
             "direct_messages_audience": "mutual_followers", "default_post_broadcast": "followers",
-            "default_post_privacy": "private", "country": NSNull(), "ui_locale": NSNull(),
-            "should_import_hacker_news_discussions": false
+            "default_post_privacy": "private", "country": NSNull(), "ui_locale": NSNull()
         ]
     }
 }

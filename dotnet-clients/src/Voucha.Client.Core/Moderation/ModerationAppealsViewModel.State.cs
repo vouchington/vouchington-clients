@@ -12,9 +12,9 @@ public sealed partial class ModerationAppealsViewModel
     }
   }
 
-  private void Replace(ModerationAppeal appeal, bool preserveUnconfirmedDirtyDraft = false)
+  private void Replace(ModerationAppeal appeal, bool preserveUnconfirmedDirtyDraft = false, int? readOwnerRevision = null)
   {
-    if (!CanAccess || activeMutationOwnerRevision != Volatile.Read(ref accountRevision)) return;
+    if (!CanAccess || (readOwnerRevision ?? activeMutationOwnerRevision) != Volatile.Read(ref accountRevision)) return;
     ReconcileCurrentMutation(appeal, activeMutationAdmissionToken);
     var editedDraft = dirtyDraftIds.Contains(appeal.Id) ? DraftFor(appeal) : null;
     ConfirmServerDraft(appeal);

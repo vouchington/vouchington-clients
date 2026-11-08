@@ -60,7 +60,7 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
   private readonly Button refreshDelivery = UiCopy.Bind(
       new Button(),
       Button.TextProperty,
-      UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery);
+      UiMessageKey.NativeDotnetCommonRefresh);
 
   public ModerationAppealCardView(ModerationAppealsViewModel viewModel)
   {
@@ -157,7 +157,10 @@ internal sealed class ModerationAppealCardView : VerticalStackLayout
     accept.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Accept);
     reduce.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Reduce);
     deny.IsEnabled = viewModel.CanResolve(appeal, ModerationAppealAction.Deny);
-    refreshDelivery.IsVisible = viewModel.IsDeliveryAmbiguous(appeal);
+    UiCopy.Bind(refreshDelivery, Button.TextProperty, appeal.AiDraftRequestedRunId is null
+        ? UiMessageKey.NativeDotnetCommonRefresh
+        : UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery);
+    refreshDelivery.IsVisible = appeal.AiDraftRequestedRunId is null || viewModel.IsDeliveryAmbiguous(appeal);
   }
 
   private async Task WithAppeal(Func<ModerationAppeal, CancellationToken, Task> action)

@@ -9,7 +9,6 @@ using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Growth;
-using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.ImportExport;
 using Voucha.Client.Core.LandingPages;
@@ -50,9 +49,6 @@ public static partial class MauiProgram
     builder.Services.AddSingleton(AppConfig.FromAssembly(typeof(MauiProgram).Assembly));
     AddAuthSessionServices(builder.Services);
     AddLocalizationServices(builder.Services);
-    builder.Services.AddSingleton<IHnDiscussionsSettings>(sp =>
-        new SessionHnDiscussionsSettings(sp.GetRequiredService<ISessionStore>()));
-    builder.Services.AddSingleton(_ => new HnDiscussionsClient(new HttpClient()));
     builder.Services.AddSingleton<BottomTabPreferenceStore>();
     builder.Services.AddSingleton<OmnisearchWebSearchRouteContextStore>();
     builder.Services.AddSingleton<FriendsRouteContextStore>();

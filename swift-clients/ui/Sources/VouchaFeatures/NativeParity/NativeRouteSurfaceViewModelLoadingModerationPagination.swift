@@ -89,7 +89,7 @@ extension NativeRouteSurfaceViewModel {
                 forwardRow(
                     id: $0.id,
                     icon: "arrow.uturn.left.circle",
-                    title: rawText($0.caseId ?? $0.id),
+                    title: appealSummaryTitle($0.targetContext),
                     detail: appText($0.status.titleKey)
                 )
             }
@@ -102,7 +102,7 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "arrow.uturn.left.circle",
-                title: rawText($0.caseId ?? $0.id),
+                title: appealSummaryTitle($0.targetContext),
                 detail: appText($0.status.titleKey)
             )
         }
@@ -130,7 +130,8 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "exclamationmark.bubble",
-                title: rawText($0.claimText),
+                title: $0.postLabel.map(rawText)
+                    ?? appText(.nativeSwiftRouteMetadataStaffModerationDisputesDisputesTitle),
                 detail: .joined([
                     appText($0.status.titleKey),
                     $0.recommendedAction.map { appText($0.titleKey) }

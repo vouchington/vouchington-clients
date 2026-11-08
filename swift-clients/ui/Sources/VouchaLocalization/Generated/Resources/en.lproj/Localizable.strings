@@ -9,9 +9,6 @@
 "extracted.aiCosts.page.totalCostUsd_eed03fbf" = "Total Cost (USD)";
 "extracted.aiCosts.page.unpricedRequestCount.__plural.one" = "{count} unpriced request";
 "extracted.aiCosts.page.unpricedRequestCount.__plural.other" = "{count} unpriced requests";
-"extracted.asides.hnDiscussionsAside.commentsComments_29834540" = "{comments} comments";
-"extracted.asides.hnDiscussionsAside.hackerNews_619f304a" = "Hacker News";
-"extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" = "{points} points";
 "extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" = "Show earlier replies";
 "extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" = "Automod action saved";
 "extracted.communities.communityAutomodActionForm.automodAction_83211784" = "Automod action";
@@ -49,8 +46,6 @@
 "extracted.memberships.planComparisonTable.notIncluded_b665bfc2" = "Not included";
 "extracted.my.audienceSelect.loggedInUsers_81dac12b" = "Logged-in Users";
 "extracted.my.pointValuationsManager.pleaseEnterAValidValuePerPoint_67b38bc3" = "Please enter a valid value per point";
-"extracted.my.preferencesForm.hackerNewsDiscussions_065664a4" = "Hacker News discussions";
-"extracted.my.preferencesForm.showRelatedHackerNewsThreadsWhen_00754911" = "Show related Hacker News threads when you read a post or article with a link.";
 "extracted.my.rewardsProgramStatusesManager.sinceMustBeBeforeUntil_a4745364" = "Since must be before until";
 "extracted.my.spendingCategoriesManager.pleaseEnterAValidAmount_010f1dd6" = "Please enter a valid amount";
 "extracted.pointValuationsManager.addValuationForm.addAPointValuation_29ced576" = "Add a point valuation";

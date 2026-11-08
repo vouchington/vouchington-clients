@@ -24,7 +24,8 @@ public sealed record CommunityBanEvasionContext(
     [property: JsonPropertyName("source_user_id")] string SourceUserId,
     [property: JsonPropertyName("source_username")] string? SourceUsername,
     [property: JsonPropertyName("score")] double Score,
-    [property: JsonPropertyName("flagged_at")] DateTimeOffset FlaggedAt);
+    [property: JsonPropertyName("flagged_at")] DateTimeOffset FlaggedAt,
+    [property: JsonPropertyName("source_display_name")] string? SourceDisplayName = null);
 
 public sealed record StaffModerationReport(
     [property: JsonPropertyName("id")] string Id,

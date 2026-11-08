@@ -7,6 +7,18 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed partial class VouchaApiEndpointParityTests
 {
   [Fact]
+  public void EmailAddressVerificationEndpointsIncludeReauthenticationTokenWhenSupplied()
+  {
+    var request = VouchaApiEndpoints.RequestEmailAddressVerification("user@example.com", "reauth-token");
+    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCD1234", "reauth-token");
+
+    using var requestBody = JsonDocument.Parse(JsonSerializer.Serialize(request.Body, VouchaApiJson.Options));
+    using var verifyBody = JsonDocument.Parse(JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
+    Assert.Equal("reauth-token", requestBody.RootElement.GetProperty("re_auth_token").GetString());
+    Assert.Equal("reauth-token", verifyBody.RootElement.GetProperty("re_auth_token").GetString());
+  }
+
+  [Fact]
   public void EmailAddressVerificationEndpointsPreserveWireContract()
   {
     var request = VouchaApiEndpoints.RequestEmailAddressVerification(" User@Example.com ");
@@ -49,8 +61,7 @@ public sealed partial class VouchaApiEndpointParityTests
         DefaultPostPrivacy: "private",
         UiLocale: JsonNullableString.FromString("fr"),
         ProcessingRestrictedAt: true,
-        ThirdPartyMarketing: false,
-        HnDiscussions: true);
+        ThirdPartyMarketing: false);
 
     var json = JsonSerializer.Serialize(body, VouchaApiJson.Options);
 
@@ -69,6 +80,5 @@ public sealed partial class VouchaApiEndpointParityTests
     Assert.Contains("\"ui_locale\":\"fr\"", json, StringComparison.Ordinal);
     Assert.Contains("\"processing_restricted_at\":true", json, StringComparison.Ordinal);
     Assert.Contains("\"third_party_marketing\":false", json, StringComparison.Ordinal);
-    Assert.Contains("\"hn_discussions\":true", json, StringComparison.Ordinal);
   }
 }

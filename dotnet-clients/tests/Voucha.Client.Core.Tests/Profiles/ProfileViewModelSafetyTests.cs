@@ -475,7 +475,7 @@ public sealed partial class ProfileViewModelSafetyTests
     public Task<LandingPagesResponse> FetchPagesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageAnalyticsResponse> FetchMyLandingPageAnalyticsAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPagesResponse> FetchAdminUserLandingPagesAsync(string userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(string username, string slug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageDetailResponse> CreateAsync(CreateLandingPageBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

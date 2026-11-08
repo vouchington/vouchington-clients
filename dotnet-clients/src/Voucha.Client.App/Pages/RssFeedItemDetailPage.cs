@@ -2,7 +2,6 @@ using Microsoft.Maui.ApplicationModel;
 using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
-using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.App.Controls;
@@ -14,7 +13,6 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
 {
   private readonly RssFeedItemDetailViewModel viewModel;
   private readonly IServiceProvider serviceProvider;
-  private readonly HnDiscussionsViewModel hnDiscussions;
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private readonly Button followerSend;
@@ -37,10 +35,6 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
         localization,
         localeController,
         serviceProvider.GetRequiredService<IProductSurfaceAnalytics>());
-    hnDiscussions = new(
-        serviceProvider.GetRequiredService<IHnDiscussionsSettings>(),
-        serviceProvider.GetRequiredService<HnDiscussionsClient>(),
-        localization);
     BindingContext = viewModel;
     Title = UiCopy.Localize(UiMessageKey.NativeTaxonomyListsRssFeedItem);
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(RefreshFollowerSendVisibility);
@@ -87,25 +81,6 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
     followerSend.Clicked += OnFollowerSendClicked;
     RefreshFollowerSendVisibility();
 
-    var hnHeading = new Label { FontAttributes = FontAttributes.Bold };
-    hnHeading.SetBinding(Label.TextProperty, nameof(HnDiscussionsViewModel.LocalizedHeading));
-    hnHeading.BindingContext = hnDiscussions;
-    var hnThreads = new CollectionView { SelectionMode = SelectionMode.None };
-    hnThreads.SetBinding(ItemsView.ItemsSourceProperty, nameof(HnDiscussionsViewModel.Threads));
-    hnThreads.BindingContext = hnDiscussions;
-    hnThreads.ItemTemplate = new DataTemplate(() =>
-    {
-      var title = new Button();
-      title.SetBinding(Button.TextProperty, nameof(HnDiscussionRow.Title));
-      title.Clicked += OnHnDiscussionClicked;
-      var metadata = new Label { FontSize = 13 };
-      metadata.SetBinding(Label.TextProperty, nameof(HnDiscussionRow.LocalizedMetadata));
-      return new VerticalStackLayout { Spacing = 2, Children = { title, metadata } };
-    });
-    var hnStack = new VerticalStackLayout { Spacing = 8, Children = { hnHeading, hnThreads } };
-    hnStack.SetBinding(IsVisibleProperty, nameof(HnDiscussionsViewModel.HasThreads));
-    hnStack.BindingContext = hnDiscussions;
-
     Content = new ScrollView
     {
       Content = new VerticalStackLayout
@@ -116,7 +91,6 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
         {
           image, source, title, embedPreview, summary, published, votes, bookmarks, hidden,
           new HorizontalStackLayout { Spacing = 8, Children = { play, playEmbed, videoUnavailable, open, embedOpen, followerSend } },
-          hnStack,
           error, retry,
         },
       },
@@ -129,7 +103,6 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
     AttachSessionChanged();
     if (!viewModel.HasDetail) await viewModel.LoadAsync().ConfigureAwait(true);
     RefreshFollowerSendVisibility();
-    await hnDiscussions.LoadAsync([viewModel.Detail?.Item.Link?.ToString()]).ConfigureAwait(true);
   }
 
   protected override void OnDisappearing()
@@ -157,14 +130,6 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
   {
     if (viewModel.Detail?.Item is { Id: { } id } && FollowerDistributionActions.CanSendRssItem(sessionStore))
       await FollowerDistributionActions.ShowAsync(this, serviceProvider, sessionStore, FollowerDistributionTargetKind.RssFeedItem, id);
-  }
-
-  private async void OnHnDiscussionClicked(object? sender, EventArgs args)
-  {
-    if (sender is Button { BindingContext: HnDiscussionRow row })
-    {
-      await Launcher.Default.OpenAsync(row.ItemUrl).ConfigureAwait(true);
-    }
   }
 
   private static Label BoundLabel(

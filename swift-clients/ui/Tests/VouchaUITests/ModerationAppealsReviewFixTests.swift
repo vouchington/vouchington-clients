@@ -6,7 +6,7 @@ import XCTest
 @MainActor
 final class ModerationAppealsReviewFixTests: NativeRouteSurfaceViewModelTestCase {
     func testApprovalResponseClearsTimedOutRerunWithoutAnotherRead() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel(rerunPollAttempts: 1)
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -38,7 +38,7 @@ final class ModerationAppealsReviewFixTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testCancelledBeforeRerunAdmissionDoesNotPostOrKeepPending() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -56,7 +56,7 @@ final class ModerationAppealsReviewFixTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testLateMutationDoesNotClearNewerAdmission() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let store = AppealAIRerunAdmissionStore()
         let viewModel = try ModerationAppealsViewModel(
             client: makeClient(), isSignedIn: true, isAdministrator: true,

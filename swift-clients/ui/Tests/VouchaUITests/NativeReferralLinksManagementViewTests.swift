@@ -104,6 +104,26 @@ final class NativeReferralLinksManagementViewTests: NativeRouteSurfaceViewModelT
         XCTAssertEqual(viewModel.clicks.map(\.id), ["click-1", "click-2"])
     }
 
+    func testReferralClickRowsRetainClearedLandingUrl() async throws {
+        let page = referralClicksPage(id: "click-1", endCursor: nil, hasNextPage: false)
+        let clearedPage = try XCTUnwrap(String(data: page, encoding: .utf8))
+            .replacingOccurrences(of: "\"https://example.com/click-1\"", with: "null")
+        CannedFeedURLProtocol.handlers["/api/v1/my/referral-clicks"] = (
+            Data(clearedPage.utf8),
+            200
+        )
+        let client = try makeClient()
+        let viewModel = NativeReferralLinksManagementViewModel(client: client)
+
+        await viewModel.loadClicks()
+        let sut = NativeReferralClickRows(viewModel: viewModel)
+
+        XCTAssertEqual(viewModel.clicks.map(\.id), ["click-1"])
+        XCTAssertNoThrow(try sut.inspect().find(text: "—"))
+        XCTAssertThrowsError(try sut.inspect().find(text: "https://example.com/click-1"))
+        XCTAssertTrue(try sut.inspect().findAll(ViewType.Link.self).isEmpty)
+    }
+
     func testReferralClickRowsRenderAnonymousSignupWhenUsernameIsMissing() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/my/referral-clicks"] = (
             anonymousSignupClickPage(),

@@ -54,13 +54,6 @@ extension NativeCommentThreadSurface {
                         }
                     }
 
-                    if canShowBody(rootPost) {
-                        HnDiscussionsPanel(
-                            urls: HnDiscussionURLCollector.extract(fromMarkdown: rootPost.markdown),
-                            client: client
-                        )
-                    }
-
                     ancestorPaginationControl
 
                     if !viewModel.ancestorPosts.isEmpty {

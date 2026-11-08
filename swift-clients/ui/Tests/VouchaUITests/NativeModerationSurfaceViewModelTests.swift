@@ -51,7 +51,10 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
     }
 
     func testDisputesRouteUsesLifecycleFields() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (disputesData, 200)
+        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
+            ApiFixtureLoader.data("native.moderation.disputes.default"),
+            200
+        )
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/disputes")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .moderationDisputes),
@@ -64,7 +67,7 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/disputes")
         XCTAssertEqual(
             viewModel.rows.first,
-            verbatimRow(icon: "exclamationmark.bubble", title: "Native review dispute", detail: "Pending · Remove")
+            verbatimRow(icon: "exclamationmark.bubble", title: "A disputed review", detail: "Pending · Remove")
         )
     }
 
@@ -186,43 +189,4 @@ final class NativeModerationSurfaceViewModelTests: NativeRouteSurfaceViewModelTe
         """.utf8)
     }
 
-    private var disputesData: Data {
-        Data("""
-        {
-          "disputes": [{
-            "id": "dispute-1",
-            "post_id": "post-1",
-            "topic_id": "topic-1",
-            "disputant_user_id": "user-1",
-            "reason": "other",
-            "claim_text": "Native review dispute",
-            "status": "pending",
-            "recommended_action": "remove",
-            "is_overdue": false,
-            "ai_public_response": null,
-            "ai_internal_response": null,
-            "model": null,
-            "ai_drafted_at": null,
-            "ai_draft_requested_run_id": "dispute_resolution_00000000-0000-7000-8000-000000000211",
-            "ai_draft_run_id": null,
-            "public_response": null,
-            "internal_notes": null,
-            "drafted_at": null,
-            "edited_at": null,
-            "edited_by_id": null,
-            "approved_at": null,
-            "approved_by_id": null,
-            "sent_at": null,
-            "resolved_at": null,
-            "resolved_by_id": null,
-            "resolution_action": null,
-            "latest_lifecycle_change_id": null,
-            "post_content": null,
-            "created_at": "2026-01-01T00:00:00Z",
-            "updated_at": "2026-01-01T00:00:00Z"
-          }],
-          "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null }
-        }
-        """.utf8)
-    }
 }

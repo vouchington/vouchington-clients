@@ -163,6 +163,7 @@ internal static partial class ApiFixtureCoverage
     ["web.communities.show.default"] = typeof(CommunityResponse),
     ["web.communities.ai-agent.default"] = typeof(UpsertCommunityAiAgentResponse),
     ["web.communities.news.default"] = typeof(RssFeedItemsFeedResponse),
+    ["web.communities.application.default"] = typeof(CommunityApplicationResponse),
     ["web.communities.applications.default"] = typeof(CommunityApplicationsResponse),
     ["web.communities.invites.default"] = typeof(CommunityInvitesResponse),
     ["web.communities.bans.default"] = typeof(CommunityBansResponse),
@@ -359,7 +360,7 @@ internal static partial class ApiFixtureCoverage
     ["web.admin.valkey.cache-groups.default"] = typeof(CacheGroupsResponse),
     ["web.admin.valkey.caches.clear.default"] = typeof(ClearCacheResponse),
     ["web.admin.valkey.flush.default"] = typeof(FlushValkeyResponse),
-  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures().WithNativeSessionFixtures();
+  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures().WithNativeSessionFixtures().WithContractDriftFixtures();
 
   /// <summary>
   /// Per-fixture key paths this client intentionally does not model, with a one-line reason.

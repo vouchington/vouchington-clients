@@ -6,13 +6,15 @@ namespace Voucha.Client.App.Pages;
 public partial class LandingPageAnalyticsPage : ContentPage
 {
   private readonly LandingPageAnalyticsViewModel viewModel;
-  private readonly string pageId;
+  private readonly string username;
+  private readonly string slug;
 
-  public LandingPageAnalyticsPage(LandingPageAnalyticsViewModel viewModel, string pageId)
+  public LandingPageAnalyticsPage(LandingPageAnalyticsViewModel viewModel, string username, string slug)
   {
     InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-    this.pageId = pageId ?? throw new ArgumentNullException(nameof(pageId));
+    this.username = username ?? throw new ArgumentNullException(nameof(username));
+    this.slug = slug ?? throw new ArgumentNullException(nameof(slug));
     BindingContext = viewModel;
   }
 
@@ -21,7 +23,7 @@ public partial class LandingPageAnalyticsPage : ContentPage
     base.OnAppearing();
     try
     {
-      await viewModel.LoadAsync(pageId).ConfigureAwait(true);
+      await viewModel.LoadAsync(username, slug).ConfigureAwait(true);
     }
     catch (Exception ex)
     {

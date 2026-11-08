@@ -19,6 +19,10 @@ final class EndpointRouteParameterEncodingTests: XCTestCase {
             Endpoint.publicLandingPage(username: "user/one%", slug: "landing/two%").path,
             "/api/v1/users/user%2Fone%25/landing-pages/landing%2Ftwo%25"
         )
+        XCTAssertEqual(
+            Endpoint.adminLandingPageAnalytics(username: "user/one%", slug: "landing/two%").path,
+            "/api/v1/admin/users/user%2Fone%25/landing-pages/landing%2Ftwo%25/analytics"
+        )
         XCTAssertEqual(Endpoint.post(idOrSlug: "post/one%").path, "/api/v1/posts/post%2Fone%25")
         XCTAssertEqual(Endpoint.topic(id: "topic/one%").path, "/api/v1/topics/topic%2Fone%25")
         XCTAssertEqual(

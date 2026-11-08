@@ -63,7 +63,6 @@ public sealed record User(
     [property: JsonPropertyName("is_fediverse_federation_enabled")] bool? FediverseFederationEnabled = null,
     [property: JsonPropertyName("processing_restricted_at")] DateTimeOffset? ProcessingRestrictedAt = null,
     [property: JsonPropertyName("third_party_marketing")] bool? ThirdPartyMarketing = null,
-    [property: JsonPropertyName("hn_discussions")] bool? HnDiscussions = null,
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,
     [property: JsonPropertyName("account_type")] AccountType? AccountType = null,
     [property: JsonPropertyName("ui_locale")] string? UiLocale = null,

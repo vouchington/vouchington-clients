@@ -13,7 +13,7 @@ public sealed partial class VouchaApiClient
       SendAsync<LandingPagesResponse>(VouchaApiEndpoints.AdminUserLandingPages(userId), cancellationToken);
 
   public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(
-      string pageId,
+      string username, string slug,
       CancellationToken cancellationToken = default) =>
-      SendAsync<AdminLandingPageAnalyticsResponse>(VouchaApiEndpoints.AdminLandingPageAnalytics(pageId), cancellationToken);
+      SendAsync<AdminLandingPageAnalyticsResponse>(VouchaApiEndpoints.AdminLandingPageAnalytics(username, slug), cancellationToken);
 }

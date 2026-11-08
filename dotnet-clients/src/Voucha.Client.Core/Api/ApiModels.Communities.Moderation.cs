@@ -77,7 +77,8 @@ public sealed record CommunityAgentPromptHistoryEntry(
 
 public sealed record CommunityAgentPromptsResponse(
     [property: JsonPropertyName("community_agent_prompts")] IReadOnlyList<CommunityAgentPrompt> CommunityAgentPrompts,
-    [property: JsonPropertyName("slot_info")] IReadOnlyDictionary<string, object> SlotInfo);
+    [property: JsonPropertyName("slot_info")] IReadOnlyDictionary<string, object> SlotInfo,
+    [property: JsonPropertyName("page_info")] PageInfo? PageInfo = null);
 
 public sealed record CommunityAgentPromptResponse(
     [property: JsonPropertyName("community_agent_prompt")] CommunityAgentPrompt CommunityAgentPrompt);

@@ -76,6 +76,7 @@ enum ApiFixtureCoverage {
         + chatFixtureCoverage
         + topicClaimFixtureCoverage
         + nativeSessionFixtureCoverage
+        + contractDriftFixtureCoverage
 }
 
 let chatFixtureCoverage: [RegisteredFixture] = [

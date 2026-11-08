@@ -27,7 +27,7 @@ public struct ReferralClickLogResult: Codable, Identifiable, Sendable {
 
 public struct ReferralClickLogEntry: Codable, Identifiable, Sendable {
     public let id: String
-    public let landingUrl: String
+    @RequiredNullable public var landingUrl: String?
     public let signedUpAt: Date?
     public let userId: String?
     public let createdAt: Date

@@ -15,7 +15,7 @@ public interface ILandingPagesService
       CancellationToken cancellationToken = default);
 
   Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(
-      string pageId,
+      string username, string slug,
       CancellationToken cancellationToken = default);
 
   Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default);

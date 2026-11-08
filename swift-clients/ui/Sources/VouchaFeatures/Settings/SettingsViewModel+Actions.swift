@@ -55,7 +55,6 @@ public extension SettingsViewModel {
                     defaultPostPrivacy: defaultPostPrivacy,
                     processingRestrictedAt: processingRestrictedAt,
                     thirdPartyMarketing: thirdPartyMarketing,
-                    hnDiscussions: hnDiscussions,
                     uiLocale: uiLocaleForPrivacySave(),
                     clearUiLocale: shouldClearUiLocaleForPrivacySave()
                 )

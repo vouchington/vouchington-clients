@@ -140,22 +140,6 @@ extension SettingsSurface {
                 UiMessages.string(.nativeSwiftSettingsThirdPartyMarketing, locale: nativeUiLocale),
                 isOn: $viewModel.thirdPartyMarketing
             )
-            Toggle(
-                UiMessages.string(
-                    .extractedMyPreferencesFormHackerNewsDiscussions065664a4,
-                    locale: nativeUiLocale
-                ),
-                isOn: $viewModel.hnDiscussions
-            )
-            Text(
-                UiMessages.string(
-                    .extractedMyPreferencesFormShowRelatedHackerNewsThreadsWhen00754911,
-                    locale: nativeUiLocale
-                )
-            )
-            .font(Typography.caption)
-            .foregroundStyle(Colors.secondaryLabel)
-
             Button(UiMessages.string(.nativeSwiftSettingsSavePrivacy, locale: nativeUiLocale)) {
                 Task { await viewModel.savePrivacy() }
             }
