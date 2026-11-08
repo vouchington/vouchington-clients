@@ -16,7 +16,8 @@ public sealed partial class CommunityDetailViewModel
   public async Task<bool> CreateAgentPromptAsync(
       string prompt, string? modelName = null, string? modelProvider = null, CancellationToken cancellationToken = default)
   {
-    if (!CanModerateCommunity || isCreatingAgentPrompt || IsLoading || isLoadingAgentPrompts || isLoadingMoreCommunityList || agentPromptDisposed) return false;
+    var sessionRevision = Volatile.Read(ref agentPromptSessionRevision);
+    if (!AcceptsAgentPromptSession(sessionRevision) || !CanModerateCommunity || isCreatingAgentPrompt || IsLoading || isLoadingAgentPrompts || isLoadingMoreCommunityList || agentPromptDisposed) return false;
     var community = communityIdOrSlug;
     var revision = Volatile.Read(ref communityContextRevision);
     var readRevision = agentPromptReadRevision;
@@ -35,15 +36,15 @@ public sealed partial class CommunityDetailViewModel
     {
       await service.CreateAgentPromptAsync(community,
           new CommunityAgentPromptUpsertRequest(prompt, modelName, modelProvider), cancellationToken).ConfigureAwait(true);
-      if (!IsCurrentAgentPromptContext(community, revision, owner, section)) return false;
+      if (!IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) return false;
       await RefreshAgentPromptsAfterCreateAsync(cancellationToken).ConfigureAwait(true);
-      var current = IsCurrentAgentPromptContext(community, revision, owner, section);
+      var current = IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision);
       if (current && !isLoadingAgentPrompts) CompleteLoad();
       return current;
     }
     catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict && ex.ErrorCode == "COMMUNITY_AGENT_PROMPT_LIMIT_REACHED")
     {
-      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)) return false;
+      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) return false;
       HasReachedAgentPromptLimit = true;
       agentPromptCreationError = string.IsNullOrWhiteSpace(ex.ApiMessage)
           ? UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed)
@@ -54,17 +55,17 @@ public sealed partial class CommunityDetailViewModel
     }
     catch (OperationCanceledException)
     {
-      if (readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section)) CompleteLoad();
+      if (readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) CompleteLoad();
       return false;
     }
     catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
     {
-      if (readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section)) HandleLoadException(ex);
+      if (readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) HandleLoadException(ex);
       return false;
     }
     finally
     {
-      if (operation == agentPromptCreationOperation) isCreatingAgentPrompt = false;
+      if (operation == agentPromptCreationOperation && AcceptsAgentPromptSession(sessionRevision)) isCreatingAgentPrompt = false;
     }
   }
 

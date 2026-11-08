@@ -15,7 +15,8 @@ public sealed partial class CommunityDetailViewModel
 
   private async Task<bool> RefreshAgentPromptsAfterCreateAsync(CancellationToken cancellationToken)
   {
-    if (agentPromptDisposed) return false;
+    var sessionRevision = Volatile.Read(ref agentPromptSessionRevision);
+    if (agentPromptDisposed || !AcceptsAgentPromptSession(sessionRevision)) return false;
     var community = communityIdOrSlug;
     var revision = Volatile.Read(ref communityContextRevision);
     var owner = sessionStore?.Current.Identity?.Id;
@@ -27,11 +28,11 @@ public sealed partial class CommunityDetailViewModel
     try
     {
       await refresh.ConfigureAwait(true);
-      return readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section);
+      return readRevision == agentPromptReadRevision && IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision);
     }
     catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or InvalidOperationException)
     {
-      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)) return false;
+      if (readRevision != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) return false;
       agentPromptRefreshError = ex is VouchaApiException api && !string.IsNullOrWhiteSpace(api.ApiMessage)
           ? UiText.UserContent(api.ApiMessage) : UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed);
       NotifyAgentPromptRefresh();

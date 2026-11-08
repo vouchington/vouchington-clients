@@ -14,10 +14,10 @@ public sealed partial class CommunityDetailViewModel
 
   public bool CanLoadMoreCommunityList =>
       communityListEndCursor is not null && !IsLoadingMoreCommunityList &&
-      IsPagedCommunitySection;
+      IsPagedCommunitySection && (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts || IsCurrentAgentPromptSession);
 
   public bool HasMoreCommunityList => communityListEndCursor is not null &&
-      IsPagedCommunitySection;
+      IsPagedCommunitySection && (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts || IsCurrentAgentPromptSession);
 
   public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList || (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && isLoadingAgentPrompts);
 

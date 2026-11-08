@@ -1,5 +1,4 @@
 using Voucha.Client.Core.Api;
-using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
@@ -14,7 +13,8 @@ public sealed partial class CommunityDetailViewModel
 
   public async Task LoadAgentPromptsAsync(CancellationToken cancellationToken = default)
   {
-    if (agentPromptDisposed) return;
+    var sessionRevision = Volatile.Read(ref agentPromptSessionRevision);
+    if (agentPromptDisposed || !AcceptsAgentPromptSession(sessionRevision)) return;
     isLoadingAgentPrompts = true;
     InvalidateCommunityListRequests();
     var request = Interlocked.Increment(ref agentPromptReadRevision);
@@ -27,14 +27,14 @@ public sealed partial class CommunityDetailViewModel
     try
     {
       var page = await service.FetchAgentPromptsPageAsync(community, null, 25, cancellationToken).ConfigureAwait(true);
-      if (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)) return;
+      if (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)) return;
       ApplyAgentPromptPage(page, false);
       agentPromptRefreshError = null;
       NotifyAgentPromptRefresh();
       if (!isCreatingAgentPrompt) CompleteLoad();
     }
     catch (Exception ex) when ((ex is HttpRequestException or OperationCanceledException or InvalidOperationException) &&
-        (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section)))
+        (request != agentPromptReadRevision || !IsCurrentAgentPromptContext(community, revision, owner, section, sessionRevision)))
     {
     }
     finally
@@ -51,11 +51,20 @@ public sealed partial class CommunityDetailViewModel
       string after, int revision, int request, string community,
       CommunityDetailSurfaceSection section, string? threadId, CancellationToken cancellationToken)
   {
+    var sessionRevision = Volatile.Read(ref agentPromptSessionRevision);
+    if (!AcceptsAgentPromptSession(sessionRevision) || agentPromptDisposed) return;
     var owner = sessionStore?.Current.Identity?.Id;
-    var page = await service.FetchAgentPromptsPageAsync(community, after, 25, cancellationToken).ConfigureAwait(true);
-    if (!IsCurrentCommunityPage(revision, request, community, section, threadId) ||
-        agentPromptDisposed || owner != sessionStore?.Current.Identity?.Id) return;
-    ApplyAgentPromptPage(page, true);
+    try
+    {
+      var page = await service.FetchAgentPromptsPageAsync(community, after, 25, cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentCommunityPage(revision, request, community, section, threadId) ||
+          !AcceptsAgentPromptSession(sessionRevision) || agentPromptDisposed || owner != sessionStore?.Current.Identity?.Id) return;
+      ApplyAgentPromptPage(page, true);
+    }
+    catch (Exception ex) when ((ex is HttpRequestException or OperationCanceledException or InvalidOperationException) &&
+        !AcceptsAgentPromptSession(sessionRevision))
+    {
+    }
   }
 
   private void ApplyAgentPromptPage(CommunityAgentPromptsResponse page, bool append)
@@ -79,8 +88,8 @@ public sealed partial class CommunityDetailViewModel
         Verbatim(prompt.ModelName))).ToArray();
   }
 
-  private bool IsCurrentAgentPromptContext(string community, long revision, string? owner, CommunityDetailSurfaceSection section) =>
-      !agentPromptDisposed && community == communityIdOrSlug && revision == Volatile.Read(ref communityContextRevision) &&
+  private bool IsCurrentAgentPromptContext(string community, long revision, string? owner, CommunityDetailSurfaceSection section, long sessionRevision) =>
+      AcceptsAgentPromptSession(sessionRevision) && !agentPromptDisposed && community == communityIdOrSlug && revision == Volatile.Read(ref communityContextRevision) &&
       owner == sessionStore?.Current.Identity?.Id && section == SelectedSection;
 
   private void ResetAgentPromptContext(bool notify = true)
@@ -102,7 +111,7 @@ public sealed partial class CommunityDetailViewModel
     NotifyAgentPromptRefresh();
   }
 
-  private void OnAgentPromptSessionChanged(object? sender, SessionChangedEventArgs args)
+  private void OnAgentPromptSessionChanged()
   {
     if (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts)
     {

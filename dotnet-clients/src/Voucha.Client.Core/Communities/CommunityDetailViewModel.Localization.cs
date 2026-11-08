@@ -26,7 +26,7 @@ public sealed partial class CommunityDetailViewModel
     ResetAgentPromptContext();
     InvalidateCommunityListRequests();
     SetCommunityContinuation(null);
-    if (sessionStore is not null) sessionStore.SessionChanged -= OnAgentPromptSessionChanged;
+    agentPromptSessionObserver?.Dispose();
     localeSubscription?.Dispose();
   }
 }

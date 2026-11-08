@@ -111,11 +111,22 @@ public sealed class CommunityAgentPromptPagingTests
     Assert.Equal(slots, model.AgentPromptSlots);
     Assert.True(model.HasMoreCommunityList);
     Assert.False(model.HasError);
-    service.AgentPromptCreateHandler = _ => Task.FromResult(Fixture().CommunityAgentPrompts[0]);
+    var refreshed = Page(Fixture() with
+    {
+      CommunityAgentPrompts = [Fixture().CommunityAgentPrompts[0] with { Id = "created-prompt", Prompt = "preserve draft" }],
+    }, "fresh cursor", true) with
+    { SlotInfo = new(7, 10, 3, new(3, 10)) };
+    service.AgentPromptsResponses.Enqueue(refreshed);
+    var getCount = service.ForwardPageRequests.Count;
+    service.AgentPromptCreateHandler = _ => Task.FromResult(refreshed.CommunityAgentPrompts[0]);
     Assert.True(await model.CreateAgentPromptAsync("preserve draft", cancellationToken: Token));
     Assert.False(model.HasReachedAgentPromptLimit);
     Assert.Null(model.AgentPromptCreationError);
+    Assert.Equal(getCount + 1, service.ForwardPageRequests.Count);
     Assert.Null(service.ForwardPageRequests[^1].After);
+    Assert.Equal("created-prompt", Assert.Single(model.AgentPrompts).Id);
+    Assert.Equal("created-prompt", Assert.Single(model.Moderation).Id);
+    Assert.Equal(refreshed.SlotInfo, model.AgentPromptSlots);
   }
 
   [Theory]
