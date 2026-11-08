@@ -31,10 +31,10 @@ public sealed partial class EngineeringPostgreSqlViewModel :
       ISessionStore? sessionStore = null)
   {
     this.sessionStore = sessionStore;
-    if (sessionStore is not null) sessionStore.SessionChanged += OnRangeSessionChanged;
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    if (sessionStore is not null) sessionStore.SessionChanged += OnRangeSessionChanged;
   }
 
   public PsqlMigrationsResponse? Migrations { get => migrations; private set => SetProperty(ref migrations, value); }

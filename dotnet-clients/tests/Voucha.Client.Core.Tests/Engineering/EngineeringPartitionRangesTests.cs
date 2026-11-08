@@ -140,6 +140,75 @@ public sealed class EngineeringPartitionRangesTests
     }
   }
 
+  [Fact]
+  public async Task UnexpectedConfirmationFailureReleasesOperationBeforeSessionChanges()
+  {
+    var (vm, handler, session) = Create();
+    using (vm)
+    {
+      await Assert.ThrowsAsync<ArgumentException>(() => vm.ConfirmRangeAsync(false, false,
+          _ => throw new ArgumentException("confirmation failed"), TestContext.Current.CancellationToken));
+      Assert.False(vm.IsLoading);
+      session.Set(null);
+      session.Set("administrator");
+      vm.CancelRangeOperation();
+      await vm.ConfirmRangeAsync(true, false, _ => Task.FromResult(true), TestContext.Current.CancellationToken);
+      Assert.Single(handler.Requests);
+      Assert.True(vm.RangeQueued);
+    }
+  }
+
+  [Fact]
+  public async Task DisposingDuringConfirmationCancelsWithoutSendingAndIsIdempotent()
+  {
+    var (vm, handler, session) = Create();
+    var confirmation = new TaskCompletionSource<bool>();
+    var pending = vm.ConfirmRangeAsync(false, false, _ => confirmation.Task, TestContext.Current.CancellationToken);
+    Assert.True(vm.IsLoading);
+    vm.Dispose();
+    vm.Dispose();
+    session.Set(null);
+    confirmation.SetResult(true);
+    await pending;
+    Assert.Empty(handler.Requests);
+    Assert.False(vm.IsLoading);
+    Assert.False(vm.RangeQueued);
+    Assert.Null(vm.ErrorMessage);
+    await vm.ConfirmRangeAsync(true, true, _ => throw new ArgumentException(), TestContext.Current.CancellationToken);
+    Assert.False(vm.IsRangeAuthorized);
+    Assert.Empty(handler.Requests);
+  }
+
+  [Theory]
+  [InlineData("1.5")]
+  [InlineData("abc")]
+  [InlineData("9999999999999999999999")]
+  public async Task InvalidRowTextNeverOpensConfirmation(string value)
+  {
+    var (vm, handler, _) = Create();
+    using (vm)
+    {
+      vm.RangeMaxDefaultRows = value;
+      await vm.ConfirmRangeAsync(false, false, _ => throw new ArgumentException(), TestContext.Current.CancellationToken);
+      Assert.Equal(PsqlPartitionRangeError.InvalidRowLimit, vm.RangeError);
+      Assert.Empty(handler.Requests);
+    }
+  }
+
+  [Fact]
+  public async Task MissingSessionStoreDeniesNewRangeOperations()
+  {
+    var handler = new RecordingHandler("{\"success\":true}");
+    var service = new ApiEngineeringService(new VouchaApiClient(new HttpClient(handler) { BaseAddress = new("https://api.test") }));
+    using var vm = new EngineeringPostgreSqlViewModel(service)
+    {
+      RangeFromDate = "2020-02-01", RangeToDate = "2020-02-02",
+    };
+    await vm.ConfirmRangeAsync(false, false, _ => throw new ArgumentException(), TestContext.Current.CancellationToken);
+    Assert.False(vm.IsRangeAuthorized);
+    Assert.Empty(handler.Requests);
+  }
+
   private static (EngineeringPostgreSqlViewModel Vm, RecordingHandler Handler, SessionStore Session) Create(
       HttpStatusCode status = HttpStatusCode.OK)
   {

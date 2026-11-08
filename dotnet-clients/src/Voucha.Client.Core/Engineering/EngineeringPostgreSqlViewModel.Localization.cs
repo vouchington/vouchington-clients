@@ -8,9 +8,13 @@ public sealed partial class EngineeringPostgreSqlViewModel
 
   public void Dispose()
   {
+    if (isDisposed) return;
+    isDisposed = true;
     localeSubscription?.Dispose();
     if (sessionStore is not null) sessionStore.SessionChanged -= OnRangeSessionChanged;
     rangeCancellation?.Cancel();
+    rangeCancellation?.Dispose();
+    rangeCancellation = null;
   }
 
   private string? FormatArticleSyncStatus()

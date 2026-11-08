@@ -9,6 +9,7 @@ public sealed partial class EngineeringPostgreSqlViewModel
   private readonly ISessionStore? sessionStore;
   private CancellationTokenSource? rangeCancellation;
   private int sessionVersion;
+  private bool isDisposed;
   private string rangeFromDate = string.Empty;
   private string rangeToDate = string.Empty;
   private string rangeMaxDefaultRows = string.Empty;
@@ -20,7 +21,7 @@ public sealed partial class EngineeringPostgreSqlViewModel
   public string RangeMaxDefaultRows { get => rangeMaxDefaultRows; set => SetProperty(ref rangeMaxDefaultRows, value ?? string.Empty); }
   public PsqlPartitionRangeError RangeError { get => rangeError; private set => SetProperty(ref rangeError, value); }
   public bool RangeQueued { get => rangeQueued; private set => SetProperty(ref rangeQueued, value); }
-  public bool IsRangeAuthorized => sessionStore?.Current.Identity?.Roles?.Contains("administrator", StringComparer.Ordinal) == true;
+  public bool IsRangeAuthorized => !isDisposed && sessionStore?.Current.Identity?.Roles?.Contains("administrator", StringComparer.Ordinal) == true;
 
   public async Task ConfirmRangeAsync(
       bool requestFamily,
@@ -49,26 +50,33 @@ public sealed partial class EngineeringPostgreSqlViewModel
     if (RangeError != PsqlPartitionRangeError.None) return;
     var version = sessionVersion;
     using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    var token = cancellation.Token;
     rangeCancellation = cancellation;
-    await EngineeringRequest.RunAsync(
-        () => IsLoading || isMutating,
-        () => { isMutating = true; IsLoading = true; },
-        message =>
-        {
-          if (version == sessionVersion && !cancellation.IsCancellationRequested) ErrorMessage = message;
-        },
-        () => { isMutating = false; IsLoading = false; },
-        async () =>
-        {
-          if (!await confirm(body).ConfigureAwait(true)) return;
-          cancellation.Token.ThrowIfCancellationRequested();
-          if (version != sessionVersion || !IsRangeAuthorized) return;
-          var result = await service.EnqueuePsqlJobAsync(body, cancellation.Token).ConfigureAwait(true);
-          cancellation.Token.ThrowIfCancellationRequested();
-          if (version != sessionVersion || !IsRangeAuthorized) return;
-          RangeQueued = result.Success;
-        }).ConfigureAwait(true);
-    if (ReferenceEquals(rangeCancellation, cancellation)) rangeCancellation = null;
+    try
+    {
+      await EngineeringRequest.RunAsync(
+          () => IsLoading || isMutating,
+          () => { isMutating = true; IsLoading = true; },
+          message =>
+          {
+            if (version == sessionVersion && !token.IsCancellationRequested) ErrorMessage = message;
+          },
+          () => { isMutating = false; IsLoading = false; },
+          async () =>
+          {
+            if (!await confirm(body).ConfigureAwait(true)) return;
+            token.ThrowIfCancellationRequested();
+            if (version != sessionVersion || !IsRangeAuthorized) return;
+            var result = await service.EnqueuePsqlJobAsync(body, token).ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
+            if (version != sessionVersion || !IsRangeAuthorized) return;
+            RangeQueued = result.Success;
+          }).ConfigureAwait(true);
+    }
+    finally
+    {
+      if (ReferenceEquals(rangeCancellation, cancellation)) rangeCancellation = null;
+    }
   }
 
   public void CancelRangeOperation() => rangeCancellation?.Cancel();
