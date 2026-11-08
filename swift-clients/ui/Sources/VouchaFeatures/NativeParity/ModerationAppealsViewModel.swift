@@ -98,15 +98,20 @@ final class ModerationAppealsViewModel {
             let response: ModerationAppealListResponse = try await client.send(
                 .appeals(status: expectedStatus, limit: 25)
             )
+            var details: [ModerationAppeal] = []
+            for summary in response.appeals {
+                let detail: ModerationAppealEnvelope = try await client.send(.appeal(id: summary.id))
+                details.append(detail.appeal)
+            }
             guard revision == loadRevision, expectedStatus == selectedStatus else { return }
             appealPagination.complete(
                 request,
-                items: response.appeals,
+                items: details,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            reconcileAIReruns(from: response.appeals)
-            seedDrafts(from: response.appeals)
+            reconcileAIReruns(from: details)
+            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
             appealPagination.cancel(request)
@@ -137,17 +142,22 @@ final class ModerationAppealsViewModel {
             let response: ModerationAppealListResponse = try await client.send(
                 .appeals(status: expectedStatus, limit: 25, after: request.cursor)
             )
+            var details: [ModerationAppeal] = []
+            for summary in response.appeals {
+                let detail: ModerationAppealEnvelope = try await client.send(.appeal(id: summary.id))
+                details.append(detail.appeal)
+            }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   appealPagination.isCurrent(request)
             else { return }
             appealPagination.complete(
                 request,
-                items: response.appeals,
+                items: details,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            reconcileAIReruns(from: response.appeals)
-            seedDrafts(from: response.appeals)
+            reconcileAIReruns(from: details)
+            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
             appealPagination.cancel(request)

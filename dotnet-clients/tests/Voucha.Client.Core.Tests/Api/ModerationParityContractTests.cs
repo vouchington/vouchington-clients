@@ -10,20 +10,20 @@ public sealed class ModerationParityContractTests
   [Fact]
   public void AppealContextsDecodeAndRemainOptionalForOldResponses()
   {
-    var json = ApiFixtureLoader.LoadResponse("native.moderation.appeals.default");
-    var response = JsonSerializer.Deserialize<ModerationAppealListResponse>(json, VouchaApiJson.Options);
-    var appeal = Assert.Single(Assert.IsType<ModerationAppealListResponse>(response).Appeals);
+    var json = ApiFixtureLoader.LoadResponse("native.moderation.appeals.detail.default");
+    var response = JsonSerializer.Deserialize<ModerationAppealResponse>(json, VouchaApiJson.Options);
+    var appeal = Assert.IsType<ModerationAppealResponse>(response).Appeal;
 
     var target = Assert.IsType<ModerationAppealPostRemovalContext>(appeal.TargetContext);
     Assert.Equal("A removed review", target.Title);
     Assert.Equal("appealing-reviewer", appeal.StaffContext?.Appellant.Username);
     Assert.Equal("moderator", appeal.StaffContext?.OriginalDecision.Actor?.Username);
 
-    var oldShape = RemoveAggregateKey(json, "appeals", "target_context", "staff_context");
-    var oldResponse = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var oldShape = RemoveAggregateKey(json, "appeal", "target_context", "staff_context");
+    var oldResponse = JsonSerializer.Deserialize<ModerationAppealResponse>(
         oldShape,
         VouchaApiJson.Options);
-    var oldAppeal = Assert.Single(Assert.IsType<ModerationAppealListResponse>(oldResponse).Appeals);
+    var oldAppeal = Assert.IsType<ModerationAppealResponse>(oldResponse).Appeal;
     Assert.Null(oldAppeal.TargetContext);
     Assert.Null(oldAppeal.StaffContext);
   }
@@ -31,9 +31,9 @@ public sealed class ModerationParityContractTests
   [Fact]
   public void DisputeContextsAndLifecycleEnvelopesDecode()
   {
-    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.default");
-    var response = JsonSerializer.Deserialize<ModerationDisputeListResponse>(json, VouchaApiJson.Options);
-    var dispute = Assert.Single(Assert.IsType<ModerationDisputeListResponse>(response).Disputes);
+    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.detail.default");
+    var response = JsonSerializer.Deserialize<ModerationDisputeResponse>(json, VouchaApiJson.Options);
+    var dispute = Assert.IsType<ModerationDisputeResponse>(response).Dispute;
 
     Assert.Equal("native-claimant", dispute.StaffContext?.Disputant.Username);
     Assert.Equal("A disputed review", dispute.StaffContext?.Review.Post.Title);
@@ -64,11 +64,11 @@ public sealed class ModerationParityContractTests
     Assert.True(rerun?.Queued);
     Assert.Equal("staff-1", rerun?.RerunById);
 
-    var oldShape = RemoveAggregateKey(json, "disputes", "staff_context");
-    var oldResponse = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
+    var oldShape = RemoveAggregateKey(json, "dispute", "staff_context");
+    var oldResponse = JsonSerializer.Deserialize<ModerationDisputeResponse>(
         oldShape,
         VouchaApiJson.Options);
-    Assert.Null(Assert.Single(Assert.IsType<ModerationDisputeListResponse>(oldResponse).Disputes).StaffContext);
+    Assert.Null(Assert.IsType<ModerationDisputeResponse>(oldResponse).Dispute.StaffContext);
   }
 
   [Fact]
@@ -108,8 +108,9 @@ public sealed class ModerationParityContractTests
   {
     var root = JsonNode.Parse(json)?.AsObject() ??
         throw new InvalidOperationException("Fixture must contain a JSON object.");
-    var rows = root[collectionKey]?.AsArray() ??
+    var aggregate = root[collectionKey] ??
         throw new InvalidOperationException($"Fixture must contain {collectionKey}.");
+    IEnumerable<JsonNode?> rows = aggregate is JsonArray array ? array : Enumerable.Repeat<JsonNode?>(aggregate, 1);
     foreach (var row in rows)
     {
       var value = row?.AsObject() ??

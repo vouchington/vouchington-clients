@@ -9,7 +9,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testTimeoutAndReadFailuresKeepOnePostUntilBothResultMarkersAdvance() async throws {
         let path = "/api/v1/appeals/appeal-1"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -49,7 +49,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testNegativeAdmissionUnlocksButLostPostResponseNeedsReadReconciliation() async throws {
         let path = "/api/v1/appeals/appeal-1"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -76,7 +76,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testDefiniteClientRejectionReleasesPendingAdmission() async throws {
         let path = "/api/v1/appeals/appeal-1/resolution-drafts"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -91,7 +91,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testRequestTimeoutResponseKeepsPendingAdmission() async throws {
         let path = "/api/v1/appeals/appeal-1/resolution-drafts"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -107,7 +107,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testSuccessfulPostWithUndecodableResponseRetainsAdmission() async throws {
         let path = "/api/v1/appeals/appeal-1/resolution-drafts"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -123,7 +123,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testSameOwnerReopenKeepsAdmissionUntilReadConfirmsResult() async throws {
         let path = "/api/v1/appeals/appeal-1"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
         let store = AppealAIRerunAdmissionStore()
@@ -190,7 +190,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testListReloadKeepsPendingUntilBothResultMarkersAdvance() async throws {
         let path = "/api/v1/appeals/appeal-1"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
         let viewModel = try staffViewModel()
@@ -198,7 +198,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         await viewModel.rerunAI(for: appeal)
 
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal(
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal(
             aiDraftedAt: "2026-07-01T10:01:00Z"
         )]), 200)
         await viewModel.load()
@@ -206,7 +206,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         let updatedAppeal = try XCTUnwrap(viewModel.appeals.first)
         XCTAssertFalse(viewModel.canRerun(updatedAppeal))
 
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal(
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal(
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2"
         )]), 200)
         await viewModel.load()
@@ -218,7 +218,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
     func testStatusSwitchRejectsHeldResultAndKeepsPendingForSameAppeal() async throws {
         let path = "/api/v1/appeals/appeal-1"
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.list([Support.appeal()]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal()]), 200)
         let viewModel = try staffViewModel()
         await viewModel.load()
         let appeal = try XCTUnwrap(viewModel.appeals.first)
@@ -238,7 +238,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
             return
         }
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (
-            Support.list([Support.appeal(id: "other", status: "resolved")]), 200
+            Support.staffList([Support.appeal(id: "other", status: "resolved")]), 200
         )
         await viewModel.selectStatus(.resolved)
         CannedFeedURLProtocol.releaseResponse(path: path)

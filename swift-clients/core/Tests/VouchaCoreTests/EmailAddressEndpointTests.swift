@@ -20,6 +20,23 @@ final class EmailAddressEndpointTests: XCTestCase {
         )
     }
 
+    func testEmailAddressEndpointsForwardFreshAuthenticationToken() {
+        assertEndpoint(
+            .requestMyEmailAddressVerification(emailAddress: "user@example.com", reAuthToken: "fresh-auth"),
+            method: .POST,
+            path: "/api/v1/my/email-addresses",
+            body: ["email_address": "user@example.com", "re_auth_token": "fresh-auth"]
+        )
+        assertEndpoint(
+            .verifyMyEmailAddress(
+                emailAddress: "user@example.com", token: "ABCD1234", reAuthToken: "fresh-auth"
+            ),
+            method: .POST,
+            path: "/api/v1/my/email-addresses/user%40example.com/verifications",
+            body: ["token": "ABCD1234", "re_auth_token": "fresh-auth"]
+        )
+    }
+
     func testEmailAddressResponsesDecode() throws {
         let decoder = makeVouchaDecoder()
         let empty = try decoder.decode(

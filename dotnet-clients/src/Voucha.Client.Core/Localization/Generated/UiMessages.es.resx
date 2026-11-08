@@ -11,9 +11,6 @@
   <data name="extracted.aiCosts.page.totalCostUsd_eed03fbf" xml:space="preserve"><value>Costo total (USD)</value></data>
   <data name="extracted.aiCosts.page.unpricedRequestCount.__plural.one" xml:space="preserve"><value>{count} solicitud sin precio</value></data>
   <data name="extracted.aiCosts.page.unpricedRequestCount.__plural.other" xml:space="preserve"><value>{count} solicitudes sin precio</value></data>
-  <data name="extracted.asides.hnDiscussionsAside.commentsComments_29834540" xml:space="preserve"><value>{comments} comentarios</value></data>
-  <data name="extracted.asides.hnDiscussionsAside.hackerNews_619f304a" xml:space="preserve"><value>Hacker News</value></data>
-  <data name="extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" xml:space="preserve"><value>{points} puntos</value></data>
   <data name="extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" xml:space="preserve"><value>Mostrar respuestas anteriores</value></data>
   <data name="extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" xml:space="preserve"><value>Acción de automod guardada</value></data>
   <data name="extracted.communities.communityAutomodActionForm.automodAction_83211784" xml:space="preserve"><value>Acción de automod</value></data>
@@ -208,8 +205,6 @@
   <data name="extracted.my.friendRecommendationsList.noFriendRecommendationsAtThisTime_fb21db17" xml:space="preserve"><value>Sin recomendaciones de amigos en este momento.</value></data>
   <data name="extracted.my.friendRecommendationsList.viaProviderlabel_3c6f79cf" xml:space="preserve"><value>vía {providerLabel}</value></data>
   <data name="extracted.my.pointValuationsManager.pleaseEnterAValidValuePerPoint_67b38bc3" xml:space="preserve"><value>Ingresa un valor válido por punto</value></data>
-  <data name="extracted.my.preferencesForm.hackerNewsDiscussions_065664a4" xml:space="preserve"><value>Discusiones de Hacker News</value></data>
-  <data name="extracted.my.preferencesForm.showRelatedHackerNewsThreadsWhen_00754911" xml:space="preserve"><value>Muestra hilos relacionados de Hacker News cuando lees un post o artículo con un enlace.</value></data>
   <data name="extracted.my.rewardsProgramStatusesManager.sinceMustBeBeforeUntil_a4745364" xml:space="preserve"><value>Since debe ser antes de until</value></data>
   <data name="extracted.my.spendingCategoriesManager.pleaseEnterAValidAmount_010f1dd6" xml:space="preserve"><value>Por favor ingresa un monto válido</value></data>
   <data name="extracted.pointValuationsManager.addValuationForm.optionalNote_951ddd37" xml:space="preserve"><value>Nota opcional...</value></data>

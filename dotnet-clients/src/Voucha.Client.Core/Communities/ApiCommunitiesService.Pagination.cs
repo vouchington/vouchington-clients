@@ -39,4 +39,6 @@ public sealed partial class ApiCommunitiesService
 
   public Task<CommunityPendingReportsResponse> FetchPendingReportsPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
       client.FetchCommunityPendingReportsAsync(idOrSlug, after, limit, cancellationToken: cancellationToken);
+  public Task<CommunityAgentPromptsResponse> FetchAgentPromptsPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
+      client.FetchCommunityAgentPromptsAsync(idOrSlug, after, limit, cancellationToken);
 }

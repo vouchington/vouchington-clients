@@ -8,10 +8,32 @@ public struct ReportIntegrityPenalty: Codable, Identifiable, Sendable {
     public let id: String
     public let userId: String
     public let reason: String
+    @TolerantNullable
+    public var sourceFlagType: String?
+    @TolerantNullable
+    public var reviewDueAt: Date?
+    @TolerantNullable
+    public var reviewedAt: Date?
+    @TolerantNullable
+    public var reviewedById: String?
+    @TolerantNullable
+    public var userDisplayName: String?
+    @TolerantNullable
+    public var userUsername: String?
+    @TolerantNullable
+    public var creatorDisplayName: String?
+    @TolerantNullable
+    public var creatorUsername: String?
+    @TolerantNullable
+    public var revokerDisplayName: String?
+    @TolerantNullable
+    public var revokerUsername: String?
     public let sourceFlagId: String?
     public let createdById: String?
-    public let revokedAt: Date?
-    public let revokedById: String?
+    @TolerantNullable
+    public var revokedAt: Date?
+    @TolerantNullable
+    public var revokedById: String?
     public let createdAt: Date
     public let updatedAt: Date
 }
@@ -36,10 +58,32 @@ public struct VoteIntegrityPenalty: Codable, Identifiable, Sendable {
     public let userId: String
     public let penaltyMultiplier: Double
     public let reason: String
+    @TolerantNullable
+    public var sourceFlagType: String?
+    @TolerantNullable
+    public var reviewDueAt: Date?
+    @TolerantNullable
+    public var reviewedAt: Date?
+    @TolerantNullable
+    public var reviewedById: String?
+    @TolerantNullable
+    public var userDisplayName: String?
+    @TolerantNullable
+    public var userUsername: String?
+    @TolerantNullable
+    public var creatorDisplayName: String?
+    @TolerantNullable
+    public var creatorUsername: String?
+    @TolerantNullable
+    public var revokerDisplayName: String?
+    @TolerantNullable
+    public var revokerUsername: String?
     public let sourceFlagId: String?
     public let createdById: String
-    public let revokedAt: Date?
-    public let revokedById: String?
+    @TolerantNullable
+    public var revokedAt: Date?
+    @TolerantNullable
+    public var revokedById: String?
     public let createdAt: Date
 }
 

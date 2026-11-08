@@ -42,14 +42,16 @@ internal sealed partial class ScriptedCommunitiesService
       Task.FromResult(ApplicationsResponses.Count > 0 ? ApplicationsResponses.Dequeue() : Deserialize<CommunityApplicationsResponse>("""
           {
             "results": [{ "id": "application-1" }],
+            "users": {},
             "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
-            "community_applications": {
+            "community_application_summaries": {
               "application-1": {
                 "id": "application-1",
                 "community_id": "community-1",
                 "user_id": "applicant-1",
-                "answers": {},
-                "message": "Please approve",
+                "answer_count": 0,
+                "status": "pending",
+                "message_preview": "Please approve",
                 "reviewed_at": null,
                 "reviewed_by_id": null,
                 "approved_at": null,
@@ -288,7 +290,8 @@ internal sealed partial class ScriptedCommunitiesService
                 "updated_at": "2026-07-01T00:00:00Z"
               }
             ],
-            "slot_info": {}
+            "page_info": { "end_cursor": null, "start_cursor": null, "has_next_page": false },
+            "slot_info": { "used": 1, "limit": 3, "remaining": 2, "limits_by_plan": { "plus": 3, "pro": 10 } }
           }
           """));
 
@@ -310,8 +313,10 @@ internal sealed partial class ScriptedCommunitiesService
       CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
+  public Func<Task>? MemberRoleUpdateHandler { get; set; }
+
   public Task UpdateMemberRoleAsync(string idOrSlug, string userId, string role, CancellationToken cancellationToken = default) =>
-      RecordCompleted("member-role", idOrSlug, $"{userId}:{role}");
+      MemberRoleUpdateHandler?.Invoke() ?? RecordCompleted("member-role", idOrSlug, $"{userId}:{role}");
 
   public Task RemoveMemberAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
       RecordCompleted("member-remove", idOrSlug, userId);

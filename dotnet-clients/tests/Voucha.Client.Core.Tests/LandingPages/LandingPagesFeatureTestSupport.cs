@@ -103,7 +103,7 @@ internal sealed class LandingPagesFeatureService : ILandingPagesService
       throw new NotSupportedException();
 
   public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(
-      string pageId,
+      string username, string slug,
       CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 

@@ -2,6 +2,15 @@ namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
 {
+  public static ApiRequest CopyrightStaffQueue(string? after = null, int? limit = null) =>
+      Get("/api/v1/copyright-notices/review-queue", Query(("after", after), ("limit", limit)));
+
+  public static ApiRequest CopyrightAssociationTargets(string query, string? after = null, int? limit = null) =>
+      Get("/api/v1/copyright-notices/association-targets", Query(("q", query), ("after", after), ("limit", limit)));
+
+  public static ApiRequest CopyrightRepeatInfringerAccounts(string id) =>
+      Get($"/api/v1/copyright-notices/{Path(id)}/repeat-infringer-accounts");
+
   public static ApiRequest CopyrightNotices(string? after = null, int? limit = null) =>
       Get("/api/v1/copyright-notices", Query(("after", after), ("limit", limit)));
 

@@ -193,19 +193,19 @@ public sealed class ModerationViewModelTests
         "/appeals",
         "native.moderation.appeals.default",
         "/api/v1/appeals?limit=25&status=pending",
-        "case-1",
+        "A removed review",
         "Pending · post post-1");
     yield return Case(
         "/my/appeals",
         "native.moderation.appeals.default",
         "/api/v1/appeals?limit=25&mine=true&status=pending",
-        "case-1",
+        "A removed review",
         "Pending · post post-1");
     yield return Case(
         "/disputes",
         "native.moderation.disputes.default",
         "/api/v1/disputes?limit=25&status=pending",
-        "Native review dispute",
+        "A disputed review",
         "Pending · remove");
     yield return Case(
         "/admin/modlog",

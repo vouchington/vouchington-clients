@@ -5,6 +5,8 @@ namespace Voucha.Client.Core.Moderation;
 
 public sealed partial class ModerationAppealsViewModel
 {
+  private readonly HashSet<(int OwnerRevision, string Id)> detailReads = [];
+
   public Task LoadAsync(CancellationToken cancellationToken = default) =>
       CanAccess && !IsLoading ? LoadPageAsync(replace: true, cancellationToken) : Task.CompletedTask;
 
@@ -26,7 +28,10 @@ public sealed partial class ModerationAppealsViewModel
   public Task RefreshDeliveryStatusAsync(ModerationAppeal appeal, CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(appeal);
-    return IsDeliveryAmbiguous(appeal) ? RefreshAppealAsync(appeal.Id, cancellationToken) : Task.CompletedTask;
+    var current = Appeals.FirstOrDefault(row => row.Id == appeal.Id);
+    return CanAccess && current is not null &&
+        (current.AiDraftRequestedRunId is null || IsDeliveryAmbiguous(current))
+        ? RefreshAppealAsync(current.Id, cancellationToken) : Task.CompletedTask;
   }
 
   private async Task LoadPageAsync(bool replace, CancellationToken cancellationToken)
@@ -68,16 +73,21 @@ public sealed partial class ModerationAppealsViewModel
   private async Task RefreshAppealAsync(string id, CancellationToken cancellationToken)
   {
     if (IsMutating) return;
+    var original = Appeals.FirstOrDefault(row => row.Id == id);
+    if (original is null) return;
     var revision = Volatile.Read(ref loadRevision);
     var ownerRevision = Volatile.Read(ref accountRevision);
+    var readKey = (ownerRevision, id);
+    if (!detailReads.Add(readKey)) return;
     try
     {
       var response = await service.FetchAppealAsync(id, cancellationToken).ConfigureAwait(true);
-      if (!CanAccess || revision != Volatile.Read(ref loadRevision) ||
+      if (!CanAccess || IsMutating || revision != Volatile.Read(ref loadRevision) ||
           ownerRevision != Volatile.Read(ref accountRevision) ||
-          !Appeals.Any(appeal => appeal.Id == id) || response.Appeal.Id != id) return;
+          !ReferenceEquals(Appeals.FirstOrDefault(row => row.Id == id), original) ||
+          response.Appeal.Id != id) return;
       ambiguousDeliveryIds.Remove(id);
-      Replace(response.Appeal);
+      Replace(response.Appeal, preserveUnconfirmedDirtyDraft: true, readOwnerRevision: ownerRevision);
       ErrorMessage = null;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -91,6 +101,10 @@ public sealed partial class ModerationAppealsViewModel
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
       if (CanAccess && ownerRevision == Volatile.Read(ref accountRevision)) ErrorMessage = ex.Message;
+    }
+    finally
+    {
+      detailReads.Remove(readKey);
     }
   }
 

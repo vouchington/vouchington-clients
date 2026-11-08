@@ -10,16 +10,30 @@ public enum VoteIntegrityResolution: String, Codable, Sendable, CaseIterable {
 
 public struct VoteIntegrityFlag: Codable, Identifiable, Sendable {
     public let id: String
-    public let postId: String?
-    @RequiredNullable public var topicId: String?
-    @RequiredNullable public var hostnameId: String?
-    @RequiredNullable public var rssFeedItemId: String?
-    @RequiredNullable public var entityRelationId: String?
-    @RequiredNullable public var agentModerationId: String?
+    @TolerantNullable
+    public var postId: String?
+    @RequiredNullable
+    public var topicId: String?
+    @RequiredNullable
+    public var hostnameId: String?
+    @RequiredNullable
+    public var rssFeedItemId: String?
+    @RequiredNullable
+    public var entityRelationId: String?
+    @RequiredNullable
+    public var agentModerationId: String?
+    @TolerantNullable
+    public var entityLabel: String?
+    @TolerantNullable
+    public var resolverUsername: String?
+    @TolerantNullable
+    public var resolverDisplayName: String?
     public let flagType: String
     public let details: [String: DecodedJSONValue]
-    public let resolvedAt: Date?
-    public let resolvedById: String?
+    @TolerantNullable
+    public var resolvedAt: Date?
+    @TolerantNullable
+    public var resolvedById: String?
     public let resolution: VoteIntegrityResolution?
     public let createdAt: Date
 }
@@ -40,21 +54,37 @@ public struct VoteIntegrityPenaltyResponse: Codable, Sendable {
 
 public struct ReportIntegrityFlag: Codable, Identifiable, Sendable {
     public let id: String
-    public let postId: String?
-    public let reportedUserId: String?
-    public let hostnameId: String?
-    public let rssFeedItemId: String?
+    @TolerantNullable
+    public var postId: String?
+    @TolerantNullable
+    public var reportedUserId: String?
+    @TolerantNullable
+    public var reportedUsername: String?
+    @TolerantNullable
+    public var hostnameId: String?
+    @TolerantNullable
+    public var rssFeedItemId: String?
+    @TolerantNullable
+    public var entityLabel: String?
+    @TolerantNullable
+    public var resolverUsername: String?
+    @TolerantNullable
+    public var resolverDisplayName: String?
     public let flagType: String
     public let reporterCount: Int
     public let newAccountReporterPct: Double
     public let details: [String: DecodedJSONValue]
-    public let resolvedAt: Date?
-    public let resolvedById: String?
-    public let resolution: ReportIntegrityResolution?
+    @TolerantNullable
+    public var resolvedAt: Date?
+    @TolerantNullable
+    public var resolvedById: String?
+    @TolerantNullable
+    public var resolution: ReportIntegrityResolution?
     public let createdAt: Date
 
     private enum CodingKeys: String, CodingKey {
         case id, postId, reportedUserId, hostnameId, rssFeedItemId, flagType, reporterCount
+        case entityLabel, resolverUsername, resolverDisplayName, reportedUsername
         case newAccountReporterPct = "newAccountReporterPercent"
         case details, resolvedAt, resolvedById, resolution, createdAt
     }

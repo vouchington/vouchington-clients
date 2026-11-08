@@ -24,9 +24,9 @@ extension NativeRouteSurfaceViewModel {
                 ].compactMap { $0 })
             )
         ]
-        if isAdministrator {
+        if isAdministrator, let username = response.user?.username {
             if let analytics: AdminLandingPageAnalyticsResponse = try? await client.send(
-                .adminLandingPageAnalytics(pageId: page.id)
+                .adminLandingPageAnalytics(username: username, slug: page.slug)
             ) {
                 rows.append(contentsOf: landingPageAnalyticsRows(analytics.analytics))
             }

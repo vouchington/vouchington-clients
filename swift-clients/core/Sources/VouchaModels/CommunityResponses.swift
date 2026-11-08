@@ -57,16 +57,6 @@ public struct CommunityMembersResponse: Codable, Sendable {
     public let users: [String: PublicUser]
 }
 
-public struct CommunityApplicationsResult: Codable, Identifiable, Sendable {
-    public let id: String
-}
-
-public struct CommunityApplicationsResponse: Codable, Sendable {
-    public let results: [CommunityApplicationsResult]
-    public let pageInfo: Page<CommunityApplicationsResult>.PageInfo
-    public let communityApplications: [String: CommunityApplication]
-}
-
 public struct CommunityApplicationQuestionsResponse: Codable, Sendable {
     public let questions: [CommunityApplicationQuestion]
 }

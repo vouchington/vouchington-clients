@@ -172,7 +172,7 @@ public sealed class CommunityDetailForwardPaginationTests
     CommunityMembersResponse page => Pair(page, page.CommunityMembers.Keys.Single(), MemberPages),
     CommunityPostsResponse page => Pair(page, page.Posts.Keys.Single(), PostPages),
     RssFeedItemsFeedResponse page => Pair(page, page.RssFeedItems.Keys.First(), NewsPages),
-    CommunityApplicationsResponse page => Pair(page, page.CommunityApplications.Keys.Single(), ApplicationPages),
+    CommunityApplicationsResponse page => Pair(page, page.CommunityApplicationSummaries.Keys.Single(), ApplicationPages),
     CommunityInvitesResponse page => Pair(page, page.CommunityInvites.Keys.Single(), InvitePages),
     CommunityBansResponse page => Pair(page, page.CommunityBans.Keys.Single(), BanPages),
     CommunityRestrictionsResponse page => Pair(page, page.CommunityRestrictions.Keys.Single(), RestrictionPages),
@@ -227,11 +227,11 @@ public sealed class CommunityDetailForwardPaginationTests
   private static CommunityApplicationsResponse ApplicationPages(
       CommunityApplicationsResponse page, string firstId, string nextId, bool initial)
   {
-    var items = new Dictionary<string, CommunityApplication>(page.CommunityApplications)
+    var items = new Dictionary<string, CommunityApplicationSummary>(page.CommunityApplicationSummaries)
     {
-      [nextId] = page.CommunityApplications[firstId] with { Id = nextId, UserId = "applicant-next" },
+      [nextId] = page.CommunityApplicationSummaries[firstId] with { Id = nextId, UserId = "applicant-next" },
     };
-    return page with { Results = References(firstId, nextId, initial), CommunityApplications = items, PageInfo = Info(initial) };
+    return page with { Results = References(firstId, nextId, initial), CommunityApplicationSummaries = items, PageInfo = Info(initial) };
   }
 
   private static CommunityInvitesResponse InvitePages(

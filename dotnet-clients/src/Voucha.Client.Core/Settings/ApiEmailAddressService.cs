@@ -12,11 +12,11 @@ public sealed partial class ApiEmailAddressService(VouchaApiClient client) : IEm
   public Task<EmailAddressRequestResponse> RequestEmailVerificationAsync(
       string emailAddress,
       CancellationToken cancellationToken = default) =>
-      client.RequestEmailAddressVerificationAsync(emailAddress, cancellationToken);
+      client.RequestEmailAddressVerificationAsync(emailAddress, cancellationToken: cancellationToken);
 
   public Task<EmailAddressListResponse> VerifyEmailAddressAsync(
       string emailAddress,
       string token,
       CancellationToken cancellationToken = default) =>
-      client.VerifyEmailAddressAsync(emailAddress, token, cancellationToken);
+      client.VerifyEmailAddressAsync(emailAddress, token, cancellationToken: cancellationToken);
 }

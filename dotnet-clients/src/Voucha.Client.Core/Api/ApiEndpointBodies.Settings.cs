@@ -25,8 +25,7 @@ public sealed record UpdateUserPrivacyBody(
     [property: JsonPropertyName("default_post_privacy")] string? DefaultPostPrivacy = null,
     [property: JsonPropertyName("ui_locale")] JsonNullableString? UiLocale = null,
     [property: JsonPropertyName("processing_restricted_at")] bool? ProcessingRestrictedAt = null,
-    [property: JsonPropertyName("third_party_marketing")] bool? ThirdPartyMarketing = null,
-    [property: JsonPropertyName("hn_discussions")] bool? HnDiscussions = null);
+    [property: JsonPropertyName("third_party_marketing")] bool? ThirdPartyMarketing = null);
 
 public sealed record UpdateEmailPreferencesBody(
     [property: JsonPropertyName("is_engagement_emails_enabled")] bool? EngagementEmailsEnabled = null,

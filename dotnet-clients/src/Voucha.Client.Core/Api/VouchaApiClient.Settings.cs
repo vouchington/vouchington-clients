@@ -14,17 +14,19 @@ public sealed partial class VouchaApiClient
 
   public Task<EmailAddressRequestResponse> RequestEmailAddressVerificationAsync(
       string emailAddress,
+      string? reAuthToken = null,
       CancellationToken cancellationToken = default) =>
       SendAsync<EmailAddressRequestResponse>(
-          VouchaApiEndpoints.RequestEmailAddressVerification(emailAddress),
+          VouchaApiEndpoints.RequestEmailAddressVerification(emailAddress, reAuthToken),
           cancellationToken);
 
   public Task<EmailAddressListResponse> VerifyEmailAddressAsync(
       string emailAddress,
       string token,
+      string? reAuthToken = null,
       CancellationToken cancellationToken = default) =>
       SendAsync<EmailAddressListResponse>(
-          VouchaApiEndpoints.VerifyEmailAddress(emailAddress, token),
+          VouchaApiEndpoints.VerifyEmailAddress(emailAddress, token, reAuthToken),
           cancellationToken);
 
   public Task<EmailPreferencesResponse> FetchEmailPreferencesAsync(

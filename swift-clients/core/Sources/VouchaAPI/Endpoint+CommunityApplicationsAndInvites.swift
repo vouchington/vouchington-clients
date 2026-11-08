@@ -11,6 +11,13 @@ private struct CommunityInviteBody: Encodable {
 }
 
 public extension Endpoint {
+    static func communityApplication(idOrSlug: String, applicationId: String) -> Endpoint {
+        Endpoint(
+            .GET,
+            path: "/api/v1/communities/\(pathSegment(idOrSlug))/applications/\(pathSegment(applicationId))"
+        )
+    }
+
     static func approveCommunityApplication(idOrSlug: String, applicationId: String) -> Endpoint {
         Endpoint(
             .PATCH,

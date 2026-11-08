@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
-using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
@@ -21,23 +20,14 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
       CommentThreadViewModel viewModel,
       ISessionStore sessionStore,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null,
-      IHnDiscussionsSettings? hnDiscussionsSettings = null,
-      HnDiscussionsClient? hnDiscussionsClient = null)
+      IUiLocaleController? localeController = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
     lastStaffViewer = IsStaffViewer;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
-    HnDiscussions = new HnDiscussionsViewModel(
-        hnDiscussionsSettings ?? new MemoryHnDiscussionsSettings(),
-        hnDiscussionsClient ?? new HnDiscussionsClient(new HttpClient()),
-        this.localization);
   }
-
-  public HnDiscussionsViewModel HnDiscussions { get; }
-  public bool HasVisibleHnDiscussions => RootRow?.ShowBodyContent == true && HnDiscussions.HasThreads;
 
   public CommentThreadViewModel ViewModel => viewModel;
 
@@ -130,7 +120,6 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
     OnPropertyChanged(nameof(CanVote));
     OnPropertyChanged(nameof(CanCompose));
     OnPropertyChanged(nameof(CurrentUserId));
-    OnPropertyChanged(nameof(HasVisibleHnDiscussions));
   }
 
   public void RefreshViewerState()
@@ -155,7 +144,6 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
       return;
     }
     RefreshRows();
-    await RefreshHnDiscussionsAsync(cancellationToken).ConfigureAwait(true);
   }
 
   public void OnUiLocaleChanged() => RefreshRows();
@@ -174,13 +162,5 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
         ? viewModel.LoadAsync(cancellationToken)
         : viewModel.LoadPermalinkAsync(focusedCommentId, cancellationToken)).ConfigureAwait(true);
     RefreshRows();
-    await RefreshHnDiscussionsAsync(cancellationToken).ConfigureAwait(true);
-  }
-
-  private async Task RefreshHnDiscussionsAsync(CancellationToken cancellationToken)
-  {
-    await HnDiscussions.LoadAsync(RootRow?.ShowBodyContent == true ? viewModel.RootPost : null,
-        cancellationToken).ConfigureAwait(true);
-    OnPropertyChanged(nameof(HasVisibleHnDiscussions));
   }
 }

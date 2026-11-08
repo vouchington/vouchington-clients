@@ -11,9 +11,9 @@ public sealed class AppealAIRerunAdmissionStoreTests
   [Fact]
   public void LateOldClaimRemovalCannotClearNewerAdmission()
   {
-    var appeal = JsonSerializer.Deserialize<ModerationAppealListResponse>(
-        ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"),
-        VouchaApiJson.Options)!.Appeals.Single();
+    var appeal = JsonSerializer.Deserialize<ModerationAppealResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.appeals.detail.default"),
+        VouchaApiJson.Options)!.Appeal;
     var owner = AppealAIRerunAdmissionStore.ForOwner(
         "staff-1", new Uri("https://example.test/api"));
     var store = new AppealAIRerunAdmissionStore();

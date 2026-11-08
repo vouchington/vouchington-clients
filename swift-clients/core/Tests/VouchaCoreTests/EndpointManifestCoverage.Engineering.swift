@@ -45,7 +45,7 @@ extension EndpointManifestCoverage {
             Endpoint.mqScheduledJobs
         },
         ManifestRegisteredEndpoint(id: "web.admin.mq.scheduled-jobs.trigger.default") {
-            Endpoint.mqRunScheduledJob(id: "kagi-smallweb-sync")
+            Endpoint.mqRunScheduledJob(id: "imports-recover-stalled")
         },
         ManifestRegisteredEndpoint(id: "web.admin.mq.backfills.default") {
             Endpoint.mqBackfills

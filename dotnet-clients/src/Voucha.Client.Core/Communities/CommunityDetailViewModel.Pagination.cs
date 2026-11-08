@@ -13,13 +13,13 @@ public sealed partial class CommunityDetailViewModel
   private int communityListPageRequestId;
 
   public bool CanLoadMoreCommunityList =>
-      communityListEndCursor is not null && !isLoadingMoreCommunityList &&
-      IsPagedCommunitySection;
+      communityListEndCursor is not null && !IsLoadingMoreCommunityList &&
+      IsPagedCommunitySection && (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts || IsCurrentAgentPromptSession);
 
   public bool HasMoreCommunityList => communityListEndCursor is not null &&
-      IsPagedCommunitySection;
+      IsPagedCommunitySection && (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts || IsCurrentAgentPromptSession);
 
-  public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList;
+  public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList || (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && isLoadingAgentPrompts);
 
   public bool CanAutomaticallyLoadCommunityList =>
       HasMoreCommunityList && modmailThreadSurfaceId is null;
@@ -35,7 +35,7 @@ public sealed partial class CommunityDetailViewModel
       CommunityDetailSurfaceSection.Modlog or
       CommunityDetailSurfaceSection.Moderation or
       CommunityDetailSurfaceSection.Modmail or
-      CommunityDetailSurfaceSection.Settings;
+      CommunityDetailSurfaceSection.Settings or CommunityDetailSurfaceSection.AgentPrompts;
 
   public string? CommunityListPaginationErrorMessage
   {
@@ -58,6 +58,7 @@ public sealed partial class CommunityDetailViewModel
       Justification = "This UI command must convert every non-cancellation continuation failure into retry state.")]
   public async Task LoadMoreCommunityListAsync(CancellationToken cancellationToken = default)
   {
+    if (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && (agentPromptDisposed || IsLoading || isLoadingAgentPrompts)) return;
     if (communityListEndCursor is not { } after || isLoadingMoreCommunityList) return;
 
     var revision = Volatile.Read(ref communityListRevision);

@@ -6,13 +6,11 @@ namespace Voucha.Client.Core.Communities;
 
 public sealed record CommunityApplicationRow(string Id, string UserId, string Status, string? Message)
 {
-  public static CommunityApplicationRow FromApplication(CommunityApplication application)
+  public static CommunityApplicationRow FromApplication(CommunityApplicationSummary application)
   {
     ArgumentNullException.ThrowIfNull(application);
 
-    var status = application.ApprovedAt is not null ? "approved" :
-        application.RejectedAt is not null ? "rejected" : "pending";
-    return new(application.Id, application.UserId, status, application.Message);
+    return new(application.Id, application.UserId, application.Status, application.MessagePreview);
   }
 }
 

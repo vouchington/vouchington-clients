@@ -21,9 +21,11 @@ public sealed partial class VouchaApiClient
 
   public Task<CommunityAgentPromptsResponse> FetchCommunityAgentPromptsAsync(
       string idOrSlug,
+      string? after = null,
+      int limit = 25,
       CancellationToken cancellationToken = default) =>
       SendAsync<CommunityAgentPromptsResponse>(
-          VouchaApiEndpoints.CommunityAgentPrompts(idOrSlug),
+          VouchaApiEndpoints.CommunityAgentPrompts(idOrSlug, after, limit),
           cancellationToken);
 
   public async Task<CommunityAgentPrompt> FetchCommunityAgentPromptAsync(

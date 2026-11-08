@@ -32,6 +32,5 @@ extension SettingsViewModel {
         defaultPostPrivacy = identity.defaultPostPrivacy
         processingRestrictedAt = identity.processingRestrictedAt != nil
         thirdPartyMarketing = identity.thirdPartyMarketing ?? false
-        hnDiscussions = identity.hnDiscussions ?? false
     }
 }

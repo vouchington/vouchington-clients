@@ -48,12 +48,12 @@ final class CommunityModelDecodingTests: XCTestCase {
 
         let applications = try decoder.decode(
             CommunityApplicationsResponse.self,
-            from: Data(
-                #"{"results":[{"id":"application-1"}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null},"community_applications":{"application-1":{"id":"application-1","community_id":"community-1","user_id":"user-1","answers":{"why":{"string":"Because"}},"message":"Hello","reviewed_at":null,"reviewed_by_id":null,"approved_at":null,"rejected_at":null,"rejection_reason":null,"created_at":"2026-01-01T00:00:00Z"}}}"#
-                    .utf8
-            )
+            from: ApiFixtureLoader.data("web.communities.applications.default")
         )
-        XCTAssertEqual(applications.communityApplications["application-1"]?.message, "Hello")
+        XCTAssertEqual(
+            applications.communityApplicationSummaries["application-1"]?.messagePreview,
+            "I would like to join."
+        )
 
         let pendingReports = try decoder.decode(
             CommunityPendingReportsResponse.self,
@@ -152,8 +152,8 @@ final class CommunityModelDecodingTests: XCTestCase {
             CommunityApplicationsResponse.self,
             from: ApiFixtureLoader.data("web.communities.applications.default")
         )
-        XCTAssertTrue(applications.results.isEmpty)
-        XCTAssertTrue(applications.communityApplications.isEmpty)
+        XCTAssertEqual(applications.results.first?.id, "application-1")
+        XCTAssertEqual(applications.communityApplicationSummaries["application-1"]?.answerCount, 0)
 
         try assertFixtureContainsKeys(
             "web.communities.posts.default",

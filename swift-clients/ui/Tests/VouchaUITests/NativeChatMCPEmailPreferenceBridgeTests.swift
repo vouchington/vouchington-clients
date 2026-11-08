@@ -104,8 +104,7 @@ import XCTest
                     "rss_feed_follows_visibility": "everyone", "community_memberships_visibility": "everyone",
                     "followers_visibility": "everyone", "likes_visibility": "everyone",
                     "direct_messages_audience": "everyone", "default_post_broadcast": "everyone",
-                    "default_post_privacy": "private", "country": NSNull(), "ui_locale": "en",
-                    "should_import_hacker_news_discussions": false
+                    "default_post_privacy": "private", "country": NSNull(), "ui_locale": "en"
                 ]
             ], text: "synthetic general-option result")
             let (tool, state) = try await makeTool(service: service, admission: ReceiptAdmission())

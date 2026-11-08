@@ -8,6 +8,6 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest AdminUserLandingPages(string userId) =>
       Get($"/api/v1/admin/users/{Path(userId)}/landing-pages");
 
-  public static ApiRequest AdminLandingPageAnalytics(string pageId) =>
-      Get($"/api/v1/admin/landing-pages/{Path(pageId)}/analytics");
+  public static ApiRequest AdminLandingPageAnalytics(string username, string slug) =>
+      Get($"/api/v1/admin/users/{Path(username)}/landing-pages/{Path(slug)}/analytics");
 }

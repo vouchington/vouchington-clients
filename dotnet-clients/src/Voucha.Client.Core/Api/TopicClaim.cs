@@ -23,7 +23,10 @@ public sealed record TopicClaim(
     [property: JsonPropertyName("domain_verified_at")] string? DomainVerifiedAt,
     [property: JsonPropertyName("created_at")] string CreatedAt,
     [property: JsonPropertyName("updated_at")] string UpdatedAt,
-    [property: JsonPropertyName("state")] string State);
+    [property: JsonPropertyName("state")] string State,
+    [property: JsonPropertyName("topic_name")] string? TopicName = null,
+    [property: JsonPropertyName("claimant_username")] string? ClaimantUsername = null,
+    [property: JsonPropertyName("claimant_display_name")] string? ClaimantDisplayName = null);
 
 public sealed record TopicClaimPage(
     [property: JsonPropertyName("results")] IReadOnlyList<TopicClaim> Results,

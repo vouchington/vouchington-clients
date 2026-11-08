@@ -56,7 +56,8 @@ public sealed record RssFeedImportSummary(
     [property: JsonPropertyName("failed_rows")] int FailedRows,
     [property: JsonPropertyName("pending_rows")] int PendingRows,
     [property: JsonPropertyName("completed_at")] DateTimeOffset? CompletedAt,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("skipped_rows")] int SkippedRows = 0);
 
 public sealed record RssFeedImportSubmission(
     [property: JsonPropertyName("import")] RssFeedImportSummary Import,

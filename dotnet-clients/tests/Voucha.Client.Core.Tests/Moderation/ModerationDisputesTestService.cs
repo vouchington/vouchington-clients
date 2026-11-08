@@ -132,9 +132,9 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
 
   internal static ModerationDispute Fixture()
   {
-    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.default");
-    return JsonSerializer.Deserialize<ModerationDisputeListResponse>(json, VouchaApiJson.Options)!
-        .Disputes.Single();
+    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.detail.default");
+    return JsonSerializer.Deserialize<ModerationDisputeResponse>(json, VouchaApiJson.Options)!
+        .Dispute;
   }
 
   internal static HttpRequestException AmbiguousFailure() =>

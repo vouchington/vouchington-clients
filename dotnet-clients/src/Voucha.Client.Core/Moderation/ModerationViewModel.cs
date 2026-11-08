@@ -83,7 +83,7 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
   {
     var response = await service.FetchAppealsAsync(Context!.Mine, after, cancellationToken: cancellationToken).ConfigureAwait(true);
     return new(
-        response.Appeals.Select(appeal => Row(appeal.Id, UiText.Verbatim(appeal.CaseId ?? appeal.Id), UiText.Verbatim($"{appeal.Status} · {AppealDescription(appeal)}"), "arrow-uturn-left")).ToArray(),
+        response.Appeals.Select(appeal => Row(appeal.Id, UiText.Verbatim((appeal.TargetContext as ModerationAppealPostRemovalContext)?.Title ?? localization.Localize(UiMessageKey.NativeDotnetModerationCase)), UiText.Verbatim($"{appeal.Status} · {AppealDescription(appeal)}"), "arrow-uturn-left")).ToArray(),
         response.PageInfo);
   }
 
@@ -93,7 +93,7 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
     return new(
         response.Disputes.Select(dispute => Row(
               dispute.Id,
-              UiText.Verbatim(Context!.Mine ? dispute.PostId ?? dispute.Id : dispute.ClaimText ?? dispute.PostId ?? dispute.Id),
+              UiText.Verbatim(dispute.PostLabel ?? localization.Localize(UiMessageKey.NativeDotnetModerationCase)),
               UiText.Verbatim(Context!.Mine
                   ? $"{dispute.Status} · {dispute.Reason ?? localization.Localize(UiMessageKey.NativeDotnetModerationNoReason)}"
                   : $"{dispute.Status} · {dispute.RecommendedAction ?? dispute.Reason ?? localization.Localize(UiMessageKey.NativeDotnetModerationNoRecommendation)}"),

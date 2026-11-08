@@ -86,6 +86,7 @@ public struct CommunitySavedReplyResponse: Codable, Sendable {
 
 public struct CommunityAgentPromptsResponse: Codable, Sendable {
     public let communityAgentPrompts: [CommunityAgentPrompt]
+    public let pageInfo: CommunityAgentPromptPageInfo
     public let slotInfo: CommunityAgentPromptSlotInfo
 }
 

@@ -17,6 +17,11 @@ extension ReviewDisputesViewModel {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25)
             )
+            var details: [ReviewDispute] = []
+            for summary in response.disputes {
+                let detail: ReviewDisputeResponse = try await client.send(.dispute(id: summary.id))
+                details.append(detail.dispute)
+            }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   expectedOutcomeRevision == targetedOutcomeRevision
             else {
@@ -25,11 +30,11 @@ extension ReviewDisputesViewModel {
             }
             disputePagination.complete(
                 request,
-                items: response.disputes,
+                items: details,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            seedDrafts(from: response.disputes)
+            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
             disputePagination.cancel(request)
@@ -61,6 +66,11 @@ extension ReviewDisputesViewModel {
             let response: ReviewDisputeListResponse = try await client.send(
                 .disputes(status: expectedStatus.listStatus, limit: 25, after: request.cursor)
             )
+            var details: [ReviewDispute] = []
+            for summary in response.disputes {
+                let detail: ReviewDisputeResponse = try await client.send(.dispute(id: summary.id))
+                details.append(detail.dispute)
+            }
             guard revision == loadRevision, expectedStatus == selectedStatus,
                   expectedOutcomeRevision == targetedOutcomeRevision,
                   disputePagination.isCurrent(request)
@@ -70,11 +80,11 @@ extension ReviewDisputesViewModel {
             }
             disputePagination.complete(
                 request,
-                items: response.disputes,
+                items: details,
                 endCursor: response.pageInfo.endCursor,
                 hasNextPage: response.pageInfo.hasNextPage
             )
-            seedDrafts(from: response.disputes)
+            seedDrafts(from: details)
         } catch is CancellationError {
             guard revision == loadRevision else { return }
             disputePagination.cancel(request)

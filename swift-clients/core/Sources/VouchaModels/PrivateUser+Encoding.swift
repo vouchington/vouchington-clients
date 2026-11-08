@@ -63,7 +63,6 @@ public extension PrivateUser {
         object["processing_restricted_at"] = processingRestrictedAt
             .map { .string(ISO8601DateFormatter().string(from: $0)) }
         object["third_party_marketing"] = thirdPartyMarketing.map { .bool($0) }
-        object["hn_discussions"] = hnDiscussions.map { .bool($0) }
         object["country"] = country.map { .string($0) }
         object["ui_locale"] = uiLocale.map { .string($0) }
     }

@@ -90,7 +90,7 @@ public sealed partial class ApiCommunitiesService : ICommunitiesService
       client.FetchCommunityAiAgentsAsync(idOrSlug, cancellationToken);
 
   public Task<CommunityAgentPromptsResponse> FetchAgentPromptsAsync(string idOrSlug, CancellationToken cancellationToken = default) =>
-      client.FetchCommunityAgentPromptsAsync(idOrSlug, cancellationToken);
+      client.FetchCommunityAgentPromptsAsync(idOrSlug, cancellationToken: cancellationToken);
 
   public Task<CommunityAgentPromptHistoryResponse> FetchAgentPromptHistoryAsync(
       string idOrSlug,

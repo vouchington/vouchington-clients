@@ -30,7 +30,7 @@ private enum LifecycleScenarioSwiftModerationAdapter {
         let outcome = input.serverOutcome
         let id = "appeal-contract"
         let initial = appeal(id: id, source: preconditions)
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (ModerationAppealsTestSupport.list([initial]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (ModerationAppealsTestSupport.staffList([initial]), 200)
         let role = try preconditions.string("viewerRole")
         let viewModel = ModerationAppealsViewModel(
             client: client, isSignedIn: true, isAdministrator: role == "administrator",

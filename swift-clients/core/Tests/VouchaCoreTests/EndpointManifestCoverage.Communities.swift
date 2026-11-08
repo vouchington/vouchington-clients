@@ -65,6 +65,9 @@ extension EndpointManifestCoverage {
                 body: "Thanks for writing in."
             )
         },
+        ManifestRegisteredEndpoint(id: "web.communities.application.default") {
+            Endpoint.communityApplication(idOrSlug: "test-community", applicationId: "application-1")
+        },
         ManifestRegisteredEndpoint(id: "web.communities.applications.default") {
             Endpoint.communityApplications(idOrSlug: "test-community")
         },
