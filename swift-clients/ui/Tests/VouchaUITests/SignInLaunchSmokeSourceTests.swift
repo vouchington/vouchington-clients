@@ -25,6 +25,31 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertFalse(flow.contains("app.buttons[\"Sign In\"]"))
     }
 
+    func testSignedOutSubsectionControlDoesNotUseTheFixedSizePicker() throws {
+        let navigation = try repoSource("swift-clients/apps/shared-app/SectionDetailView+Navigation.swift")
+        let picker = try repoSource("swift-clients/apps/shared-app/SectionDetailView+SubsectionToolbar.swift")
+        let signedOutMenu = try XCTUnwrap(picker.components(separatedBy: "var signedOutSubsectionMenu").last)
+
+        XCTAssertFalse(navigation.contains(".fixedSize()"))
+        XCTAssertTrue(picker.contains("factory.sessionManager.isSignedIn"))
+        XCTAssertTrue(signedOutMenu.contains("Menu {"))
+        XCTAssertFalse(signedOutMenu.contains(".fixedSize()"))
+
+        let toolbarItem = try XCTUnwrap(
+            picker.components(separatedBy: "var verticalPickerToolbarItem").last?
+                .components(separatedBy: "private var signedOutToolbarSubsections").first
+        )
+        let branches = toolbarItem.components(separatedBy: "} else if")
+        XCTAssertEqual(branches.count, 2)
+        XCTAssertTrue(branches[0].contains("factory.sessionManager.isSignedIn"))
+        XCTAssertFalse(branches[0].contains("!factory.sessionManager.isSignedIn"))
+        XCTAssertTrue(branches[0].contains("signedInSubsectionPicker"))
+        XCTAssertFalse(branches[0].contains("signedOutSubsectionMenu"))
+        XCTAssertTrue(branches[1].contains("signedOutSubsectionMenu"))
+        XCTAssertFalse(branches[1].contains("signedInSubsectionPicker"))
+        XCTAssertFalse(toolbarItem.contains(".fixedSize()"))
+    }
+
     private func repoSource(_ relative: String, filePath: StaticString = #filePath) throws -> String {
         let current = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         var roots = [current, URL(fileURLWithPath: "\(filePath)").deletingLastPathComponent()]
