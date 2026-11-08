@@ -1,9 +1,11 @@
 import { spawn } from 'node:child_process'
 import { mkdir, open, lstat, readFile, realpath, symlink } from 'node:fs/promises'
-import { join, relative, sep } from 'node:path'
-import { pairedExporterPackages } from './paired-exporter-runtime-evidence.mjs'
+import { join } from 'node:path'
+import { packageFile, pairedExporterPackages } from './paired-exporter-runtime-evidence.mjs'
 import { collectPairedExporterOutput } from './paired-exporter-output-collector.mjs'
 import { inspectPackageArchive, verifyPackageIntegrity } from './paired-exporter-archive.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
+import { within } from './path-within.mjs'
 
 const packagePins = pairedExporterPackages.map(({ name, version, integrity }) => [
   name,
@@ -14,18 +16,7 @@ const maximumArchiveBytes = 8 * 1024 * 1024
 const maximumExpandedPackageBytes = 32 * 1024 * 1024
 const maximumExpandedTotalBytes = 96 * 1024 * 1024
 
-function fail(message) {
-  throw new Error(`Trusted exporter bootstrap rejected input: ${message}`)
-}
-
-function packageFile(name, version) {
-  return `${name.replaceAll('@', '').replaceAll('/', '_')}-${version}.tgz`
-}
-
-function within(root, path) {
-  const child = relative(root, path)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !child.startsWith('/')
-}
+const fail = prefixedFailure('Trusted exporter bootstrap rejected input')
 
 function validateManifest(manifest) {
   if (

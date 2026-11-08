@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Pagination;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
-public sealed class StoryRelatedArticles : INotifyPropertyChanged
+public sealed class StoryRelatedArticles : ObservableObject
 {
   private readonly CursorPaginationState<NewsFeedItem, string> pages;
   private readonly IUiLocalization localization;
@@ -24,7 +24,6 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
     Items = new(pages.Items);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public string StoryId { get; }
   public string PrimaryItemId { get; }
   public ObservableCollection<NewsFeedItem> Items { get; }
@@ -120,7 +119,7 @@ public sealed class StoryRelatedArticles : INotifyPropertyChanged
   internal void Notify()
   {
     foreach (var name in new[] { nameof(IsExpanded), nameof(HasMore), nameof(IsLoading), nameof(HasError), nameof(ErrorMessage), nameof(HasItems), nameof(VisibleItems), nameof(CanExpand), nameof(CanLoadMore), nameof(LoadMoreLabel), nameof(CountLabel) })
-      PropertyChanged?.Invoke(this, new(name));
+      OnPropertyChanged(name);
   }
 }
 

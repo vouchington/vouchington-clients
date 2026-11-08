@@ -24,7 +24,7 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -44,7 +44,7 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
         XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-1"])
         XCTAssertEqual(viewModel.conversations.first?.title, "Fresh follow-up")
         XCTAssertEqual(viewModel.conversations.first?.participantUsernames, ["bob"])
-        XCTAssertEqual(viewModel.conversations.first?.updatedAt, isoDate("2026-01-01T00:00:00Z"))
+        XCTAssertEqual(viewModel.conversations.first?.updatedAt, DirectMessagesTestJSON.date("2026-01-01T00:00:00Z"))
     }
 
     func testParticipantRefreshReordersConversationByUpdatedAt() async throws {
@@ -55,7 +55,7 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
                 0
             ),
             (
-                participantsPage(conversationId: "conversation-1"),
+                DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
                 200,
                 0
             )
@@ -89,7 +89,7 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
         await viewModel.addParticipant(userId: "user-2")
 
         XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-1", "conversation-2"])
-        XCTAssertEqual(viewModel.conversations.first?.updatedAt, isoDate("2026-01-03T00:00:00Z"))
+        XCTAssertEqual(viewModel.conversations.first?.updatedAt, DirectMessagesTestJSON.date("2026-01-03T00:00:00Z"))
     }
 
     private func conversationEnvelope(id: String, title: String, participantUsernames: [String]) -> Data {
@@ -133,7 +133,7 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
         updatedAt: String,
         participantUsernames: [String]
     ) -> DirectConversation {
-        try! decodeJSON(conversationJSON(
+        try! DirectMessagesTestJSON.decode(conversationJSON(
             id: id,
             title: title,
             updatedAt: updatedAt,
@@ -155,7 +155,7 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
           "created_at": "2026-01-01T00:00:00Z",
           "created_by_id": "user-1",
           "updated_at": "\(updatedAt)",
-          "participant_usernames": \(jsonArray(participantUsernames)),
+          "participant_usernames": \(DirectMessagesTestJSON.array(participantUsernames)),
           "participant_add_policy": "all_members"
         }
         """
@@ -180,32 +180,6 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
         )
     }
 
-    private func participantsPage(conversationId: String) -> Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "\(conversationId)",
-                  "user_id": "user-1",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
-                "start_cursor": null
-              }
-            }
-            """.utf8
-        )
-    }
-
     private func addParticipantResponseData() -> Data {
         Data(
             """
@@ -223,20 +197,5 @@ final class DirectMessagesViewModelInboxFallbackTests: NativeRouteSurfaceViewMod
             }
             """.utf8
         )
-    }
-
-    private func jsonArray(_ values: [String]) -> String {
-        "[" + values.map { "\"\($0)\"" }.joined(separator: ",") + "]"
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
-
-    private func isoDate(_ value: String) -> Date {
-        ISO8601DateFormatter().date(from: value)!
     }
 }

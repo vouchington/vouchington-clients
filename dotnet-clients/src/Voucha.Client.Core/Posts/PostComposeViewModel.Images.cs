@@ -91,7 +91,7 @@ public sealed partial class PostComposeViewModel
 
   private static string? NormalizeCaption(string? caption)
   {
-    var normalized = EmptyToNull(caption);
+    var normalized = TrimmedText.NonEmpty(caption);
     if (normalized is null || normalized.Length <= MaxImageCaptionLength)
     {
       return normalized;

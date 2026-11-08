@@ -28,10 +28,7 @@ public sealed partial class ProfileViewModel
   public bool IsMutedUser
   {
     get => isMutedUser;
-    private set
-    {
-      if (SetProperty(ref isMutedUser, value)) OnPropertyChanged(nameof(MuteUserButtonText));
-    }
+    private set => SetPropertyAndNotify(ref isMutedUser, value, nameof(MuteUserButtonText));
   }
 
   public bool IsBlockedUser

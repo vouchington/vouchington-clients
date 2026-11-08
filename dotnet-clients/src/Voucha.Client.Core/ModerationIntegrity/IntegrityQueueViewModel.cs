@@ -45,21 +45,15 @@ public abstract partial class IntegrityQueueViewModel<TFlag, TRow>
   public IReadOnlyList<TRow> Items
   {
     get => items;
-    private set
-    {
-      if (SetProperty(ref items, value)) OnPropertyChanged(nameof(IsEmpty));
-    }
+    private set => SetPropertyAndNotify(ref items, value, nameof(IsEmpty));
   }
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (!SetProperty(ref state, value)) return;
-      OnPropertyChanged(nameof(IsLoading));
-      OnPropertyChanged(nameof(IsEmpty));
-      OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(
+        ref state,
+        value,
+        [nameof(IsLoading), nameof(IsEmpty), nameof(HasError)]);
   }
   public bool IsLoading => State == LoadState.Loading;
   public bool IsLoadingMore => continuationInFlight;
@@ -67,10 +61,7 @@ public abstract partial class IntegrityQueueViewModel<TFlag, TRow>
   public bool HasMore
   {
     get => hasMore;
-    private set
-    {
-      if (SetProperty(ref hasMore, value)) OnPropertyChanged(nameof(CanLoadMore));
-    }
+    private set => SetPropertyAndNotify(ref hasMore, value, nameof(CanLoadMore));
   }
   public bool CanLoadMore => HasMore && !IsLoading && !IsLoadingMore;
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -80,7 +71,7 @@ public abstract partial class IntegrityQueueViewModel<TFlag, TRow>
     private set
     {
       localizedErrorText = null;
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
+      SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
     }
   }
 

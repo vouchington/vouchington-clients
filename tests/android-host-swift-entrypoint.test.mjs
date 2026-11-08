@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
-import { writeBashExecutable } from './fixture-files.mjs'
+import { captureSpawn, writeBashExecutable } from './fixture-files.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const entrypoint = join(
@@ -50,20 +50,12 @@ exit 2`,
     developerDir,
     logPath,
     run(args = []) {
-      return new Promise((resolvePromise, reject) => {
-        const child = spawn('bash', [entrypoint, ...args], {
-          env: {
-            ...process.env,
-            DEVELOPER_DIR: developerDir,
-            PATH: `${bin}:${process.env.PATH}`,
-          },
-        })
-        let stdout = ''
-        let stderr = ''
-        child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk))
-        child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk))
-        child.on('error', reject)
-        child.on('close', code => resolvePromise({ code, stdout, stderr }))
+      return captureSpawn('bash', [entrypoint, ...args], {
+        env: {
+          ...process.env,
+          DEVELOPER_DIR: developerDir,
+          PATH: `${bin}:${process.env.PATH}`,
+        },
       })
     },
   }

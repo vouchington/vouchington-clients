@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.PointValuations;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -16,12 +16,10 @@ public partial class PointValuationsPage : ContentPage, IDisposable
     Unloaded += (_, _) => Dispose();
   }
 
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "The view model owns presentation failures.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try { await LoadForAppearanceAsync(); }
-    catch (Exception error) { System.Diagnostics.Debug.WriteLine(error); }
+    await PageLoadGuard.RunAsync(() => LoadForAppearanceAsync());
   }
 
   internal Task LoadForAppearanceAsync(CancellationToken cancellationToken = default) =>

@@ -21,6 +21,11 @@ extension MemberMCPClient {
         defer { connection.invalidateAndCancel() }
         let (_, response) = try await connection.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
+        try throwIfTransportRejected(http, session: session)
+        guard http.statusCode == 202 else { throw Failure.httpStatus(http.statusCode) }
+    }
+
+    func throwIfTransportRejected(_ http: HTTPURLResponse, session: String?) throws {
         if http.statusCode == 401 { throw Failure.unauthorized }
         if http.statusCode == 404, let session {
             if sessionId == session {
@@ -31,6 +36,5 @@ extension MemberMCPClient {
             throw Failure.sessionExpired
         }
         if http.statusCode == 429 { throw rateLimitFailure(http) }
-        guard http.statusCode == 202 else { throw Failure.httpStatus(http.statusCode) }
     }
 }

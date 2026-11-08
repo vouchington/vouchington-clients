@@ -95,37 +95,25 @@ public sealed partial class DirectMessagesViewModel : ObservableObject, IDisposa
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value)) OnPropertyChanged(nameof(IsLoading));
-    }
+    private set => SetPropertyAndNotify(ref state, value, nameof(IsLoading));
   }
 
   public LoadState ThreadState
   {
     get => threadState;
-    private set
-    {
-      if (SetProperty(ref threadState, value)) OnPropertyChanged(nameof(IsThreadLoading));
-    }
+    private set => SetPropertyAndNotify(ref threadState, value, nameof(IsThreadLoading));
   }
 
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public string? ThreadErrorMessage
   {
     get => threadErrorMessage;
-    private set
-    {
-      if (SetProperty(ref threadErrorMessage, value)) OnPropertyChanged(nameof(HasThreadError));
-    }
+    private set => SetPropertyAndNotify(ref threadErrorMessage, value, nameof(HasThreadError));
   }
 
   public string? SelectedConversationId
@@ -137,10 +125,7 @@ public sealed partial class DirectMessagesViewModel : ObservableObject, IDisposa
   public string ParticipantAddPolicy
   {
     get => participantAddPolicy;
-    private set
-    {
-      if (SetProperty(ref participantAddPolicy, value)) OnPropertyChanged(nameof(CanAddParticipants));
-    }
+    private set => SetPropertyAndNotify(ref participantAddPolicy, value, nameof(CanAddParticipants));
   }
 
   public bool HasMoreConversations

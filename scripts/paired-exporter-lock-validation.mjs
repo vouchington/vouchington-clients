@@ -1,4 +1,5 @@
 import { pairedExporterPackages } from './paired-exporter-runtime-evidence.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 export const packagePins = pairedExporterPackages.map(pin => ({
   ...pin,
@@ -27,9 +28,7 @@ const expectedDependencies = {
   '@vouchington/utils': {},
 }
 
-function fail(message) {
-  throw new Error(`Paired exporter dependency bundle rejected: ${message}`)
-}
+const fail = prefixedFailure('Paired exporter dependency bundle rejected')
 
 function parsePackageRecords(lock) {
   const start = lock.indexOf('\npackages:\n')

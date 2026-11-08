@@ -43,19 +43,11 @@ public partial class PostDetailPage
     }
   }
 
-  private void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
+  private void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  private void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  private void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   private async Task RunMutationAsync(Func<Task> mutation)
   {

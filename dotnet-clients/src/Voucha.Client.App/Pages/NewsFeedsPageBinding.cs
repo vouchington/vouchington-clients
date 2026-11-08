@@ -11,7 +11,7 @@ public sealed class NewsFeedsPageBinding : BindableObject
   private readonly ISessionStore sessionStore;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
   private bool isRefreshing;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public NewsFeedsPageBinding(NewsFeedsViewModel viewModel, ISessionStore sessionStore)
   {
@@ -88,18 +88,12 @@ public sealed class NewsFeedsPageBinding : BindableObject
 
   public void AttachSessionChanged()
   {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
+    if (!sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler)) return;
     OnPropertyChanged(nameof(Items));
   }
 
-  public void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  public void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   public IReadOnlyList<NewsFeedItem> Items => viewModel.Items.Select(row => row with
   {

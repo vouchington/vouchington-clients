@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
-import { writeBashExecutable } from './fixture-files.mjs'
+import { captureSpawn, writeBashExecutable } from './fixture-files.mjs'
 
 const script = fileURLToPath(
   new URL('../swift-clients/apps/android/tooling/verify-android-host-swift.sh', import.meta.url),
@@ -50,21 +49,13 @@ async function fixture(t, { xcode = '26.6', swift = '6.3.3', swiftInsideXcode = 
 
   return {
     developerDir,
-    async run() {
-      return new Promise((resolve, reject) => {
-        const child = spawn('/bin/bash', [script], {
-          env: {
-            ...process.env,
-            DEVELOPER_DIR: developerDir,
-            PATH: `${bin}:${process.env.PATH}`,
-          },
-        })
-        let stdout = ''
-        let stderr = ''
-        child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk))
-        child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk))
-        child.on('error', reject)
-        child.on('close', code => resolve({ code, stdout, stderr }))
+    run() {
+      return captureSpawn('/bin/bash', [script], {
+        env: {
+          ...process.env,
+          DEVELOPER_DIR: developerDir,
+          PATH: `${bin}:${process.env.PATH}`,
+        },
       })
     },
   }
@@ -127,21 +118,13 @@ test('accepts both Apple and swift.org mise Swift 6.4 banners and rejects anothe
     ['Swift version 6.3.3 (swift-6.3.3-RELEASE)', 1],
   ]) {
     await writeBashExecutable(swiftPath, `printf '%s\\n' '${banner}'`)
-    const result = await new Promise((resolve, reject) => {
-      const child = spawn('/bin/bash', [managedResolver], {
-        env: {
-          ...process.env,
-          MISE_DATA_DIR: miseData,
-          RUNNER_TEMP: root,
-          PATH: `${bin}:${process.env.PATH}`,
-        },
-      })
-      let stdout = ''
-      let stderr = ''
-      child.stdout.setEncoding('utf8').on('data', chunk => (stdout += chunk))
-      child.stderr.setEncoding('utf8').on('data', chunk => (stderr += chunk))
-      child.on('error', reject)
-      child.on('close', code => resolve({ code, stdout, stderr }))
+    const result = await captureSpawn('/bin/bash', [managedResolver], {
+      env: {
+        ...process.env,
+        MISE_DATA_DIR: miseData,
+        RUNNER_TEMP: root,
+        PATH: `${bin}:${process.env.PATH}`,
+      },
     })
     assert.equal(result.code, expectedCode, `${banner}: ${result.stderr}`)
     if (expectedCode === 0) assert.equal(result.stdout.trim(), await realpath(toolchain))

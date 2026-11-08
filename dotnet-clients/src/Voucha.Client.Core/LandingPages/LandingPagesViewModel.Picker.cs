@@ -83,19 +83,13 @@ public sealed partial class LandingPagesViewModel
   public string LinkLabel
   {
     get => linkLabel;
-    set
-    {
-      if (SetProperty(ref linkLabel, value)) OnPropertyChanged(nameof(CanAddItem));
-    }
+    set => SetPropertyAndNotify(ref linkLabel, value, nameof(CanAddItem));
   }
 
   public string LinkAddressText
   {
     get => linkAddressText;
-    set
-    {
-      if (SetProperty(ref linkAddressText, value)) OnPropertyChanged(nameof(CanAddItem));
-    }
+    set => SetPropertyAndNotify(ref linkAddressText, value, nameof(CanAddItem));
   }
 
   public bool IsLinkType => addType == LandingPageAddType.Link;

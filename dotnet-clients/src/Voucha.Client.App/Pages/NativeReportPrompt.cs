@@ -1,6 +1,7 @@
 using Voucha.Client.App;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -32,7 +33,7 @@ internal static class NativeReportPrompt
         placeholder: UiCopy.Localize(UiMessageKey.NativeDotnetCsharpDialogsOptionalNote),
         maxLength: 1000).ConfigureAwait(true);
     if (note is null) return;
-    note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+    note = TrimmedText.NonEmpty(note);
 
     while (true)
     {

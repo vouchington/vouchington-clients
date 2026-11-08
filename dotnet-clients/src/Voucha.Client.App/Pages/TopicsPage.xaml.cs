@@ -1,5 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Analytics;
+using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core;
@@ -53,22 +53,11 @@ public partial class TopicsPage : ContentPage
     BindingContext = new TopicsPageBinding(viewModel, sessionStore, config);
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void lifecycle methods must not allow load failures to escape to the dispatcher.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
     if (BindingContext is TopicsPageBinding binding) binding.AttachSessionChanged();
-    try
-    {
-      await viewModel.LoadAsync();
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync());
   }
 
   protected override void OnDisappearing()

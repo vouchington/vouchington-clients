@@ -7,10 +7,10 @@ import { it } from 'node:test'
 import {
   bindArtifact,
   parseInstrumentationOutput,
-  sha256,
   validateNativeAbiEntries,
   verifyApkBundle,
 } from '../scripts/paired-native-test-evidence.mjs'
+import { sha256 } from '../scripts/sha256.mjs'
 import {
   createInstrumentationResult,
   validateInstrumentationResult,

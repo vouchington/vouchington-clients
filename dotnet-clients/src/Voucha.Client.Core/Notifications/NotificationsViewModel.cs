@@ -50,14 +50,7 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
@@ -73,13 +66,7 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public Task LoadAsync(CancellationToken cancellationToken = default) =>
@@ -91,26 +78,16 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
     var currentRequest = BeginLoad();
     try
     {
-      var response = await notificationsService
-          .FetchAsync(new FetchNotificationsRequest(cursor), cancellationToken)
-          .ConfigureAwait(true);
-      CompleteLoad(currentRequest, response);
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
+      await ClientLoadAttempt.RunAsync(
+          async () =>
+          {
+            var response = await notificationsService
+                .FetchAsync(new FetchNotificationsRequest(cursor), cancellationToken)
+                .ConfigureAwait(true);
+            CompleteLoad(currentRequest, response);
+          },
+          () => CompleteCanceled(currentRequest),
+          message => CompleteError(currentRequest, message)).ConfigureAwait(true);
     }
     finally
     {

@@ -27,11 +27,11 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
     await page.ReloadAsync();
 
     ConfirmPenalty(page);
-    await WaitUntilAsync(() => service.PostCalls == 1 &&
+    await PageTestWait.WaitUntilAsync(() => service.PostCalls == 1 &&
         VisualTreeElements.Descendants<Button>(page).Any(button =>
             button.AutomationId == "vote-integrity-reconcile-flag-1"));
     Find<Button>(page, "vote-integrity-reconcile-flag-1").SendClicked();
-    await WaitUntilAsync(() => !VisualTreeElements.Descendants<Button>(page).Any(button =>
+    await PageTestWait.WaitUntilAsync(() => !VisualTreeElements.Descendants<Button>(page).Any(button =>
         button.AutomationId == "vote-integrity-reconcile-flag-1"));
 
     Assert.Equal(1, service.FlagGets);
@@ -39,7 +39,7 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
     {
       Assert.True(Find<Button>(page, "vote-integrity-penalty-flag-1").IsEnabled);
       ConfirmPenalty(page);
-      await WaitUntilAsync(() => service.PostCalls == 2);
+      await PageTestWait.WaitUntilAsync(() => service.PostCalls == 2);
     }
     else
     {
@@ -57,10 +57,10 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
     await page.ReloadAsync();
 
     ConfirmPenalty(page);
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Button>(page).Any(button =>
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Button>(page).Any(button =>
         button.AutomationId == "vote-integrity-reconcile-flag-1"));
     Find<Button>(page, "vote-integrity-reconcile-flag-1").SendClicked();
-    await WaitUntilAsync(() => !VisualTreeElements.Descendants<Button>(page).Any(button =>
+    await PageTestWait.WaitUntilAsync(() => !VisualTreeElements.Descendants<Button>(page).Any(button =>
         button.AutomationId == "vote-integrity-penalty-flag-1"));
 
     Assert.Equal(1, service.PostCalls);
@@ -75,10 +75,10 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
     await page.ReloadAsync();
 
     ConfirmPenalty(page);
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Button>(page).Any(button =>
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Button>(page).Any(button =>
         button.AutomationId == "vote-integrity-reconcile-flag-1"));
     Find<Button>(page, "vote-integrity-reconcile-flag-1").SendClicked();
-    await WaitUntilAsync(() => service.FlagGets == 1 &&
+    await PageTestWait.WaitUntilAsync(() => service.FlagGets == 1 &&
         Find<Button>(page, "vote-integrity-reconcile-flag-1").IsEnabled);
 
     Assert.Equal(1, service.PostCalls);
@@ -96,7 +96,7 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
     await page.ReloadAsync();
 
     ConfirmPenalty(page);
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
         label.Text?.Contains("baseline", StringComparison.OrdinalIgnoreCase) == true ||
         label.Text?.Contains("scope", StringComparison.OrdinalIgnoreCase) == true));
 
@@ -132,13 +132,6 @@ public sealed class VoteIntegrityPenaltyBaselinePageTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 
   public enum BaselineScenario
   {

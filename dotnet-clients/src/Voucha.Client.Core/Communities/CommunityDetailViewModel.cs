@@ -96,14 +96,7 @@ public sealed partial class CommunityDetailViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
@@ -111,13 +104,7 @@ public sealed partial class CommunityDetailViewModel :
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);

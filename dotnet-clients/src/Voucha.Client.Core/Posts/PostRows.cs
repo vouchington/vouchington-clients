@@ -2,6 +2,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Content;
 using Voucha.Client.Core.FollowerDistributions;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -122,7 +123,7 @@ public static class PostRows
 
     return new PostRow(
         post.Id,
-        Normalize(post.Title) is not { } title
+        TrimmedText.NonEmpty(post.Title) is not { } title
             ? UiText.Localized(
                 UiMessageKey.NativeDotnetPostsUntitledPostType,
                 ("type", localizer.Resolve(type)))
@@ -152,7 +153,7 @@ public static class PostRows
         EmbedPreview: EmbedFor(post.Id, embeds),
         DeclaredLanguage: post.DeclaredLanguage,
         DetectedLanguage: post.LinguaRsDetectedLanguage,
-        HasAuthoredTitle: Normalize(post.Title) is not null,
+        HasAuthoredTitle: TrimmedText.NonEmpty(post.Title) is not null,
         AuthorAccountType: post.IsAnonymous == true || post.DeletedAt is not null ? null : post.CreatedBy?.AccountType,
         Provenance: post.Provenance,
         StaffProvenance: post.StaffProvenance,
@@ -191,8 +192,6 @@ public static class PostRows
       embeds is not null && embeds.TryGetValue(postId, out var embed)
           ? UrlEmbedPreviews.From(embed)
           : null;
-
-  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   private static UiText PostTypeText(string? value) => UiTaxonomy.PostType(value);
 }

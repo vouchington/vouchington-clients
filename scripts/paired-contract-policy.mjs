@@ -1,3 +1,5 @@
+import { prefixedFailure } from './prefixed-failure.mjs'
+
 export const pairedRepositories = Object.freeze({
   clients: 'vouchington/vouchington-clients',
   producer: 'vouchington/vouchington',
@@ -8,9 +10,7 @@ const numberPattern = /^[1-9][0-9]{0,8}$/u
 const maintainerPermissions = new Set(['admin', 'maintain'])
 const nativeTestProfiles = new Set(['cookie-snapshot', 'pending-turn-recovery'])
 
-export function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
+export const fail = prefixedFailure('Paired contract attestation failed')
 
 export function requiredString(value, label) {
   if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)

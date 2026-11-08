@@ -254,7 +254,7 @@ final class DirectMessagesViewModelCreateRaceTests: NativeRouteSurfaceViewModelT
         XCTAssertEqual(result, .created)
         XCTAssertEqual(viewModel.conversations.map(\.id), ["conversation-99"])
         XCTAssertEqual(viewModel.conversations.first?.title, "Alice, Bob")
-        XCTAssertEqual(viewModel.conversations.first?.updatedAt, isoDate("2026-01-03T00:00:00Z"))
+        XCTAssertEqual(viewModel.conversations.first?.updatedAt, DirectMessagesTestJSON.date("2026-01-03T00:00:00Z"))
     }
 
     private func conversationEnvelope(id: String) -> Data {
@@ -292,7 +292,7 @@ final class DirectMessagesViewModelCreateRaceTests: NativeRouteSurfaceViewModelT
         updatedAt: String,
         participantUsernames: [String]
     ) -> DirectConversation {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -301,7 +301,7 @@ final class DirectMessagesViewModelCreateRaceTests: NativeRouteSurfaceViewModelT
               "created_at": "2026-01-01T00:00:00Z",
               "created_by_id": "user-1",
               "updated_at": "\(updatedAt)",
-              "participant_usernames": \(jsonArray(participantUsernames)),
+              "participant_usernames": \(DirectMessagesTestJSON.array(participantUsernames)),
               "participant_add_policy": "all_members"
             }
             """
@@ -443,22 +443,7 @@ final class DirectMessagesViewModelCreateRaceTests: NativeRouteSurfaceViewModelT
     }
 
     private func message(id: String, conversationId: String) -> DirectMessage {
-        try! decodeJSON(messageJSON(id: id, conversationId: conversationId, bodyText: "Thread B"))
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
-
-    private func isoDate(_ value: String) -> Date {
-        ISO8601DateFormatter().date(from: value)!
-    }
-
-    private func jsonArray(_ values: [String]) -> String {
-        "[" + values.map { "\"\($0)\"" }.joined(separator: ",") + "]"
+        try! DirectMessagesTestJSON.decode(messageJSON(id: id, conversationId: conversationId, bodyText: "Thread B"))
     }
 
     private func assertLoadState(_ state: LoadState, _ expected: LoadState) {

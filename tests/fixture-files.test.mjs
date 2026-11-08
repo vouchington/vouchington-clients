@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { writeBashExecutable, writeExecutable, writeTree } from './fixture-files.mjs'
+import { captureSpawn, writeBashExecutable, writeExecutable, writeTree } from './fixture-files.mjs'
 
 test('writeTree creates nested files with the given contents', async t => {
   const root = await mkdtemp(join(tmpdir(), 'voucha-fixture-files-'))
@@ -56,3 +56,24 @@ test(
     }
   },
 )
+
+test('captureSpawn returns piped stdout, stderr, and the exit code', async () => {
+  const ok = await captureSpawn(process.execPath, [
+    '-e',
+    'process.stdout.write("out"); process.stderr.write("err")',
+  ])
+  assert.equal(ok.code, 0)
+  assert.equal(ok.stdout, 'out')
+  assert.equal(ok.stderr, 'err')
+
+  const failed = await captureSpawn(process.execPath, ['-e', 'process.exit(3)'])
+  assert.equal(failed.code, 3)
+  assert.equal(failed.stdout, '')
+  assert.equal(failed.stderr, '')
+})
+
+test('captureSpawn rejects when the command cannot start', async () => {
+  await assert.rejects(captureSpawn(join(tmpdir(), 'missing-capture-spawn-command'), []), {
+    code: 'ENOENT',
+  })
+})

@@ -6,36 +6,19 @@ import { join } from 'node:path'
 import { it } from 'node:test'
 import { runAndroidSession } from '../scripts/paired-native-android-session.mjs'
 import { validateCleanupEvidence } from '../scripts/paired-native-cleanup-evidence.mjs'
-import { lineageLimits, ownedAvdName } from '../scripts/paired-native-emulator-lineage.mjs'
-import { selectOwnedLineage } from '../scripts/paired-native-ownership.mjs'
+import { lineageLimits } from '../scripts/paired-native-emulator-lineage.mjs'
 import { observeOwnedEmulatorLineage } from '../scripts/paired-native-proc-snapshot.mjs'
 import { readBoundedFile } from '../scripts/paired-native-proc-read.mjs'
+import { passingAdbCommand } from './paired-native-adb-command.mjs'
 import { cleanupBinding, cleanupFixture } from './paired-native-cleanup-fixture.mjs'
-
-const avd = ownedAvdName('55')
+import {
+  lineageFixtureAvd as avd,
+  procStatText as statText,
+  selectLineageFixture as select,
+} from './paired-native-lineage-fixture.mjs'
 
 function record(pid, ppid, pgid, command, startTime) {
   return { pid, ppid, pgid, startTime, identity: { command } }
-}
-
-function statText(pid, ppid, pgid, startTime, comm = 'emulator') {
-  const fields = Array.from({ length: 20 }, () => '0')
-  fields[0] = 'S'
-  fields[1] = String(ppid)
-  fields[2] = String(pgid)
-  fields[19] = String(startTime)
-  return `${pid} (${comm}) ${fields.join(' ')}\n`
-}
-
-function select(records, options = {}) {
-  return selectOwnedLineage({
-    launcherPid: 200,
-    avdName: avd,
-    records,
-    scanComplete: true,
-    limits: lineageLimits,
-    ...options,
-  })
 }
 
 it('rejects an observed launch without the captured launcher or a connected ancestry', () => {
@@ -166,30 +149,7 @@ it('does not let a stalled lineage scan block emulator cleanup', async () => {
     emulatorVersion: 'Android emulator version 37.2.12.0 (build_id 16428233)',
     logPath: '/tmp/emulator.log',
     resultPath: '/tmp/runtime-result.json',
-    runCommand: (_program, args) => {
-      if (args[0] === 'shell' && args[1] === 'getprop') {
-        return {
-          'sys.boot_completed': '1',
-          'ro.build.version.sdk': '35',
-          'ro.build.fingerprint': 'google/sdk_gphone64_x86_64/test-build',
-          'ro.product.cpu.abilist': 'x86_64,arm64-v8a',
-          'ro.dalvik.vm.native.bridge': 'libndk_translation.so',
-        }[args[2]]
-      }
-      if (args[0] === 'shell' && args[1] === 'pm' && args[2] === 'list')
-        return 'instrumentation:ai.voucha.android.test/androidx.test.runner.AndroidJUnitRunner (target=ai.voucha.android)'
-      if (args[0] === 'shell' && args[1] === 'am' && args[2] === 'instrument') {
-        const [className, methodName] = args[7].split('voucha.android.')[1].split('#')
-        return [
-          `INSTRUMENTATION_STATUS: class=voucha.android.${className}`,
-          `INSTRUMENTATION_STATUS: test=${methodName}`,
-          'INSTRUMENTATION_STATUS_CODE: 0',
-          'OK (1 test)',
-          'INSTRUMENTATION_CODE: -1',
-        ].join('\n')
-      }
-      return ''
-    },
+    runCommand: passingAdbCommand,
     runSync: (program, args) => {
       runSyncCalls.push({ program, args })
       return { status: 0 }

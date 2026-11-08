@@ -71,7 +71,7 @@ public sealed class ModerationIntegrityPageTests
     Find<Button>(page, "report-integrity-penalize-report-1").SendClicked();
     Assert.Equal(0, service.ReportPenaltyCalls);
     Find<Button>(page, "report-integrity-penalize-confirm-report-1").SendClicked();
-    await WaitUntilAsync(() => service.ReportPenaltyCalls == 1 &&
+    await PageTestWait.WaitUntilAsync(() => service.ReportPenaltyCalls == 1 &&
         VisualTreeElements.Descendants<Label>(page).Any(label => label.Text == UiLocalization.English.Format(
             UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", 2))));
 
@@ -175,14 +175,14 @@ public sealed class ModerationIntegrityPageTests
         button.AutomationId == "vote-integrity-penalty-confirm-vote-1");
     Find<Button>(page, "vote-integrity-penalty-vote-1").SendClicked();
     Find<Button>(page, "vote-integrity-penalty-confirm-vote-1").SendClicked();
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
         .Any(label => label.Text == UiLocalization.English.Format(
             UiMessageKey.NativeSwiftIntegrityPenalizedUsers, ("count", 3))));
     Assert.True(Find<Button>(page, "vote-integrity-suspended-vote-1").IsEnabled);
     Assert.False(Find<Button>(page, "vote-integrity-penalty-vote-1").IsEnabled);
 
     Find<Button>(page, "vote-integrity-suspended-vote-1").SendClicked();
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
         label.Text == UiLocalization.English.Localize(
             UiMessageKey.NativeSwiftIntegritySuspendedResolution)));
     Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
@@ -217,7 +217,7 @@ public sealed class ModerationIntegrityPageTests
         UiLocalization.English.Localize(UiMessageKey.NativeSwiftIntegrityConfirmRevoke),
         Find<Button>(page, "report-integrity-penalties-revoke-penalty-1").Text);
     Find<Button>(page, "report-integrity-penalties-revoke-penalty-1").SendClicked();
-    await WaitUntilAsync(() => !VisualTreeElements.Descendants<Border>(page).Any(border =>
+    await PageTestWait.WaitUntilAsync(() => !VisualTreeElements.Descendants<Border>(page).Any(border =>
         border.AutomationId == "report-integrity-penalties-penalty-1"));
   }
 
@@ -350,13 +350,6 @@ public sealed class ModerationIntegrityPageTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 
   private static ReportIntegrityFlag ReportFlag(
       string id,

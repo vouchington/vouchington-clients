@@ -72,7 +72,7 @@ final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTes
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -310,7 +310,7 @@ final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTes
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -379,33 +379,7 @@ final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTes
                 "created_by_id": "user-1",
                 "updated_at": "2026-01-01T00:00:00Z",
                 "participant_usernames": ["alice", "bob"],
-                "participant_add_policy": \(jsonString(participantAddPolicy?.rawValue))
-              }
-            }
-            """.utf8
-        )
-    }
-
-    private var participantsPageData: Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "conversation-99",
-                  "user_id": "user-1",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
-                "start_cursor": null
+                "participant_add_policy": \(DirectMessagesTestJSON.string(participantAddPolicy?.rawValue))
               }
             }
             """.utf8
@@ -443,7 +417,7 @@ final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTes
     }
 
     private func publicUser(id: String, username: String) -> PublicUser {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -456,18 +430,6 @@ final class DirectMessagesSurfaceRegressionTests: NativeRouteSurfaceViewModelTes
             }
             """
         )
-    }
-
-    private func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
     }
 
     private func waitForCondition(

@@ -60,7 +60,7 @@ public sealed partial class RewardsProgramStatusesViewModel : ObservableObject, 
   public bool IsCreating
   {
     get => isCreating;
-    private set { if (SetProperty(ref isCreating, value)) OnPropertyChanged(nameof(CanCreate)); }
+    private set => SetPropertyAndNotify(ref isCreating, value, nameof(CanCreate));
   }
   public bool CanCreate => !IsCreating;
   public bool IsMutating(string id) => mutatingIds.Contains(id);

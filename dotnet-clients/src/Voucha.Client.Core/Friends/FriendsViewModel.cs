@@ -1,12 +1,10 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Friends;
 
-public sealed partial class FriendsViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class FriendsViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly IFriendsService friendsService;
   private readonly Dictionary<FriendsTab, FriendsTabPage> tabCache = [];
@@ -38,8 +36,6 @@ public sealed partial class FriendsViewModel : INotifyPropertyChanged, IDisposab
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public void Dispose() => localeSubscription?.Dispose();
 
@@ -90,14 +86,7 @@ public sealed partial class FriendsViewModel : INotifyPropertyChanged, IDisposab
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (state == value) return;
-      state = value;
-      OnPropertyChanged();
-      OnPropertyChanged(nameof(IsLoading));
-      OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
@@ -148,6 +137,4 @@ public sealed partial class FriendsViewModel : INotifyPropertyChanged, IDisposab
     ResetEmptyState();
   }
 
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

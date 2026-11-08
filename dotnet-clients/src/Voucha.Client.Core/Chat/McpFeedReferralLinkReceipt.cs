@@ -13,13 +13,9 @@ public sealed record McpFeedReferralLinkReceipt(
       string tool, JsonElement arguments, JsonElement structuredContent,
       string accountId, string callId)
   {
-    if (tool != "read_feed" || string.IsNullOrEmpty(accountId) || string.IsNullOrEmpty(callId) ||
-        arguments.ValueKind != JsonValueKind.Object ||
-        !arguments.TryGetProperty("option", out var option) || option.GetString() != "referral_links" ||
-        structuredContent.ValueKind != JsonValueKind.Object ||
-        !structuredContent.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True ||
-        !structuredContent.TryGetProperty("results", out var results) || results.ValueKind != JsonValueKind.Array ||
-        results.GetArrayLength() > 100) return null;
+    if (McpFeedReceiptReader.ReadResults(
+            tool, arguments, structuredContent, accountId, callId, "referral_links") is not { } results)
+      return null;
     var links = new List<McpFeedReferralLink>();
     foreach (var row in results.EnumerateArray())
     {

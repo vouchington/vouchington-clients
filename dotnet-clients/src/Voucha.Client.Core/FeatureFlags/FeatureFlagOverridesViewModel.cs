@@ -44,12 +44,12 @@ public sealed class FeatureFlagOverridesViewModel : ObservableObject, IDisposabl
     private set
     {
       localizedErrorText = null;
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
+      SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
     }
   }
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
-  public bool IsLoading { get => isLoading; private set { if (SetProperty(ref isLoading, value)) OnPropertyChanged(nameof(CanMutate)); } }
-  public bool IsSaving { get => isSaving; private set { if (SetProperty(ref isSaving, value)) OnPropertyChanged(nameof(CanMutate)); } }
+  public bool IsLoading { get => isLoading; private set => SetPropertyAndNotify(ref isLoading, value, nameof(CanMutate)); }
+  public bool IsSaving { get => isSaving; private set => SetPropertyAndNotify(ref isSaving, value, nameof(CanMutate)); }
   public bool IsAuthorized => FeatureFlagOverridePolicy.CanManage(sessionStore.Current.Identity?.Roles);
   public bool CanMutate => IsAuthorized && state.IsRemoteHydrated && !IsLoading && !IsSaving;
   public bool HasLocalOverrides => state.LocalOverrides.Count > 0;

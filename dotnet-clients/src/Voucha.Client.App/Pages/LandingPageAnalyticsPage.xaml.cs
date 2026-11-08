@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls;
 using Voucha.Client.Core.LandingPages;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -21,13 +22,6 @@ public partial class LandingPageAnalyticsPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try
-    {
-      await viewModel.LoadAsync(username, slug).ConfigureAwait(true);
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync(username, slug)).ConfigureAwait(true);
   }
 }

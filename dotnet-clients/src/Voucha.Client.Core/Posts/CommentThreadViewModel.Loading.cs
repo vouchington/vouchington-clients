@@ -7,7 +7,7 @@ public sealed partial class CommentThreadViewModel
 {
   private async Task LoadInternalAsync(string? focusedCommentId, CancellationToken cancellationToken)
   {
-    var normalizedFocusedCommentId = NormalizeFocusedCommentId(focusedCommentId);
+    var normalizedFocusedCommentId = TrimmedText.NonEmpty(focusedCommentId);
     ResetForLoad(normalizedFocusedCommentId);
 
     try
@@ -67,7 +67,7 @@ public sealed partial class CommentThreadViewModel
   {
     State = LoadState.Loading;
     ErrorMessage = null;
-    FocusedCommentId = NormalizeFocusedCommentId(focusedCommentId);
+    FocusedCommentId = TrimmedText.NonEmpty(focusedCommentId);
     rootPostResponse = null;
     descendantsResponse = null;
     descendantPages.Reset();

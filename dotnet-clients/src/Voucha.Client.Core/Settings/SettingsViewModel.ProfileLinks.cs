@@ -1,5 +1,6 @@
 #pragma warning disable CA1031
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Settings;
 
@@ -160,14 +161,11 @@ public sealed partial class SettingsViewModel
   }
 
   private CreateProfileLinkBody BuildCreateBody() =>
-      new(ProfileLinkType, EmptyToNull(ProfileLinkAddressText), EmptyToNull(ProfileLinkHandle),
-          EmptyToNull(ProfileLinkName), EmptyToNull(ProfileLinkImageId));
+      new(ProfileLinkType, TrimmedText.NonEmpty(ProfileLinkAddressText), TrimmedText.NonEmpty(ProfileLinkHandle),
+          TrimmedText.NonEmpty(ProfileLinkName), TrimmedText.NonEmpty(ProfileLinkImageId));
 
   private UpdateProfileLinkBody BuildUpdateBody() =>
-      new(EmptyToNull(ProfileLinkAddressText), EmptyToNull(ProfileLinkHandle),
-          EmptyToNull(ProfileLinkName), EmptyToNull(ProfileLinkImageId));
-
-  private static string? EmptyToNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+      new(TrimmedText.NonEmpty(ProfileLinkAddressText), TrimmedText.NonEmpty(ProfileLinkHandle),
+          TrimmedText.NonEmpty(ProfileLinkName), TrimmedText.NonEmpty(ProfileLinkImageId));
 }
 #pragma warning restore CA1031

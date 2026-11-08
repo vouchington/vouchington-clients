@@ -4,6 +4,7 @@ using Microsoft.Maui.ApplicationModel;
 using Voucha.Client.App;
 using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.Notifications;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -27,21 +28,10 @@ public partial class NotificationsPage : ContentPage
     PaginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void lifecycle methods must not allow load failures to escape to the dispatcher.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try
-    {
-      await viewModel.LoadAsync();
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync());
   }
 
   [SuppressMessage(

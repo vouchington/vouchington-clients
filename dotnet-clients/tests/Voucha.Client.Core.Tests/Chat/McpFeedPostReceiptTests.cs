@@ -39,4 +39,43 @@ public sealed class McpFeedPostReceiptTests
     Assert.Null(McpFeedPostReceipt.FromValidatedResult(
         "read_feed", arguments.RootElement, malformed.RootElement, "account-a", "call-1"));
   }
+
+  [Fact]
+  public void DistinctEntityIdsStayOrderedWhileRepeatsAndOversizeAreRejected()
+  {
+    const string first = "0198ffff-0000-7000-8000-000000000002";
+    const string second = "0198ffff-0000-7000-8000-000000000003";
+    using var arguments = JsonDocument.Parse("{\"option\":\"posts\"}");
+    using var distinct = JsonDocument.Parse(
+        "{\"success\":true,\"results\":[{\"entity_id\":\"" + first + "\"},{\"entity_id\":\"" + second + "\"}]}");
+    var receipt = McpFeedPostReceipt.FromValidatedResult(
+        "read_feed", arguments.RootElement, distinct.RootElement, "account-a", "call-1");
+    Assert.NotNull(receipt);
+    Assert.Equal([first, second], receipt.PostIds);
+
+    using var repeated = JsonDocument.Parse(
+        "{\"success\":true,\"results\":[{\"entity_id\":\"" + first + "\"},{\"entity_id\":\"" + first + "\"}]}");
+    Assert.Null(McpFeedPostReceipt.FromValidatedResult(
+        "read_feed", arguments.RootElement, repeated.RootElement, "account-a", "call-1"));
+
+    var acceptedRows = string.Join(',', Enumerable.Range(0, 100).Select(EntityRow));
+    using var accepted = JsonDocument.Parse("{\"success\":true,\"results\":[" + acceptedRows + "]}");
+    var acceptedReceipt = McpFeedPostReceipt.FromValidatedResult(
+        "read_feed", arguments.RootElement, accepted.RootElement, "account-a", "call-1");
+    Assert.NotNull(acceptedReceipt);
+    Assert.Equal(100, acceptedReceipt.PostIds.Count);
+    Assert.Equal(EntityId(0), acceptedReceipt.PostIds[0]);
+    Assert.Equal(EntityId(99), acceptedReceipt.PostIds[99]);
+
+    var oversizedRows = acceptedRows + "," + EntityRow(100);
+    using var oversized = JsonDocument.Parse("{\"success\":true,\"results\":[" + oversizedRows + "]}");
+    Assert.Null(McpFeedPostReceipt.FromValidatedResult(
+        "read_feed", arguments.RootElement, oversized.RootElement, "account-a", "call-1"));
+  }
+
+  private static string EntityId(int index) =>
+      "0198ffff-0000-7000-8000-" + index.ToString("x12");
+
+  private static string EntityRow(int index) =>
+      "{\"entity_id\":\"" + EntityId(index) + "\"}";
 }

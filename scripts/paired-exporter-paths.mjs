@@ -1,9 +1,9 @@
 import { lstat, realpath } from 'node:fs/promises'
-import { relative, sep, isAbsolute } from 'node:path'
+import { relative } from 'node:path'
+import { prefixedFailure } from './prefixed-failure.mjs'
+import { within } from './path-within.mjs'
 
-function fail(message) {
-  throw new Error(`Isolated native exporter failed: ${message}`)
-}
+const fail = prefixedFailure('Isolated native exporter failed')
 
 export async function directory(value, label) {
   if (typeof value !== 'string' || value.trim() === '') fail(`${label} is required`)
@@ -18,6 +18,5 @@ export async function directory(value, label) {
 }
 
 export function overlaps(left, right) {
-  const path = relative(left, right)
-  return path === '' || (path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path))
+  return relative(left, right) === '' || within(left, right)
 }

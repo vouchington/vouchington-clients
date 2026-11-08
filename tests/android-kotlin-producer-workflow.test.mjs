@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { jobBlock } from './workflow-job-block.mjs'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const workflow = await readFile(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
@@ -10,7 +10,7 @@ const workflow = await readFile(
 const library = jobBlock(workflow, 'build-swift-android-kotlin-libraries')
 const native = jobBlock(workflow, 'build-swift-android-native')
 const app = jobBlock(workflow, 'build-swift-android')
-const step = (job, name) => job.split(`      - name: ${name}\n`)[1].split('      - name: ')[0]
+const step = (job, name) => stepBlock(job, name)
 
 test('Kotlin libraries run beside native production with pinned host tools and no persistent writes', () => {
   assert.match(library, /needs: \[verify, build-swift-android-dependency\]/u)

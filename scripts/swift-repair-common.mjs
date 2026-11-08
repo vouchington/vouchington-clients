@@ -26,6 +26,17 @@ export const SEMVER =
 export const REVISION = /^[a-f0-9]{40}$/u
 export const SKIP_URL = 'https://source.skip.tools/skip.git'
 
+export function parseCli(argv) {
+  const options = {}
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index]
+    if (!argument.startsWith('--')) continue
+    const key = argument.slice(2)
+    options[key] = argv[index + 1]?.startsWith('--') ? true : argv[++index]
+  }
+  return options
+}
+
 export function assertion(condition, message) {
   if (!condition) throw new Error(message)
 }

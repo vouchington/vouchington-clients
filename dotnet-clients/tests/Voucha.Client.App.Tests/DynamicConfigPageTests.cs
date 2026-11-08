@@ -74,7 +74,7 @@ public sealed class DynamicConfigPageTests
     var integer = Find<Entry>(page, "dynamic-config-limit-value");
     integer.Text = "5.5";
     Find<Button>(page, "dynamic-config-limit-save").SendClicked();
-    await WaitUntilAsync(() => viewModel.Fields.Single(field => field.Name == "limit").HasValidationError);
+    await PageTestWait.WaitUntilAsync(() => viewModel.Fields.Single(field => field.Name == "limit").HasValidationError);
     Assert.Equal(
         UiLocalization.English.Localize(
             UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsWholeNumber),
@@ -83,7 +83,7 @@ public sealed class DynamicConfigPageTests
     var number = Find<Entry>(page, "dynamic-config-threshold-value");
     number.Text = "1.5";
     Find<Button>(page, "dynamic-config-threshold-save").SendClicked();
-    await WaitUntilAsync(() => viewModel.Fields.Single(field => field.Name == "threshold").HasValidationError);
+    await PageTestWait.WaitUntilAsync(() => viewModel.Fields.Single(field => field.Name == "threshold").HasValidationError);
     Assert.Equal(
         UiLocalization.English.Format(
             UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsMaximumInput,
@@ -107,7 +107,7 @@ public sealed class DynamicConfigPageTests
     var toggle = Find<Switch>(page, "dynamic-config-fediverse-global");
     toggle.IsToggled = true;
 
-    await WaitUntilAsync(() => viewModel.HasError && !viewModel.IsSaving && !toggle.IsToggled);
+    await PageTestWait.WaitUntilAsync(() => viewModel.HasError && !viewModel.IsSaving && !toggle.IsToggled);
     Assert.False(toggle.IsToggled);
     Assert.False(Find<Switch>(page, "dynamic-config-fediverse-global").IsToggled);
     var expectedError = UiLocalization.English.Format(
@@ -129,7 +129,7 @@ public sealed class DynamicConfigPageTests
     await service.UpdateStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
     Assert.False(Find<Switch>(page, "dynamic-config-fediverse-global").IsEnabled);
     service.ReleaseUpdate();
-    await WaitUntilAsync(() =>
+    await PageTestWait.WaitUntilAsync(() =>
         !viewModel.IsSaving &&
         viewModel.FeedbackMessage == UiLocalization.English.Localize(
             UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsUpdated));
@@ -155,14 +155,14 @@ public sealed class DynamicConfigPageTests
     var text = Find<Entry>(page, "dynamic-config-mode-value");
     text.Text = "observe";
     Find<Button>(page, "dynamic-config-mode-save").SendClicked();
-    await WaitUntilAsync(() => service.UpdateCalls == 1 && !viewModel.IsSaving);
+    await PageTestWait.WaitUntilAsync(() => service.UpdateCalls == 1 && !viewModel.IsSaving);
     Assert.Equal("observe", text.Text);
     Assert.Equal("observe", viewModel.Fields.Single(field => field.Name == "mode").Draft);
 
     var number = Find<Entry>(page, "dynamic-config-threshold-value");
     number.Text = "0.7";
     Find<Button>(page, "dynamic-config-threshold-save").SendClicked();
-    await WaitUntilAsync(() => service.UpdateCalls == 2 && !viewModel.IsSaving);
+    await PageTestWait.WaitUntilAsync(() => service.UpdateCalls == 2 && !viewModel.IsSaving);
     Assert.Equal("0.7", number.Text);
     Assert.Equal("0.7", viewModel.Fields.Single(field => field.Name == "threshold").Draft);
   }
@@ -239,12 +239,6 @@ public sealed class DynamicConfigPageTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++) await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 
   private static DynamicConfigNamespace TypedNamespace(bool canUpdate) => new(
       "typed-config", "Typed Config", "Typed controls", 4, true, canUpdate,

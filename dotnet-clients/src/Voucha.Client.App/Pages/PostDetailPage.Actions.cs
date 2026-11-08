@@ -2,6 +2,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 using Voucha.Client.App.Controls;
 using Voucha.Client.Core.Moderation;
 namespace Voucha.Client.App.Pages;
@@ -142,7 +143,7 @@ public partial class PostDetailPage
         accept: UiCopy.Localize(UiMessageKey.NativeDotnetCsharpSubmit),
         cancel: UiCopy.Localize(UiMessageKey.NativeDotnetCsharpCancel));
     if (note is null) return;
-    await RunMutationAsync(() => binding.ViewModel.ReportAsync(row.Id, reason.Trim(), string.IsNullOrWhiteSpace(note) ? null : note.Trim()));
+    await RunMutationAsync(() => binding.ViewModel.ReportAsync(row.Id, reason.Trim(), TrimmedText.NonEmpty(note)));
   }
 
   private async void OnEditClicked(object? sender, EventArgs e)

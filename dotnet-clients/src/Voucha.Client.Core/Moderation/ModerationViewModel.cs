@@ -35,10 +35,7 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
   public IReadOnlyList<ModerationRow> Items
   {
     get => items;
-    private set
-    {
-      if (SetProperty(ref items, value)) OnPropertyChanged(nameof(HasItems));
-    }
+    private set => SetPropertyAndNotify(ref items, value, nameof(HasItems));
   }
 
   public bool HasItems => Items.Count > 0;
@@ -46,14 +43,7 @@ public sealed partial class ModerationViewModel : ObservableObject, IDisposable,
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;

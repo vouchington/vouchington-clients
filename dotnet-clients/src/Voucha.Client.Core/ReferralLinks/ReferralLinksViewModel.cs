@@ -50,14 +50,7 @@ public sealed partial class ReferralLinksViewModel : ObservableObject, IDisposab
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
@@ -99,31 +92,18 @@ public sealed partial class ReferralLinksViewModel : ObservableObject, IDisposab
       CancellationToken cancellationToken = default)
   {
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await referralLinksService
-          .FetchFeedAsync(
-              new FetchReferralLinksFeedRequest(mutual ? "mutual_follows" : "follow_users"),
-              cancellationToken)
-          .ConfigureAwait(true);
-      CompleteReferralRows(currentRequest, response.Results.Select(RowFromFeed).ToArray());
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await referralLinksService
+              .FetchFeedAsync(
+                  new FetchReferralLinksFeedRequest(mutual ? "mutual_follows" : "follow_users"),
+                  cancellationToken)
+              .ConfigureAwait(true);
+          CompleteReferralRows(currentRequest, response.Results.Select(RowFromFeed).ToArray());
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
   public async Task LoadPrioritizedAsync(
@@ -132,58 +112,32 @@ public sealed partial class ReferralLinksViewModel : ObservableObject, IDisposab
       CancellationToken cancellationToken = default)
   {
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await referralLinksService
-          .FetchPrioritizedAsync(
-              new FetchPrioritizedReferralLinksRequest(referralProgramId, all),
-              cancellationToken)
-          .ConfigureAwait(true);
-      CompleteReferralRows(currentRequest, response.Links.Select(RowFromPrioritized).ToArray());
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await referralLinksService
+              .FetchPrioritizedAsync(
+                  new FetchPrioritizedReferralLinksRequest(referralProgramId, all),
+                  cancellationToken)
+              .ConfigureAwait(true);
+          CompleteReferralRows(currentRequest, response.Links.Select(RowFromPrioritized).ToArray());
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
   public async Task LoadTrendingProgramsAsync(CancellationToken cancellationToken = default)
   {
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await referralLinksService
-          .FetchTrendingProgramsAsync(new FetchTrendingReferralProgramsRequest(), cancellationToken)
-          .ConfigureAwait(true);
-      CompleteReferralRows(currentRequest, response.Results.Select(RowFromTrendingProgram).ToArray());
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await referralLinksService
+              .FetchTrendingProgramsAsync(new FetchTrendingReferralProgramsRequest(), cancellationToken)
+              .ConfigureAwait(true);
+          CompleteReferralRows(currentRequest, response.Results.Select(RowFromTrendingProgram).ToArray());
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 }

@@ -86,18 +86,17 @@ public sealed partial class LandingPagesViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(IsNotLoading));
-        OnPropertyChanged(nameof(IsContentEditable));
-        OnPropertyChanged(nameof(CanCreatePage));
-        OnPropertyChanged(nameof(CanAddItem));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(
+        ref state,
+        value,
+        [
+          nameof(IsLoading),
+          nameof(IsNotLoading),
+          nameof(IsContentEditable),
+          nameof(CanCreatePage),
+          nameof(CanAddItem),
+          nameof(HasError),
+        ]);
   }
 
   public bool HasError => State == LoadState.Error;
