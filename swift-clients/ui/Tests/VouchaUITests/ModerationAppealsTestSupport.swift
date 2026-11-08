@@ -67,6 +67,38 @@ enum ModerationAppealsTestSupport {
         """.utf8)
     }
 
+    static func staffList(
+        _ details: [String],
+        hasNextPage: Bool = false,
+        endCursor: String? = nil
+    ) -> Data {
+        let summaryKeys: Set = [
+            "id", "appellant_user_id", "user_warning_id", "user_suspension_id", "community_ban_id",
+            "post_id", "community_id", "post_removal_kind", "status", "recommended_action",
+            "public_response", "approved_at", "sent_at", "resolved_at", "resolution_action",
+            "created_at", "updated_at", "is_overdue", "target_context", "reason", "topic_id", "post_content"
+        ]
+        let summaries: [String] = details.map { detail in
+            guard let data = detail.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let id = object["id"] as? String
+            else { preconditionFailure("Invalid test detail") }
+            CannedFeedURLProtocol.handlers["/api/v1/appeals/\(id)"] = (envelope(detail), 200)
+            var summary = object.filter { summaryKeys.contains($0.key) }
+            summary["has_draft"] = object["drafted_at"] is String
+            summary["has_ai_draft"] = object["ai_drafted_at"] is String
+            summary["appellant"] = [
+                "id": object["appellant_user_id"] ?? "user-1", "username": "test-member",
+                "verified_display_name": NSNull(), "profile_image_id": NSNull()
+            ]
+            guard let encoded = try? JSONSerialization.data(withJSONObject: summary),
+                  let text = String(data: encoded, encoding: .utf8)
+            else { preconditionFailure("Invalid test summary") }
+            return text
+        }
+        return list(summaries, hasNextPage: hasNextPage, endCursor: endCursor)
+    }
+
     static func envelope(_ appeal: String) -> Data {
         Data("{\"appeal\":\(appeal)}".utf8)
     }

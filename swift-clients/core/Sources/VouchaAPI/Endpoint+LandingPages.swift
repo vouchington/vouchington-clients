@@ -56,8 +56,11 @@ public extension Endpoint {
         Endpoint(.GET, path: "/api/v1/admin/users/\(pathSegment(userId))/landing-pages")
     }
 
-    static func adminLandingPageAnalytics(pageId: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/admin/landing-pages/\(pathSegment(pageId))/analytics")
+    static func adminLandingPageAnalytics(username: String, slug: String) -> Endpoint {
+        Endpoint(
+            .GET,
+            path: "/api/v1/admin/users/\(pathSegment(username))/landing-pages/\(pathSegment(slug))/analytics"
+        )
     }
 
     static func createMyLandingPage(title: String, subtitle: NullableStringPatchField?, slug: String) -> Endpoint {

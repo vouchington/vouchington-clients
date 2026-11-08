@@ -118,7 +118,9 @@ public sealed class ModerationAppealCardPresentationTests
   public async Task PendingAIRerunRendersReadOnlyRefreshAndDisablesDuplicatePost()
   {
     using var scope = UiCopy.PushLocalization(UiLocalization.English);
-    _ = new Application { Resources =
+    _ = new Application
+    {
+      Resources =
     {
       [UiMessageKey.NativeSwiftModerationAppealsRerunAi.Value] = UiCopy.Localize(
           UiMessageKey.NativeSwiftModerationAppealsRerunAi),
@@ -126,10 +128,12 @@ public sealed class ModerationAppealCardPresentationTests
           UiMessageKey.NativeSwiftReviewDisputesRefreshStatus),
       [UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing.Value] = UiCopy.Localize(
           UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing),
-    } };
+    }
+    };
     var appeal = Appeal(null) with
     {
       AiDraftedAt = Instant,
+      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
       LatestLifecycleChangeId = "initial-change",
     };
     var service = new PendingAIRerunService(appeal);
@@ -152,6 +156,45 @@ public sealed class ModerationAppealCardPresentationTests
     Assert.True(refresh.IsEnabled);
     Assert.Contains(card.Children.OfType<Label>(), label =>
         label.IsVisible && label.Text == UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
+  }
+
+  [Theory]
+  [InlineData(true)]
+  [InlineData(false)]
+  public async Task RefreshLabelDistinguishesSummaryLoadingFromAmbiguousDelivery(bool summary)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    _ = new Application
+    {
+      Resources =
+    {
+      [UiMessageKey.NativeDotnetCommonRefresh.Value] = UiCopy.Localize(UiMessageKey.NativeDotnetCommonRefresh),
+      [UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery.Value] = UiCopy.Localize(
+          UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery),
+    }
+    };
+    var appeal = Appeal(null) with
+    {
+      AiDraftRequestedRunId = summary ? null : "appeal_resolution_00000000-0000-7000-8000-000000000201",
+      PublicResponse = summary ? null : "Approved reply",
+      ApprovedAt = summary ? null : Instant,
+    };
+    using var viewModel = new ModerationAppealsViewModel(
+        new PendingAIRerunService(appeal, ambiguousDelivery: true),
+        new NavigationViewer(true, ["administrator"]));
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    if (!summary)
+    {
+      await viewModel.DeliverAsync(appeal, TestContext.Current.CancellationToken);
+      Assert.True(viewModel.IsDeliveryAmbiguous(appeal));
+    }
+    var card = new ModerationAppealCardView(viewModel) { BindingContext = Assert.Single(viewModel.Appeals) };
+    var refresh = Assert.Single(card.Children.OfType<Button>(), button => button.IsVisible);
+
+    Assert.Equal(UiCopy.Localize(summary
+        ? UiMessageKey.NativeDotnetCommonRefresh
+        : UiMessageKey.NativeSwiftModerationAppealsRefreshDelivery), refresh.Text);
   }
 
   [Fact]
@@ -177,7 +220,7 @@ public sealed class ModerationAppealCardPresentationTests
     page.Dispose();
   }
 
-  private sealed class PendingAIRerunService(ModerationAppeal appeal) : IModerationAppealsService
+  private sealed class PendingAIRerunService(ModerationAppeal appeal, bool ambiguousDelivery = false) : IModerationAppealsService
   {
     public Task<ModerationAppealListResponse> FetchAppealsAsync(
         ModerationAppealStatus status, string? after = null, int limit = 25,
@@ -203,7 +246,9 @@ public sealed class ModerationAppealCardPresentationTests
 
     public Task<ModerationAppealResponse> DeliverAsync(
         string id, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        throw (ambiguousDelivery
+            ? new HttpRequestException("delivery outcome unavailable", null, System.Net.HttpStatusCode.BadGateway)
+            : new NotSupportedException());
 
     public Task<ModerationAppealResponse> ResolveAsync(
         string id, ModerationAppealAction action, CancellationToken cancellationToken = default) =>

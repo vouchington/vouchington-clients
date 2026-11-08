@@ -51,6 +51,7 @@ internal static partial class ApiFixtureCoverage
         ["web.communities.list-items.counts.default"] = VouchaApiEndpoints.CommunityListItemCounts("test-community"),
         ["web.communities.application-questions.default"] = VouchaApiEndpoints.CommunityApplicationQuestions("test-community"),
         ["web.communities.pinned-posts.default"] = VouchaApiEndpoints.CommunityPinnedPosts("test-community"),
+        ["web.communities.application.default"] = VouchaApiEndpoints.CommunityApplication("test-community", "application-1"),
         ["web.communities.applications.default"] = VouchaApiEndpoints.CommunityApplications("test-community", limit: 25),
         ["web.communities.invites.default"] = VouchaApiEndpoints.CommunityInvites("test-community", limit: 25),
         ["web.communities.bans.default"] = VouchaApiEndpoints.CommunityBans("test-community"),
@@ -245,7 +246,7 @@ internal static partial class ApiFixtureCoverage
         ["web.admin.mq.queues.pause.default"] = VouchaApiEndpoints.PauseQueue("psql"),
         ["web.admin.mq.queues.resume.default"] = VouchaApiEndpoints.ResumeQueue("psql"),
         ["web.admin.mq.scheduled-jobs.default"] = VouchaApiEndpoints.FetchScheduledJobs(),
-        ["web.admin.mq.scheduled-jobs.trigger.default"] = VouchaApiEndpoints.TriggerScheduledJob("kagi-smallweb-sync"),
+        ["web.admin.mq.scheduled-jobs.trigger.default"] = VouchaApiEndpoints.TriggerScheduledJob("imports-recover-stalled"),
         ["web.admin.mq.backfills.default"] = VouchaApiEndpoints.FetchBackfills(),
         ["web.admin.mq.backfills.trigger.default"] = VouchaApiEndpoints.TriggerBackfill("openai-moderation-posts"),
         ["web.admin.psql.migrations.default"] = VouchaApiEndpoints.FetchPsqlMigrations(),
@@ -301,8 +302,8 @@ internal static partial class ApiFixtureCoverage
         ["native.my.email-addresses.empty"] = VouchaApiEndpoints.EmailAddresses("fixture-owner-scoped-email-cursor", 1),
         ["native.my.api-keys.paginated"] = VouchaApiEndpoints.ApiKeys("fixture-owner-scoped-api-key-cursor", 1),
         ["native.my.push-subscriptions.paginated"] = VouchaApiEndpoints.PushSubscriptions("fixture-owner-scoped-push-cursor", 1),
-        ["native.my.email-addresses.request.default"] = VouchaApiEndpoints.RequestEmailAddressVerification(" Tests+Native-User@Voucha.ai "),
-        ["native.my.email-addresses.verify.default"] = VouchaApiEndpoints.VerifyEmailAddress("tests+native-user@voucha.ai", "ABCD1234"),
+        ["native.my.email-addresses.request.default"] = VouchaApiEndpoints.RequestEmailAddressVerification(" Tests+Native-User@Voucha.ai ", "fresh-auth-fixture"),
+        ["native.my.email-addresses.verify.default"] = VouchaApiEndpoints.VerifyEmailAddress("tests+native-user@voucha.ai", "ABCD1234", "fresh-auth-fixture"),
         ["native.auth.sessions.default"] = VouchaApiEndpoints.AuthSessions("fixture-owner-scoped-session-cursor", 1),
         ["native.auth.bluesky.link.default"] = VouchaApiEndpoints.BeginBlueskyAccountLink("alice.bsky.social"),
         ["native.auth.bluesky.link.native"] = VouchaApiEndpoints.BeginNativeBlueskyAccountLink(
@@ -337,7 +338,7 @@ internal static partial class ApiFixtureCoverage
         ["native.landing-page-detail.default"] = VouchaApiEndpoints.MyLandingPage("landing-page-1"),
         ["native.landing-page-analytics.default"] = VouchaApiEndpoints.MyLandingPageAnalytics("landing-page-1"),
         ["native.admin-user-landing-pages.default"] = VouchaApiEndpoints.AdminUserLandingPages("user-abc"),
-        ["native.admin-landing-page-analytics.default"] = VouchaApiEndpoints.AdminLandingPageAnalytics("landing-page-1"),
+        ["native.admin-landing-page-analytics.default"] = VouchaApiEndpoints.AdminLandingPageAnalytics("fixture-user", "links"),
         ["native.landing-page-candidates.default"] = VouchaApiEndpoints.MyLandingPageCandidates(),
         ["native.landing-page-items-mutation.default"] = ApiFixtureLandingPageItems.Request(),
         ["native.landing-page-mutation.default"] = VouchaApiEndpoints.UpdateMyLandingPage(
@@ -469,5 +470,5 @@ internal static partial class ApiFixtureCoverage
         ["web.paid.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
-      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints()))).WithCurrentFixtureRequests();
+      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints()))).WithCurrentFixtureRequests().WithContractDriftEndpoints();
 }

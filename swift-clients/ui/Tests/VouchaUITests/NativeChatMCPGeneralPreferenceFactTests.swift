@@ -9,7 +9,7 @@ import XCTest
 
 @MainActor
 final class NativeChatMCPGeneralPreferenceFactTests: XCTestCase {
-    func testCanonicalFactKeepsAllTwelveSettingsIncludingFalseAndNull() throws {
+    func testCanonicalFactKeepsAllElevenSettingsIncludingNull() throws {
         let fixture = try NativeChatMCPGeneralPreferenceFixture()
         let preferences = try preferences(fixture)
         XCTAssertEqual(preferences.followsVisibility, .everyone)
@@ -23,7 +23,6 @@ final class NativeChatMCPGeneralPreferenceFactTests: XCTestCase {
         XCTAssertEqual(preferences.defaultPostPrivacy, .private)
         XCTAssertEqual(preferences.country, "US")
         XCTAssertNil(preferences.uiLocale)
-        XCTAssertFalse(preferences.shouldImportHackerNewsDiscussions)
 
         let settings = try XCTUnwrap(fixture.structured["settings"] as? [String: Any])
         for key in settings.keys {
@@ -45,12 +44,11 @@ final class NativeChatMCPGeneralPreferenceFactTests: XCTestCase {
             .nativeSwiftSettingsFollows, .nativeSwiftSettingsTopicFollows, .nativeSwiftSettingsRssFollows,
             .nativeSwiftSettingsCommunityMemberships, .nativeSwiftSettingsFollowers, .nativeSwiftSettingsLikes,
             .nativeSwiftSettingsDirectMessages, .nativeSwiftSettingsDefaultPostAudience,
-            .nativeSwiftSettingsDefaultPostPrivacy, .settingsLanguageCountryLabel, .settingsLanguageInterfaceLabel,
-            .extractedMyPreferencesFormHackerNewsDiscussions065664a4
+            .nativeSwiftSettingsDefaultPostPrivacy, .settingsLanguageCountryLabel, .settingsLanguageInterfaceLabel
         ]
         for locale in [Locale(identifier: "en"), Locale(identifier: "fr")] {
             let inspected = try NativeChatGeneralPreferencesFactView(preferences: preferences, locale: locale).inspect()
-            XCTAssertEqual(inspected.findAll(ViewType.HStack.self).count, 12)
+            XCTAssertEqual(inspected.findAll(ViewType.HStack.self).count, 11)
             for label in labels {
                 XCTAssertNoThrow(try inspected.find(text: UiMessages.string(label, locale: locale)))
             }
@@ -58,7 +56,7 @@ final class NativeChatMCPGeneralPreferenceFactTests: XCTestCase {
                 .nativeSwiftSettingsEveryone, .extractedMyAudienceSelectLoggedInUsers81dac12b,
                 .nativeSwiftSettingsFollowers, .nativeSwiftSettingsMutualFollowers,
                 .nativeSwiftPresentationValuesNobody, .nativeSwiftSettingsPrivate,
-                .settingsLanguageUseSiteDefault, .nativeSwiftRouteSurfaceFalse
+                .settingsLanguageUseSiteDefault
             ]
             for value in values {
                 XCTAssertNoThrow(try inspected.find(text: UiMessages.string(value, locale: locale)))
@@ -71,12 +69,11 @@ final class NativeChatMCPGeneralPreferenceFactTests: XCTestCase {
         }
     }
 
-    func testNullCountryAndExplicitLocaleRemainDistinctFromFalseAndSiteDefault() throws {
+    func testNullCountryAndExplicitLocaleRemainDistinctFromSiteDefault() throws {
         var fixture = try NativeChatMCPGeneralPreferenceFixture()
         var settings = try XCTUnwrap(fixture.structured["settings"] as? [String: Any])
         settings["country"] = NSNull()
         settings["ui_locale"] = "fr"
-        settings["should_import_hacker_news_discussions"] = true
         settings["default_post_privacy"] = "public"
         fixture.structured["settings"] = settings
         let preferences = try preferences(fixture)
@@ -87,14 +84,9 @@ final class NativeChatMCPGeneralPreferenceFactTests: XCTestCase {
                 locale: locale
             )))
             XCTAssertNoThrow(try inspected.find(text: "fr"))
-            XCTAssertNoThrow(try inspected.find(text: UiMessages.string(.nativeSwiftRouteSurfaceTrue, locale: locale)))
             XCTAssertNoThrow(try inspected.find(text: UiMessages.string(.nativeSwiftSettingsPublic, locale: locale)))
             XCTAssertThrowsError(try inspected.find(text: UiMessages.string(
                 .settingsLanguageUseSiteDefault,
-                locale: locale
-            )))
-            XCTAssertThrowsError(try inspected.find(text: UiMessages.string(
-                .nativeSwiftRouteSurfaceFalse,
                 locale: locale
             )))
         }

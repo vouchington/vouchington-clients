@@ -105,6 +105,7 @@ public struct TopicImportResponse: Codable, Sendable, Equatable {
 public struct RssFeedImportSummary: Codable, Sendable, Equatable {
     public let id: String
     public let totalRows: Int
+    public let skippedRows: Int
     public let completedRows: Int
     public let failedRows: Int
     public let pendingRows: Int
@@ -115,6 +116,7 @@ public struct RssFeedImportSummary: Codable, Sendable, Equatable {
         id: String,
         totalRows: Int,
         completedRows: Int,
+        skippedRows: Int = 0,
         failedRows: Int,
         pendingRows: Int,
         completedAt: Date?,
@@ -123,6 +125,7 @@ public struct RssFeedImportSummary: Codable, Sendable, Equatable {
         self.id = id
         self.totalRows = totalRows
         self.completedRows = completedRows
+        self.skippedRows = skippedRows
         self.failedRows = failedRows
         self.pendingRows = pendingRows
         self.completedAt = completedAt

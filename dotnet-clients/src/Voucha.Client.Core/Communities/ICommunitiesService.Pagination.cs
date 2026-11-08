@@ -39,4 +39,5 @@ public partial interface ICommunitiesService
 
   Task<CommunityPendingReportsResponse> FetchPendingReportsPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default) =>
       Task.FromResult(new CommunityPendingReportsResponse([], new PageInfo(null, false, null)));
+  Task<CommunityAgentPromptsResponse> FetchAgentPromptsPageAsync(string idOrSlug, string? after, int limit, CancellationToken cancellationToken = default);
 }

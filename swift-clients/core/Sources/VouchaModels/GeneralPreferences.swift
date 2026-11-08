@@ -1,6 +1,6 @@
 import Foundation
 
-/// The twelve settings exposed by the general member-preferences tool option.
+/// The eleven settings exposed by the general member-preferences tool option.
 public struct GeneralPreferences: Codable, Equatable, Sendable {
     public let followsVisibility: UserPrivacyAudience
     public let topicFollowsVisibility: UserPrivacyAudience
@@ -13,12 +13,11 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
     public let defaultPostPrivacy: PostPrivacy
     public let country: String?
     public let uiLocale: String?
-    public let shouldImportHackerNewsDiscussions: Bool
 
     private enum CodingKeys: String, CodingKey {
         case followsVisibility, topicFollowsVisibility, rssFeedFollowsVisibility, communityMembershipsVisibility
         case followersVisibility, likesVisibility, directMessagesAudience, defaultPostBroadcast, defaultPostPrivacy
-        case country, uiLocale, shouldImportHackerNewsDiscussions
+        case country, uiLocale
     }
 
     public init(from decoder: any Decoder) throws {
@@ -38,7 +37,6 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         // Both keys are required even when the account deliberately uses the default.
         country = try values.decode(String?.self, forKey: .country)
         uiLocale = try values.decode(String?.self, forKey: .uiLocale)
-        shouldImportHackerNewsDiscussions = try values.decode(Bool.self, forKey: .shouldImportHackerNewsDiscussions)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -54,6 +52,5 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         try values.encode(defaultPostPrivacy, forKey: .defaultPostPrivacy)
         try values.encode(country, forKey: .country)
         try values.encode(uiLocale, forKey: .uiLocale)
-        try values.encode(shouldImportHackerNewsDiscussions, forKey: .shouldImportHackerNewsDiscussions)
     }
 }

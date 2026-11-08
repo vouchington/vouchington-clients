@@ -313,7 +313,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (
             Data(
-                #"{"results":[{"id":"application-1"}],"page_info":{"has_next_page":false,"end_cursor":null},"community_applications":{}}"#
+                #"{"results":[{"id":"application-1"}],"page_info":{"has_next_page":false,"end_cursor":null},"community_application_summaries":{},"users":{}}"#
                     .utf8
             ),
             200

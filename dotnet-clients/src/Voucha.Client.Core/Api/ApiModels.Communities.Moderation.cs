@@ -49,20 +49,20 @@ public sealed record CommunityAiAgentsResponse(
     [property: JsonPropertyName("community_ai_agents")] IReadOnlyList<CommunityAiAgent> CommunityAiAgents);
 
 public sealed record CommunityAgentPrompt(
-    [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("community_id")] string CommunityId,
-    [property: JsonPropertyName("created_by_id")] string CreatedById,
-    [property: JsonPropertyName("agent_id")] string AgentId,
-    [property: JsonPropertyName("prompt")] string Prompt,
-    [property: JsonPropertyName("model_name")] string ModelName,
-    [property: JsonPropertyName("model_provider")] string ModelProvider,
-    [property: JsonPropertyName("is_slot_allocated")] bool IsSlotAllocated,
-    [property: JsonPropertyName("activated_at")] DateTimeOffset? ActivatedAt = null,
-    [property: JsonPropertyName("deactivated_at")] DateTimeOffset? DeactivatedAt = null,
-    [property: JsonPropertyName("deleted_at")] DateTimeOffset? DeletedAt = null,
-    [property: JsonPropertyName("deleted_by_id")] string? DeletedById = null,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt = default,
-    [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt = default);
+    [property: JsonPropertyName("id"), JsonRequired] string Id,
+    [property: JsonPropertyName("community_id"), JsonRequired] string CommunityId,
+    [property: JsonPropertyName("created_by_id"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? CreatedById,
+    [property: JsonPropertyName("agent_id"), JsonRequired] string AgentId,
+    [property: JsonPropertyName("prompt"), JsonRequired] string Prompt,
+    [property: JsonPropertyName("model_name"), JsonRequired] string ModelName,
+    [property: JsonPropertyName("model_provider"), JsonRequired] string ModelProvider,
+    [property: JsonPropertyName("is_slot_allocated"), JsonRequired] bool IsSlotAllocated,
+    [property: JsonPropertyName("activated_at"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] DateTimeOffset? ActivatedAt = null,
+    [property: JsonPropertyName("deactivated_at"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] DateTimeOffset? DeactivatedAt = null,
+    [property: JsonPropertyName("deleted_at"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] DateTimeOffset? DeletedAt = null,
+    [property: JsonPropertyName("deleted_by_id"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? DeletedById = null,
+    [property: JsonPropertyName("created_at"), JsonRequired] DateTimeOffset CreatedAt = default,
+    [property: JsonPropertyName("updated_at"), JsonRequired] DateTimeOffset UpdatedAt = default);
 
 public sealed record CommunityAgentPromptHistoryEntry(
     [property: JsonPropertyName("id")] string Id,
@@ -74,10 +74,6 @@ public sealed record CommunityAgentPromptHistoryEntry(
     [property: JsonPropertyName("next_fields")] IReadOnlyDictionary<string, object> NextFields,
     [property: JsonPropertyName("changed_fields")] IReadOnlyDictionary<string, object> ChangedFields,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
-
-public sealed record CommunityAgentPromptsResponse(
-    [property: JsonPropertyName("community_agent_prompts")] IReadOnlyList<CommunityAgentPrompt> CommunityAgentPrompts,
-    [property: JsonPropertyName("slot_info")] IReadOnlyDictionary<string, object> SlotInfo);
 
 public sealed record CommunityAgentPromptResponse(
     [property: JsonPropertyName("community_agent_prompt")] CommunityAgentPrompt CommunityAgentPrompt);

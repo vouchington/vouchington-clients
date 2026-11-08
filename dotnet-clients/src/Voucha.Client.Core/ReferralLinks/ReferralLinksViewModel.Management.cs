@@ -145,7 +145,7 @@ public sealed partial class ReferralLinksViewModel
   private ReferralLinkRow RowFromClick(ReferralClickLogEntry click, UiText signupStatus) =>
       new(
           click.Id,
-          UiText.Verbatim(click.LandingUrl),
+          UiText.Verbatim(click.LandingUrl ?? "—"),
           ParseUri(click.LandingUrl),
           UiText.Verbatim(string.Empty),
           IsAnalytics: true,

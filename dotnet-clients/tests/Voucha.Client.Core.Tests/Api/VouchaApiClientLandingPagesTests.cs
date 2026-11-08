@@ -83,7 +83,7 @@ public sealed partial class VouchaApiClientTests
 
     var pages = await client.FetchAdminUserLandingPagesAsync("user-abc", TestContext.Current.CancellationToken);
     var analytics = await client.FetchAdminLandingPageAnalyticsAsync(
-        "landing-page-1",
+        "alice", "my-links",
         TestContext.Current.CancellationToken);
 
     Assert.Equal("landing-page-1", pages.Results[0].Id);
@@ -92,7 +92,7 @@ public sealed partial class VouchaApiClientTests
     Assert.Collection(
         handler.Requests,
         request => Assert.Equal("/api/v1/admin/users/user-abc/landing-pages", request.PathAndQuery),
-        request => Assert.Equal("/api/v1/admin/landing-pages/landing-page-1/analytics", request.PathAndQuery));
+        request => Assert.Equal("/api/v1/admin/users/alice/landing-pages/my-links/analytics", request.PathAndQuery));
   }
 
   [Fact]

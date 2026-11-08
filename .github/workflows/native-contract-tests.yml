@@ -1059,7 +1059,9 @@ jobs:
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
           run-id: ${{ github.run_id }}
-      - name: Merge verified exact-run Kotlin library cache
+      # The complete verified Kotlin inventory replaces older cache sources;
+      # native .build and Android/.gradle state remain from the native producer.
+      - name: Restore authoritative exact-run Kotlin library cache
         timeout-minutes: 2
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
@@ -1067,7 +1069,7 @@ jobs:
         run: |
           [[ "$DEPENDENCY_SHA256" =~ ^[0-9a-f]{64}$ ]]
           node candidate-clients/swift-clients/apps/android/tooling/android-kotlin-cache-cli.mjs \
-            merge candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-kotlin-cache" \
+            restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-kotlin-cache" \
             --dependency-sha256 "$DEPENDENCY_SHA256"
       - name: Build the selected Android validation phase
         working-directory: candidate-clients

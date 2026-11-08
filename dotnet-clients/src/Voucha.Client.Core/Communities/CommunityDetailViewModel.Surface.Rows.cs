@@ -57,15 +57,6 @@ public sealed partial class CommunityDetailViewModel
         return true;
       case CommunityDetailSurfaceSection.AgentPrompts:
         await LoadAgentPromptsAsync(cancellationToken).ConfigureAwait(true);
-        Moderation = AgentPrompts
-            .Select(prompt => Summary(
-                prompt.Id,
-                UiText.Verbatim(prompt.AgentId),
-                UiText.Localized(prompt.IsSlotAllocated
-                    ? UiMessageKey.NativeDotnetCsharpCommunitiesAllocated
-                    : UiMessageKey.NativeDotnetCsharpCommunitiesUnallocated),
-                Verbatim(prompt.ModelName)))
-            .ToArray();
         return true;
       case CommunityDetailSurfaceSection.Moderation:
         var requestCommunity = communityIdOrSlug;

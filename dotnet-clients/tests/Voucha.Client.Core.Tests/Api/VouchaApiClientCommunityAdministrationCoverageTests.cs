@@ -9,7 +9,7 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task CommunityAdministrationClientMethodsUseExpectedRoutesAndBodies()
   {
-    var handler = new RecordingHandler(RepeatEmptyResponses(45));
+    var handler = new RecordingHandler([.. RepeatEmptyResponses(22), new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default")), .. RepeatEmptyResponses(22)]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var token = TestContext.Current.CancellationToken;
 
@@ -38,7 +38,7 @@ public sealed partial class VouchaApiClientTests
     await client.FetchCommunityAiAgentsAsync("test community", token);
     await client.EnableCommunityAiAgentAsync("test community", "agent 1", token);
     await client.DeleteCommunityAiAgentAsync("test community", "agent 1", token);
-    await client.FetchCommunityAgentPromptsAsync("test community", token);
+    await client.FetchCommunityAgentPromptsAsync("test community", cancellationToken: token);
     await client.FetchCommunityAgentPromptAsync("test community", "prompt 1", token);
     await client.CreateCommunityAgentPromptAsync(
         "test community",
@@ -183,13 +183,13 @@ public sealed partial class VouchaApiClientTests
             {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_mod_id":"moderator-1","resolved_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Patched","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Patched","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z"}}
             """),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });

@@ -58,13 +58,16 @@ public struct UserList: Codable, Identifiable, Sendable {
 }
 
 public struct ListItem: Codable, Identifiable, Sendable {
+    @TolerantNullable
+    public var entityLabel: String?
     public let id: String
     public let listId: String
     public let itemType: ListItemType
     public let entityId: String
     public let orderIndex: Int?
     public let createdAt: Date
-    public let mediaType: String?
+    @TolerantNullable
+    public var mediaType: String?
 }
 
 public struct ListReference: Codable, Identifiable, Sendable {

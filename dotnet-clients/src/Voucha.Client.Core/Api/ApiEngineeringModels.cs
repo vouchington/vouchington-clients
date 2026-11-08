@@ -60,7 +60,9 @@ public sealed record PartitionTable(
 
 public sealed record PartitionStatusResponse(IReadOnlyList<PartitionTable> Tables);
 
-public sealed record PsqlJobBody(string Type);
+public sealed record PsqlClassifierRange(string FromDate, string ToDate, int MaxDefaultRows);
+
+public sealed record PsqlJobBody(string Type, PsqlClassifierRange? ClassifierRange = null);
 
 public sealed record EngineeringSuccessResponse(bool Success);
 

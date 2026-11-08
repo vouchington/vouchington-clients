@@ -193,7 +193,8 @@ public sealed class VouchaApiTransportTests
         "results");
     AssertTopLevelKeys(
         "web.communities.applications.default",
-        "community_applications",
+        "community_application_summaries",
+        "users",
         "page_info",
         "results");
     AssertTopLevelKeys(

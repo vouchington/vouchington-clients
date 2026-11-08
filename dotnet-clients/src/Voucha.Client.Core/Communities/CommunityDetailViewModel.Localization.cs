@@ -16,7 +16,17 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(Moderation));
     OnPropertyChanged(nameof(AutomodFlagError));
     OnPropertyChanged(nameof(AutomodFlagNotice));
+    NotifyAgentPromptCreation();
+    NotifyAgentPromptRefresh();
   }
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    agentPromptDisposed = true;
+    ResetAgentPromptContext();
+    InvalidateCommunityListRequests();
+    SetCommunityContinuation(null);
+    agentPromptSessionObserver?.Dispose();
+    localeSubscription?.Dispose();
+  }
 }

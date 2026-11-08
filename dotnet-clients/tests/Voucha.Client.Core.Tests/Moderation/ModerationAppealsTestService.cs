@@ -8,10 +8,10 @@ namespace Voucha.Client.Core.Tests.Moderation;
 internal sealed class ModerationAppealsTestService : IModerationAppealsService
 {
   private readonly ModerationAppeal fixtureAppeal = JsonSerializer
-      .Deserialize<ModerationAppealListResponse>(
-          ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"),
+      .Deserialize<ModerationAppealResponse>(
+          ApiFixtureLoader.LoadResponse("native.moderation.appeals.detail.default"),
           VouchaApiJson.Options)!
-      .Appeals[0];
+      .Appeal;
 
   public List<string> Calls { get; } = [];
   public Queue<ModerationAppealListResponse> Pages { get; } = [];

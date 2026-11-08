@@ -157,7 +157,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     remove.IsEnabled = viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Remove);
     annotate.IsEnabled = viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Annotate);
     dismiss.IsEnabled = viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Dismiss);
-    refresh.IsVisible = viewModel.IsMutationAmbiguous(dispute);
+    refresh.IsVisible = dispute.AiDraftRequestedRunId is null || viewModel.IsMutationAmbiguous(dispute);
   }
 
   private void ViewModelChanged(object? sender, PropertyChangedEventArgs args) => Populate();

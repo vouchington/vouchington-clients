@@ -99,7 +99,8 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("00000000-0000-7000-8000-000000000201", response.User.ProfileImageId);
     Assert.Null(response.User.DisplayAccount);
     Assert.Equal(4, response.UserMetrics?.Count.Reviews);
-    Assert.Equal(7, response.UserMetrics?.ViewerCount?.Comments);
+    Assert.Equal(2, response.UserMetrics?.Count.Comments);
+    Assert.Null(response.UserMetrics?.ViewerCount);
     Assert.Equal("Site", response.ProfileLinks?.Single().Name);
     Assert.Equal("<p>Hello</p>", response.UserBioHtml);
   }

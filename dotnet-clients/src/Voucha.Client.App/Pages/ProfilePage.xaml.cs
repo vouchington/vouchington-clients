@@ -155,9 +155,9 @@ public partial class ProfilePage : ContentPage
 
   private async void OnLandingPageAnalyticsClicked(object? sender, EventArgs e)
   {
-    if (sender is Button { CommandParameter: LandingPageRow row })
+    if (sender is Button { CommandParameter: LandingPageRow row } && viewModel.User?.Username is { Length: > 0 } username)
     {
-      await Navigation.PushAsync(ActivatorUtilities.CreateInstance<LandingPageAnalyticsPage>(serviceProvider, row.Id));
+      await Navigation.PushAsync(ActivatorUtilities.CreateInstance<LandingPageAnalyticsPage>(serviceProvider, username, row.Slug));
     }
   }
 

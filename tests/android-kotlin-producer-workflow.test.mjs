@@ -73,16 +73,17 @@ test('both siblings bind their cache provenance to the same verified dependency 
     app,
     /needs: \[verify, build-swift-android-native, build-swift-android-kotlin-libraries\]/u,
   )
-  const merge = step(app, 'Merge verified exact-run Kotlin library cache')
+  const merge = step(app, 'Restore authoritative exact-run Kotlin library cache')
   assert.match(
     merge,
     /DEPENDENCY_SHA256: \$\{\{ needs\.build-swift-android-native\.outputs\.dependency-sha256 \}\}/u,
   )
+  assert.match(merge, /restore candidate-clients\/swift-clients\/apps\/android/u)
   assert.match(merge, /--dependency-sha256 "\$DEPENDENCY_SHA256"/u)
   const ordered = [
     'Restore verified exact-run generated Android state',
     'Restore Gradle task-output cache',
-    'Merge verified exact-run Kotlin library cache',
+    'Restore authoritative exact-run Kotlin library cache',
     'Build the selected Android validation phase',
     'Package exact candidate Android app and instrumentation APKs',
   ]

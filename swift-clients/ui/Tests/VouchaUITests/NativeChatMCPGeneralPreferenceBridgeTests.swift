@@ -31,7 +31,6 @@ import XCTest
             guard case let .generalPreferences(preferences)? = receipt.fact else {
                 return XCTFail("Expected the validated general option to produce its typed fact")
             }
-            XCTAssertFalse(preferences.shouldImportHackerNewsDiscussions)
             XCTAssertEqual(preferences.country, "US")
             XCTAssertNil(preferences.uiLocale)
             XCTAssertEqual(receipt.callId, try XCTUnwrap(admission.preparedCallIds.first))
@@ -61,7 +60,6 @@ import XCTest
             extra["unexpected"] = true
             invalidSettings.append(extra)
             for (key, value) in [
-                ("should_import_hacker_news_discussions", "false"),
                 ("follows_visibility", "unknown-audience")
             ] {
                 var invalid = settings

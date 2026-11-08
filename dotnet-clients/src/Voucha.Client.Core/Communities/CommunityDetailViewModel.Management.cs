@@ -19,8 +19,8 @@ public sealed partial class CommunityDetailViewModel
     var response = await service.FetchApplicationsPageAsync(communityIdOrSlug, null, 20, cancellationToken).ConfigureAwait(true);
     ApplicationRows = response.Results
         .Select(reference => reference.Id)
-        .Where(id => id is not null && response.CommunityApplications.ContainsKey(id))
-        .Select(id => CommunityApplicationRow.FromApplication(response.CommunityApplications[id!]))
+        .Where(id => id is not null && response.CommunityApplicationSummaries.ContainsKey(id))
+        .Select(id => CommunityApplicationRow.FromApplication(response.CommunityApplicationSummaries[id!]))
         .ToArray();
     OnPropertyChanged(nameof(ApplicationRows));
     SetCommunityContinuation(response.PageInfo.EndCursor);
@@ -89,9 +89,4 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(AiAgents));
   }
 
-  public async Task LoadAgentPromptsAsync(CancellationToken cancellationToken = default)
-  {
-    AgentPrompts = (await service.FetchAgentPromptsAsync(communityIdOrSlug, cancellationToken).ConfigureAwait(true)).CommunityAgentPrompts;
-    OnPropertyChanged(nameof(AgentPrompts));
-  }
 }

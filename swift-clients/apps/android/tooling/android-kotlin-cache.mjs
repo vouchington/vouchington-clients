@@ -1,6 +1,7 @@
 import { linkSync, lstatSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { assertCandidate, assertIdentity, assertPackageLayout, existingStat } from './android-state-inventory.mjs'
+import { publishKotlinCache } from './android-kotlin-cache-publish.mjs'
 import { cacheLimits, checkTime, entryName, fileDigest, inventory, safeDirectory } from './android-kotlin-cache-files.mjs'
 
 const role = 'kotlin-libraries'
@@ -64,9 +65,8 @@ export function packKotlinCache(options) {
   } catch (error) { rmSync(artifactRoot, { recursive: true }); throw error }
 }
 
-export function mergeKotlinCache(options) {
-  const { cacheRoot, artifactRoot, identity, configurationSha256, dependencySha256, linkEntry = linkSync } = options
-  const { limits, deadline } = context(options)
+function verifiedArtifact(options, limits, deadline) {
+  const { artifactRoot, identity, configurationSha256, dependencySha256 } = options
   safeDirectory(artifactRoot)
   const manifestPath = join(artifactRoot, manifestName)
   const manifestStat = lstatSync(manifestPath)
@@ -76,6 +76,45 @@ export function mergeKotlinCache(options) {
   // The already-validated manifest has its own byte budget; only task payload counts here.
   const incoming = new Map(inventory(artifactRoot, limits, deadline, new Set([manifestName]), false).entries.map(entry => [entry.name, entry]))
   if (incoming.size !== expected.length || expected.some(entry => !same(entry, incoming.get(entry.name) ?? {}))) throw Error('Kotlin cache artifact inventory mismatch')
+  return expected
+}
+
+export function restoreKotlinCache(options) {
+  const { cacheRoot, artifactRoot } = options
+  const { limits, deadline } = context(options)
+  const expected = verifiedArtifact(options, limits, deadline)
+  // Validate the selected destination before staging; never follow unsafe members.
+  inventory(cacheRoot, limits, deadline)
+  const bytes = expected.reduce((n, entry) => n + entry.size, 0)
+  const lockBytes = existingStat(join(cacheRoot, 'gradle-build-cache.lock'))?.size ?? 0
+  if (bytes + lockBytes > limits.bytes) throw Error('Restored Kotlin cache exceeds bounds')
+  const original = lstatSync(cacheRoot, { bigint: true })
+  const identity = [String(original.dev), String(original.ino)]
+  const staging = mkdtempSync(join(dirname(cacheRoot), '.kotlin-cache-restore-'))
+  const privateStaging = lstatSync(staging, { bigint: true })
+  let published = false
+  try {
+    for (const entry of expected) {
+      if (!same(fileDigest(join(artifactRoot, entry.name), entry.size, deadline, join(staging, entry.name)), entry)) throw Error('Kotlin cache artifact changed during stage')
+    }
+    checkTime(deadline)
+    publishKotlinCache(staging, cacheRoot, identity, deadline)
+    published = true
+    return { role, restored: expected.length, bytes }
+  } finally {
+    // Exchange may have moved an unexpected racing destination here. Retain it
+    // on failure; only remove our staging root or the successfully replaced root.
+    const owned = published ? original : privateStaging
+    let current
+    try { current = lstatSync(staging, { bigint: true }) } catch { /* Retain an uninspectable path. */ }
+    if (current?.isDirectory() && current.dev === owned.dev && current.ino === owned.ino) rmSync(staging, { recursive: true })
+  }
+}
+
+export function mergeKotlinCache(options) {
+  const { cacheRoot, artifactRoot, linkEntry = linkSync } = options
+  const { limits, deadline } = context(options)
+  const expected = verifiedArtifact(options, limits, deadline)
   const existingInventory = inventory(cacheRoot, limits, deadline)
   const existing = new Map(existingInventory.entries.map(entry => [entry.name, entry]))
   const additions = []

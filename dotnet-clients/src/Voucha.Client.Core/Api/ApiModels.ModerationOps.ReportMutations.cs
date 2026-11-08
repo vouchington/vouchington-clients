@@ -13,7 +13,10 @@ public sealed record ResolvedModerationReport(
     [property: JsonPropertyName("reason")] string Reason,
     [property: JsonPropertyName("note")] string? Note,
     [property: JsonPropertyName("status")] ModerationReportResolution Status,
-    [property: JsonPropertyName("resolved_by_id")] string ResolvedById);
+    [property: JsonPropertyName("resolved_by_id")] string ResolvedById,
+    [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);
 
 public sealed record ModerationReportResolutionResponse(
     [property: JsonPropertyName("report")] ResolvedModerationReport Report);

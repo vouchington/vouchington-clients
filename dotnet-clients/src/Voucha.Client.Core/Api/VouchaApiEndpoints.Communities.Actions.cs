@@ -144,8 +144,8 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest DeleteCommunityAiAgent(string idOrSlug, string agentSlug) =>
       new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/ai-agents/{Path(agentSlug)}");
 
-  public static ApiRequest CommunityAgentPrompts(string idOrSlug) =>
-      Get($"/api/v1/communities/{Path(idOrSlug)}/agent-prompts");
+  public static ApiRequest CommunityAgentPrompts(string idOrSlug, string? after = null, int? limit = null) =>
+      Get($"/api/v1/communities/{Path(idOrSlug)}/agent-prompts", Query(("limit", limit.HasValue ? (limit.Value <= 0 ? 25 : Math.Min(limit.Value, 100)) : (int?)null), ("after", after)));
 
   public static ApiRequest CommunityAgentPrompt(string idOrSlug, string promptId) =>
       Get($"/api/v1/communities/{Path(idOrSlug)}/agent-prompts/{Path(promptId)}");

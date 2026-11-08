@@ -421,7 +421,7 @@ public sealed class CommunityDetailViewModelCoverageTests
   public async Task AdminSurfaceMethodsLoadAndMutateTheModerationSurface()
   {
     var service = new ScriptedCommunitiesService();
-    SeedLoadResponseSet(service, CreateDetailResponse(hasMembership: true, hasPendingApplication: false));
+    SeedLoadResponseSet(service, CreateDetailResponse(hasMembership: true, hasPendingApplication: false, membershipRole: "moderator"));
     service.SavedRepliesResponses.Enqueue(JsonSerializer.Deserialize<CommunitySavedRepliesResponse>(
         ApiFixtureLoader.LoadResponse("web.communities.saved-replies.default"),
         VouchaApiJson.Options)!);

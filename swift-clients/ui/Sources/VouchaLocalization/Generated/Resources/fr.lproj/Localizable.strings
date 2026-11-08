@@ -9,9 +9,6 @@
 "extracted.aiCosts.page.totalCostUsd_eed03fbf" = "Coût total (USD)";
 "extracted.aiCosts.page.unpricedRequestCount.__plural.one" = "{count} requête non tarifée";
 "extracted.aiCosts.page.unpricedRequestCount.__plural.other" = "{count} requêtes non tarifées";
-"extracted.asides.hnDiscussionsAside.commentsComments_29834540" = "{comments} commentaires";
-"extracted.asides.hnDiscussionsAside.hackerNews_619f304a" = "Hacker News";
-"extracted.asides.hnDiscussionsAside.pointsPoints_29c78cd8" = "{points} points";
 "extracted.comments.commentAncestorTrail.showEarlierReplies_56b87971" = "Afficher les réponses précédentes";
 "extracted.communities.communityAutomodActionForm.automodActionSaved_5a7127b1" = "Action d'automod enregistrée";
 "extracted.communities.communityAutomodActionForm.automodAction_83211784" = "Action d'automod";
@@ -49,8 +46,6 @@
 "extracted.memberships.planComparisonTable.notIncluded_b665bfc2" = "Non inclus";
 "extracted.my.audienceSelect.loggedInUsers_81dac12b" = "Utilisateurs connectés";
 "extracted.my.pointValuationsManager.pleaseEnterAValidValuePerPoint_67b38bc3" = "Saisissez une valeur valide par point";
-"extracted.my.preferencesForm.hackerNewsDiscussions_065664a4" = "Discussions Hacker News";
-"extracted.my.preferencesForm.showRelatedHackerNewsThreadsWhen_00754911" = "Affiche les fils Hacker News liés lorsque vous lisez un post ou un article avec un lien.";
 "extracted.my.rewardsProgramStatusesManager.sinceMustBeBeforeUntil_a4745364" = "Since doit être avant until";
 "extracted.my.spendingCategoriesManager.pleaseEnterAValidAmount_010f1dd6" = "Veuillez entrer un montant valide";
 "extracted.pointValuationsManager.addValuationForm.addAPointValuation_29ced576" = "Ajouter une valorisation des points";

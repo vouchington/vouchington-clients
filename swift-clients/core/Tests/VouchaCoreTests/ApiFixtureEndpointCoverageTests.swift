@@ -17,6 +17,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(communityAutomodFixtureEndpoints) { _, replacement in replacement }
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
+        .merging(contractDriftFixtureEndpoints) { _, replacement in replacement }
         .merging(currentContractFixtureEndpoints) { _, replacement in replacement }
         .merging([
             "web.admin.mq.queues.domains.default": .mqQueueDomains(name: "background"),
@@ -88,6 +89,9 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 idOrSlug: "test-community",
                 title: "Greeting",
                 body: "Thanks for writing in."
+            ),
+            "web.communities.application.default": Endpoint.communityApplication(
+                idOrSlug: "test-community", applicationId: "application-1"
             ),
             "web.communities.applications.default": Endpoint.communityApplications(idOrSlug: "test-community"),
             "web.communities.invites.default": Endpoint.communityInvites(idOrSlug: "test-community"),
@@ -195,7 +199,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.admin.mq.queues.resume.default": Endpoint.mqResumeQueue(name: "psql"),
             "web.admin.mq.scheduled-jobs.default": Endpoint.mqScheduledJobs,
             "web.admin.mq.scheduled-jobs.trigger.default": Endpoint.mqRunScheduledJob(
-                id: "kagi-smallweb-sync"
+                id: "imports-recover-stalled"
             ),
             "web.admin.mq.backfills.default": Endpoint.mqBackfills,
             "web.admin.mq.backfills.trigger.default": Endpoint.mqRunBackfill(
@@ -360,7 +364,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.landing-page-detail.default": Endpoint.myLandingPage(id: "landing-page-1"),
             "native.landing-page-analytics.default": Endpoint.myLandingPageAnalytics(pageId: "landing-page-1"),
             "native.admin-user-landing-pages.default": Endpoint.adminUserLandingPages(userId: "user-abc"),
-            "native.admin-landing-page-analytics.default": Endpoint.adminLandingPageAnalytics(pageId: "landing-page-1"),
+            "native.admin-landing-page-analytics.default": Endpoint.adminLandingPageAnalytics(
+                username: "fixture-user",
+                slug: "links"
+            ),
             "native.landing-page-candidates.default": Endpoint.myLandingPageCandidates,
             "native.landing-page-items-mutation.default": nativeLandingPageItemsMutationEndpoint(),
             "native.landing-page-mutation.default": Endpoint.updateMyLandingPage(

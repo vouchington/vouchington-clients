@@ -53,7 +53,7 @@ final class PublicDisputeProjectionTests: XCTestCase {
     }
 
     func testStaffMissingRequiredPrivateFieldsCannotDowngradeToPublic() throws {
-        let data = ApiFixtureLoader.data("native.moderation.disputes.default")
+        let data = ApiFixtureLoader.data("native.moderation.disputes.detail.default")
         let requiredFields = [
             "claim_text", "disputant_user_id", "ai_drafted_at", "ai_internal_response",
             "ai_public_response", "approved_by_id", "drafted_at", "edited_at", "edited_by_id",
@@ -61,12 +61,12 @@ final class PublicDisputeProjectionTests: XCTestCase {
         ]
         for key in requiredFields {
             var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-            var rows = try XCTUnwrap(object["disputes"] as? [[String: Any]])
-            rows[0].removeValue(forKey: key)
-            object["disputes"] = rows
+            var detail = try XCTUnwrap(object["dispute"] as? [String: Any])
+            detail.removeValue(forKey: key)
+            object["dispute"] = detail
             XCTAssertThrowsError(
                 try makeVouchaDecoder().decode(
-                    ModerationDisputeListResponse.self,
+                    ModerationDisputeReadResponse.self,
                     from: JSONSerialization.data(withJSONObject: object)
                 ),
                 key

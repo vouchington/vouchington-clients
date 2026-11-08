@@ -39,7 +39,7 @@ final class ReviewDisputesConcurrencyTests: NativeRouteSurfaceViewModelTestCase 
     func testResolutionOutcomeRejectsOlderPendingListSnapshot() async throws {
         let viewModel = try staffViewModel()
         let dispute = try decodeDispute(Support.dispute(sentAt: "2026-07-01T12:00:00Z"))
-        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (Support.list([Support.dispute(
+        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (Support.staffList([Support.dispute(
             sentAt: "2026-07-01T12:00:00Z"
         )]), 200)
         CannedFeedURLProtocol.suspendResponse(path: "/api/v1/disputes")
