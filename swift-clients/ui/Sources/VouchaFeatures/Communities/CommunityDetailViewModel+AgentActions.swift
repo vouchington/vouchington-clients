@@ -50,6 +50,7 @@ extension CommunityDetailViewModel {
             .deleteCommunityAgentPrompt(idOrSlug: slug, promptId: promptId),
             success: UiMessage(.nativeSwiftCommunityStatusDeletedAgentPrompt)
         ) {
+            agentPromptWorkspace.acknowledgeDeletion(promptId, ifCurrent: revision)
             await agentPromptWorkspace.reload(ifCurrent: revision)
         }
     }

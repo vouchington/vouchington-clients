@@ -47,6 +47,12 @@ final class CommunityAgentPromptWorkspace {
         isRefreshing = false
     }
 
+    func acknowledgeDeletion(_ id: String, ifCurrent revision: Int) {
+        guard revision == self.revision else { return }
+        pagination.remove { $0.id == id }
+        if selectedPromptId == id { selectedPromptId = nil }
+    }
+
     func reload(ifCurrent revision: Int) async {
         guard revision == self.revision else { return }
         await reload()
@@ -131,10 +137,10 @@ final class CommunityAgentPromptWorkspace {
                 idOrSlug: slug, prompt: prompt,
                 modelName: modelName?.trimmedOrNil, modelProvider: modelProvider?.trimmedOrNil
             ))
-            guard revision == self.revision, !Task.isCancelled else { return false }
             if draftPrompt == submittedPrompt {
                 draftPrompt = ""
             }
+            guard revision == self.revision, !Task.isCancelled else { return false }
             await reload()
             return revision + 1 == self.revision
         } catch {

@@ -98,8 +98,8 @@ extension CommunityDetailActionTests {
             .contains { $0.path == "/api/v1/communities/builders/ai-agents/mod-bot" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/agent-prompts" })
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
-            .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests
+            .contains { $0.method == "DELETE" && $0.url.path == "/api/v1/communities/builders/agent-prompts/prompt-1" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
             .contains { $0.path == "/api/v1/communities/builders/agent-prompts/prompt-1/allocations" })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs

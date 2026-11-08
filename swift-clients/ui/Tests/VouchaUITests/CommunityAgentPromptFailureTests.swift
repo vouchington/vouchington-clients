@@ -159,4 +159,60 @@ final class CommunityAgentPromptFailureTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.last?.query?.contains("after=retained-opaque") == true)
     }
 
+    func testConfirmedCreationAfterDisappearanceClearsOnlyOriginalAccountDraft() async throws {
+        CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let model = try CommunityAgentPromptWorkspace(client: makeClient(), slug: "builders")
+        let otherAccount = try CommunityAgentPromptWorkspace(client: makeClient(), slug: "builders")
+        model.draftPrompt = "  Submitted  "
+        otherAccount.draftPrompt = "Other account draft"
+        let create = Task { await model.create(prompt: model.draftPrompt) }
+        _ = try await CannedFeedURLProtocol.requestBarrier(path: path, method: "POST").wait()
+        model.invalidate()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        let current = await create.value
+        XCTAssertFalse(current)
+        XCTAssertEqual(model.draftPrompt, "")
+        XCTAssertEqual(otherAccount.draftPrompt, "Other account draft")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["POST"])
+    }
+
+    func testConfirmedDeletionRemovesTargetBeforeFailedRefreshWithoutChangingSlots() async throws {
+        var page = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("web.communities.agent-prompts.default")
+        ) as? [String: Any])
+        var prompts = try XCTUnwrap(page["community_agent_prompts"] as? [[String: Any]])
+        var other = prompts[0]
+        other["id"] = "retained-prompt"
+        prompts.append(other)
+        page["community_agent_prompts"] = prompts
+        page["page_info"] = ["has_next_page": true, "start_cursor": NSNull(), "end_cursor": "retained-cursor"]
+        CannedFeedURLProtocol.handlers[path] = try (JSONSerialization.data(withJSONObject: page), 200)
+        let parent = try CommunityDetailViewModel(
+            client: makeClient(), slug: "builders", initialTab: .moderation,
+            currentUserId: "user-1", isAdministrator: true
+        )
+        let model = parent.agentPromptWorkspace
+        await model.reload()
+        model.selectPrompt("prompt-1")
+        let used = model.slotInfo?.used
+        CannedFeedURLProtocol.handlers["DELETE " + path + "/prompt-1"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 503)
+        await parent.deleteCommunityAgentPrompt(promptId: "prompt-1")
+        XCTAssertTrue(CannedFeedURLProtocol.capturedRequests.contains {
+            $0.method == "DELETE" && $0.url.path == path + "/prompt-1"
+        })
+        XCTAssertEqual(model.pagination.items.map(\.id), ["retained-prompt"])
+        XCTAssertTrue(model.pagination.hasMore)
+        XCTAssertEqual(model.pagination.endCursor, "retained-cursor")
+        XCTAssertNil(model.selectedPromptId)
+        XCTAssertFalse(parent.canDeleteAgentPrompt("prompt-1"))
+        XCTAssertEqual(model.slotInfo?.used, used)
+        XCTAssertNotNil(model.refreshError)
+        let revision = model.revision
+        model.acknowledgeDeletion("retained-prompt", ifCurrent: revision - 1)
+        XCTAssertEqual(model.pagination.items.map(\.id), ["retained-prompt"])
+    }
+
 }
