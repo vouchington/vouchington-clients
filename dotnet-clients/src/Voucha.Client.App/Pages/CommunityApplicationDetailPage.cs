@@ -33,6 +33,7 @@ public sealed class CommunityApplicationDetailPage : ContentPage
     lifetime?.Cancel();
     lifetime?.Dispose();
     lifetime = null;
+    viewModel.Dispose();
     viewModel.PropertyChanged -= OnDetailChanged;
     base.OnDisappearing();
   }

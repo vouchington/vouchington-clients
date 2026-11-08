@@ -28,12 +28,61 @@ public sealed class CommunityApplicationSummaryTests
         new Dictionary<string, PublicUser> { [summary.UserId] = new(summary.UserId, "username", "Display") }, UiLocalization.English).Applicant);
   }
 
+  [Theory]
+  [InlineData("pending", "en attente")]
+  [InlineData("approved", "approuvé")]
+  [InlineData("rejected", "rejeté")]
+  public void RowShowsLocalizedReviewStatus(string status, string expected)
+  {
+    var response = JsonSerializer.Deserialize<CommunityApplicationsResponse>(
+        ApiFixtureLoader.LoadResponse("web.communities.applications.default"), VouchaApiJson.Options)!;
+    var summary = response.CommunityApplicationSummaries.Values.Single() with { Status = status };
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("fr"));
+    var row = CommunityApplicationRow.FromApplication(summary, response.Users, new UiLocalization(controller));
+
+    Assert.Equal(expected, row.StatusLabel);
+  }
+
+  [Fact]
+  public async Task DetailServiceReadsTheSelectedApplicationRoute()
+  {
+    using var handler = new RecordingHandler(ApiFixtureLoader.LoadResponse("web.communities.application.default"));
+    using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
+    var service = new ApiCommunitiesService(new VouchaApiClient(http));
+    using var vm = new CommunityApplicationDetailViewModel(service, "a community", "application-1");
+
+    await vm.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal("/api/v1/communities/a%20community/applications/application-1", handler.PathAndQuery);
+    Assert.Equal(LoadState.Loaded, vm.State);
+    Assert.Equal("I would like to join.", vm.Application!.Message);
+  }
+
+  [Fact]
+  public async Task CanceledReadReturnsToIdleWithoutPublishingTheResponse()
+  {
+    var completion = new TaskCompletionSource<CommunityApplicationResponse>();
+    var service = new ScriptedCommunitiesService { ApplicationDetail = completion.Task };
+    using var canceled = new CancellationTokenSource();
+    using var vm = new CommunityApplicationDetailViewModel(service, "community", "application-1");
+    var loading = vm.LoadAsync(canceled.Token);
+    canceled.Cancel();
+    completion.SetResult(JsonSerializer.Deserialize<CommunityApplicationResponse>(
+        ApiFixtureLoader.LoadResponse("web.communities.application.default"), VouchaApiJson.Options)!);
+
+    await loading;
+
+    Assert.Equal(LoadState.Idle, vm.State);
+    Assert.Null(vm.Application);
+    Assert.Null(vm.Error);
+  }
+
   [Fact]
   public async Task DetailLoadsFullMessageAndAnswersThenClearsThemOnFailure()
   {
     var completion = new TaskCompletionSource<CommunityApplicationResponse>();
     var service = new ScriptedCommunitiesService { ApplicationDetail = completion.Task };
-    var vm = new CommunityApplicationDetailViewModel(service, "a community", "application-1");
+    using var vm = new CommunityApplicationDetailViewModel(service, "a community", "application-1");
     var loading = vm.LoadAsync(TestContext.Current.CancellationToken);
     Assert.Equal(LoadState.Loading, vm.State);
     Assert.Null(vm.Application);
@@ -67,7 +116,7 @@ public sealed class CommunityApplicationSummaryTests
     {
       ApplicationDetail = Task.FromException<CommunityApplicationResponse>(new JsonException("invalid detail"))
     };
-    var vm = new CommunityApplicationDetailViewModel(service, "community", "application-1");
+    using var vm = new CommunityApplicationDetailViewModel(service, "community", "application-1");
 
     await vm.LoadAsync(TestContext.Current.CancellationToken);
 
