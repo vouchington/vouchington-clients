@@ -42,20 +42,12 @@ internal sealed partial class ScriptedCommunitiesService
       Task.FromResult(ApplicationsResponses.Count > 0 ? ApplicationsResponses.Dequeue() : Deserialize<CommunityApplicationsResponse>("""
           {
             "results": [{ "id": "application-1" }],
-            "users": {},
             "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
+            "users": {},
             "community_application_summaries": {
               "application-1": {
-                "id": "application-1",
-                "user_id": "applicant-1",
-                "answer_count": 0,
-                "status": "pending",
-                "message_preview": "Please approve",
-                "reviewed_at": null,
-                "reviewed_by_id": null,
-                "approved_at": null,
-                "rejected_at": null,
-                "rejection_reason": null,
+                "id": "application-1", "user_id": "applicant-1", "status": "pending",
+                "message_preview": "Please approve", "answer_count": 1,
                 "created_at": "2026-07-01T00:00:00Z"
               }
             }

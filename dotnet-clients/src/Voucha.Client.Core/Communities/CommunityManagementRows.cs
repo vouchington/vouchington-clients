@@ -4,10 +4,23 @@ using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Communities;
 
-public sealed record CommunityApplicationRow(string Id, string UserId, string Status, string? Message, UiText ApplicantText)
+public sealed record CommunityApplicationRow(
+    string Id, string UserId, string Status, string? Message, DateTimeOffset CreatedAt,
+    int AnswerCount, UiText ApplicantText, IUiLocalization Localization)
 {
+  public string Applicant => Localization.Resolve(ApplicantText);
+  public UiText StatusText => Status switch
+  {
+    "approved" => UiText.Localized(UiMessageKey.NativeDotnetModerationApproved),
+    "rejected" => UiText.Localized(UiMessageKey.NativeDotnetModerationRejected),
+    "pending" => UiText.Localized(UiMessageKey.NativeDotnetModerationPending),
+    _ => UiText.ProtocolValue(Status),
+  };
+  public string StatusLabel => Localization.Resolve(StatusText);
+
   public static CommunityApplicationRow FromApplication(
-      CommunityApplicationSummary application, IReadOnlyDictionary<string, PublicUser> users)
+      CommunityApplicationSummary application, IReadOnlyDictionary<string, PublicUser> users,
+      IUiLocalization localization)
   {
     ArgumentNullException.ThrowIfNull(application);
     ArgumentNullException.ThrowIfNull(users);
@@ -15,7 +28,8 @@ public sealed record CommunityApplicationRow(string Id, string UserId, string St
     var name = !string.IsNullOrWhiteSpace(user?.Name) ? user.Name : user?.Username;
     var text = !string.IsNullOrWhiteSpace(name) ? UiText.UserContent(name) :
         UiText.Localized(UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsDeletedUser);
-    return new(application.Id, application.UserId, application.Status, application.MessagePreview, text);
+    return new(application.Id, application.UserId, application.Status, application.MessagePreview,
+        application.CreatedAt, application.AnswerCount, text, localization);
   }
 }
 

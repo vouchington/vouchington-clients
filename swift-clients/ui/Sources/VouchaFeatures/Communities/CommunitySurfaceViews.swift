@@ -67,10 +67,15 @@ struct CommunityWorkspaceSurface: View {
 
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(viewModel.summary.rows) { row in
-                        NativeSurfaceRow(
-                            row: row,
-                            isStaffViewer: viewModel.isAdministrator || viewModel.isSiteModerator
-                        )
+                        if viewModel.selectedTab == .applications,
+                           let application = viewModel.applicationSummaries[row.id] {
+                            CommunityApplicationSummaryCard(viewModel: viewModel, application: application)
+                        } else {
+                            NativeSurfaceRow(
+                                row: row,
+                                isStaffViewer: viewModel.isAdministrator || viewModel.isSiteModerator
+                            )
+                        }
                         if let embed = viewModel.postEmbedsByPostId[row.id]
                             ?? viewModel.rssFeedItemEmbedsById[row.id] {
                             ProviderEmbedPreview(embed: embed)

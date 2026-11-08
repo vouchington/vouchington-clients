@@ -23,6 +23,7 @@ public sealed partial class CommunityDetailViewModel
   public void Dispose()
   {
     agentPromptDisposed = true;
+    ApplicationDetailContextInvalidated?.Invoke();
     ResetAgentPromptContext();
     InvalidateCommunityListRequests();
     SetCommunityContinuation(null);

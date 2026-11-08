@@ -175,7 +175,7 @@ public abstract partial class CommunitySectionPage : ContentPage
     RenderInviteActions();
     RenderTransparencyRangeSelector();
     UpdateSettingsSwitches();
-    rowsView.ItemsSource = Rows();
+    rowsView.ItemsSource = section == CommunityDetailSurfaceSection.Applications ? viewModel.ApplicationRows : Rows();
     RenderPendingReports();
     RenderAutomodFlags();
     ConfigurePaginationControl();

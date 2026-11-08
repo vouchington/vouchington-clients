@@ -26,7 +26,14 @@ final class CommunityDetailViewModel {
         }
     }
 
-    var selectedApplicationId = ""
+    var applicationDetail: CommunityApplication?
+    var isLoadingApplicationDetail = false
+    var applicationDetailFailed = false
+    var applicationDetailRevision = 0
+
+    var applicationSummaries: [String: CommunityApplicationSummary] = [:]
+    var applicationUsers: [String: PublicUser] = [:]
+
     var applicationMessage = ""
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""
@@ -83,7 +90,10 @@ final class CommunityDetailViewModel {
     @ObservationIgnored
     var modmailPageRequestRevision = 0
     var applicationQuestions: [CommunityApplicationQuestion] = []
-    var communityDetail: CommunityResponse?
+    var communityDetail: CommunityResponse? {
+        didSet { discardApplicationReviewDataIfUnauthorized() }
+    }
+
     var listItemCounts: CommunityListItemCounts?
     var suppressCommunityDigestsWhileOnVacation = false
     var state: CommunitySurfaceState = .idle

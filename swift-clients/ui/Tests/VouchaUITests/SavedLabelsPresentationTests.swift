@@ -24,31 +24,27 @@ final class SavedLabelsPresentationTests: NativeRouteSurfaceViewModelTestCase {
         )))
     }
 
-    func testApplicantRowsJoinNonmemberProfilesAndOfferSelectionWithoutIdInput() async throws {
+    func testApplicantRowsJoinNonmemberProfilesAndOfferPerRowReviewWithoutIdInput() async throws {
         let fixture = ApiFixtureLoader.data("web.communities.applications.default")
         let client = try makeClient()
-        let viewModel = CommunityDetailViewModel(client: client, slug: "builders", initialTab: .applications)
+        let viewModel = CommunityDetailViewModel(
+            client: client, slug: "builders", initialTab: .applications, isAdministrator: true
+        )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (fixture, 200)
         let page = try await viewModel.loadApplicationRows(client: client, after: nil)
         XCTAssertEqual(page.items.first?.row.title, "Application testuser")
         XCTAssertEqual(page.items.first?.id, "application-1")
         viewModel.rowPagination.reset(items: page.items)
-        let controls = CommunityApplicationReviewControls(viewModel: viewModel, isSignedIn: true, showSignIn: {})
-        XCTAssertNoThrow(try controls.inspect().find(ViewType.Picker.self).find(text: "Application testuser"))
-        XCTAssertEqual(try controls.inspect().findAll(ViewType.TextField.self).count, 1)
-        XCTAssertEqual(
-            try controls.inspect().find(ViewType.TextField.self).labelView().text().string(),
-            "Rejection reason"
-        )
-        XCTAssertTrue(try controls.inspect().find(button: "Approve").isDisabled())
-        try await ViewHosting.host(controls) {
-            try controls.inspect().find(ViewType.Picker.self).select(value: "application-1")
-            XCTAssertEqual(viewModel.selectedApplicationId, "application-1")
-            XCTAssertFalse(try controls.inspect().find(button: "Approve").isDisabled())
-            XCTAssertFalse(try controls.inspect().find(button: "Reject").isDisabled())
-            viewModel.rowPagination.reset()
-            XCTAssertTrue(try controls.inspect().find(button: "Approve").isDisabled())
-        }
+        let summary = try XCTUnwrap(viewModel.applicationSummaries["application-1"])
+        let card = CommunityApplicationSummaryCard(viewModel: viewModel, application: summary)
+        XCTAssertNoThrow(try card.inspect().find(text: "testuser"))
+        XCTAssertThrowsError(try card.inspect().find(ViewType.Picker.self))
+        XCTAssertEqual(try card.inspect().findAll(ViewType.TextField.self).count, 1)
+        XCTAssertEqual(try card.inspect().find(ViewType.TextField.self).labelView().text().string(), "Rejection reason")
+        XCTAssertFalse(try card.inspect().find(button: "Approve").isDisabled())
+        XCTAssertFalse(try card.inspect().find(button: "Reject").isDisabled())
+        viewModel.rowPagination.reset()
+        XCTAssertTrue(try card.inspect().find(button: "Approve").isDisabled())
         XCTAssertNoThrow(try NativeSurfaceRow(row: XCTUnwrap(page.items.first?.row))
             .inspect().find(text: "Application testuser"))
     }
@@ -57,7 +53,12 @@ final class SavedLabelsPresentationTests: NativeRouteSurfaceViewModelTestCase {
         let fixture = ApiFixtureLoader.data("web.communities.applications.default")
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture) as? [String: Any])
         let client = try makeClient()
-        let viewModel = CommunityDetailViewModel(client: client, slug: "builders", initialTab: .applications)
+        let viewModel = CommunityDetailViewModel(
+            client: client,
+            slug: "builders",
+            initialTab: .applications,
+            isAdministrator: true
+        )
         for (profile, expected) in [
             (["id": "user-1", "name": "Applicant Name", "username": "testuser"], "Applicant Name"),
             (["id": "user-1", "name": " ", "username": "testuser"], "testuser"),
@@ -69,6 +70,9 @@ final class SavedLabelsPresentationTests: NativeRouteSurfaceViewModelTestCase {
             )
             let page = try await viewModel.loadApplicationRows(client: client, after: nil)
             XCTAssertEqual(page.items.first?.row.title, "Application \(expected)")
+            let summary = try XCTUnwrap(viewModel.applicationSummaries["application-1"])
+            XCTAssertNoThrow(try CommunityApplicationSummaryCard(viewModel: viewModel, application: summary)
+                .inspect().find(text: expected))
         }
         object["users"] = [:] as [String: Any]
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = try (

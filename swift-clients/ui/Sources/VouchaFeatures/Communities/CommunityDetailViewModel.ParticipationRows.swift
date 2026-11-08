@@ -23,15 +23,23 @@ extension CommunityDetailViewModel {
     }
 
     func loadApplicationRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {
+        let revision = communityLoadRevision
         let response: CommunityApplicationsResponse = try await client.send(
             .communityApplications(idOrSlug: slug, after: after, limit: 10, status: "pending")
         )
+        guard isCurrentCommunityLoad(revision, tab: .applications), canModerateCommunity else {
+            throw CancellationError()
+        }
+        if after == nil {
+            applicationSummaries = response.communityApplicationSummaries
+            applicationUsers = response.users
+        } else {
+            applicationSummaries.merge(response.communityApplicationSummaries) { _, new in new }
+            applicationUsers.merge(response.users) { _, new in new }
+        }
         let items = response.results.compactMap { result -> CommunityForwardRow? in
             guard let application = response.communityApplicationSummaries[result.id],
                   application.status == "pending" else { return nil }
-            let user = response.users[application.userId]
-            let label = [user?.name, user?.username].compactMap { $0 }
-                .first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             return CommunityForwardRow(
                 id: result.id,
                 row: .init(
@@ -39,8 +47,7 @@ extension CommunityDetailViewModel {
                     icon: "doc.badge.clock",
                     title: .message(
                         .nativeSwiftCommunitiesApplicationValue,
-                        textParameters: ["id": label.map(UiVerbatimText.verbatim)
-                            ?? .message(.nativeSwiftDynamicConfigFeatureFlagsDeletedUser)]
+                        textParameters: ["id": applicationApplicantLabel(application)]
                     ),
                     detail: .message(.nativeSwiftCommunitiesAwaitingReview)
                 )
@@ -50,8 +57,15 @@ extension CommunityDetailViewModel {
     }
 
     func canReviewApplication(_ applicationId: String) -> Bool {
-        selectedTab == .applications && state != .loading
+        canModerateCommunity && selectedTab == .applications && state != .loading
+            && applicationSummaries[applicationId]?.status == "pending"
             && rowPagination.items.contains { $0.id == applicationId }
+    }
+
+    func applicationApplicantLabel(_ application: CommunityApplicationSummary) -> UiVerbatimText {
+        let user = applicationUsers[application.userId]
+        return [user?.name, user?.verifiedDisplayName, user?.username].compactMap { $0?.trimmedOrNil }.first
+            .map(UiVerbatimText.verbatim) ?? .message(.nativeSwiftDynamicConfigFeatureFlagsDeletedUser)
     }
 
     func loadInviteRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {

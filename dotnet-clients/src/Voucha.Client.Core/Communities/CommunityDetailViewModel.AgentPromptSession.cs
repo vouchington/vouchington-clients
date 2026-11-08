@@ -19,6 +19,7 @@ public sealed partial class CommunityDetailViewModel
   private void ApplyAgentPromptSessionChange(long revision)
   {
     if (agentPromptDisposed || revision != Volatile.Read(ref agentPromptSessionRevision)) return;
+    ApplicationDetailContextInvalidated?.Invoke();
     OnAgentPromptSessionChanged();
     if (revision == Volatile.Read(ref agentPromptSessionRevision))
       Volatile.Write(ref appliedAgentPromptSessionRevision, revision);

@@ -58,43 +58,6 @@ public abstract partial class CommunitySectionPage
     };
   }
 
-  private View BuildApplicationsActions()
-  {
-    var application = UiCopy.Bind(new Picker { AutomationId = "community-application-picker", ItemDisplayBinding = new Binding(nameof(CommunitySummaryRow.Title)) }, Picker.TitleProperty, UiMessageKey.NativeDotnetCsharpCommunitiesApplicationId);
-    application.SetBinding(Picker.ItemsSourceProperty, nameof(CommunityDetailViewModel.Applications));
-    var status = TextField(UiMessageKey.NativeDotnetResidualStatus, UiText.Verbatim("approved"));
-    var reason = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReason);
-    var review = ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReview);
-    review.AutomationId = "community-application-review";
-    review.IsEnabled = false;
-    bool HasSelection() => application.SelectedItem is CommunitySummaryRow selected &&
-        viewModel.ApplicationRows.Any(row => row.Id == selected.Id && row.Status == "pending") &&
-        viewModel.CanModerateCommunity && !viewModel.IsLoading;
-    application.SelectedIndexChanged += (_, _) => review.IsEnabled = HasSelection();
-    application.PropertyChanged += (_, args) =>
-    {
-      if (args.PropertyName != Picker.ItemsSourceProperty.PropertyName) return;
-      application.SelectedIndex = -1;
-      review.IsEnabled = false;
-    };
-    review.Clicked += async (_, _) =>
-    {
-      if (!HasSelection() || application.SelectedItem is not CommunitySummaryRow selected) return;
-      await InvokeAndRenderAsync(ct => viewModel.ReviewApplicationAsync(selected.Id, status.Text ?? "approved", reason.Text, ct)).ConfigureAwait(true);
-    };
-    return new HorizontalStackLayout
-    {
-      Spacing = 8,
-      Children =
-      {
-        application,
-        status,
-        reason,
-        review,
-      },
-    };
-  }
-
   private View BuildPinnedPostsActions()
   {
     var postIds = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPostIds);

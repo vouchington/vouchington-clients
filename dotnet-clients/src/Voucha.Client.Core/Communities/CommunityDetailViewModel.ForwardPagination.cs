@@ -62,7 +62,7 @@ public sealed partial class CommunityDetailViewModel
         var applicationRows = applications.Results
             .Select(reference => reference.Id)
             .Where(id => id is not null && applications.CommunityApplicationSummaries.ContainsKey(id))
-            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplicationSummaries[id!], applications.Users));
+            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplicationSummaries[id!], applications.Users, localization));
         ApplicationRows = AppendUnique(ApplicationRows, applicationRows, row => row.Id);
         Applications = AppendUnique(Applications, ApplicationRows.Select(ApplicationSummary), row => row.Id);
         communityListEndCursor = applications.PageInfo.EndCursor;
