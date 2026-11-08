@@ -270,16 +270,30 @@ public sealed partial class ModerationAppealsViewModelTests
   public async Task MutationReplacementPreservesExistingRowOrder()
   {
     var service = new ModerationAppealsTestService();
-    var first = service.Appeal("appeal-1");
-    var second = service.Appeal("appeal-2");
+    var first = service.Appeal("appeal-1", response: "First persisted response");
+    var second = service.Appeal("appeal-2", response: "Second persisted response");
     service.Pages.Enqueue(new([ModerationAppealsTestService.Summary(first), ModerationAppealsTestService.Summary(second)], new PageInfo(null, false, null)));
     service.Current = second;
-    var viewModel = StaffViewModel(service);
-    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
-    viewModel.SetDraft(second, "Updated second response");
+    service.Details.Enqueue(second);
+    service.Details.Enqueue(first);
+    using var viewModel = StaffViewModel(service);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    var hydratedSecond = await viewModel.FetchDetailAsync(second.Id, TestContext.Current.CancellationToken);
+    var hydratedFirst = await viewModel.FetchDetailAsync(first.Id, TestContext.Current.CancellationToken);
+    Assert.Equal(["appeal-1", "appeal-2"], viewModel.Appeals.Select(appeal => appeal.Id));
+    var summaryFlags = viewModel.Summaries.Select(appeal => (appeal.Id, appeal.HasDraft, appeal.HasAiDraft)).ToArray();
+    viewModel.SetDraft(hydratedSecond, "Updated second response");
 
-    Assert.True(await viewModel.SaveDraftAsync(second, TestContext.Current.CancellationToken));
+    Assert.True(await viewModel.SaveDraftAsync(hydratedSecond, TestContext.Current.CancellationToken));
+
+    Assert.Equal(["appeal-1", "appeal-2"], viewModel.Appeals.Select(appeal => appeal.Id));
+    Assert.Same(hydratedFirst, viewModel.Appeals[0]);
+    Assert.Equal("First persisted response", viewModel.Appeals[0].PublicResponse);
+    Assert.NotSame(hydratedSecond, viewModel.Appeals[1]);
+    Assert.Equal("Updated second response", viewModel.Appeals[1].PublicResponse);
     Assert.Equal(["appeal-1", "appeal-2"], viewModel.Summaries.Select(appeal => appeal.Id));
+    Assert.Equal(summaryFlags, viewModel.Summaries.Select(appeal => (appeal.Id, appeal.HasDraft, appeal.HasAiDraft)));
+    Assert.All(viewModel.Summaries, appeal => Assert.True(appeal.HasDraft));
   }
 
   [Fact]
