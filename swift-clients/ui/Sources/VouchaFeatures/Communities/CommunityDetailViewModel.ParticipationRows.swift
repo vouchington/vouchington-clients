@@ -27,7 +27,9 @@ extension CommunityDetailViewModel {
         let response: CommunityApplicationsResponse = try await client.send(
             .communityApplications(idOrSlug: slug, after: after, limit: 10, status: "pending")
         )
-        guard isCurrentCommunityLoad(revision, tab: .applications) else { throw CancellationError() }
+        guard isCurrentCommunityLoad(revision, tab: .applications), canModerateCommunity else {
+            throw CancellationError()
+        }
         if after == nil {
             applicationSummaries = response.communityApplicationSummaries
             applicationUsers = response.users

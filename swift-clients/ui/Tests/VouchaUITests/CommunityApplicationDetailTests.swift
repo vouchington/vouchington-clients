@@ -1,10 +1,50 @@
 import Foundation
 import ViewInspector
+@testable import VouchaAPI
 @testable import VouchaFeatures
+import VouchaModels
 import XCTest
 
 @MainActor
 final class CommunityApplicationDetailTests: NativeRouteSurfaceViewModelTestCase {
+    func testApplicationDetailHidesRetainedDataAfterCommunityModerationAccessIsRemoved() async throws {
+        let model = try CommunityDetailViewModel(client: makeClient(), slug: "test-community")
+        var community = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("web.communities.show.default")
+        ) as? [String: Any])
+        community["membership"] = [
+            "id": "membership-1", "community_id": "community-1", "user_id": "user-1", "role": "moderator",
+            "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z"
+        ]
+        model.communityDetail = try JSONDecoder.vouchaFixtureDecoder.decode(
+            CommunityResponse.self, from: JSONSerialization.data(withJSONObject: community)
+        )
+        let path = "/api/v1/communities/test-community/applications/application-1"
+        CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("web.communities.application.default"), 200)
+        await model.loadApplicationDetail(id: "application-1")
+        XCTAssertNoThrow(try CommunityApplicationDetail(viewModel: model, id: "application-1")
+            .inspect().find(text: "I would like to join."))
+        model.communityDetail = nil
+        XCTAssertNil(model.applicationDetail)
+        XCTAssertThrowsError(try CommunityApplicationDetail(viewModel: model, id: "application-1")
+            .inspect().find(text: "I would like to join."))
+        let requestCount = CannedFeedURLProtocol.capturedPathCount(path)
+        await model.loadApplicationDetail(id: "application-1")
+        XCTAssertNil(model.applicationDetail)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), requestCount)
+    }
+
+    func testMismatchedApplicationIdentityShowsDetailError() async throws {
+        let model = try CommunityDetailViewModel(client: makeClient(), slug: "test-community", isAdministrator: true)
+        let path = "/api/v1/communities/test-community/applications/different-application"
+        CannedFeedURLProtocol.handlers[path] = (ApiFixtureLoader.data("web.communities.application.default"), 200)
+        await model.loadApplicationDetail(id: "different-application")
+        XCTAssertTrue(model.applicationDetailFailed)
+        XCTAssertNil(model.applicationDetail)
+        XCTAssertNoThrow(try CommunityApplicationDetail(viewModel: model, id: "different-application")
+            .inspect().find(button: "Try Again"))
+    }
+
     func testApplicationResponseAfterTabChangeCannotReplaceSidecars() async throws {
         let client = try makeClient()
         let model = CommunityDetailViewModel(

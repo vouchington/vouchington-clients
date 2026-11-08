@@ -90,7 +90,10 @@ final class CommunityDetailViewModel {
     @ObservationIgnored
     var modmailPageRequestRevision = 0
     var applicationQuestions: [CommunityApplicationQuestion] = []
-    var communityDetail: CommunityResponse?
+    var communityDetail: CommunityResponse? {
+        didSet { discardApplicationReviewDataIfUnauthorized() }
+    }
+
     var listItemCounts: CommunityListItemCounts?
     var suppressCommunityDigestsWhileOnVacation = false
     var state: CommunitySurfaceState = .idle

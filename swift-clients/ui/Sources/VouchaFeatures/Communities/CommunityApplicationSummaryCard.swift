@@ -12,6 +12,10 @@ struct CommunityApplicationSummaryCard: View {
     private var showsDetail = false
 
     var body: some View {
+        if viewModel.canModerateCommunity { summaryContent }
+    }
+
+    private var summaryContent: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Button { showsDetail = true } label: {
                 VStack(alignment: .leading) {
@@ -58,7 +62,9 @@ struct CommunityApplicationDetail: View {
     let id: String
     var body: some View {
         ScrollView {
-            if viewModel.isLoadingApplicationDetail {
+            if !viewModel.canModerateCommunity {
+                EmptyView()
+            } else if viewModel.isLoadingApplicationDetail {
                 ProgressView().accessibilityIdentifier("application-detail-loading")
             } else if viewModel.applicationDetailFailed {
                 VStack {
