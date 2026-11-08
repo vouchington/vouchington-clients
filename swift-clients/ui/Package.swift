@@ -43,7 +43,8 @@ let package = Package(
                 .product(name: "VouchaAPI", package: "VouchaCore"),
                 .product(name: "VouchaAuth", package: "VouchaCore"),
                 .product(name: "VouchaPersistence", package: "VouchaCore")
-            ]
+            ],
+            resources: [.copy("PrivacyInfo.xcprivacy")]
         ),
         .testTarget(
             name: "VouchaUITests",

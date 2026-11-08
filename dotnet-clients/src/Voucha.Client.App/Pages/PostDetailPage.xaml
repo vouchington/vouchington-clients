@@ -24,7 +24,7 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding RootRow.LocalizedTitle}" FlowDirection="{Binding RootRow.TitleFlowDirection}" Style="{StaticResource Headline}" />
-                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center" IsVisible="{Binding RootRow.ShowAuthor}">
                         <Image
                             AutomationId="post-author-avatar-root"
                             WidthRequest="28"
@@ -104,7 +104,7 @@
                         <DataTemplate x:DataType="pages:PostDetailPageRow">
                             <VerticalStackLayout Padding="0,0,0,6" Spacing="2">
                                 <Label Text="{Binding LocalizedTitle}" FlowDirection="{Binding TitleFlowDirection}" Style="{StaticResource Body}" />
-                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center" IsVisible="{Binding ShowAuthor}">
                                     <Image
                                         AutomationId="post-author-avatar-ancestor"
                                         WidthRequest="24"
@@ -117,9 +117,9 @@
                                             <EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12" />
                                         </Image.Clip>
                                     </Image>
-                                    <Label Text="{Binding AuthorText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
+                                    <Label IsVisible="{Binding ShowAuthor}" Text="{Binding AuthorText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                 </HorizontalStackLayout>
-                                <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
+                                <Label Text="{Binding AuthorAccountTypeLabel}" IsVisible="{Binding ShowAuthor}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding LocalizedReviewBadge}" Style="{StaticResource Metadata}" />
@@ -161,7 +161,8 @@
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="6">
                                 <HorizontalStackLayout Spacing="8">
-                                    <Button Text="{Binding CollapseGlyph}" Clicked="OnCollapseClicked" CommandParameter="{Binding .}" WidthRequest="36" IsVisible="{Binding HasChildren}" />
+                                    <Button Text="{Binding CollapseGlyph}" Clicked="OnCollapseClicked" CommandParameter="{Binding .}" WidthRequest="36" IsVisible="{Binding HasChildren}" IsEnabled="{Binding CanToggleCollapse}" AutomationId="comment-collapse" />
+                                    <Label AutomationId="comment-collapsed-reply-count" Text="{Binding CollapsedReplyCountText}" IsVisible="{Binding ShowCollapsedReplyCount}" />
                                     <Image
                                         AutomationId="post-author-avatar-comment"
                                         WidthRequest="24"
@@ -174,8 +175,8 @@
                                             <EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12" />
                                         </Image.Clip>
                                     </Image>
-                                    <Label Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
-                                    <Label Text="{Binding AuthorAccountTypeLabel}" Style="{StaticResource Metadata}" />
+                                    <Label IsVisible="{Binding ShowAuthor}" Text="{Binding AuthorText}" Style="{StaticResource Body}" VerticalTextAlignment="Center" />
+                                    <Label Text="{Binding AuthorAccountTypeLabel}" IsVisible="{Binding ShowAuthor}" Style="{StaticResource Metadata}" />
                                     <Label Text="{Binding ProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding CreatedAtText}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
@@ -193,13 +194,13 @@
                                     <Button Text="{DynamicResource native.dotnet.mediaPlayback.play}" Clicked="OnEmbedPlayClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanPlayEmbed}" />
                                     <Button Text="{DynamicResource native.swift.podcastPlayback.openSource}" Clicked="OnEmbedOpenClicked" CommandParameter="{Binding .}" IsVisible="{Binding HasEmbedSource}" />
                                 </VerticalStackLayout>
-                                <HorizontalStackLayout Spacing="10">
+                                <HorizontalStackLayout Spacing="10" IsVisible="{Binding ShowActions}">
                                     <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanCreateVote}" MinimumHeightRequest="44" />
                                     <Label Text="{Binding VoteCountUp}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                     <Label Text="{Binding VoteCountDown}" Style="{StaticResource Metadata}" VerticalTextAlignment="Center" />
                                     <Button Text="{DynamicResource extracted.votes.semanticVote.clear}" Clicked="OnClearVoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanClearVote}" MinimumHeightRequest="44" />
                                 </HorizontalStackLayout>
-                                <HorizontalStackLayout Spacing="8">
+                                <HorizontalStackLayout Spacing="8" IsVisible="{Binding ShowActions}">
                                     <Button Text="{DynamicResource native.swift.commentThreadActionRow.reply}" Clicked="OnReplyClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanReply}" />
                                     <Button AutomationId="authored-comment-quote" Text="{DynamicResource native.swift.commentThreadActionRow.quote}" Clicked="OnQuoteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanQuote}" />
                                     <Button Text="{DynamicResource native.dotnet.postDetail.permalink}" Clicked="OnCopyPermalinkTextClicked" CommandParameter="{Binding .}" />
@@ -210,6 +211,7 @@
                                     <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanDelete}" />
                                     <Button Text="{DynamicResource native.dotnet.postDetail.lock}" Clicked="OnLockToggleClicked" CommandParameter="{Binding .}" IsVisible="{Binding CanLock}" />
                                 </HorizontalStackLayout>
+                                <Button AutomationId="comment-subtree-next" Text="{Binding SubtreePaginationLabel}" IsVisible="{Binding HasMoreSubtree}" IsEnabled="{Binding CanToggleCollapse}" CommandParameter="{Binding .}" Clicked="OnLoadMoreSubtreeRequested" />
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>

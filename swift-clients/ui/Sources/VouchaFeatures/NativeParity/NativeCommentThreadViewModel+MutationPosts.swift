@@ -69,7 +69,8 @@ extension NativeCommentThreadViewModel {
             canDelete: mutationPost.canDelete ?? existingPost.canDelete,
             canLock: mutationPost.canLock ?? existingPost.canLock,
             postExplicitCategories: mutationPost.postExplicitCategories ?? existingPost.postExplicitCategories,
-            postHashtags: mutationPost.postHashtags ?? existingPost.postHashtags
+            postHashtags: mutationPost.postHashtags ?? existingPost.postHashtags,
+            placeholderState: mutationPost.placeholderState
         )
     }
 }

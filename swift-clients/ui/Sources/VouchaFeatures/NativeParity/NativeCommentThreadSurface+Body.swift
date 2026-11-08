@@ -121,7 +121,11 @@ extension NativeCommentThreadSurface {
                                     bookmarksByPostId: viewModel.bookmarksByPostId,
                                     postEmbedsByPostId: viewModel.postEmbedsByPostId,
                                     voteChoiceByPostId: viewModel.voteChoicesByPostId,
-                                    onToggleCollapse: viewModel.toggleCollapse(commentId:),
+                                    postMetricsById: viewModel.postMetricsById,
+                                    inFlightCollapseIds: viewModel.inFlightCollapseIds,
+                                    subtreePagination: viewModel.subtreePagination,
+                                    onLoadHiddenDescendants: viewModel.loadMoreHiddenDescendants(commentId:),
+                                    onToggleCollapse: { id in Task { await viewModel.toggleCollapse(commentId: id) } },
                                     onVote: { handleVote(postId: $0, choice: $1) },
                                     onReply: { startReply(postId: $0, quote: false) },
                                     onQuote: { startQuote(post: $0) },
@@ -157,18 +161,13 @@ extension NativeCommentThreadSurface {
             await loadThread()
         }
         .onChange(of: currentUserId) { _, newValue in
-            viewModel = NativeCommentThreadViewModel(
-                client: client,
-                rootPostId: viewModel.rootPostId,
-                currentUserId: newValue
-            )
+            replaceCommentThreadModel(userId: newValue, signedIn: isSignedIn)
+        }
+        .onChange(of: isSignedIn) { _, signedIn in
+            replaceCommentThreadModel(userId: signedIn ? currentUserId : nil, signedIn: signedIn)
         }
         .onChange(of: isStaffViewer) { _, _ in
-            viewModel = NativeCommentThreadViewModel(
-                client: client,
-                rootPostId: viewModel.rootPostId,
-                currentUserId: currentUserId
-            )
+            replaceCommentThreadModel(userId: currentUserId, signedIn: isSignedIn)
         }
     }
 }

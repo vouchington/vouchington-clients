@@ -35,6 +35,7 @@ public sealed partial class CommentThreadViewModel
           ancestorsResponse ?? response,
           response,
           ancestorPages.Items);
+      ApplyServerCollapse(response.Bookmarks);
       AncestorPosts = BuildAncestorPosts();
       FocusedComment = ResolveFocusedComment();
     }

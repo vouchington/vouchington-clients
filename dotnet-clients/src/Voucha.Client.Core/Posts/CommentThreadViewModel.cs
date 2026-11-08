@@ -10,7 +10,8 @@ public sealed partial class CommentThreadViewModel : ObservableObject
   private readonly ICommentThreadService postsService;
   private readonly IPostsService? mutationPostsService;
   private readonly string rootPostId;
-  private readonly string? currentUserId;
+  private string? currentUserId;
+  private int loadGeneration;
   private string sort = CommentThreadSorts.Best;
   private LoadState state = LoadState.Idle;
   private bool isLoadingAncestors;
@@ -57,7 +58,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
 
   public string? CurrentUserId => currentUserId;
 
-  public string CollapseStateKey => BuildCollapseStateKey(rootPostId, currentUserId);
+  public string? CollapseStateKey => BuildCollapseStateKey(rootPostId, currentUserId);
 
   public Post? RootPost => rootPostResponse?.Post;
 
@@ -152,11 +153,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
 
   public void ToggleCollapse(string postId)
   {
-    if (!collapsedCommentIds.Remove(postId))
-    {
-      collapsedCommentIds.Add(postId);
-    }
-
-    OnPropertyChanged(nameof(CollapsedCommentIds));
+    if (currentUserId is not null) throw new InvalidOperationException("Signed-in collapse requires ToggleCollapseAsync.");
+    SetCollapsed(postId, !collapsedCommentIds.Contains(postId));
   }
 }

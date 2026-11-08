@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
+using Microsoft.Maui.Storage;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Posts;
@@ -15,15 +17,18 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
   private readonly IDisposable? localeSubscription;
   private PostDetailPageRow? rootRow;
   private bool lastStaffViewer;
+  private readonly IAnonymousCommentCollapseStore? collapseStore;
 
   public PostDetailPageBinding(
       CommentThreadViewModel viewModel,
       ISessionStore sessionStore,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      IAnonymousCommentCollapseStore? collapseStore = null)
   {
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     this.sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+    this.collapseStore = collapseStore;
     lastStaffViewer = IsStaffViewer;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
@@ -75,6 +80,8 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
 
   public Task LoadAsync(string? focusedCommentId = null, CancellationToken cancellationToken = default)
   {
+    viewModel.SetViewer(CurrentUserId);
+    RestoreAnonymousCollapse();
     lastStaffViewer = IsStaffViewer;
     return LoadInternalAsync(focusedCommentId, cancellationToken);
   }
@@ -135,10 +142,12 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
   public async Task RefreshAfterSessionChangedAsync(CancellationToken cancellationToken = default, string? focusedCommentId = null)
   {
     var isStaffViewer = IsStaffViewer;
-    var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
+    var changedStaffAccess = isStaffViewer != lastStaffViewer;
+    var changedViewer = viewModel.SetViewer(CurrentUserId);
+    if (changedViewer) RestoreAnonymousCollapse();
     lastStaffViewer = isStaffViewer;
     RefreshViewerState();
-    if (gainedStaffAccess && viewModel.RootPost is not null)
+    if (changedViewer || changedStaffAccess)
     {
       await LoadInternalAsync(focusedCommentId, cancellationToken).ConfigureAwait(true);
       return;
@@ -148,19 +157,33 @@ public sealed partial class PostDetailPageBinding : ObservableObject, IUiLocaleC
 
   public void OnUiLocaleChanged() => RefreshRows();
 
-  public void ToggleCollapse(string postId)
-  {
-    viewModel.ToggleCollapse(postId);
-    RefreshRows();
-  }
-
   public bool IsCommentCollapsed(string postId) => viewModel.CollapsedCommentIds.Contains(postId);
 
   private async Task LoadInternalAsync(string? focusedCommentId, CancellationToken cancellationToken)
   {
-    await (focusedCommentId is null
+    var loading = focusedCommentId is null
         ? viewModel.LoadAsync(cancellationToken)
-        : viewModel.LoadPermalinkAsync(focusedCommentId, cancellationToken)).ConfigureAwait(true);
+        : viewModel.LoadPermalinkAsync(focusedCommentId, cancellationToken);
+    RefreshRows();
+    await loading.ConfigureAwait(true);
     RefreshRows();
   }
+}
+
+public interface IAnonymousCommentCollapseStore
+{
+  IReadOnlyList<string> Load(string key);
+  void Save(string key, IReadOnlySet<string> ids);
+}
+
+public sealed class AnonymousCommentCollapseStore : IAnonymousCommentCollapseStore
+{
+  public IReadOnlyList<string> Load(string key)
+  {
+    try { return JsonSerializer.Deserialize<string[]>(Preferences.Default.Get(key, "[]")) ?? []; }
+    catch (JsonException) { return []; }
+  }
+
+  public void Save(string key, IReadOnlySet<string> ids) =>
+      Preferences.Default.Set(key, JsonSerializer.Serialize(ids));
 }

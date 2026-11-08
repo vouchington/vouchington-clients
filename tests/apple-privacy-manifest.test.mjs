@@ -30,6 +30,9 @@ const expectedSymbols = {
   'swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkPersistence.swift': ['UserDefaults'],
   'swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkStore.swift': ['UserDefaults'],
   'swift-clients/core/Sources/VouchaAPI/MemberMCPClient.swift': ['systemUptime'],
+  'swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeCommentThreadViewModel.swift': [
+    'UserDefaults',
+  ],
 }
 
 const collectedTypes = [
@@ -128,6 +131,15 @@ describe('Apple privacy manifests', () => {
     for (const target of ['VouchaCore', 'VouchaAPI']) {
       assert.match(packageTarget(packageSwift, target), /\.copy\("PrivacyInfo\.xcprivacy"\)/u)
     }
+    const features = readRepoFile('swift-clients/ui/Sources/VouchaFeatures/PrivacyInfo.xcprivacy')
+    assert.deepEqual(reasonMap(features), { NSPrivacyAccessedAPICategoryUserDefaults: ['CA92.1'] })
+    assert.match(features, /<key>NSPrivacyTracking<\/key>\s*<false\/>/u)
+    assert.match(features, /<key>NSPrivacyCollectedDataTypes<\/key>\s*<array\/>/u)
+    assert.doesNotMatch(features, /<key>NSPrivacyTrackingDomains<\/key>/u)
+    assert.match(
+      packageTarget(readRepoFile('swift-clients/ui/Package.swift'), 'VouchaFeatures'),
+      /\.copy\("PrivacyInfo\.xcprivacy"\)/u,
+    )
   })
 
   it('fails when shipped Swift uses a required-reason symbol outside the inventory', () => {

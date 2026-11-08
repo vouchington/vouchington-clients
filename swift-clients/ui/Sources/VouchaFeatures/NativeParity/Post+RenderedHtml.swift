@@ -54,7 +54,8 @@ extension Post {
             canDelete: canDelete,
             canLock: canLock,
             postExplicitCategories: postExplicitCategories,
-            postHashtags: postHashtags
+            postHashtags: postHashtags,
+            placeholderState: placeholderState
         )
     }
 }

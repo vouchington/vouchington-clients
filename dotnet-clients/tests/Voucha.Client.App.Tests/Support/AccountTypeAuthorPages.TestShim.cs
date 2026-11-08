@@ -41,6 +41,7 @@ public partial class PostDetailPage : ContentPage
   private void OnEmbedOpenClicked(object? sender, EventArgs args) { }
   private void OnEmbedPlayClicked(object? sender, EventArgs args) { }
   private void OnFollowerSendClicked(object? sender, EventArgs args) { }
+  private void OnLoadMoreSubtreeRequested(object? sender, EventArgs args) { }
   private void OnLoadMoreAncestorsRequested(object? sender, EventArgs args) { }
   private void OnLockToggleClicked(object? sender, EventArgs args) { }
   private void OnQuoteClicked(object? sender, EventArgs args) { }

@@ -32,7 +32,8 @@ public sealed partial class CommentThreadViewModel
       descendantsResponse = MergeThreadPage(
           descendantsResponse ?? response,
           response,
-          descendantPages.Items);
+          UniqueReferences(descendantsResponse?.Results, response.Results));
+      ApplyServerCollapse(response.Bookmarks);
       FocusedComment = ResolveFocusedComment();
       RebuildComments();
     }
@@ -97,7 +98,7 @@ public sealed partial class CommentThreadViewModel
     descendantPages.Remove(reference => EntityId(reference) == postId);
     descendantsResponse = descendantsResponse with
     {
-      Results = descendantPages.Items,
+      Results = descendantsResponse.Results.Where(reference => EntityId(reference) != postId).ToArray(),
       Posts = WithoutKey(descendantsResponse.Posts, postId),
       PostsMetrics = WithoutNullableKey(descendantsResponse.PostsMetrics, postId),
       PostElections = WithoutNullableKey(descendantsResponse.PostElections, postId),
