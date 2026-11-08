@@ -36,5 +36,5 @@ public extension EngineeringClassifierRange {
     }
 }
 
-/// Request-result and classifier-result families share the same wire range shape.
+/// Export-request and classifier-result families share the same wire range shape.
 public typealias EngineeringRequestRange = EngineeringClassifierRange

@@ -202,7 +202,8 @@ public sealed class EngineeringPartitionRangesTests
     var service = new ApiEngineeringService(new VouchaApiClient(new HttpClient(handler) { BaseAddress = new("https://api.test") }));
     using var vm = new EngineeringPostgreSqlViewModel(service)
     {
-      RangeFromDate = "2020-02-01", RangeToDate = "2020-02-02",
+      RangeFromDate = "2020-02-01",
+      RangeToDate = "2020-02-02",
     };
     await vm.ConfirmRangeAsync(false, false, _ => throw new ArgumentException(), TestContext.Current.CancellationToken);
     Assert.False(vm.IsRangeAuthorized);
@@ -217,7 +218,9 @@ public sealed class EngineeringPartitionRangesTests
     var session = new SessionStore();
     var vm = new EngineeringPostgreSqlViewModel(service, sessionStore: session)
     {
-      RangeFromDate = "2020-02-01", RangeToDate = "2020-02-02", RangeMaxDefaultRows = "100",
+      RangeFromDate = "2020-02-01",
+      RangeToDate = "2020-02-02",
+      RangeMaxDefaultRows = "100",
     };
     return (vm, handler, session);
   }

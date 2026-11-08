@@ -62,7 +62,7 @@ public sealed class PsqlPartitionRangeTests
     Assert.True(JsonElement.DeepEquals(properties.GetProperty("classifierRange"), requestRange));
     Assert.Contains(type, properties.GetProperty("type").GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
     Assert.DoesNotContain("requestRange", job.GetProperty("required").EnumerateArray().Select(value => value.GetString()));
-    var required = requestRange.GetProperty("required").EnumerateArray().Select(value => value.GetString()).ToArray();
+    var required = requestRange.GetProperty("required").EnumerateArray().Select(value => Assert.IsType<string>(value.GetString())).ToArray();
     Assert.Equal(["fromDate", "toDate"], required);
     var fields = requestRange.GetProperty("properties");
     var budget = fields.GetProperty("maxDefaultRows");
@@ -80,7 +80,7 @@ public sealed class PsqlPartitionRangeTests
       Assert.Equal(type, serialized.RootElement.GetProperty("type").GetString());
       Assert.False(serialized.RootElement.TryGetProperty("classifierRange", out _));
       var serializedRange = serialized.RootElement.GetProperty("requestRange");
-      Assert.All(required, name => Assert.True(serializedRange.TryGetProperty(name!, out _)));
+      Assert.All(required, name => Assert.True(serializedRange.TryGetProperty(name, out _)));
       Assert.All(serializedRange.EnumerateObject(), property => Assert.True(fields.TryGetProperty(property.Name, out _)));
       Assert.Equal(rows.HasValue, serializedRange.TryGetProperty("maxDefaultRows", out var serializedBudget));
       if (rows.HasValue) Assert.Equal(rows.Value, serializedBudget.GetInt32());
