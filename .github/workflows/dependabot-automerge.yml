@@ -314,7 +314,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Enable eligible Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@65310ad7da87fd8d3619ca7868107d46c9c607d9 # v0.53.0
+        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@58f850cf32af45fc45765713891528cd223c3c95 # v0.66.1
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
           expected_base_sha: ${{ needs.prepare.outputs.base-sha }}
@@ -331,7 +331,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Disable stale Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@65310ad7da87fd8d3619ca7868107d46c9c607d9 # v0.53.0
+        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@58f850cf32af45fc45765713891528cd223c3c95 # v0.66.1
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
 
