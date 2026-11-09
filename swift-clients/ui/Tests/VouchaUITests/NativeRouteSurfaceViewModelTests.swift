@@ -120,18 +120,23 @@ final class NativeRouteSurfaceViewModelTests: NativeRouteSurfaceViewModelTestCas
     }
 
     func testSourcesBrowseLoadsNativeSourceList() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/rss-feeds/trending"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feeds"] = (
             Data("""
             {
-              "results": [{ "id": "source-1" }],
-              "rss_feeds": {
-                "source-1": {
+              "results": [
+                {
+                  "id": "source-2",
+                  "title": "Trending Source",
+                  "feed_type": "article",
+                  "rss_feed_url": { "url": "https://example.com/trending.rss" }
+                },
+                {
                   "id": "source-1",
                   "title": "Native Source",
                   "feed_type": "article",
                   "rss_feed_url": { "url": "https://example.com/rss" }
                 }
-              }
+              ]
             }
             """.utf8),
             200
@@ -140,14 +145,25 @@ final class NativeRouteSurfaceViewModelTests: NativeRouteSurfaceViewModelTestCas
 
         await viewModel.load()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/rss-feeds/trending")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/rss-feeds")
+        let sourcesQuery = CannedFeedURLProtocol.capturedURLs.first.flatMap {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)
+        }
+        XCTAssertEqual(sourcesQuery?.queryItems?.first(where: { $0.name == "sort" })?.value, "trending")
         XCTAssertEqual(
-            viewModel.rows.first,
-            NativeRouteDestinationRow(
-                icon: "newspaper",
-                title: .verbatim("Native Source"),
-                detail: .message(.nativeSwiftRouteSurfaceArticle)
-            )
+            Array(viewModel.rows.prefix(2)),
+            [
+                NativeRouteDestinationRow(
+                    icon: "newspaper",
+                    title: .verbatim("Trending Source"),
+                    detail: .message(.nativeSwiftRouteSurfaceArticle)
+                ),
+                NativeRouteDestinationRow(
+                    icon: "newspaper",
+                    title: .verbatim("Native Source"),
+                    detail: .message(.nativeSwiftRouteSurfaceArticle)
+                )
+            ]
         )
     }
 

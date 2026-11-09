@@ -63,19 +63,6 @@ public struct FediverseSearchResult: Codable, Identifiable, Sendable {
     }
 }
 
-public struct TrendingCommunity: Codable, Identifiable, Sendable {
-    public let id: String
-    public let trendingScore: Double
-    public let memberCount: Int
-    public let postCount: Int
-    public let virtualSubscriptionCount: Int
-}
-
-public struct TrendingCommunitiesResponse: Codable, Sendable {
-    public let communities: [TrendingCommunity]
-    public let pageInfo: Page<TrendingCommunity>.PageInfo
-}
-
 public struct TrendingReferralProgram: Codable, Identifiable, Sendable {
     public let id: String
     public let trendingScore: Double
