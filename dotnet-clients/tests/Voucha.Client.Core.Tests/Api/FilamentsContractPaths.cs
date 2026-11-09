@@ -7,7 +7,16 @@ internal static class FilamentsContractPaths
   internal static string ApiFixturesV1Root() =>
       ApiFixturesV1Root(Environment.GetEnvironmentVariable(ContractRootEnvironmentVariable));
 
-  internal static string ApiFixturesV1Root(string? contractRoot)
+  internal static string ApiFixturesV1Root(string? contractRoot) =>
+      DataV1Root(contractRoot, "api-fixtures");
+
+  internal static string ApiContractsV1Root() =>
+      ApiContractsV1Root(Environment.GetEnvironmentVariable(ContractRootEnvironmentVariable));
+
+  internal static string ApiContractsV1Root(string? contractRoot) =>
+      DataV1Root(contractRoot, "api-contracts");
+
+  private static string DataV1Root(string? contractRoot, string directory)
   {
     if (string.IsNullOrWhiteSpace(contractRoot))
     {
@@ -16,15 +25,15 @@ internal static class FilamentsContractPaths
     }
 
     var root = Path.GetFullPath(contractRoot);
-    var apiFixturesRoot = Path.Combine(root, "api-fixtures", "v1");
+    var apiFixturesRoot = Path.Combine(root, directory, "v1");
     if (!Directory.Exists(apiFixturesRoot))
     {
       throw new DirectoryNotFoundException(
-          $"{ContractRootEnvironmentVariable} must contain api-fixtures/v1: {root}");
+          $"{ContractRootEnvironmentVariable} must contain {directory}/v1: {root}");
     }
 
     RejectSymbolicLink(root);
-    RejectSymbolicLink(Path.Combine(root, "api-fixtures"));
+    RejectSymbolicLink(Path.Combine(root, directory));
     RejectSymbolicLink(apiFixturesRoot);
     return apiFixturesRoot;
   }
@@ -35,13 +44,19 @@ internal static class FilamentsContractPaths
   internal static string ApiFixture(string contractRoot, string relativePath) =>
       ApiFixtureAtRoot(ApiFixturesV1Root(contractRoot), relativePath);
 
+  internal static string ApiContract(string relativePath) =>
+      ApiFixtureAtRoot(ApiContractsV1Root(), relativePath);
+
+  internal static string ApiContract(string contractRoot, string relativePath) =>
+      ApiFixtureAtRoot(ApiContractsV1Root(contractRoot), relativePath);
+
   private static string ApiFixtureAtRoot(string apiFixturesRoot, string relativePath)
   {
     var segments = FixturePathSegments(relativePath);
     var fixturePath = Path.GetFullPath(Path.Combine([apiFixturesRoot, .. segments]));
     if (!IsStrictDescendant(apiFixturesRoot, fixturePath))
     {
-      throw new InvalidOperationException($"Fixture path escapes api-fixtures/v1: {relativePath}");
+      throw new InvalidOperationException($"Fixture path escapes its data root: {relativePath}");
     }
 
     var current = apiFixturesRoot;

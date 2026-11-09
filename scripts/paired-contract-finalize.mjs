@@ -12,7 +12,7 @@ import {
 import { createPairManifest } from './paired-contract-manifest.mjs'
 import { validatePairedExporterRuntimeEvidence } from './paired-exporter-runtime-evidence.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
-import { declaredFilamentsContractPaths } from './contracts.mjs'
+import { contractDataPaths, declaredFilamentsContractPaths } from './contracts.mjs'
 
 async function assertNoSymlinkComponents(root, target, label) {
   const pathFromRoot = relative(root, target)
@@ -130,13 +130,14 @@ export async function createManifestCommand() {
       join(contractRoot, ...contractPath.split('/')),
       `staged contract path ${contractPath}`,
     )
-  await assertDirectoryTreesEqual(
-    join(contractRoot, ...declaredFilamentsContractPaths[0].split('/')),
-    join(producerRoot, ...declaredFilamentsContractPaths[0].split('/')),
-    'fixture contract',
-    contractRoot,
-    producerRoot,
-  )
+  for (const path of contractDataPaths)
+    await assertDirectoryTreesEqual(
+      join(contractRoot, ...path.split('/')),
+      join(producerRoot, ...path.split('/')),
+      `data contract ${path}`,
+      contractRoot,
+      producerRoot,
+    )
   const manifest = await createPairManifest({
     dispatch,
     pair: captured.pair,

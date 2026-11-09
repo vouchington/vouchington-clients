@@ -63,7 +63,7 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
       const directory = join(stageRoot, ...contractPath.split('/'))
       await mkdir(directory, { recursive: true })
       await writeFile(join(directory, `sample-${index}.txt`), `sample-${index}\n`)
-      if (index === 0) {
+      if (contractPath.startsWith('api-')) {
         const producerDirectory = join(producerRoot, ...contractPath.split('/'))
         await mkdir(producerDirectory, { recursive: true })
         await writeFile(join(producerDirectory, `sample-${index}.txt`), `sample-${index}\n`)
@@ -182,7 +182,10 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
       }),
     )
     assert.notEqual(producerSymlink.code, 0)
-    assert.match(producerSymlink.stderr, /symbolic link found in fixture contract producer source/u)
+    assert.match(
+      producerSymlink.stderr,
+      /symbolic link found in data contract api-fixtures\/v1 producer source/u,
+    )
     await rm(producerFixtures)
     await rename(producerFixturesOriginal, producerFixtures)
 
@@ -211,29 +214,32 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     assert.notEqual(stageSymlink.code, 0)
     assert.match(
       stageSymlink.stderr,
-      /symbolic link found in (?:staged contract path api-fixtures\/v1|fixture contract staged tree)/u,
+      /symbolic link found in (?:staged contract path api-fixtures\/v1|data contract api-fixtures\/v1 staged tree)/u,
     )
     await rm(stageFixtures)
     await rename(stageFixturesOriginal, stageFixtures)
 
-    await writeFile(join(stageRoot, 'api-fixtures/v1/sample-0.txt'), 'tampered\n')
-    const tampered = await runCli(
-      cli,
-      'create-manifest',
-      trustedRoot,
-      dispatchEnvironment(server.apiURL, captureOutput, {
-        GITHUB_SHA: trustedSha,
-        GITHUB_WORKFLOW: 'Paired native contract review evidence',
-        GITHUB_RUN_ID: '123456',
-        PAIR_SNAPSHOT_BASE64: encodedSnapshot,
-        PAIRED_EVIDENCE_ROOT: evidenceRoot,
-        CONTRACT_STAGE_ROOT: stageRoot,
-        PRODUCER_CANDIDATE_ROOT: producerRoot,
-        TRUSTED_CLIENTS_ROOT: trustedRoot,
-      }),
-    )
-    assert.notEqual(tampered.code, 0)
-    assert.match(tampered.stderr, /staged file differs from producer source/u)
+    for (const [index, path] of ['api-fixtures/v1', 'api-contracts/v1'].entries()) {
+      await writeFile(join(stageRoot, path, `sample-${index}.txt`), 'tampered\n')
+      const tampered = await runCli(
+        cli,
+        'create-manifest',
+        trustedRoot,
+        dispatchEnvironment(server.apiURL, captureOutput, {
+          GITHUB_SHA: trustedSha,
+          GITHUB_WORKFLOW: 'Paired native contract review evidence',
+          GITHUB_RUN_ID: '123456',
+          PAIR_SNAPSHOT_BASE64: encodedSnapshot,
+          PAIRED_EVIDENCE_ROOT: evidenceRoot,
+          CONTRACT_STAGE_ROOT: stageRoot,
+          PRODUCER_CANDIDATE_ROOT: producerRoot,
+          TRUSTED_CLIENTS_ROOT: trustedRoot,
+        }),
+      )
+      assert.notEqual(tampered.code, 0)
+      assert.match(tampered.stderr, /staged file differs from producer source/u)
+      await writeFile(join(stageRoot, path, `sample-${index}.txt`), `sample-${index}\n`)
+    }
   } finally {
     await server.close()
     await rm(temporaryRoot, { recursive: true, force: true })

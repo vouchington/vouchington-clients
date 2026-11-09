@@ -9,6 +9,7 @@ import { writeTree } from './fixture-files.mjs'
 
 const paths = [
   'api-fixtures/v1',
+  'api-contracts/v1',
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
@@ -20,6 +21,7 @@ async function fixture(t) {
   t.after(() => rm(dirname(artifactRoot), { recursive: true, force: true }))
   await writeTree(filamentsRoot, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
       'enum UiMessageKey {}\n',
     'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
@@ -64,8 +66,8 @@ test('creates a narrow, deterministic manifest and verifies it', async t => {
     manifest.files.map(file => file.path),
     manifest.files.map(file => file.path).toSorted(),
   )
-  assert.equal(manifest.files.length, 3)
-  assert.equal((await verifyContractArtifact(expected(identity))).files.length, 3)
+  assert.equal(manifest.files.length, 4)
+  assert.equal((await verifyContractArtifact(expected(identity))).files.length, 4)
   assert.deepEqual(
     JSON.parse(await readFile(join(identity.outputRoot, 'manifest.json'), 'utf8')),
     manifest,
@@ -227,4 +229,26 @@ test('rejects symlinked Filaments sources before copying', async t => {
   )
   await assert.rejects(createContractArtifact(identity), /symbolic link/)
   await assert.rejects(lstat(identity.outputRoot), { code: 'ENOENT' })
+})
+
+test('verifies the request contract bytes and rejects request contract symlinks', async t => {
+  const identity = await fixture(t)
+  const manifest = await createContractArtifact(identity)
+  assert.ok(manifest.files.some(file => file.path === 'api-contracts/v1/request-contracts.json'))
+  await writeFile(
+    join(identity.outputRoot, 'api-contracts/v1/request-contracts.json'),
+    'tampered\n',
+  )
+  await assert.rejects(verifyContractArtifact(expected(identity)), /hash mismatch|size mismatch/)
+  await symlink(
+    'request-contracts.json',
+    join(identity.filamentsRoot, 'api-contracts/v1/alias.json'),
+  )
+  await assert.rejects(
+    createContractArtifact({
+      ...identity,
+      outputRoot: join(dirname(identity.outputRoot), 'linked'),
+    }),
+    /symbolic link/,
+  )
 })

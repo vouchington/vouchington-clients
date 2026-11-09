@@ -10,6 +10,7 @@ import { writeTree } from './fixture-files.mjs'
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const paths = [
   'api-fixtures/v1',
+  'api-contracts/v1',
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
@@ -18,6 +19,7 @@ async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'voucha-filaments-'))
   await writeTree(root, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/Resources/en.lproj/Localizable.strings':
       '"example" = "Example";\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
@@ -66,6 +68,7 @@ test('requires an explicit Filaments checkout root', async t => {
   t.after(() => rm(ancestor, { recursive: true, force: true }))
   await writeTree(ancestor, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
       'public enum UiMessageKey {}\n',
     'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
@@ -126,12 +129,12 @@ test('sync recovers an interrupted replacement without Git', async t => {
 test('sync rejects symlinked target ancestors before mutation', async t => {
   const { config, generatedRoot, root } = await fixture(t)
   const ancestor = join(generatedRoot, 'linked-source')
-  await symlink(join(root, paths[1]), ancestor)
+  await symlink(join(root, paths[2]), ancestor)
   await assert.rejects(
     syncContracts({
       config,
       root,
-      targets: [{ source: paths[1], destination: join(ancestor, 'replacement') }],
+      targets: [{ source: paths[2], destination: join(ancestor, 'replacement') }],
     }),
     /must not be a symbolic link/,
   )
@@ -153,8 +156,8 @@ test('checks a candidate client checkout without executing it', async t => {
   const dotnet = join(candidate, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
   await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
   await Promise.all([
-    cp(join(root, paths[1]), swift, { recursive: true }),
-    cp(join(root, paths[2]), dotnet, { recursive: true }),
+    cp(join(root, paths[2]), swift, { recursive: true }),
+    cp(join(root, paths[3]), dotnet, { recursive: true }),
   ])
   await checkContracts({ config, root, destinationRoot: candidate })
   await writeFile(join(swift, 'UiMessageKey.swift'), 'changed\n')
@@ -172,8 +175,8 @@ test('rejects symlinks within and above a candidate localization tree', async t 
   const dotnet = join(candidate, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
   await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
   await Promise.all([
-    cp(join(root, paths[1]), swift, { recursive: true }),
-    cp(join(root, paths[2]), dotnet, { recursive: true }),
+    cp(join(root, paths[2]), swift, { recursive: true }),
+    cp(join(root, paths[3]), dotnet, { recursive: true }),
   ])
   const alias = join(swift, 'alias.swift')
   await symlink('UiMessageKey.swift', alias)

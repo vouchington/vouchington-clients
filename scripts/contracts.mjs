@@ -3,11 +3,12 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prefixedFailure } from './prefixed-failure.mjs'
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const localizationPaths = [
+export const localizationPaths = [
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
-export const declaredFilamentsContractPaths = ['api-fixtures/v1', ...localizationPaths]
+export const contractDataPaths = ['api-fixtures/v1', 'api-contracts/v1']
+export const declaredFilamentsContractPaths = [...contractDataPaths, ...localizationPaths]
 function localizationTargets(destinationRoot = repositoryRoot) {
   return localizationPaths.map(source => ({
     source,
