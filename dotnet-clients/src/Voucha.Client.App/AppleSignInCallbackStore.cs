@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Net;
 using System.Security.Cryptography;
 using Voucha.Client.Core;
@@ -113,7 +114,7 @@ public sealed class AppleSignInCallbackStore
   }
 
   private static string NewUrlToken() =>
-      Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+      Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
   private void Cancel(string state, CancellationToken cancellationToken)
   {

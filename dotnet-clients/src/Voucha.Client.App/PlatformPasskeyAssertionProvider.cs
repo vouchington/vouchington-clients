@@ -1,4 +1,5 @@
 #if MACCATALYST
+using System.Buffers.Text;
 using AuthenticationServices;
 using Foundation;
 using UIKit;
@@ -90,15 +91,15 @@ public sealed class PlatformPasskeyAssertionProvider :
       return;
     }
 
-    var credentialId = assertion.CredentialId.ToArray().Base64UrlEncode();
+    var credentialId = Base64Url.EncodeToString(assertion.CredentialId.ToArray());
     Finish(new PasskeyAssertionResponse(
         credentialId,
         credentialId,
         new PasskeyAssertionAuthenticatorResponse(
-            assertion.RawAuthenticatorData.ToArray().Base64UrlEncode(),
-            assertion.RawClientDataJson.ToArray().Base64UrlEncode(),
-            assertion.Signature.ToArray().Base64UrlEncode(),
-            assertion.UserId.ToArray().Base64UrlEncode())));
+            Base64Url.EncodeToString(assertion.RawAuthenticatorData.ToArray()),
+            Base64Url.EncodeToString(assertion.RawClientDataJson.ToArray()),
+            Base64Url.EncodeToString(assertion.Signature.ToArray()),
+            Base64Url.EncodeToString(assertion.UserId.ToArray()))));
   }
 
   [Export("authorizationController:didCompleteWithError:")]
@@ -121,7 +122,6 @@ public sealed class PlatformPasskeyAssertionProvider :
     {
       base64 = base64.PadRight(base64.Length + 4 - padding, '=');
     }
-
     return Convert.FromBase64String(base64);
   }
 
