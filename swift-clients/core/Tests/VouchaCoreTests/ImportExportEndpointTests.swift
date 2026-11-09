@@ -179,6 +179,20 @@ final class ImportExportEndpointTests: XCTestCase {
         XCTAssertNotNil(partial.import.completedAt)
     }
 
+    func testPendingImportRetriesForRealErrorTextOnly() {
+        let blank = ImportResult(input: "https://example.com/feed", status: .pending, error: " \n ")
+        let message = ImportResult(input: "https://example.com/feed", status: .pending, error: "  failed  ")
+        let codeOnly = ImportResult(
+            input: "https://example.com/feed", status: .pending, errorCode: .importFailed
+        )
+        let succeeded = ImportResult(input: "https://example.com/feed", status: .followed, error: "failed")
+
+        XCTAssertFalse(blank.isRetrying)
+        XCTAssertTrue(message.isRetrying)
+        XCTAssertTrue(codeOnly.isRetrying)
+        XCTAssertFalse(succeeded.isRetrying)
+    }
+
     func testRssErrorCodesPreserveCanonicalWireValues() throws {
         let values: [(String, RssFeedImportErrorCode)] = [
             ("INVALID_URL", .invalidURL), ("INVALID_FEED_CONTENT", .invalidFeedContent),

@@ -32,6 +32,20 @@ final class MembershipAdministrationModelTests: XCTestCase {
         XCTAssertEqual(user.displayLabel, "user-1")
     }
 
+    func testGrantSearchUserLabelTrimsUsernameAndFallsBackWhenBlank() throws {
+        let padded = try makeVouchaDecoder().decode(
+            MembershipGrantUser.self,
+            from: Data(#"{"id":"user-2","username":"  ada  "}"#.utf8)
+        )
+        let blank = try makeVouchaDecoder().decode(
+            MembershipGrantUser.self,
+            from: Data(#"{"id":"user-3","username":"   "}"#.utf8)
+        )
+
+        XCTAssertEqual(padded.displayLabel, "@ada")
+        XCTAssertEqual(blank.displayLabel, "user-3")
+    }
+
     func testGrantSearchUsesTheAdministratorSearchContract() {
         let endpoint = Endpoint.searchUsers(query: "private", limit: 8)
 

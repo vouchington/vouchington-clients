@@ -28,7 +28,7 @@ public struct MembershipGrantUser: Codable, Identifiable, Sendable {
     public let name: String?
 
     public var displayLabel: String {
-        guard let username = username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty else {
+        guard let username = TrimmedText.nonEmpty(username) else {
             return id
         }
         return "@\(username)"

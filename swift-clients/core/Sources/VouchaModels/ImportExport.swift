@@ -71,7 +71,7 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
 
     public var isRetrying: Bool {
         status == .pending &&
-            (error?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false || errorCode != nil)
+            (TrimmedText.nonEmpty(error) != nil || errorCode != nil)
     }
 
     public init(

@@ -1,7 +1,7 @@
 import Foundation
 
-extension RssFeedItem {
-    public init(from decoder: any Decoder) throws {
+public extension RssFeedItem {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let data = try container.decodeIfPresent(RssFeedItemData.self, forKey: .data)
         let mediaContent = try container.decodeIfPresent(MediaContent.self, forKey: .mediaContent)
@@ -45,16 +45,9 @@ extension RssFeedItem {
         let decodedVideoID = try container.decodeIfPresent(String.self, forKey: .videoID) ?? data?.videoID
         let decodedVideoPlatform = try container.decodeIfPresent(String.self, forKey: .videoPlatform)
             ?? data?.videoPlatform
-        videoID = Self.trimmedNonEmpty(decodedVideoID)
-        videoPlatform = Self.trimmedNonEmpty(decodedVideoPlatform)
+        videoID = TrimmedText.nonEmpty(decodedVideoID)
+        videoPlatform = TrimmedText.nonEmpty(decodedVideoPlatform)
         election = try container.decodeIfPresent(RssFeedItemElection.self, forKey: .election)
         guid = try container.decodeIfPresent(String.self, forKey: .guid)
-    }
-
-    private static func trimmedNonEmpty(_ value: String?) -> String? {
-        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-            return nil
-        }
-        return trimmed
     }
 }

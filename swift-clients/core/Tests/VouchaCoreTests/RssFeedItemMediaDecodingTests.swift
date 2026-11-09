@@ -274,7 +274,32 @@ final class RssFeedItemMediaDecodingTests: XCTestCase {
         )
 
         let item = try decoder.decode(RssFeedItem.self, from: json)
+        XCTAssertNil(item.videoID)
+        XCTAssertNil(item.videoPlatform)
         XCTAssertEqual(item.playbackKind, .unavailable)
+    }
+
+    func testPaddedVideoIdentifiersAreStoredTrimmed() throws {
+        let json = Data(
+            #"""
+            {
+              "id": "item-padded-video",
+              "rss_feed_id": "feed-1",
+              "title": "Video",
+              "link": null,
+              "published_at": "2026-01-01T00:00:00Z",
+              "media_type": null,
+              "video_id": "  abc123  ",
+              "video_platform": " youtube "
+            }
+            """#
+            .utf8
+        )
+
+        let item = try decoder.decode(RssFeedItem.self, from: json)
+        XCTAssertEqual(item.videoID, "abc123")
+        XCTAssertEqual(item.videoPlatform, "youtube")
+        XCTAssertEqual(item.playbackKind, .embedOnlyVideo(platform: "youtube", videoID: "abc123"))
     }
 
     func testPartialPodcastSidecarPreservesCoverArtFallback() throws {

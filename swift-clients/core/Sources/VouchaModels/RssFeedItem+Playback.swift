@@ -10,7 +10,7 @@ public enum RssFeedItemPlaybackKind: Sendable, Equatable {
 
 public extension RssFeedItem {
     var sourceTitle: String? {
-        normalizedNonEmpty(rssFeed?.title)
+        TrimmedText.nonEmpty(rssFeed?.title)
     }
 
     var primaryMediaURLString: String? {
@@ -18,7 +18,7 @@ public extension RssFeedItem {
     }
 
     var externalURLString: String? {
-        normalizedNonEmpty(url?.url) ?? normalizedNonEmpty(link)
+        TrimmedText.nonEmpty(url?.url) ?? TrimmedText.nonEmpty(link)
     }
 
     var displayThumbnailURLString: String? {
@@ -26,14 +26,14 @@ public extension RssFeedItem {
     }
 
     var normalizedMediaType: String? {
-        normalizedNonEmpty(mediaType)?.lowercased()
+        TrimmedText.nonEmpty(mediaType)?.lowercased()
     }
 
     var playbackKind: RssFeedItemPlaybackKind {
         let kind = normalizedMediaType
         let directURL = primaryMediaURLString
-        let externalVideoID = normalizedNonEmpty(videoID)
-        let externalVideoPlatform = normalizedNonEmpty(videoPlatform)
+        let externalVideoID = TrimmedText.nonEmpty(videoID)
+        let externalVideoPlatform = TrimmedText.nonEmpty(videoPlatform)
         let enclosureMIMEType = normalizedMIMEType(enclosureType)
         let isAudioMedia = isAudioMediaType(kind) || isAudioMediaType(enclosureMIMEType)
         if isAudioMedia {
@@ -87,15 +87,8 @@ public extension RssFeedItem {
         )
     }
 
-    private func normalizedNonEmpty(_ value: String?) -> String? {
-        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-            return nil
-        }
-        return trimmed
-    }
-
     private func normalizedMIMEType(_ value: String?) -> String? {
-        normalizedNonEmpty(value)?.lowercased()
+        TrimmedText.nonEmpty(value)?.lowercased()
     }
 
     private func isAudioMediaType(_ value: String?) -> Bool {

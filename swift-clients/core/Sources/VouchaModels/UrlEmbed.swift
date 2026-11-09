@@ -73,14 +73,14 @@ public struct UrlEmbed: Codable, Sendable {
     }
 
     public var previewProvider: String? {
-        if let providerName = Self.trimmedNonEmpty(providerName) {
+        if let providerName = TrimmedText.nonEmpty(providerName) {
             return providerName
         }
         if let siteName = metaTag("og:site_name") {
             return siteName
         }
         guard let host = validatedSourceURL?.host else { return nil }
-        return Self.trimmedNonEmpty(host)
+        return TrimmedText.nonEmpty(host)
     }
 
     public var playableProviderURL: URL? {
@@ -127,17 +127,11 @@ public struct UrlEmbed: Codable, Sendable {
         guard let value = metaTags?.first(where: { $0.key.caseInsensitiveCompare(key) == .orderedSame })?.value,
               case let .string(string) = value
         else { return nil }
-        return Self.trimmedNonEmpty(string)
+        return TrimmedText.nonEmpty(string)
     }
 
     private func firstNonEmpty(_ values: String?...) -> String? {
-        values.compactMap { Self.trimmedNonEmpty($0) }.first
-    }
-
-    private static func trimmedNonEmpty(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        values.compactMap { TrimmedText.nonEmpty($0) }.first
     }
 
     private static func rawAuthority(of url: URL) -> String? {

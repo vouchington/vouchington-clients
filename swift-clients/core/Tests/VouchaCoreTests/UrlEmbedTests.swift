@@ -113,6 +113,20 @@ final class UrlEmbedTests: XCTestCase {
         XCTAssertNil(flattened.previewDescription)
     }
 
+    func testPreviewTextTrimsPaddingAndSkipsBlankValues() throws {
+        let padded = try embed(metadata: #"{}"#, tags: #"{}"#, title: "  padded title  ")
+        let blank = try embed(
+            metadata: #"{}"#,
+            tags: #"{ "og:title": "  og title  " }"#,
+            title: "   "
+        )
+        let absent = try embed(metadata: #"{}"#, tags: #"{}"#, title: "   ")
+
+        XCTAssertEqual(padded.previewTitle, "padded title")
+        XCTAssertEqual(blank.previewTitle, "og title")
+        XCTAssertNil(absent.previewTitle)
+    }
+
     func testUsesRawOgSiteNameThenSourceHostForProvider() throws {
         let og = try JSONDecoder.vouchaFixtureDecoder.decode(UrlEmbed.self, from: Data(#"""
         { "source_url": "https://fallback.example/article", "embed_metadata": { "provider": { "name": "Normalized" } }, "meta_tags": { "og:site_name": "OG site" } }
