@@ -125,6 +125,12 @@ final class NativeRouteSurfaceViewModelTests: NativeRouteSurfaceViewModelTestCas
             {
               "results": [
                 {
+                  "id": "source-2",
+                  "title": "Trending Source",
+                  "feed_type": "article",
+                  "rss_feed_url": { "url": "https://example.com/trending.rss" }
+                },
+                {
                   "id": "source-1",
                   "title": "Native Source",
                   "feed_type": "article",
@@ -145,12 +151,19 @@ final class NativeRouteSurfaceViewModelTests: NativeRouteSurfaceViewModelTestCas
         }
         XCTAssertEqual(sourcesQuery?.queryItems?.first(where: { $0.name == "sort" })?.value, "trending")
         XCTAssertEqual(
-            viewModel.rows.first,
-            NativeRouteDestinationRow(
-                icon: "newspaper",
-                title: .verbatim("Native Source"),
-                detail: .message(.nativeSwiftRouteSurfaceArticle)
-            )
+            Array(viewModel.rows.prefix(2)),
+            [
+                NativeRouteDestinationRow(
+                    icon: "newspaper",
+                    title: .verbatim("Trending Source"),
+                    detail: .message(.nativeSwiftRouteSurfaceArticle)
+                ),
+                NativeRouteDestinationRow(
+                    icon: "newspaper",
+                    title: .verbatim("Native Source"),
+                    detail: .message(.nativeSwiftRouteSurfaceArticle)
+                )
+            ]
         )
     }
 
