@@ -14,6 +14,7 @@ public static class NativeLocalizationSelectors
       "settings.*",
       "shared.*",
       "native.common.*",
+      "native.communities.*",
       "native.copyrightNotices.*",
       "native.auth.*",
       "native.authoredPost.*",

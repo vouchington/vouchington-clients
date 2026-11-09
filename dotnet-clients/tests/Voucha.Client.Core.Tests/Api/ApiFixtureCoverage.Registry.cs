@@ -202,7 +202,7 @@ internal static partial class ApiFixtureCoverage
     ["native.topic-recommendation.detail.default"] = typeof(PostResponse),
     ["web.referral-links.feed.default"] = typeof(ReferralLinkFeedResponse),
     ["web.referral-links.prioritized.default"] = typeof(PrioritizedReferralLinksResponse),
-    ["web.trending-referral-programs.default"] = typeof(TrendingReferralProgramsResponse),
+    ["web.topics.link-count.default"] = typeof(TopicSearchResponse),
     ["swift.posts.feed.default"] = typeof(PostsFeedResponse),
     ["swift.notifications.default"] = typeof(NotificationsResponse),
     ["native.notifications.redirect-target.default"] = typeof(NotificationRedirectTargetResponse),

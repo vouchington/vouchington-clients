@@ -15,7 +15,7 @@ public static partial class VouchaApiEndpoints
       new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}");
 
   public static ApiRequest JoinCommunity(string idOrSlug) =>
-      new(HttpMethod.Post, $"/api/v1/communities/{Path(idOrSlug)}/members") { Body = new { } };
+      new(HttpMethod.Post, $"/api/v1/communities/{Path(idOrSlug)}/members");
 
   public static ApiRequest LeaveCommunity(string idOrSlug) =>
       new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/members");

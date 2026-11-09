@@ -28,7 +28,7 @@ public interface IReferralLinksService
       FetchPrioritizedReferralLinksRequest request,
       CancellationToken cancellationToken = default);
 
-  Task<TrendingReferralProgramsResponse> FetchTrendingProgramsAsync(
+  Task<TopicSearchResponse> FetchTrendingProgramsAsync(
       FetchTrendingReferralProgramsRequest request,
       CancellationToken cancellationToken = default);
 

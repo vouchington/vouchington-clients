@@ -131,16 +131,12 @@ public sealed partial class ReferralLinksViewModel
               ("group", item.PriorityGroup)),
           Localization: localization);
 
-  private ReferralLinkRow RowFromTrendingProgram(TrendingReferralProgram item) =>
+  private ReferralLinkRow RowFromTrendingProgram(string id, string? name) =>
       new(
-          item.Id,
-          UiText.Verbatim(item.Id),
+          id,
+          UiText.Verbatim(name ?? id),
           null,
-          item.LinkCount is int count
-              ? UiText.Localized(
-                  UiMessageKey.NativeDotnetReferralLinksActiveLinks,
-                  ("count", count))
-              : UiText.Localized(UiMessageKey.NativeDotnetReferralLinksTrendingReferralProgram),
+          UiText.Localized(UiMessageKey.NativeDotnetReferralLinksTrendingReferralProgram),
           Localization: localization);
 
   private static Uri? ParseUri(string? value) =>
