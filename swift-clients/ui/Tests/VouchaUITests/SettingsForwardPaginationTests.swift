@@ -123,13 +123,13 @@ final class SettingsForwardPaginationTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertTrue(try sut.sessionsSection.inspect().find(button: "Revoke All Sessions").isDisabled())
 
         viewModel.state = .idle
-        CannedFeedURLProtocol.handlers["/api/v1/auth/sessions"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/auth/sessions/revocations"] = (Data("{}".utf8), 200)
         await viewModel.revokeAllSessions()
 
         XCTAssertTrue(signedOut)
         XCTAssertTrue(viewModel.sessions.isEmpty)
         XCTAssertFalse(viewModel.sessionPagination.hasMore)
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), ["/api/v1/auth/sessions"])
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), ["/api/v1/auth/sessions/revocations"])
     }
 
     private func observeSessionAppend(_ viewModel: SettingsViewModel, completion: XCTestExpectation) {
