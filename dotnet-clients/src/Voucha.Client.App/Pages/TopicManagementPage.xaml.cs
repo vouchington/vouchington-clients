@@ -102,7 +102,7 @@ public partial class TopicManagementPage : ContentPage
     }
     catch (Exception ex)
     {
-      StatusLabel.Text = ex.Message;
+      StatusLabel.Text = ImagePlacementErrors.Message(ex, UiCopy.CurrentLocalization);
     }
     finally
     {

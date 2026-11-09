@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Contributions;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
@@ -172,7 +173,7 @@ public sealed partial class PostComposeViewModel
             UiMessageKey.NativeTaxonomyContributionAdmissionCapacityUnavailable),
         "IDEMPOTENCY_KEY_REUSED" => localization.Localize(
             UiMessageKey.NativeTaxonomyContributionAdmissionIdempotencyMismatch),
-        _ => exception.Message,
+        _ => ImagePlacementErrors.Message(exception, localization),
       };
 
   private static Uri? ParseUri(string value) =>
