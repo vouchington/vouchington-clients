@@ -7,7 +7,7 @@ import VouchaCore
 import XCTest
 
 final class CommunityLimitErrorTests: XCTestCase {
-    func testTransportPreservesBothCodesWithAndWithoutServerMessage() throws {
+    func testTransportPreservesBothCodesWithAndWithoutServerMessage() async throws {
         let client = try APIClient(config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://voucha.test"))))
         let response = try XCTUnwrap(HTTPURLResponse(
             url: XCTUnwrap(URL(string: "https://voucha.test")), statusCode: 409, httpVersion: nil, headerFields: nil
@@ -27,7 +27,10 @@ final class CommunityLimitErrorTests: XCTestCase {
             for withMessage in [true, false] {
                 let data = withMessage ? ApiFixtureLoader.data(id) : try JSONSerialization
                     .data(withJSONObject: ["code": code])
-                XCTAssertThrowsError(try client.validate(response: response, data: data)) { error in
+                do {
+                    try await client.validate(response: response, data: data)
+                    XCTFail("Expected \(code) to throw")
+                } catch {
                     guard let error = error as? VouchaError else { return XCTFail("Expected API error") }
                     XCTAssertEqual(error.communityLimit, limit)
                     XCTAssertFalse(error.isRecoverableByTurnstileFallback)

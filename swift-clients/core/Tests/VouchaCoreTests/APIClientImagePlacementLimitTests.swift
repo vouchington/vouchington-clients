@@ -7,7 +7,7 @@ import VouchaCore
 import XCTest
 
 final class APIClientImagePlacementLimitTests: XCTestCase {
-    func testProducerPlacementConflictPreservesDomainCodeAndStatus() throws {
+    func testProducerPlacementConflictPreservesDomainCodeAndStatus() async throws {
         let url = try XCTUnwrap(URL(string: "https://api.example.test/api/v1/posts/post-1/images"))
         let client = APIClient(
             config: AppConfig(baseURL: url),
@@ -16,10 +16,13 @@ final class APIClientImagePlacementLimitTests: XCTestCase {
         )
         let response = try XCTUnwrap(HTTPURLResponse(url: url, statusCode: 409, httpVersion: nil, headerFields: nil))
 
-        XCTAssertThrowsError(try client.validate(
-            response: response,
-            data: ApiFixtureLoader.data("native.posts.images.placement-limit.conflict")
-        )) { error in
+        do {
+            try await client.validate(
+                response: response,
+                data: ApiFixtureLoader.data("native.posts.images.placement-limit.conflict")
+            )
+            XCTFail("Expected placement conflict to throw")
+        } catch {
             guard case let VouchaError.apiMessage(status, code, message) = error else {
                 return XCTFail("Expected coded placement conflict, got \(error)")
             }

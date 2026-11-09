@@ -1122,7 +1122,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetProfileUploadAvatar = new("native.dotnet.profile.uploadAvatar");
     public static readonly UiMessageKey NativeDotnetProfileUserSafety = new("native.dotnet.profile.userSafety");
     public static readonly UiMessageKey NativeDotnetProfileVideos = new("native.dotnet.profile.videos");
-    public static readonly UiMessageKey NativeDotnetReferralLinksActiveLinks = new("native.dotnet.referralLinks.activeLinks");
     public static readonly UiMessageKey NativeDotnetReferralLinksEmpty = new("native.dotnet.referralLinks.empty");
     public static readonly UiMessageKey NativeDotnetReferralLinksEmptyDescription = new("native.dotnet.referralLinks.emptyDescription");
     public static readonly UiMessageKey NativeDotnetReferralLinksInactive = new("native.dotnet.referralLinks.inactive");
@@ -3143,7 +3142,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetProfileUploadAvatar,
         NativeDotnetProfileUserSafety,
         NativeDotnetProfileVideos,
-        NativeDotnetReferralLinksActiveLinks,
         NativeDotnetReferralLinksEmpty,
         NativeDotnetReferralLinksEmptyDescription,
         NativeDotnetReferralLinksInactive,

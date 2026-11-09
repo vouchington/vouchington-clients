@@ -1123,8 +1123,6 @@
   <data name="native.dotnet.profile.uploadAvatar" xml:space="preserve"><value>Importer un avatar</value></data>
   <data name="native.dotnet.profile.userSafety" xml:space="preserve"><value>Sécurité de l’utilisateur</value></data>
   <data name="native.dotnet.profile.videos" xml:space="preserve"><value>Vidéos</value></data>
-  <data name="native.dotnet.referralLinks.activeLinks.__plural.one" xml:space="preserve"><value>{count} lien actif</value></data>
-  <data name="native.dotnet.referralLinks.activeLinks.__plural.other" xml:space="preserve"><value>{count} liens actifs</value></data>
   <data name="native.dotnet.referralLinks.empty" xml:space="preserve"><value>Aucun lien de parrainage chargé</value></data>
   <data name="native.dotnet.referralLinks.emptyDescription" xml:space="preserve"><value>Connectez-vous ou actualisez lorsque l’API est disponible.</value></data>
   <data name="native.dotnet.referralLinks.inactive" xml:space="preserve"><value>{name} inactif</value></data>
