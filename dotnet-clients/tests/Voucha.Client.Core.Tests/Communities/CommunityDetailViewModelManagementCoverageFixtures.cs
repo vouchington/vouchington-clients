@@ -347,8 +347,11 @@ internal sealed partial class ScriptedCommunitiesService
   public Task BanAsync(string idOrSlug, BanCommunityMemberRequest request, CancellationToken cancellationToken = default) =>
       RecordCompleted("ban", idOrSlug, $"{request.UserId}:{request.Reason}");
 
-  public Task LiftBanAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
-      RecordCompleted("ban-lift", idOrSlug, userId);
+  public async Task<CommunityBanLiftResponse> LiftBanAsync(string idOrSlug, string banId, CancellationToken cancellationToken = default)
+  {
+    await RecordCompleted("ban-lift", idOrSlug, banId);
+    return new(idOrSlug, "user-4", [banId]);
+  }
 
   public Task ActivateRestrictionsAsync(
       string idOrSlug,

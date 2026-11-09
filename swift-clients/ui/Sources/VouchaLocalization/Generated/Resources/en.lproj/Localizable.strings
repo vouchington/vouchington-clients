@@ -126,6 +126,15 @@
 "extracted.votes.semanticVote.vote" = "Vote";
 "extracted.votes.semanticVote.vouch" = "Vouch";
 "images.uploadPreviewUnavailable" = "Image uploaded. Preview unavailable.";
+"moderation.communityBans.active" = "Active";
+"moderation.communityBans.confirmLiftAll" = "Lift all active bans?";
+"moderation.communityBans.confirmLiftAllDescription" = "This lifts every active ban for {userLabel} in this community.";
+"moderation.communityBans.detailLoadFailed" = "Failed to load ban details";
+"moderation.communityBans.liftAll" = "Lift all bans";
+"moderation.communityBans.liftAllForbidden" = "Some bans cannot be lifted together. Lift permitted bans individually.";
+"moderation.communityBans.liftAllLimit" = "More than {cap} bans are active. Lift bans individually.";
+"moderation.communityBans.liftAllLimitUnknown" = "Too many bans are active. Lift bans individually.";
+"moderation.communityBans.liftFailed" = "Failed to lift ban";
 "native.apiKeys.active" = "Active";
 "native.apiKeys.administratorInvalid" = "This administrator key is invalid. Rotate with a 30- or 90-day lifetime, or revoke it.";
 "native.apiKeys.expired" = "Expired";

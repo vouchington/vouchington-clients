@@ -1,6 +1,7 @@
 public enum NativeLocalizationSelectors {
     public static let chrome = [
         "common.*",
+        "moderation.communityBans.*",
         "nav.*",
         "settings.*",
         "shared.*",

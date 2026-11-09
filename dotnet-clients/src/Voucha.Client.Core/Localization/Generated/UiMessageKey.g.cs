@@ -283,6 +283,15 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVote = new("extracted.votes.semanticVote.vote");
     public static readonly UiMessageKey ExtractedVotesSemanticVoteVouch = new("extracted.votes.semanticVote.vouch");
     public static readonly UiMessageKey ImagesUploadPreviewUnavailable = new("images.uploadPreviewUnavailable");
+    public static readonly UiMessageKey ModerationCommunityBansActive = new("moderation.communityBans.active");
+    public static readonly UiMessageKey ModerationCommunityBansConfirmLiftAll = new("moderation.communityBans.confirmLiftAll");
+    public static readonly UiMessageKey ModerationCommunityBansConfirmLiftAllDescription = new("moderation.communityBans.confirmLiftAllDescription");
+    public static readonly UiMessageKey ModerationCommunityBansDetailLoadFailed = new("moderation.communityBans.detailLoadFailed");
+    public static readonly UiMessageKey ModerationCommunityBansLiftAll = new("moderation.communityBans.liftAll");
+    public static readonly UiMessageKey ModerationCommunityBansLiftAllForbidden = new("moderation.communityBans.liftAllForbidden");
+    public static readonly UiMessageKey ModerationCommunityBansLiftAllLimit = new("moderation.communityBans.liftAllLimit");
+    public static readonly UiMessageKey ModerationCommunityBansLiftAllLimitUnknown = new("moderation.communityBans.liftAllLimitUnknown");
+    public static readonly UiMessageKey ModerationCommunityBansLiftFailed = new("moderation.communityBans.liftFailed");
     public static readonly UiMessageKey NativeApiKeysActive = new("native.apiKeys.active");
     public static readonly UiMessageKey NativeApiKeysAdministratorInvalid = new("native.apiKeys.administratorInvalid");
     public static readonly UiMessageKey NativeApiKeysExpired = new("native.apiKeys.expired");
@@ -2303,6 +2312,15 @@ public readonly record struct UiMessageKey(string Value)
         ExtractedVotesSemanticVoteVote,
         ExtractedVotesSemanticVoteVouch,
         ImagesUploadPreviewUnavailable,
+        ModerationCommunityBansActive,
+        ModerationCommunityBansConfirmLiftAll,
+        ModerationCommunityBansConfirmLiftAllDescription,
+        ModerationCommunityBansDetailLoadFailed,
+        ModerationCommunityBansLiftAll,
+        ModerationCommunityBansLiftAllForbidden,
+        ModerationCommunityBansLiftAllLimit,
+        ModerationCommunityBansLiftAllLimitUnknown,
+        ModerationCommunityBansLiftFailed,
         NativeApiKeysActive,
         NativeApiKeysAdministratorInvalid,
         NativeApiKeysExpired,

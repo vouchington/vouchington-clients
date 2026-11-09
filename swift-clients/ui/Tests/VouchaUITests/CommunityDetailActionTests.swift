@@ -164,7 +164,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
 
         viewModel.selectedTab = .bans
         await viewModel.banMember(userId: "user-2", reason: "spam", expiresAt: nil)
-        await viewModel.liftBan(userId: "user-2")
+        await viewModel.liftBan(banId: "user-2")
 
         viewModel.selectedTab = .restrictions
         await viewModel.activateRestrictions(

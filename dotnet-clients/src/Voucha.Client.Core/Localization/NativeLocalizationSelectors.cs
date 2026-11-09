@@ -9,6 +9,7 @@ public static class NativeLocalizationSelectors
       "common.*",
       "extracted.*",
       "images.uploadPreviewUnavailable",
+      "moderation.communityBans.*",
       "nav.*",
       "settings.*",
       "shared.*",

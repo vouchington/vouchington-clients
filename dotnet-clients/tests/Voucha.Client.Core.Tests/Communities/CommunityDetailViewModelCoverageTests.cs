@@ -399,7 +399,8 @@ public sealed class CommunityDetailViewModelCoverageTests
     Assert.True(await viewModel.RevokeInviteAsync("invite-1", TestContext.Current.CancellationToken));
     Assert.True(await viewModel.UpdatePinnedPostsAsync(["post-1"], TestContext.Current.CancellationToken));
     Assert.True(await viewModel.BanAsync("user-4", "spam", cancellationToken: TestContext.Current.CancellationToken));
-    Assert.True(await viewModel.LiftBanAsync("user-4", TestContext.Current.CancellationToken));
+    await viewModel.LoadBansAsync(TestContext.Current.CancellationToken);
+    Assert.True(await viewModel.LiftBanAsync(viewModel.BanRows[0].Id, TestContext.Current.CancellationToken));
     Assert.True(await viewModel.ActivateRestrictionsAsync(["raid_mode"], reason: "spike", cancellationToken: TestContext.Current.CancellationToken));
     Assert.True(await viewModel.LiftRestrictionAsync("restriction-1", TestContext.Current.CancellationToken));
     Assert.True(await viewModel.SetModeratorVacationAsync(DateTimeOffset.Parse("2026-07-08T00:00:00Z"), TestContext.Current.CancellationToken));

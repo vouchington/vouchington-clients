@@ -223,7 +223,8 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task ApiCommunitiesServiceDelegatesAdministrationMethodsToClientRoutes()
   {
-    var handler = new RecordingHandler(RepeatEmptyResponses(26));
+    var handler = new RecordingHandler(RepeatEmptyResponses(26).Select((response, index) => index == 13
+        ? new RecordedResponse(ApiFixtureLoader.LoadResponse("native.communities.bans.lift-one.default")) : response));
     var service = new ApiCommunitiesService(
         new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
     var token = TestContext.Current.CancellationToken;
@@ -245,7 +246,7 @@ public sealed partial class VouchaApiClientTests
     await service.ReviewPostAsync("test community", "post 1", new UpdateCommunityPostReviewRequest("rejected", "spam"), token);
     await service.UpdatePinnedPostsAsync("test community", new CommunityPinnedPostsUpdateRequest(["post-1"]), token);
     await service.BanAsync("test community", new BanCommunityMemberRequest("user-3"), token);
-    await service.LiftBanAsync("test community", "user 3", token);
+    await service.LiftBanAsync("test community", "ban 3", token);
     await service.ActivateRestrictionsAsync(
         "test community",
         new ActivateCommunityRestrictionsRequest(["invite_only"]),

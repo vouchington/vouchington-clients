@@ -280,6 +280,15 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Votar</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Endossar</value></data>
   <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Imagem enviada. Pré-visualização indisponível.</value></data>
+  <data name="moderation.communityBans.active" xml:space="preserve"><value>Ativo</value></data>
+  <data name="moderation.communityBans.confirmLiftAll" xml:space="preserve"><value>Remover todos os banimentos ativos?</value></data>
+  <data name="moderation.communityBans.confirmLiftAllDescription" xml:space="preserve"><value>Isso removerá todos os banimentos ativos de {userLabel} nesta comunidade.</value></data>
+  <data name="moderation.communityBans.detailLoadFailed" xml:space="preserve"><value>Não foi possível carregar os detalhes do banimento</value></data>
+  <data name="moderation.communityBans.liftAll" xml:space="preserve"><value>Remover todos os banimentos</value></data>
+  <data name="moderation.communityBans.liftAllForbidden" xml:space="preserve"><value>Alguns banimentos não podem ser removidos em conjunto. Remova individualmente os que forem permitidos.</value></data>
+  <data name="moderation.communityBans.liftAllLimit" xml:space="preserve"><value>Há mais de {cap} banimentos ativos. Remova-os individualmente.</value></data>
+  <data name="moderation.communityBans.liftAllLimitUnknown" xml:space="preserve"><value>Há banimentos ativos demais. Remova-os individualmente.</value></data>
+  <data name="moderation.communityBans.liftFailed" xml:space="preserve"><value>Não foi possível remover o banimento</value></data>
   <data name="native.apiKeys.active" xml:space="preserve"><value>Ativa</value></data>
   <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Esta chave de administrador é inválida. Renove-a por 30 ou 90 dias, ou revogue-a.</value></data>
   <data name="native.apiKeys.expired" xml:space="preserve"><value>Expirada</value></data>
