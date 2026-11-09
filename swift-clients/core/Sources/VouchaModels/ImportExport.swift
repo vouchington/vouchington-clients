@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 public enum SourceFeedType: String, CaseIterable, Codable, Identifiable, Sendable {
     case article, podcast, video, mixed

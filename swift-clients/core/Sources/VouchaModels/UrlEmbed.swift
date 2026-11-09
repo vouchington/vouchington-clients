@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 /// Server-resolved URL presentation data. Raw maps are retained losslessly for
 /// future native rendering; presentation must use the server-safe flattened fields.

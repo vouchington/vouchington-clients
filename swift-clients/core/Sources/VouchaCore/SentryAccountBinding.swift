@@ -9,8 +9,8 @@ public enum SentryAccountUpdate: Equatable, Sendable {
 /// Signed-in events carry only the opaque account ID. Sign-out and account switch replace it.
 public enum SentryAccountBinding {
     public static func update(from previous: String?, to next: String?) -> SentryAccountUpdate {
-        let before = SentryTrimmedText.nonEmpty(previous)
-        let after = SentryTrimmedText.nonEmpty(next)
+        let before = TrimmedText.nonEmpty(previous)
+        let after = TrimmedText.nonEmpty(next)
         if before == after {
             return .unchanged
         }

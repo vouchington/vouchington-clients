@@ -1,3 +1,5 @@
+import VouchaCore
+
 /// The supported plans for an administrator-issued membership.
 public enum MembershipPlanSlug: String, Codable, CaseIterable, Identifiable, Sendable {
     case plus

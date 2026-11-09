@@ -96,7 +96,7 @@ public enum SentryEventScrubber {
         scrubbed.email = nil
         scrubbed.username = nil
         scrubbed.ipAddress = nil
-        scrubbed.accountId = SentryTrimmedText.nonEmpty(event.accountId)
+        scrubbed.accountId = TrimmedText.nonEmpty(event.accountId)
         scrubbed.requestURL = stripQuery(event.requestURL)
         scrubbed.queryString = nil
         scrubbed.headers = scrubHeaders(event.headers)

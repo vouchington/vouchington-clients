@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 public enum RssFeedItemPlaybackKind: Sendable, Equatable {
     case audio(url: String)

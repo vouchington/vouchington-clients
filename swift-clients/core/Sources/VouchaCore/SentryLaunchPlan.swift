@@ -37,14 +37,14 @@ public struct SentryLaunchPlan: Equatable, Sendable {
         accountId: String?
     ) -> SentryLaunchPlan {
         let dsn = validDSN(
-            SentryTrimmedText.nonEmpty(environment["VOUCHA_SENTRY_DSN"])
-                ?? SentryTrimmedText.nonEmpty(packagedConfiguration["VOUCHA_SENTRY_DSN"])
+            TrimmedText.nonEmpty(environment["VOUCHA_SENTRY_DSN"])
+                ?? TrimmedText.nonEmpty(packagedConfiguration["VOUCHA_SENTRY_DSN"])
         )
         return SentryLaunchPlan(
             dsn: dsn,
             releaseName: releaseName,
             environmentName: configuration.environmentName,
-            accountId: SentryTrimmedText.nonEmpty(accountId),
+            accountId: TrimmedText.nonEmpty(accountId),
             sendDefaultPii: false,
             tracesSampleRate: dsn == nil ? 0 : enabledTracesSampleRate
         )

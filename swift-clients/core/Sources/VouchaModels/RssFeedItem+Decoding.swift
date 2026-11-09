@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 public extension RssFeedItem {
     init(from decoder: any Decoder) throws {
