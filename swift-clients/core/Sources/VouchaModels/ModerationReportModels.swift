@@ -43,7 +43,7 @@ public struct StaffModerationReport: Codable, Identifiable, Sendable {
     public let entityType: String
     public let entityId: String
     public let adminActionPath: String?
-    public let targetLabel: String?
+    public let targetLabel: String
     public let targetPath: String?
     public let targetUserId: String?
     public let targetAvailable: Bool?
@@ -55,6 +55,12 @@ public struct StaffModerationReport: Codable, Identifiable, Sendable {
     public let reportCount: Int
     public let reporterUserId: String
     public let reporterUsername: String?
+    @RequiredNullable
+    public var reporterDisplayName: String?
+    @RequiredNullable
+    public var resolverUsername: String?
+    @RequiredNullable
+    public var resolverDisplayName: String?
     public let note: String?
     public let resolvedById: String?
     public let isSystemGenerated: Bool
@@ -74,7 +80,7 @@ public struct MemberModerationReport: Codable, Identifiable, Sendable {
     public let reviewedAt: Date?
     public let entityType: String
     public let entityId: String
-    public let targetLabel: String?
+    public let targetLabel: String
     public let targetPath: String?
     public let targetAvailable: Bool?
     @RequiredNullable
@@ -131,7 +137,7 @@ public struct StaffModerationReportEntityCluster: Codable, Identifiable, Sendabl
     public let reasonBreakdown: [ModerationReportReasonBreakdown]
     public let firstReportedAt: Date
     public let lastReportedAt: Date
-    public let targetLabel: String?
+    public let targetLabel: String
     public let targetPath: String?
     public let adminActionPath: String?
     public let targetUserId: String?

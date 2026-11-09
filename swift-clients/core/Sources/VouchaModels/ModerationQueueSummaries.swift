@@ -47,8 +47,7 @@ public struct ReviewDisputeSummary: Codable, Identifiable, Sendable {
     public let status: ReviewDisputeStatus
     public let hasDraft: Bool
     public let hasAiDraft: Bool
-    @RequiredNullable
-    public var postLabel: String?
+    public let postLabel: String
     @RequiredNullable
     public var postSlug: String?
     @RequiredNullable

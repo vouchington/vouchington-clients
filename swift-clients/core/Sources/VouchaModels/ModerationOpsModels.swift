@@ -37,8 +37,7 @@ public struct AdminReviewQueueMediaReveal: Codable, Sendable {
 }
 
 public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
-    @TolerantNullable
-    public var postLabel: String?
+    public let postLabel: String
     public let id: String
     public let title: String
     @RequiredNullable

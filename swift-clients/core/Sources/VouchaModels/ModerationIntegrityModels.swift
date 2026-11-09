@@ -22,11 +22,10 @@ public struct VoteIntegrityFlag: Codable, Identifiable, Sendable {
     public var entityRelationId: String?
     @RequiredNullable
     public var agentModerationId: String?
-    @TolerantNullable
-    public var entityLabel: String?
-    @TolerantNullable
+    public let entityLabel: String
+    @RequiredNullable
     public var resolverUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var resolverDisplayName: String?
     public let flagType: String
     public let details: [String: DecodedJSONValue]
@@ -58,17 +57,16 @@ public struct ReportIntegrityFlag: Codable, Identifiable, Sendable {
     public var postId: String?
     @TolerantNullable
     public var reportedUserId: String?
-    @TolerantNullable
+    @RequiredNullable
     public var reportedUsername: String?
     @TolerantNullable
     public var hostnameId: String?
     @TolerantNullable
     public var rssFeedItemId: String?
-    @TolerantNullable
-    public var entityLabel: String?
-    @TolerantNullable
+    public let entityLabel: String
+    @RequiredNullable
     public var resolverUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var resolverDisplayName: String?
     public let flagType: String
     public let reporterCount: Int

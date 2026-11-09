@@ -363,7 +363,7 @@ public sealed class CommunityDetailViewModelCoverageTests
 
     await viewModel.SelectSectionAsync(CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
     Assert.Contains(viewModel.Moderation, row => row.Title == "user-1" && row.Detail == "2");
-    Assert.Contains(viewModel.Moderation, row => row.Title == "post-1" && row.Detail == "reported");
+    Assert.Contains(viewModel.Moderation, row => row.Title == "Fixture post" && row.Detail == "spam");
     Assert.Single(viewModel.ModerationRows);
   }
 

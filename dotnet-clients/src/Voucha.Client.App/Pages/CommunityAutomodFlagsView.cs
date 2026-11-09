@@ -44,7 +44,7 @@ public sealed class CommunityAutomodFlagsView : VerticalStackLayout
     {
       if (CommunityAutomodFlagTarget.PostId(flag) is not { Length: > 0 } postId) continue;
       var card = new VerticalStackLayout { Spacing = 3, AutomationId = $"community-automod-flag:{flag.Id}" };
-      card.Children.Add(new Label { Text = UiCopy.Resolve(UiText.UserContent(flag.TargetLabel ?? flag.EntityId)), FontAttributes = FontAttributes.Bold });
+      card.Children.Add(new Label { Text = UiCopy.Resolve(UiText.UserContent(Voucha.Client.Core.Moderation.ModerationLabels.Entity(flag.TargetLabel, UiCopy.CurrentLocalization))), FontAttributes = FontAttributes.Bold });
       if (flag.TargetContent?.Text is { Length: > 0 } content)
         card.Children.Add(new Label { Text = UiCopy.Resolve(UiText.UserContent(content)) });
       if ((flag.Reason ?? flag.FlaggedReason) is { Length: > 0 } reason)

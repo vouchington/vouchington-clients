@@ -76,7 +76,7 @@ public struct CommunityPendingReport: Codable, Identifiable, Sendable {
     public let caseId: String
     public let entityType: String
     public let entityId: String
-    public let targetLabel: String?
+    public let targetLabel: String
     public let targetPath: String?
     @RequiredNullable
     public var targetContent: AuthoredContentText?

@@ -126,7 +126,7 @@ public struct CommunityModerationQueueEntry: Codable, Identifiable, Sendable {
     public let cursorReportCount: Int?
     public let cursorSeverityRank: Int?
     public let targetAvailable: Bool
-    public let targetLabel: String?
+    public let targetLabel: String
     public let targetPath: String?
     @RequiredNullable
     public var targetContent: AuthoredContentText?

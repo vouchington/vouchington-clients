@@ -131,6 +131,7 @@ public sealed partial class CommunityDetailViewModel
             queue.Entries.Select(CommunityModerationRow.FromQueueEntry),
             row => row.Id);
         Moderation = AppendUnique(Moderation, ModerationRows.Select(ModerationSummary), row => row.Id);
+        OnPropertyChanged(nameof(ModerationActionRows));
         communityListEndCursor = queue.PageInfo.EndCursor;
         return true;
       default:

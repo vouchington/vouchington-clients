@@ -165,46 +165,9 @@ internal sealed partial class ScriptedCommunitiesService
   public Task<CommunityModerationQueueResponse> FetchModerationQueueAsync(string idOrSlug, CancellationToken cancellationToken = default) =>
       ModerationQueueHandler is not null
           ? ModerationQueueHandler(idOrSlug, cancellationToken)
-          : Task.FromResult(ModerationQueueResponses.Count > 0 ? ModerationQueueResponses.Dequeue() : Deserialize<CommunityModerationQueueResponse>("""
-          {
-            "entries": [
-              {
-                "id": "queue-1",
-                "community_id": "community-1",
-                "entity_type": "post",
-                "entity_id": "post-1",
-                "post_id": "post-1",
-                "status": "pending",
-                "queue_source": "report",
-                "reason": null,
-                "note": null,
-                "report_count": 1,
-                "action_at": "2026-07-01T00:00:00Z",
-                "created_at": "2026-07-01T00:00:00Z",
-                "target_label": null,
-                "target_path": null,
-                "target_available": true,
-                "target_is_anonymous": false,
-                "target_is_restricted": false,
-                "target_user_id": null,
-                "reporter_user_id": null,
-                "reporter_username": null,
-                "resolved_by_id": null,
-                "judgement": null,
-                "flagged_reason": "reported",
-                "admin_action_path": null,
-                "community_ban_evasion": null,
-                "post_moderation_context": null,
-                "is_system_generated": false,
-                "cursor_created_at": null,
-                "cursor_report_count": null,
-                "cursor_severity_rank": null
-              }
-            ],
-            "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
-            "viewer_tier": "moderator"
-          }
-          """));
+          : Task.FromResult(ModerationQueueResponses.Count > 0 ? ModerationQueueResponses.Dequeue()
+              : Deserialize<CommunityModerationQueueResponse>(
+                  ApiFixtureLoader.LoadResponse("web.communities.moderation-queue.default")));
 
   public Task<CommunityModerationAnalyticsResponse> FetchModerationAnalyticsAsync(
       string idOrSlug,

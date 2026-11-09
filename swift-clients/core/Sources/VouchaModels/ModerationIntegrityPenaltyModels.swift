@@ -8,7 +8,7 @@ public struct ReportIntegrityPenalty: Codable, Identifiable, Sendable {
     public let id: String
     public let userId: String
     public let reason: String
-    @TolerantNullable
+    @RequiredNullable
     public var sourceFlagType: String?
     @TolerantNullable
     public var reviewDueAt: Date?
@@ -16,20 +16,21 @@ public struct ReportIntegrityPenalty: Codable, Identifiable, Sendable {
     public var reviewedAt: Date?
     @TolerantNullable
     public var reviewedById: String?
-    @TolerantNullable
+    @RequiredNullable
     public var userDisplayName: String?
-    @TolerantNullable
+    @RequiredNullable
     public var userUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var creatorDisplayName: String?
-    @TolerantNullable
+    @RequiredNullable
     public var creatorUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var revokerDisplayName: String?
-    @TolerantNullable
+    @RequiredNullable
     public var revokerUsername: String?
     public let sourceFlagId: String?
-    public let createdById: String?
+    @RequiredNullable
+    public var createdById: String?
     @TolerantNullable
     public var revokedAt: Date?
     @TolerantNullable
@@ -58,7 +59,7 @@ public struct VoteIntegrityPenalty: Codable, Identifiable, Sendable {
     public let userId: String
     public let penaltyMultiplier: Double
     public let reason: String
-    @TolerantNullable
+    @RequiredNullable
     public var sourceFlagType: String?
     @TolerantNullable
     public var reviewDueAt: Date?
@@ -66,20 +67,21 @@ public struct VoteIntegrityPenalty: Codable, Identifiable, Sendable {
     public var reviewedAt: Date?
     @TolerantNullable
     public var reviewedById: String?
-    @TolerantNullable
+    @RequiredNullable
     public var userDisplayName: String?
-    @TolerantNullable
+    @RequiredNullable
     public var userUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var creatorDisplayName: String?
-    @TolerantNullable
+    @RequiredNullable
     public var creatorUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var revokerDisplayName: String?
-    @TolerantNullable
+    @RequiredNullable
     public var revokerUsername: String?
     public let sourceFlagId: String?
-    public let createdById: String
+    @RequiredNullable
+    public var createdById: String?
     @TolerantNullable
     public var revokedAt: Date?
     @TolerantNullable

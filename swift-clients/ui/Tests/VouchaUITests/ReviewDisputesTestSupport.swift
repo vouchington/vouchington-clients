@@ -14,7 +14,7 @@ enum ReviewDisputesTestSupport {
         resolutionAction: String? = nil,
         lifecycleChangeId: String? = "change-1"
     ) -> String {
-        """
+        let overrides = """
         {
           "id":"\(id)","post_id":"post-1","topic_id":"topic-1",
           "disputant_user_id":"user-1","reason":"factually_inaccurate",
@@ -55,6 +55,18 @@ enum ReviewDisputesTestSupport {
           }
         }
         """
+        do {
+            let canonical = try JSONSerialization.jsonObject(
+                with: ApiFixtureLoader.data("native.moderation.disputes.detail.default")
+            ) as? [String: Any]
+            guard var dispute = canonical?["dispute"] as? [String: Any],
+                  let overrides = try JSONSerialization.jsonObject(with: Data(overrides.utf8)) as? [String: Any]
+            else { preconditionFailure("Invalid canonical dispute fixture") }
+            dispute.merge(overrides) { _, new in new }
+            return try String(decoding: JSONSerialization.data(withJSONObject: dispute), as: UTF8.self)
+        } catch {
+            preconditionFailure("Invalid dispute fixture: \(error)")
+        }
     }
 
     static func list(

@@ -33,6 +33,8 @@ public sealed class ModerationIntegrityPageTests
         new PageInfo(null, false, "report-1")));
     await loading;
 
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label =>
+        label.Text == "user-1" || label.Text == "report-1");
     var status = Find<Picker>(page, "report-integrity-status");
     Assert.Equal(["Pending", "Resolved", "All"], Assert.IsAssignableFrom<IEnumerable>(
         status.ItemsSource).Cast<string>());
@@ -54,7 +56,7 @@ public sealed class ModerationIntegrityPageTests
     var authoritative = ReportFlag(
         "report-1", userId: "user-1", resolution: "penalized",
         resolvedAt: DateTimeOffset.Parse("2026-06-02T12:00:00Z"),
-        resolvedById: "admin-1");
+        resolvedById: "admin-1") with { ResolverDisplayName = "Moderator" };
     var service = new PageService
     {
       Reports = (_, _, _) => Task.FromResult(
@@ -77,7 +79,7 @@ public sealed class ModerationIntegrityPageTests
 
     Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == UiLocalization.English.Localize(
         UiMessageKey.NativeSwiftIntegrityPenalizedResolution));
-    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "admin-1");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Moderator");
     Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
         button.AutomationId?.StartsWith("report-integrity-dismiss-", StringComparison.Ordinal) == true);
   }

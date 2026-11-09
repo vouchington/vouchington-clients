@@ -62,7 +62,8 @@ public sealed record CommunityInviteRow(
 }
 
 public sealed record CommunityModerationRow(
-    string Id, string Target, string Status, string? Reason, AuthoredContentText? TargetContent = null)
+    string Id, string Target, string Status, string? Reason, AuthoredContentText? TargetContent = null,
+    string? PostId = null, string? UserId = null, string? ReportId = null, bool HasBanEvasion = false)
 {
   public string Title => Target;
   public string Subtitle => Status;
@@ -79,7 +80,10 @@ public sealed record CommunityModerationRow(
   {
     ArgumentNullException.ThrowIfNull(entry);
 
-    return new(entry.Id, entry.TargetLabel ?? entry.EntityId, entry.Status, entry.Reason ?? entry.FlaggedReason, entry.TargetContent);
+    return new(entry.Id, entry.TargetLabel ?? string.Empty, entry.Status, entry.Reason ?? entry.FlaggedReason, entry.TargetContent,
+        entry.PostId ?? (entry.EntityType == "post" ? entry.EntityId : null),
+        entry.TargetUserId, entry.QueueSource == "report" ? entry.Id : null,
+        entry.CommunityBanEvasion is not null);
   }
 }
 

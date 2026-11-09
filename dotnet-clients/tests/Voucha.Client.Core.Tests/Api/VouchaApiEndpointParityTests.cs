@@ -223,29 +223,15 @@ public sealed partial class VouchaApiEndpointParityTests
   [Fact]
   public void ModerationDisputesDecodeFromProductionStrings()
   {
-    const string Json = """
-        {
-          "disputes": [
-            {
-              "id": "dispute-1",
-              "post_id": "post-1",
-              "status": "resolved",
-              "reason": "I own this content",
-              "created_at": "2026-03-01T11:55:00Z",
-              "updated_at": "2026-03-01T12:00:00Z"
-            }
-          ],
-          "page_info": { "has_next_page": false }
-        }
-        """;
-
-    var response = JsonSerializer.Deserialize<ModerationDisputeListResponse>(Json, VouchaApiJson.Options);
+    var response = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.disputes.default"), VouchaApiJson.Options);
 
     Assert.NotNull(response);
-    Assert.Equal("dispute-1", response.Disputes[0].Id);
+    Assert.Equal("00000000-0000-7000-8000-000000000201", response.Disputes[0].Id);
     Assert.Equal("post-1", response.Disputes[0].PostId);
-    Assert.Equal(ModerationDisputeStatus.Resolved, response.Disputes[0].Status);
-    Assert.Equal("I own this content", response.Disputes[0].Reason);
+    Assert.Equal(ModerationDisputeStatus.Pending, response.Disputes[0].Status);
+    Assert.Equal("other", response.Disputes[0].Reason);
+    Assert.Equal("A disputed review", response.Disputes[0].PostLabel);
   }
 
   public static IEnumerable<object[]> CoreEndpointCases()

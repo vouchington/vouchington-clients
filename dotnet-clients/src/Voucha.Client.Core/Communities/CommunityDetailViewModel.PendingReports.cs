@@ -11,10 +11,15 @@ public sealed partial class CommunityDetailViewModel
   public IReadOnlyList<CommunityModerationRow> PendingReportRows =>
       pendingReportPages.Items.Select(report => new CommunityModerationRow(
           report.Id,
-          report.TargetLabel ?? report.EntityId ?? report.Id,
+          Voucha.Client.Core.Moderation.ModerationLabels.Entity(report.TargetLabel, localization),
           report.Status,
           report.Reason,
-          report.TargetContent)).ToArray();
+          report.TargetContent,
+          report.EntityType == "post" ? report.EntityId : null,
+          report.TargetUserId, report.Id, report.CommunityBanEvasion is not null)).ToArray();
+
+  public IReadOnlyList<CommunityModerationRow> ModerationActionRows =>
+      PendingReportRows.Concat(ModerationRows).DistinctBy(row => row.Id).ToArray();
 
   public bool HasMorePendingReports => pendingReportPages.HasMore;
   public bool IsLoadingMorePendingReports => pendingReportPages.IsLoading;
@@ -89,6 +94,7 @@ public sealed partial class CommunityDetailViewModel
         .Where(report => !string.Equals(report.Id, reportId, StringComparison.Ordinal))
         .ToArray();
     OnPropertyChanged(nameof(ModerationRows));
+    OnPropertyChanged(nameof(ModerationActionRows));
     OnPropertyChanged(nameof(Moderation));
     NotifyPendingReportPagination();
   }
@@ -102,6 +108,7 @@ public sealed partial class CommunityDetailViewModel
   private void NotifyPendingReportPagination()
   {
     OnPropertyChanged(nameof(PendingReportRows));
+    OnPropertyChanged(nameof(ModerationActionRows));
     OnPropertyChanged(nameof(HasMorePendingReports));
     OnPropertyChanged(nameof(IsLoadingMorePendingReports));
     OnPropertyChanged(nameof(CanAutomaticallyLoadPendingReports));

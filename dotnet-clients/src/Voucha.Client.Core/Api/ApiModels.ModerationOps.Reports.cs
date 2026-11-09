@@ -35,7 +35,7 @@ public sealed record StaffModerationReport(
     [property: JsonPropertyName("entity_type")] string EntityType,
     [property: JsonPropertyName("entity_id")] string EntityId,
     [property: JsonPropertyName("admin_action_path")] string? AdminActionPath,
-    [property: JsonPropertyName("target_label")] string? TargetLabel,
+    [property: JsonPropertyName("target_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TargetLabel,
     [property: JsonPropertyName("target_path")] string? TargetPath,
     [property: JsonPropertyName("target_user_id")] string? TargetUserId,
     [property: JsonPropertyName("target_available")] bool? TargetAvailable,
@@ -55,6 +55,9 @@ public sealed record StaffModerationReport(
     [property: JsonPropertyName("cursor_created_at")] DateTimeOffset? CursorCreatedAt = null,
     [property: JsonPropertyName("cursor_report_count")] int? CursorReportCount = null,
     [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank = null,
+    [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null,
     [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false);
 
 public sealed record MemberModerationReport(
@@ -64,7 +67,7 @@ public sealed record MemberModerationReport(
     [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt,
     [property: JsonPropertyName("entity_type")] string EntityType,
     [property: JsonPropertyName("entity_id")] string EntityId,
-    [property: JsonPropertyName("target_label")] string? TargetLabel,
+    [property: JsonPropertyName("target_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TargetLabel,
     [property: JsonPropertyName("target_path")] string? TargetPath,
     [property: JsonPropertyName("target_available")] bool? TargetAvailable,
     [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent,
