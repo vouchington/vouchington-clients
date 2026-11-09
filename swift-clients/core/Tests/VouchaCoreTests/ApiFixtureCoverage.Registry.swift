@@ -42,6 +42,7 @@ enum ApiFixtureCoverage {
     static let registry: [RegisteredFixture] =
         entityProvenanceFixtureCoverage +
         communityAutomodFixtureCoverage +
+        communityLimitFixtureCoverage +
         webCommunityApiFixtureCoverage +
         householdFixtureCoverage +
         paymentCardFixtureCoverage +

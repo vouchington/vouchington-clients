@@ -15,6 +15,9 @@ internal static partial class ApiFixtureCoverage
         ["entity-provenance.topics.staff"] = VouchaApiEndpoints.SearchTopics("test"),
         ["entity-provenance.lists.staff"] = VouchaApiEndpoints.Lists(),
         ["entity-provenance.rss-feeds.staff"] = VouchaApiEndpoints.AllRssFeeds(),
+        ["native.communities.membership-cap.join.conflict"] = VouchaApiEndpoints.JoinCommunity("test-community"),
+        ["native.communities.moderator-cap.promotion.conflict"] = VouchaApiEndpoints.UpdateCommunityMemberRole(
+            "test-community", "00000000-0000-7000-8000-000000000904", new UpdateCommunityMemberRoleRequest("moderator")),
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
         ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(

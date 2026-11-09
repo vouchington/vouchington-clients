@@ -4,6 +4,7 @@ public sealed partial class CommunityDetailViewModel
 {
   public void OnUiLocaleChanged()
   {
+    OnPropertyChanged(nameof(ErrorMessage));
     OnPropertyChanged(nameof(Community));
     OnPropertyChanged(nameof(CommunityMetrics));
     OnPropertyChanged(nameof(ListItemCounts));

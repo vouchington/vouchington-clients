@@ -1,4 +1,5 @@
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -6,7 +7,8 @@ extension CommunityDetailViewModel {
     func join() async {
         await perform(
             .joinCommunity(idOrSlug: slug),
-            success: UiMessage(.nativeSwiftCommunityStatusJoinedCommunity)
+            success: UiMessage(.nativeSwiftCommunityStatusJoinedCommunity),
+            limit: .membership
         )
     }
 
@@ -77,7 +79,7 @@ extension CommunityDetailViewModel {
     }
 
     @discardableResult
-    func perform(_ endpoint: Endpoint, success: UiMessage) async -> Bool {
+    func perform(_ endpoint: Endpoint, success: UiMessage, limit: CommunityLimit? = nil) async -> Bool {
         guard let client else { return false }
         state = .loading
         do {
@@ -86,7 +88,11 @@ extension CommunityDetailViewModel {
             await load()
             return true
         } catch {
-            state = .error(UiMessage(.nativeSwiftCommunityStatusActionFailed))
+            state = .error(communityLimitMessage(
+                error,
+                expected: limit,
+                fallback: .nativeSwiftCommunityStatusActionFailed
+            ))
             return false
         }
     }

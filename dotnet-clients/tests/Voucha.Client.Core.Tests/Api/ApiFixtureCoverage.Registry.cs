@@ -13,6 +13,8 @@ internal static partial class ApiFixtureCoverage
   /// <summary>Fixture id -> response DTO type used to decode + re-encode it.</summary>
   public static readonly IReadOnlyDictionary<string, Type> Registry = new Dictionary<string, Type>(StringComparer.Ordinal)
   {
+    ["native.communities.membership-cap.join.conflict"] = typeof(JsonElement),
+    ["native.communities.moderator-cap.promotion.conflict"] = typeof(JsonElement),
     ["entity-provenance.communities"] = typeof(CommunitySearchResponse),
     ["entity-provenance.topics"] = typeof(TopicSearchResponse),
     ["entity-provenance.lists"] = typeof(ListsSearchResponse),

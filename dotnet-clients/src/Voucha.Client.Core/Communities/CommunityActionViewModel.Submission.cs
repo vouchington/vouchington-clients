@@ -116,6 +116,8 @@ public sealed partial class CommunityActionViewModel
     }
 
     ErrorMessage = ex.Message;
+    capErrorKey = CommunityCapError.MessageKey(ex);
+    OnPropertyChanged(nameof(ErrorMessage));
     State = LoadState.Error;
     return true;
   }
