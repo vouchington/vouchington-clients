@@ -24,7 +24,11 @@ final class CommunityInviteRedemptionViewModel {
             statusMessage = UiMessage(.nativeSwiftCommunityStatusInviteRedeemed)
             state = .loaded
         } catch {
-            state = .error(UiMessage(.nativeSwiftCommunityStatusUnableToRedeemInvite))
+            state = .error(communityLimitMessage(
+                error,
+                expected: .membership,
+                fallback: .nativeSwiftCommunityStatusUnableToRedeemInvite
+            ))
         }
     }
 }

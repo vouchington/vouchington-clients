@@ -84,7 +84,11 @@ final class CommunityCreateViewModel {
             )
         } catch {
             turnstileToken = nil
-            state = .error(UiMessage(.nativeSwiftCommunityStatusUnableToCreateCommunity))
+            state = .error(communityLimitMessage(
+                error,
+                expected: .membership,
+                fallback: .nativeSwiftCommunityStatusUnableToCreateCommunity
+            ))
         }
     }
 

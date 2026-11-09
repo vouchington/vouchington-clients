@@ -24,6 +24,7 @@ public sealed partial class CommunityDetailViewModel :
   private bool hasPendingApplication;
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
+  private UiMessageKey? capErrorKey;
   private long communityContextRevision;
   private readonly IDisposable? localeSubscription;
 
@@ -103,8 +104,12 @@ public sealed partial class CommunityDetailViewModel :
 
   public string? ErrorMessage
   {
-    get => errorMessage;
-    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
+    get => capErrorKey is { } key ? localization.Localize(key) : errorMessage;
+    private set
+    {
+      capErrorKey = null;
+      SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
+    }
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);

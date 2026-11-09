@@ -16,6 +16,9 @@ public sealed partial class ApiFixtureEndpointCoverageTests
   private static IReadOnlyDictionary<string, ApiRequest> CreateCoreRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
+        ["native.communities.membership-cap.join.conflict"] = VouchaApiEndpoints.JoinCommunity("test-community"),
+        ["native.communities.moderator-cap.promotion.conflict"] = VouchaApiEndpoints.UpdateCommunityMemberRole(
+            "test-community", "00000000-0000-7000-8000-000000000904", new UpdateCommunityMemberRoleRequest("moderator")),
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
         ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(

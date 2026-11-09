@@ -32,6 +32,7 @@ enum EndpointManifestCoverage {
 
     private static let fixtureMapEndpoints: [ManifestRegisteredEndpoint] = [
         communityAutomodFixtureEndpoints,
+        communityLimitFixtureEndpoints,
         currentContractFixtureEndpoints,
         entityProvenanceFixtureEndpoints,
         copyrightNoticesFixtureEndpoints,
