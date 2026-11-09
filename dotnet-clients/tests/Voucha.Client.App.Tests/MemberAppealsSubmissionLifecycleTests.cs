@@ -29,7 +29,7 @@ public sealed class MemberAppealsSubmissionLifecycleTests
     var formContent = page.Content;
     Find<Button>(page, "member-appeal-cancel").SendClicked();
     await service.SubmissionCancellationObserved.Task;
-    await WaitUntilAsync(() =>
+    await PageTestWait.WaitUntilAsync(() =>
         !ReferenceEquals(page.Content, formContent) &&
         viewModel.ActiveTarget is null &&
         !page.GetVisualTreeDescendants().OfType<Button>()
@@ -38,7 +38,7 @@ public sealed class MemberAppealsSubmissionLifecycleTests
     Find<Button>(page, "member-appeal-file-warning:warning-1").SendClicked();
     Assert.False(Find<Button>(page, "member-appeal-submit").IsEnabled);
     service.ReleaseSubmission();
-    await WaitUntilAsync(() => page.GetVisualTreeDescendants().OfType<Button>()
+    await PageTestWait.WaitUntilAsync(() => page.GetVisualTreeDescendants().OfType<Button>()
         .Any(button => button.AutomationId == "member-appeal-submit" && button.IsEnabled));
 
     Assert.NotNull(viewModel.ActiveTarget);
@@ -50,13 +50,6 @@ public sealed class MemberAppealsSubmissionLifecycleTests
       Assert.Single(
           root.GetVisualTreeDescendants().OfType<T>(),
           item => item.AutomationId == id);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10);
-    Assert.True(condition());
-  }
 
   private sealed class TokenProvider : ITurnstileTokenProvider
   {

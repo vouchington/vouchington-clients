@@ -61,7 +61,7 @@ public sealed class ModerationModalActionTests
     Lifecycle(page, "OnDisappearing");
 
     await service.CancellationObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
-    await WaitUntilAsync(() => !model.IsMutating);
+    await PageTestWait.WaitUntilAsync(() => !model.IsMutating);
     await Task.Yield();
   }
 
@@ -83,7 +83,7 @@ public sealed class ModerationModalActionTests
 
     Find<Button>(page, "moderation-appeal-save").SendClicked();
 
-    await WaitUntilAsync(() => model.HasError && !model.IsMutating);
+    await PageTestWait.WaitUntilAsync(() => model.HasError && !model.IsMutating);
     var error = Find<Label>(page, "moderation-appeal-action-error");
     Assert.True(error.IsVisible);
     Assert.Equal(model.ErrorMessage, error.Text);
@@ -114,7 +114,7 @@ public sealed class ModerationModalActionTests
 
     Find<Button>(page, "review-dispute-save").SendClicked();
 
-    await WaitUntilAsync(() => model.HasError && !model.IsMutating);
+    await PageTestWait.WaitUntilAsync(() => model.HasError && !model.IsMutating);
     var error = Find<Label>(page, "review-dispute-action-error");
     Assert.True(error.IsVisible);
     Assert.Equal(model.ErrorMessage, error.Text);
@@ -144,10 +144,4 @@ public sealed class ModerationModalActionTests
 
   private static void Loaded(View view) => view.GetType().GetMethod("OnLoaded", BindingFlags.Instance | BindingFlags.NonPublic)!
       .Invoke(view, [null, EventArgs.Empty]);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++) await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 }

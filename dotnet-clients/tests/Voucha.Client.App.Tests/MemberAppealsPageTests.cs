@@ -83,7 +83,7 @@ public sealed partial class MemberAppealsPageTests
 
     var load = page.ReloadAsync();
     await service.WarningStarted.Task;
-    await WaitUntilAsync(() => Descendants<HybridPaginationControl>(page).Any(
+    await PageTestWait.WaitUntilAsync(() => Descendants<HybridPaginationControl>(page).Any(
         item => item.AutomationId == "pagination-member-warnings"));
 
     var loading = Find<HybridPaginationControl>(page, "pagination-member-warnings");
@@ -98,7 +98,7 @@ public sealed partial class MemberAppealsPageTests
     Assert.True(retry.HasError);
 
     Find<Button>(page, "pagination-member-warnings-action").SendClicked();
-    await WaitUntilAsync(() =>
+    await PageTestWait.WaitUntilAsync(() =>
         service.WarningCalls == 3 &&
         Descendants<Button>(page).Any(item =>
             item.AutomationId == "member-appeal-file-warning:warning-1"));
@@ -230,7 +230,7 @@ public sealed partial class MemberAppealsPageTests
         item => item.AutomationId == "member-appeal-file-warning:warning-1");
 
     Find<Button>(page, "member-appeals-retry").SendClicked();
-    await WaitUntilAsync(() => Descendants<Button>(page).Any(
+    await PageTestWait.WaitUntilAsync(() => Descendants<Button>(page).Any(
         item => item.AutomationId == "member-appeal-file-warning:warning-1"));
 
     Assert.DoesNotContain(Descendants<Label>(page),
@@ -250,7 +250,7 @@ public sealed partial class MemberAppealsPageTests
 
     Assert.Equal(1, tokens.Calls);
     tokens.Release("fresh-token");
-    await WaitUntilAsync(() => service.SubmissionCalls == 1);
+    await PageTestWait.WaitUntilAsync(() => service.SubmissionCalls == 1);
     Assert.Equal("fresh-token", service.LastToken);
   }
 
@@ -262,12 +262,12 @@ public sealed partial class MemberAppealsPageTests
     var page = await FormPageAsync(service, tokens);
 
     Find<Button>(page, "member-appeal-submit").SendClicked();
-    await WaitUntilAsync(() => Descendants<Label>(page).Any(
+    await PageTestWait.WaitUntilAsync(() => Descendants<Label>(page).Any(
         item => item.AutomationId == "member-appeal-submission-message"));
     Assert.Equal("Draft details", Find<Editor>(page, "member-appeal-details").Text);
 
     Find<Button>(page, "member-appeal-submit").SendClicked();
-    await WaitUntilAsync(() => service.SubmissionCalls == 1);
+    await PageTestWait.WaitUntilAsync(() => service.SubmissionCalls == 1);
     Assert.Equal(2, tokens.Calls);
     Assert.Equal("retry-token", service.LastToken);
   }
@@ -318,13 +318,6 @@ public sealed partial class MemberAppealsPageTests
               new NavigationViewer(true, [], IdentityId: "user-1"),
               route),
           new TokenProvider());
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10);
-    Assert.True(condition());
-  }
 
   private sealed class TokenProvider : ITurnstileTokenProvider
   {

@@ -44,7 +44,7 @@ public sealed class CommunityAgentPromptPageTests
     var reload = model.LoadAgentPromptsAsync(TestContext.Current.CancellationToken);
     if (readCompletesFirst) await reload;
     postGate.SetResult();
-    await WaitAsync(() => genericFailure ? model.HasError : model.HasReachedAgentPromptLimit);
+    await PageTestWait.WaitUntilAsync(() => genericFailure ? model.HasError : model.HasReachedAgentPromptLimit);
     if (genericFailure) Assert.Equal("Create temporarily unavailable", model.ErrorMessage);
     else Assert.Equal("Prompt creation limit reached for this community", Find<Label>(page, "community-agent-prompt-creation-error").Text);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
@@ -54,16 +54,16 @@ public sealed class CommunityAgentPromptPageTests
     Assert.Equal(genericFailure, model.HasError);
     readGate.SetResult();
     await reload;
-    await WaitAsync(() => !model.IsLoading);
+    await PageTestWait.WaitUntilAsync(() => !model.IsLoading);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Find<Button>(page, "community-agent-prompt-create").SendClicked();
-    await WaitAsync(() => handler.Posts == 2 && !model.IsLoading);
+    await PageTestWait.WaitUntilAsync(() => handler.Posts == 2 && !model.IsLoading);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Assert.All(handler.Drafts, draft => Assert.Equal("My unsubmitted draft", draft));
     var pagination = Find<HybridPaginationControl>(page, "pagination-community-agentprompts");
     Assert.True(pagination.HasMore);
     pagination.TryLoadAutomatically();
-    await WaitAsync(() => model.AgentPrompts.Count == 2);
+    await PageTestWait.WaitUntilAsync(() => model.AgentPrompts.Count == 2);
     Assert.Equal(["prompt-1", "prompt-2"], model.AgentPrompts.Select(prompt => prompt.Id));
     Assert.Equal(slots, model.AgentPromptSlots);
     Assert.Contains(handler.Paths, path => path.Contains("after=opaque%2F%2B%3F", StringComparison.Ordinal));
@@ -87,7 +87,7 @@ public sealed class CommunityAgentPromptPageTests
     var slots = model.AgentPromptSlots;
     Find<Entry>(page, "community-agent-prompt-draft").Text = "Committed draft";
     Find<Button>(page, "community-agent-prompt-create").SendClicked();
-    await WaitAsync(() => model.HasAgentPromptRefreshError && Find<Entry>(page, "community-agent-prompt-draft").Text == string.Empty);
+    await PageTestWait.WaitUntilAsync(() => model.HasAgentPromptRefreshError && Find<Entry>(page, "community-agent-prompt-draft").Text == string.Empty);
     Assert.Equal(1, handler.Posts);
     Assert.Equal("prompt-1", Assert.Single(model.AgentPrompts).Id);
     Assert.Equal(slots, model.AgentPromptSlots);
@@ -97,7 +97,7 @@ public sealed class CommunityAgentPromptPageTests
     Assert.False(string.IsNullOrWhiteSpace(Find<Label>(page, "community-agent-prompt-refresh-error").Text));
     Find<Entry>(page, "community-agent-prompt-draft").Text = "Second draft";
     Find<Button>(page, "community-agent-prompt-create").SendClicked();
-    await WaitAsync(() => model.HasReachedAgentPromptLimit && !model.IsLoading);
+    await PageTestWait.WaitUntilAsync(() => model.HasReachedAgentPromptLimit && !model.IsLoading);
     Assert.True(model.HasAgentPromptRefreshError);
     Assert.Equal("Second draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
     Assert.Equal("prompt-1", Assert.Single(model.AgentPrompts).Id);
@@ -107,7 +107,7 @@ public sealed class CommunityAgentPromptPageTests
     var retry = Find<Button>(page, "community-agent-prompt-refresh-retry");
     Assert.True(retry.IsVisible);
     retry.SendClicked();
-    await WaitAsync(() => !model.HasAgentPromptRefreshError && model.AgentPrompts.Any(prompt => prompt.Id == "prompt-created"));
+    await PageTestWait.WaitUntilAsync(() => !model.HasAgentPromptRefreshError && model.AgentPrompts.Any(prompt => prompt.Id == "prompt-created"));
     Assert.Equal(2, handler.Posts);
     Assert.Equal(requests + 1, handler.Paths.Count);
     Assert.Equal("Second draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
@@ -116,12 +116,6 @@ public sealed class CommunityAgentPromptPageTests
 
   private static T Find<T>(Element page, string id) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(page), item => item.AutomationId == id);
-
-  private static async Task WaitAsync(Func<bool> done)
-  {
-    for (var attempt = 0; attempt < 100 && !done(); attempt++) await Task.Delay(10);
-    Assert.True(done());
-  }
 
   public class PromptProxy : CommunityModerationPageAutomodNavigationTests.CommunityServiceProxy
   {

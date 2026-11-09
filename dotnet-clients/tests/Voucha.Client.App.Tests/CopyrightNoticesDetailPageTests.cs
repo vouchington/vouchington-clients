@@ -46,7 +46,7 @@ public sealed class CopyrightNoticesDetailPageTests
         uri => { opened = uri; return Task.CompletedTask; });
 
     Appearing(page);
-    await WaitUntilAsync(() => model.SelectedCase is not null);
+    await PageTestWait.WaitUntilAsync(() => model.SelectedCase is not null);
 
     Assert.Equal(["participant", "detail"], service.Calls);
     Assert.Contains(Labels(page), label => label.Text == $"Case {detail.CopyrightNotice.Id}");
@@ -106,7 +106,7 @@ public sealed class CopyrightNoticesDetailPageTests
     using var page = new CopyrightNoticesPage(model, locales, _ => Task.CompletedTask, response.CopyrightNotice.Id);
 
     Appearing(page);
-    await WaitUntilAsync(() => model.SelectedCase is not null);
+    await PageTestWait.WaitUntilAsync(() => model.SelectedCase is not null);
 
     Assert.Equal(["participant"], service.Calls);
     Assert.DoesNotContain(Buttons(page), button => button.AutomationId?.StartsWith("copyright-claimant-", StringComparison.Ordinal) == true);
@@ -149,15 +149,15 @@ public sealed class CopyrightNoticesDetailPageTests
     using var page = new CopyrightNoticesPage(model, locales, _ => Task.CompletedTask, response.CopyrightNotice.Id);
 
     Appearing(page);
-    await WaitUntilAsync(() => Buttons(page).Any(button => button.AutomationId == "copyright-settlements-more"));
+    await PageTestWait.WaitUntilAsync(() => Buttons(page).Any(button => button.AutomationId == "copyright-settlements-more"));
     Find<Button>(page, "copyright-settlements-more").SendClicked();
-    await WaitUntilAsync(() => model.HasSettlementError && !model.IsLoadingSettlements);
+    await PageTestWait.WaitUntilAsync(() => model.HasSettlementError && !model.IsLoadingSettlements);
 
     Assert.Contains(Labels(page), label => label.Text == "Example certified dispute settlement body");
     Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeCommonRetry),
         Find<Button>(page, "copyright-settlements-more").Text);
     Find<Button>(page, "copyright-settlements-more").SendClicked();
-    await WaitUntilAsync(() => Labels(page).Any(label => label.Text == "Second certified body"));
+    await PageTestWait.WaitUntilAsync(() => Labels(page).Any(label => label.Text == "Second certified body"));
 
     Assert.Equal(["opaque/+?=", "opaque/+?="], service.Cursors);
     Assert.Contains(Labels(page), label => label.Text == "Example certified dispute settlement body");
@@ -186,17 +186,17 @@ public sealed class CopyrightNoticesDetailPageTests
     try
     {
       Appearing(page);
-      await WaitUntilAsync(() => participantCalls == 1 && model.IsLoading);
+      await PageTestWait.WaitUntilAsync(() => participantCalls == 1 && model.IsLoading);
       Disappearing(page);
       visible = false;
       held.TrySetResult(response);
-      await WaitUntilAsync(() => !model.IsLoading);
+      await PageTestWait.WaitUntilAsync(() => !model.IsLoading);
       Assert.Null(model.SelectedCase);
       Assert.DoesNotContain(Buttons(page), button => button.AutomationId?.StartsWith("copyright-claimant-", StringComparison.Ordinal) == true);
 
       Appearing(page);
       visible = true;
-      await WaitUntilAsync(() => participantCalls == 2 &&
+      await PageTestWait.WaitUntilAsync(() => participantCalls == 2 &&
           Buttons(page).Any(button => button.AutomationId == $"copyright-claimant-{detail.CopyrightNotice.Id}"));
       Assert.Equal(["participant", "participant", "detail"], service.Calls);
       Assert.Equal("Current claimant", Find<Button>(page, $"copyright-claimant-{detail.CopyrightNotice.Id}").Text);
@@ -205,7 +205,7 @@ public sealed class CopyrightNoticesDetailPageTests
     {
       if (visible) Disappearing(page);
       held.TrySetResult(response);
-      await WaitUntilAsync(() => !model.IsLoading);
+      await PageTestWait.WaitUntilAsync(() => !model.IsLoading);
     }
   }
 
@@ -262,10 +262,4 @@ public sealed class CopyrightNoticesDetailPageTests
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == id);
   private static IEnumerable<Button> Buttons(Element root) => VisualTreeElements.Descendants<Button>(root);
   private static IEnumerable<Label> Labels(Element root) => VisualTreeElements.Descendants<Label>(root);
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 }

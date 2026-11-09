@@ -57,7 +57,7 @@ public sealed class PaymentCardsPageTests
     Assert.True(Find<VerticalStackLayout>(page, "payment-cards-error").IsVisible);
 
     Find<Button>(page, "payment-cards-retry").SendClicked();
-    await WaitUntilAsync(() => service.Fetches.Count == 3 && !viewModel.HasError);
+    await PageTestWait.WaitUntilAsync(() => service.Fetches.Count == 3 && !viewModel.HasError);
 
     Assert.Equal([null, "next", "next"], service.Fetches);
     Assert.Equal(["a", "b"], viewModel.Cards.Select(card => card.Id));
@@ -186,12 +186,6 @@ public sealed class PaymentCardsPageTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++) await Task.Delay(10);
-    Assert.True(condition());
-  }
 
   private static PaymentCardPage Page(bool more, string? cursor, params PaymentCard[] cards) =>
       new(cards, new PageInfo(cursor, more, cards.FirstOrDefault()?.Id));

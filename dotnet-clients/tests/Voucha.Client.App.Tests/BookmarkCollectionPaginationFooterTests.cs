@@ -45,7 +45,7 @@ public sealed class BookmarkCollectionPaginationFooterTests
     Assert.False(retry.IsVisible);
     Assert.Equal("Load more", loadMore.Text);
     loadMore.SendClicked();
-    await WaitUntilAsync(() => viewModel.HasContinuationError);
+    await PageTestWait.WaitUntilAsync(() => viewModel.HasContinuationError);
 
     Assert.Equal(["post-1", "post-2"], viewModel.Rows.Select(row => row.Id));
     Assert.False(loadMore.IsVisible);
@@ -54,7 +54,7 @@ public sealed class BookmarkCollectionPaginationFooterTests
     Assert.Equal("Try again", retry.Text);
 
     retry.SendClicked();
-    await WaitUntilAsync(() => handler.RequestCount == 3 && !viewModel.IsLoadingMore);
+    await PageTestWait.WaitUntilAsync(() => handler.RequestCount == 3 && !viewModel.IsLoadingMore);
 
     Assert.Equal(["post-1", "post-2", "post-3"], viewModel.Rows.Select(row => row.Id));
     Assert.False(retry.IsVisible);
@@ -62,12 +62,6 @@ public sealed class BookmarkCollectionPaginationFooterTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++) await Task.Delay(10);
-    Assert.True(condition());
-  }
 
   private static string Fixture(string file) =>
       File.ReadAllText(FilamentsContractPaths.ApiFixture(Path.Combine("responses", file)));
