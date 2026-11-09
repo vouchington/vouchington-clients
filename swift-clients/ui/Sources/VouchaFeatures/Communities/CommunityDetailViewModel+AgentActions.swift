@@ -159,18 +159,26 @@ extension CommunityDetailViewModel {
         limit: Int? = nil
     ) async {
         let promptId = promptId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !promptId.isEmpty else { return }
-        await perform(
-            .simulateCommunityAutomod(
-                idOrSlug: slug,
-                body: CommunityAutomodSimulationBody(
-                    promptId: promptId,
-                    prompt: prompt?.trimmedOrNil,
-                    timeWindowHours: timeWindowHours,
-                    limit: limit
+        guard !promptId.isEmpty, let client, canMutateCommunityAgentPrompt else { return }
+        automodSimulation = nil
+        statusMessage = nil
+        state = .loading
+        do {
+            automodSimulation = try await client.send(
+                .simulateCommunityAutomod(
+                    idOrSlug: slug,
+                    body: CommunityAutomodSimulationBody(
+                        promptId: promptId,
+                        prompt: prompt?.trimmedOrNil,
+                        timeWindowHours: timeWindowHours,
+                        limit: limit
+                    )
                 )
-            ),
-            success: UiMessage(.nativeSwiftCommunityStatusSimulatedAutomod)
-        )
+            )
+            statusMessage = UiMessage(.nativeSwiftCommunityStatusSimulatedAutomod)
+            state = .loaded
+        } catch {
+            state = .error(UiMessage(.nativeSwiftCommunityStatusActionFailed))
+        }
     }
 }

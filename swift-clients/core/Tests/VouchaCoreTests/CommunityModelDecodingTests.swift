@@ -258,6 +258,17 @@ final class CommunityModelDecodingTests: XCTestCase {
         XCTAssertNotNil(simulation.results.first?.approvedAt)
     }
 
+    func testSimulationFixtureDecodesSampleCountsAndNullableRate() throws {
+        let response = try makeVouchaDecoder().decode(
+            CommunityAutomodSimulation.self,
+            from: ApiFixtureLoader.data("web.communities.automod-simulate.default")
+        )
+        let estimate = try XCTUnwrap(response.simulation.falsePositiveEstimate)
+        XCTAssertEqual(estimate.sampledFlaggedCount, 0)
+        XCTAssertEqual(estimate.sampledApprovedCount, 0)
+        XCTAssertNil(estimate.rate)
+    }
+
     private func assertFixtureContainsKeys(
         _ fixtureId: String,
         keys: [String],

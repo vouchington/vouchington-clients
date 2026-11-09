@@ -105,8 +105,8 @@ public sealed record CommunityAutomodSimulationSummary(
     [property: JsonPropertyName("false_positive_estimate")] CommunityAutomodFalsePositiveEstimate? FalsePositiveEstimate);
 
 public sealed record CommunityAutomodFalsePositiveEstimate(
-    [property: JsonPropertyName("historical_flagged_count")] int HistoricalFlaggedCount,
-    [property: JsonPropertyName("historical_approved_count")] int HistoricalApprovedCount,
+    [property: JsonPropertyName("sampled_flagged_count")] int SampledFlaggedCount,
+    [property: JsonPropertyName("sampled_approved_count")] int SampledApprovedCount,
     [property: JsonPropertyName("rate")] decimal? Rate);
 
 public sealed record CommunityAutomodFeedbackResponse(
