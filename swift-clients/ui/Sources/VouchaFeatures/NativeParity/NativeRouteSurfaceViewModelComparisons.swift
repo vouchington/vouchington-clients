@@ -105,7 +105,7 @@ extension NativeRouteSurfaceViewModel {
 
     func loadHostnameCompareRows(client: APIClient) async throws -> [NativeRouteDestinationRow] {
         let bootstrap: NativeHostnamesBootstrapResponse = try await client.send(
-            Endpoint(.GET, path: "/api/v1/hostnames/top", queryItems: [.init(name: "limit", value: "2")])
+            .hostnames(limit: 2, sort: "trust")
         )
         guard bootstrap.results.count >= 2 else { return rows }
 

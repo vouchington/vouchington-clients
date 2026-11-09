@@ -22,9 +22,6 @@ public static partial class VouchaApiEndpoints
           "/api/v1/fediverse/search",
           Query(("q", query), ("providers", providers), ("type", type), ("limit", limit), ("after", after)));
 
-  public static ApiRequest TrendingCommunities(string? after = null, int limit = 10) =>
-      Get("/api/v1/trending-communities", Query(("limit", limit), ("after", after)));
-
   public static ApiRequest TrendingReferralPrograms(string? after = null, int limit = 10) =>
       Get("/api/v1/trending-referral-programs", Query(("limit", limit), ("after", after)));
 

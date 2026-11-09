@@ -69,16 +69,20 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
     }
 
     func testCompareDestinationLoadsHostnames() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/hostnames/top"] = (hostnamesBootstrapData, 200)
+        CannedFeedURLProtocol.handlers["/api/v1/hostnames"] = (hostnamesBootstrapData, 200)
         CannedFeedURLProtocol.handlers["/api/v1/hostnames/compare"] = (hostnamesCompareData, 200)
         let viewModel = try NativeRouteSurfaceViewModel(entry: entry(for: .compare), client: makeClient())
 
         await viewModel.perform(action: .compareHostnames)
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
-            "/api/v1/hostnames/top",
+            "/api/v1/hostnames",
             "/api/v1/hostnames/compare"
         ])
+        let bootstrapQuery = CannedFeedURLProtocol.capturedURLs.first.flatMap {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)
+        }
+        XCTAssertEqual(bootstrapQuery?.queryItems?.first(where: { $0.name == "sort" })?.value, "trust")
         let compareQuery = CannedFeedURLProtocol.capturedURLs.last.flatMap {
             URLComponents(url: $0, resolvingAgainstBaseURL: false)
         }

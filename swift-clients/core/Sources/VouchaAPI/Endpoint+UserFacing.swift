@@ -64,10 +64,6 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/fediverse/search", queryItems: items)
     }
 
-    static func trendingCommunities(after: String? = nil, limit: Int = 10) -> Endpoint {
-        pagedGet(path: "/api/v1/trending-communities", after: after, limit: limit)
-    }
-
     static func trendingReferralPrograms(after: String? = nil, limit: Int = 10) -> Endpoint {
         pagedGet(path: "/api/v1/trending-referral-programs", after: after, limit: limit)
     }

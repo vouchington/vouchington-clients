@@ -37,11 +37,12 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
     func testDiscoveryAndAccountEndpointsUseExpectedRoutes() {
         assertEndpoint(Endpoint.webSearch(query: "swift", limit: 11), path: "/api/v1/web-search")
 
-        let trendingCommunities = Endpoint.trendingCommunities(after: "cursor-1", limit: 8)
-        XCTAssertEqual(trendingCommunities.path, "/api/v1/trending-communities")
+        let trendingCommunities = Endpoint.communities(after: "cursor-1", limit: 8, sort: "trending")
+        XCTAssertEqual(trendingCommunities.path, "/api/v1/communities")
         XCTAssertEqual(trendingCommunities.queryItems, [
             URLQueryItem(name: "limit", value: "8"),
-            URLQueryItem(name: "after", value: "cursor-1")
+            URLQueryItem(name: "after", value: "cursor-1"),
+            URLQueryItem(name: "sort", value: "trending")
         ])
 
         let trendingReferralPrograms = Endpoint.trendingReferralPrograms(after: "cursor-2", limit: 4)

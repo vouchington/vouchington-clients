@@ -59,14 +59,6 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(fediverseSearch.buckets.first?.items.first?.title, "Swift video")
         XCTAssertEqual(fediverseSearch.buckets.first?.items.first?.id, "https://video.example.test/w/1")
 
-        let communitiesJSON = Data(
-            #"{"communities":[{"id":"community-1","trending_score":12.5,"member_count":8,"post_count":2,"virtual_subscription_count":3}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}"#
-                .utf8
-        )
-        let communities = try decoder.decode(TrendingCommunitiesResponse.self, from: communitiesJSON)
-        XCTAssertEqual(communities.communities.first?.memberCount, 8)
-        XCTAssertEqual(communities.communities.first?.trendingScore, 12.5)
-
         let referralProgramsJSON = Data(
             #"{"referral_programs":[{"id":"program-1","trending_score":9.0,"link_count":4}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}"#
                 .utf8

@@ -28,10 +28,13 @@ struct ReportBody: Encodable {
 }
 
 public extension Endpoint {
-    static func hostnames(query: String? = nil, limit: Int = 25) -> Endpoint {
+    static func hostnames(query: String? = nil, limit: Int = 25, sort: String? = nil) -> Endpoint {
         var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)")]
         if let query {
             items.append(.init(name: "query", value: query))
+        }
+        if let sort {
+            items.append(.init(name: "sort", value: sort))
         }
         return Endpoint(.GET, path: "/api/v1/hostnames", queryItems: items)
     }
