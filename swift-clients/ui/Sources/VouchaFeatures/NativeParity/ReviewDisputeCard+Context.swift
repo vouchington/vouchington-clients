@@ -27,7 +27,7 @@ extension ReviewDisputeCard {
                     declaredLanguage: review.post.declaredLanguage,
                     detectedLanguage: review.post.linguaRsDetectedLanguage
                 )
-                Text(title?.value ?? dispute.postId)
+                Text(title?.value ?? dispute.postLabel)
                     .font(Typography.subheadline)
                     .authoredContentLanguage(
                         declared: title?.declaredLanguage,
@@ -47,15 +47,15 @@ extension ReviewDisputeCard {
                         )
                 }
                 Text(localized(.nativeSwiftReviewDisputesTopic))
-                Text(review.topic?.name ?? dispute.topicId).font(Typography.subheadline)
+                Text(review.topic?.name ?? localized(.nativeSwiftRouteSurfaceNotAvailable)).font(Typography.subheadline)
                 Text(localized(
                     .nativeSwiftReviewDisputesRating,
                     parameters: ["rating": String(review.rating)]
                 ))
             } else {
-                Text(dispute.postId).font(Typography.subheadline)
+                Text(dispute.postLabel).font(Typography.subheadline)
                 Text(localized(.nativeSwiftReviewDisputesTopic))
-                Text(dispute.topicId).font(Typography.subheadline)
+                Text(localized(.nativeSwiftRouteSurfaceNotAvailable)).font(Typography.subheadline)
             }
             Text(localized(
                 .nativeSwiftReviewDisputesCreated,
@@ -112,24 +112,24 @@ extension ReviewDisputeCard {
     }
 
     private var disputantLabel: String {
-        guard let actor = dispute.staffContext?.disputant else { return dispute.disputantUserId }
-        if let name = actor.verifiedDisplayName, !name.isEmpty {
-            return name
-        }
-        if let username = actor.username, !username.isEmpty {
-            return username
-        }
-        return actor.id
+        moderationIdentityLabel(
+            displayName: dispute.staffContext?.disputant.verifiedDisplayName,
+            username: dispute.staffContext?.disputant.username,
+            locale: nativeUiLocale
+        )
     }
 
     private func lifecycleRow(_ key: UiMessageKey, date: Date, actorId: String? = nil) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(localized(key)).font(Typography.subheadline)
             Text(localizedDate(date)).font(Typography.caption).foregroundStyle(Colors.secondaryLabel)
-            if let actorId {
-                Text(localized(.nativeSwiftReviewDisputesByActor, parameters: ["actor": actorId]))
-                    .font(Typography.caption.monospaced())
-                    .foregroundStyle(Colors.secondaryLabel)
+            if actorId != nil {
+                Text(localized(
+                    .nativeSwiftReviewDisputesByActor,
+                    parameters: ["actor": localized(.nativeSwiftRouteSurfaceNotAvailable)]
+                ))
+                .font(Typography.caption.monospaced())
+                .foregroundStyle(Colors.secondaryLabel)
             }
         }
     }

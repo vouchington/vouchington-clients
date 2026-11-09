@@ -2,11 +2,10 @@ import Foundation
 
 public struct TopicClaim: Codable, Identifiable, Sendable {
     public let id: String
-    @TolerantNullable
-    public var topicName: String?
-    @TolerantNullable
+    public let topicName: String
+    @RequiredNullable
     public var claimantUsername: String?
-    @TolerantNullable
+    @RequiredNullable
     public var claimantDisplayName: String?
     public let topicId: String
     public let claimantUserId: String
@@ -41,4 +40,12 @@ public struct TopicClaim: Codable, Identifiable, Sendable {
     public let createdAt: String
     public let updatedAt: String
     public let state: String
+}
+
+public struct PendingTopicClaimsResponse: Codable, Sendable {
+    public let claims: [TopicClaim]
+}
+
+public struct TopicClaimResponse: Codable, Sendable {
+    public let claim: TopicClaim
 }

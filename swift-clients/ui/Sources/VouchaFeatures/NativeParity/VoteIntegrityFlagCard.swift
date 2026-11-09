@@ -17,7 +17,6 @@ struct VoteIntegrityFlagCard: View {
             Label(flagTypeText, systemImage: "checkmark.shield")
                 .font(Typography.headline)
             targetRow(target)
-            LabeledContent(text(.nativeSwiftIntegrityFlagId), value: flag.id)
             LabeledContent(text(.nativeSwiftIntegrityCreated), value: date(flag.createdAt))
             lifecycleRows
             if !flag.details.isEmpty {
@@ -78,8 +77,15 @@ struct VoteIntegrityFlagCard: View {
         if let resolvedAt = flag.resolvedAt {
             LabeledContent(text(.nativeSwiftIntegrityResolvedAt), value: date(resolvedAt))
         }
-        if let resolvedById = flag.resolvedById {
-            LabeledContent(text(.nativeSwiftIntegrityResolvedBy), value: resolvedById)
+        if flag.resolvedAt != nil {
+            LabeledContent(
+                text(.nativeSwiftIntegrityResolvedBy),
+                value: moderationIdentityLabel(
+                    displayName: flag.resolverDisplayName,
+                    username: flag.resolverUsername,
+                    locale: nativeUiLocale
+                )
+            )
         }
     }
 
@@ -123,8 +129,8 @@ struct VoteIntegrityFlagCard: View {
         }
     }
 
-    private func targetText(_ target: IntegrityTarget) -> String {
-        text(target.kind.messageKey, parameters: ["id": target.id])
+    private func targetText(_: IntegrityTarget) -> String {
+        UiMessages.string(.verbatim(flag.entityLabel), locale: nativeUiLocale)
     }
 
     private func date(_ value: Date) -> String {

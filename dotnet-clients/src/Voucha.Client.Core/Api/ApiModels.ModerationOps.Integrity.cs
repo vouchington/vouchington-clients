@@ -19,7 +19,7 @@ public sealed record VoteIntegrityFlag(
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById,
     [property: JsonPropertyName("resolution")] string? Resolution,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("entity_label")] string? EntityLabel = null,
+    [property: JsonPropertyName("entity_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string EntityLabel = "",
     [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
     [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);
 
@@ -82,7 +82,7 @@ public sealed record ReportIntegrityFlag(
     [property: JsonPropertyName("resolution")] string? Resolution,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("vote_count")] int? VoteCount = null,
-    [property: JsonPropertyName("entity_label")] string? EntityLabel = null,
+    [property: JsonPropertyName("entity_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string EntityLabel = "",
     [property: JsonPropertyName("reported_username")] string? ReportedUsername = null,
     [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
     [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);

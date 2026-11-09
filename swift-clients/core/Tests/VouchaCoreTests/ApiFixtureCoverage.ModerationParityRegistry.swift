@@ -7,6 +7,24 @@ let moderationParityFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "native.moderation.context.staff") {
         try assertFixtureCoversDTO($0, as: UserModerationContextResponse.self)
     },
+    RegisteredFixture(id: "native.moderation.topic-claims.pending") {
+        try assertFixtureCoversDTO($0, as: PendingTopicClaimsResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.topic-claims.verification") {
+        try assertFixtureCoversDTO($0, as: TopicClaimResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.topic-claims.rejection") {
+        try assertFixtureCoversDTO($0, as: TopicClaimResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.topic-claims.revocation") {
+        try assertFixtureCoversDTO($0, as: TopicClaimResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.mod-notes.default") {
+        try assertFixtureCoversDTO($0, as: UserModerationNotesResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.mod-notes.create.default") {
+        try assertFixtureCoversDTO($0, as: UserModerationNoteResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.removed-posts.default") {
         try assertFixtureCoversDTO($0, as: MemberRemovedPostNoticesResponse.self)
     },

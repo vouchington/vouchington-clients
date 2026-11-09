@@ -71,6 +71,7 @@ public sealed partial class CommunityDetailViewModel
         revision != Volatile.Read(ref communityContextRevision)) return;
     ModerationRows = response.Entries.Select(CommunityModerationRow.FromQueueEntry).ToArray();
     OnPropertyChanged(nameof(ModerationRows));
+    OnPropertyChanged(nameof(ModerationActionRows));
     SetCommunityContinuation(response.PageInfo.EndCursor);
   }
 

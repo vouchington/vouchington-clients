@@ -27,7 +27,7 @@ struct StaffModerationSummaryRow: View {
         actor = dispute.disputant
         status = dispute.status.titleKey
         reason = .protocolValue(dispute.reason.rawValue)
-        context = dispute.postLabel ?? dispute.postContent?.text
+        context = dispute.postLabel
         createdAt = dispute.createdAt
         hasDraft = dispute.hasDraft
         hasAiDraft = dispute.hasAiDraft

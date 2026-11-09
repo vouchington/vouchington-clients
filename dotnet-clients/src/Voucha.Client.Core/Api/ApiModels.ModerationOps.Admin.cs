@@ -53,7 +53,7 @@ public sealed record AdminReviewQueuePost(
     [property: JsonPropertyName("media_reveal")] AdminReviewQueueMediaReveal MediaReveal,
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
-    [property: JsonPropertyName("post_label")] string? PostLabel = null);
+    [property: JsonPropertyName("post_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string PostLabel = "");
 
 public sealed record AdminReviewQueueResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<AdminReviewQueuePost> Results,

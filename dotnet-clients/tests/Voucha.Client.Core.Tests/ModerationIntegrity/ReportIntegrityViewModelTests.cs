@@ -31,7 +31,7 @@ public sealed class ReportIntegrityViewModelTests
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     Assert.Null(viewModel.Items.Single().Entity.Route);
-    Assert.Equal("Post ID post-9", UiLocalization.English.Resolve(viewModel.Items.Single().Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items.Single().Entity.Label));
     Assert.DoesNotContain("reporter_user_ids", viewModel.Items.Single().Evidence);
     Assert.Equal(5, viewModel.Items.Single().Flag.ReporterCount);
     Assert.Contains("window_minutes: 30", viewModel.Items.Single().Evidence);
@@ -50,7 +50,7 @@ public sealed class ReportIntegrityViewModelTests
   }
 
   [Fact]
-  public async Task RemainingEntityKindsStayCanonicalOrIdOnly()
+  public async Task EntityKindsRetainFactualLabelsAndOpaqueActionTargets()
   {
     var hostname = ModerationIntegrityTestService.ReportFlag(
         "domain-flag", postId: null, hostnameId: "domain-4");
@@ -69,9 +69,9 @@ public sealed class ReportIntegrityViewModelTests
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal("/domain/domain-4", viewModel.Items[0].Entity.Route);
-    Assert.Equal("RSS item ID rss-3", UiLocalization.English.Resolve(viewModel.Items[1].Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items[1].Entity.Label));
     Assert.Null(viewModel.Items[1].Entity.Route);
-    Assert.Equal("Flag ID", UiLocalization.English.Resolve(viewModel.Items[2].Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items[2].Entity.Label));
   }
 
   [Fact]

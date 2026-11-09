@@ -24,7 +24,7 @@ public sealed record TopicClaim(
     [property: JsonPropertyName("created_at")] string CreatedAt,
     [property: JsonPropertyName("updated_at")] string UpdatedAt,
     [property: JsonPropertyName("state")] string State,
-    [property: JsonPropertyName("topic_name")] string? TopicName = null,
+    [property: JsonPropertyName("topic_name"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TopicName = "",
     [property: JsonPropertyName("claimant_username")] string? ClaimantUsername = null,
     [property: JsonPropertyName("claimant_display_name")] string? ClaimantDisplayName = null);
 

@@ -20,7 +20,7 @@ public sealed record ModerationDisputeSummary(
     [property: JsonPropertyName("topic_id")] string? TopicId,
     [property: JsonPropertyName("disputant_user_id")] string? DisputantUserId,
     [property: JsonPropertyName("reason")] string? Reason,
-    [property: JsonPropertyName("post_label")] string? PostLabel,
+    [property: JsonPropertyName("post_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string PostLabel,
     [property: JsonPropertyName("post_slug")] string? PostSlug,
     [property: JsonPropertyName("post_content")] ModerationDisputePostContent? PostContent,
     [property: JsonPropertyName("disputant")] ModerationActorSummary? Disputant);

@@ -17,12 +17,32 @@ final class ReviewDisputesSurfaceTests: XCTestCase {
         viewModel.summaryPagination.reset(items: response.disputes)
         let inspection = try ReviewDisputesSurface(viewModel: viewModel).inspect()
 
+        let dispute = try XCTUnwrap(response.disputes.first)
+        XCTAssertNoThrow(try inspection.find(text: dispute.postLabel))
+        XCTAssertThrowsError(try inspection.find(text: dispute.postId))
+        XCTAssertThrowsError(try inspection.find(text: dispute.id))
         XCTAssertNoThrow(try inspection.find(text: "native-claimant"))
         XCTAssertNoThrow(try inspection.find(text: "Pending"))
         XCTAssertThrowsError(try inspection.find(text: "The published rating uses the wrong total."))
         XCTAssertThrowsError(try inspection.find(button: "Approve"))
         XCTAssertTrue(inspection.findAll(ViewType.TextEditor.self).isEmpty)
         XCTAssertTrue(viewModel.disputes.isEmpty)
+    }
+
+    func testCanonicalDetailRendersPostLabelWithoutOpaqueIds() throws {
+        let response = try JSONDecoder.vouchaFixtureDecoder.decode(
+            ReviewDisputeResponse.self,
+            from: ApiFixtureLoader.data("native.moderation.disputes.detail.default")
+        )
+        let dispute = response.dispute
+        let viewModel = ReviewDisputesViewModel(
+            client: nil, isSignedIn: true, isAdministrator: true, isSiteModerator: false
+        )
+        let inspection = try ReviewDisputeCard(viewModel: viewModel, dispute: dispute).inspect()
+
+        XCTAssertNoThrow(try inspection.find(text: dispute.postLabel))
+        XCTAssertThrowsError(try inspection.find(text: dispute.postId))
+        XCTAssertThrowsError(try inspection.find(text: dispute.id))
     }
 
     func testStaffSurfaceRendersContextClaimDraftsAndLifecycleActions() throws {

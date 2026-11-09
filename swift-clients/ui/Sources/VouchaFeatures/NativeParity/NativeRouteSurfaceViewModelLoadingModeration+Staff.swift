@@ -26,8 +26,7 @@ extension NativeRouteSurfaceViewModel {
         return response.disputes.map {
             row(
                 "exclamationmark.bubble",
-                $0.postLabel.map(rawText)
-                    ?? appText(.nativeSwiftRouteMetadataStaffModerationDisputesDisputesTitle),
+                rawText($0.postLabel),
                 .joined(
                     [
                         appText($0.status.titleKey),
@@ -55,7 +54,7 @@ extension NativeRouteSurfaceViewModel {
         } + response.clusters.map {
             row(
                 "flag",
-                rawText($0.targetLabel ?? $0.entityType),
+                rawText($0.targetLabel),
                 .joined([
                     countText($0.reportCount, item: "report"),
                     countText($0.reporterCount, item: "reporter")
