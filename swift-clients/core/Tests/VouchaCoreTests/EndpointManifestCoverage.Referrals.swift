@@ -20,9 +20,6 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.referral-clicks.mine.default") {
             Endpoint.myReferralClicks()
         },
-        ManifestRegisteredEndpoint(id: "web.trending-referral-programs.default") {
-            Endpoint.trendingReferralPrograms()
-        },
         ManifestRegisteredEndpoint(id: "web.referral-links.prioritized.default") {
             Endpoint.prioritizedReferralLinks(referralProgramId: "referral-program-1", all: true)
         }

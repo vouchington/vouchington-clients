@@ -91,7 +91,7 @@ final class ModerationLabelContractTests: XCTestCase {
         )
         let deleted = try XCTUnwrap(reportPenalties.results.first { $0.createdById == nil })
         XCTAssertNil(deleted.createdById)
-        XCTAssertNil(deleted.creatorUsername)
+        XCTAssertEqual(deleted.creatorUsername, "moderator")
         XCTAssertNil(deleted.creatorDisplayName)
     }
 

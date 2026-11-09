@@ -214,16 +214,6 @@ let bookmarkReferralSwiftCoverage: [RegisteredFixture] = [
             ]
         )
     },
-    RegisteredFixture(id: "web.trending-referral-programs.default") {
-        try assertFixtureCoversDTO(
-            $0,
-            as: TrendingReferralProgramsResponse.self,
-            ignoring: [
-                "page_info.end_cursor",
-                "page_info.start_cursor"
-            ]
-        )
-    },
     RegisteredFixture(id: "web.referral-links.prioritized.default") {
         try assertFixtureCoversDTO($0, as: PrioritizedReferralLinksResponse.self)
     }

@@ -59,13 +59,6 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(fediverseSearch.buckets.first?.items.first?.title, "Swift video")
         XCTAssertEqual(fediverseSearch.buckets.first?.items.first?.id, "https://video.example.test/w/1")
 
-        let referralProgramsJSON = Data(
-            #"{"referral_programs":[{"id":"program-1","trending_score":9.0,"link_count":4}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}"#
-                .utf8
-        )
-        let referralPrograms = try decoder.decode(TrendingReferralProgramsResponse.self, from: referralProgramsJSON)
-        XCTAssertEqual(referralPrograms.referralPrograms.first?.linkCount, 4)
-
         let recommendedJSON = Data(
             #"{"results":[{"id":"topic-1","score":4.2,"reason":"from_viewed_posts"}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null},"topics":{},"topics_metrics":{},"bookmarks":{}}"#
                 .utf8
@@ -126,14 +119,6 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(mine.results.first?.id, "referral-link-1")
         XCTAssertEqual(mine.results.first?.referralProgramName, "Test Card")
         XCTAssertNil(mine.results.first?.deactivatedAt)
-
-        let trending = try decoder.decode(
-            TrendingReferralProgramsResponse.self,
-            from: ApiFixtureLoader.data("web.trending-referral-programs.default")
-        )
-        XCTAssertEqual(trending.referralPrograms.first?.id, "referral-program-1")
-        XCTAssertEqual(trending.referralPrograms.first?.trendingScore, 9)
-        XCTAssertEqual(trending.referralPrograms.first?.linkCount, 2)
 
         let prioritized = try decoder.decode(
             PrioritizedReferralLinksResponse.self,

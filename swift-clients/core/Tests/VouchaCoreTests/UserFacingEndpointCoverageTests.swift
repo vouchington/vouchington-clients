@@ -45,12 +45,6 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
             URLQueryItem(name: "sort", value: "trending")
         ])
 
-        let trendingReferralPrograms = Endpoint.trendingReferralPrograms(after: "cursor-2", limit: 4)
-        XCTAssertEqual(trendingReferralPrograms.path, "/api/v1/trending-referral-programs")
-        XCTAssertEqual(trendingReferralPrograms.queryItems, [
-            URLQueryItem(name: "limit", value: "4"),
-            URLQueryItem(name: "after", value: "cursor-2")
-        ])
         assertEndpoint(
             Endpoint.referralLinksFeed(feedType: "mutual_follows", after: "cursor-2", limit: 4),
             path: "/api/v1/feeds/referral_links/mutual_follows"

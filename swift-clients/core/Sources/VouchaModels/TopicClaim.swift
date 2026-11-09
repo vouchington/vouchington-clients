@@ -39,7 +39,7 @@ public struct TopicClaim: Codable, Identifiable, Sendable {
     public var domainVerifiedAt: String?
     public let createdAt: String
     public let updatedAt: String
-    public let state: String
+    public let state: String?
 }
 
 public struct PendingTopicClaimsResponse: Codable, Sendable {
