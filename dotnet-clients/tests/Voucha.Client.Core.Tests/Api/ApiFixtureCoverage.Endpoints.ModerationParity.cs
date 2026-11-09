@@ -60,6 +60,11 @@ internal static partial class ApiFixtureCoverage
         "00000000-0000-7000-8000-000000000301",
         null,
         ModerationRevealSurface.ReviewQueue);
+    foreach (var fixture in new[] { "native.moderation.context.member", "native.moderation.context.staff" })
+    {
+      registry[fixture] = VouchaApiEndpoints.UserModerationContext(
+          ApiFixtureLoader.RouteParameterValue(fixture, "userId"));
+    }
     return registry;
   }
 

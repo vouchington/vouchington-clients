@@ -82,6 +82,8 @@ internal static partial class ApiFixtureCoverage
     ["web.communities.modlog.default"] = typeof(ModlogResponse),
     ["web.communities.moderator-stats.default"] = typeof(CommunityModeratorStatsResponse),
     ["web.communities.moderator-vacation.default"] = typeof(ModeratorVacationResponse),
+    ["native.moderation.context.member"] = typeof(UserModerationContextResponse),
+    ["native.moderation.context.staff"] = typeof(UserModerationContextResponse),
     ["native.moderation.reports.default"] = typeof(StaffFlatModerationReportsResponse),
     ["native.moderation.reports.member.default"] = typeof(MemberFlatModerationReportsResponse),
     ["native.moderation.reports.clustered.default"] = typeof(StaffClusteredModerationReportsResponse),

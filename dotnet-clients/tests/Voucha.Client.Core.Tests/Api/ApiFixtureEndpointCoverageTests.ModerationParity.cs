@@ -7,6 +7,10 @@ public sealed partial class ApiFixtureEndpointCoverageTests
   private static IReadOnlyDictionary<string, ApiRequest> CreateModerationParityRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
+        ["native.moderation.context.member"] = VouchaApiEndpoints.UserModerationContext(
+            ApiFixtureLoader.RouteParameterValue("native.moderation.context.member", "userId")),
+        ["native.moderation.context.staff"] = VouchaApiEndpoints.UserModerationContext(
+            ApiFixtureLoader.RouteParameterValue("native.moderation.context.staff", "userId")),
         ["native.moderation.transparency.default"] =
             VouchaApiEndpoints.ModerationTransparency(),
         ["native.community.moderation-transparency.default"] =
