@@ -110,7 +110,8 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
         let data = Data(
             """
             {
-              "id":"\(id)","title":"Title","declared_language":null,"lingua_rs_detected_language":null,"slug":"\(
+              "id":"\(id)","title":"Title",
+              "post_label":"Post","declared_language":null,"lingua_rs_detected_language":null,"slug":"\(
                   id
               )","markdown_preview":"Preview",
               "post_type":"discussion","created_by_id":"author",

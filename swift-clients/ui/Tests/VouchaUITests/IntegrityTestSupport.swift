@@ -33,7 +33,8 @@ enum IntegrityTestSupport {
         rssFeedItemId: String? = nil,
         entityRelationId: String? = nil,
         agentModerationId: String? = nil,
-        resolution: String? = nil
+        resolution: String? = nil,
+        entityLabel: String? = nil
     ) throws -> VoteIntegrityFlag {
         try canonicalFlag("vote", overrides: [
             "id": id, "post_id": postId as Any? ?? NSNull(), "topic_id": topicId as Any? ?? NSNull(),
@@ -44,7 +45,8 @@ enum IntegrityTestSupport {
             "resolved_at": resolution == nil ? NSNull() : "2026-07-01T12:00:00.000Z" as Any,
             "resolved_by_id": resolution == nil ? NSNull() : "admin-1" as Any,
             "resolver_username": NSNull(), "resolver_display_name": NSNull(),
-            "resolution": resolution as Any? ?? NSNull()
+            "resolution": resolution as Any? ?? NSNull(),
+            "entity_label": entityLabel ?? "Reported post"
         ])
     }
 

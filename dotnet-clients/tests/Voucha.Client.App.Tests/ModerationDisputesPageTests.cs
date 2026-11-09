@@ -231,6 +231,7 @@ public sealed class ModerationDisputesPageTests
         {
           "id":"dispute-1",
           "post_id":"post-1",
+          "post_label":"Post",
           "status":"pending",
           "reason":"incorrect",
           "claim_text":"The review is inaccurate",

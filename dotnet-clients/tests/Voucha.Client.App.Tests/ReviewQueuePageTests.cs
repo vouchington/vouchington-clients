@@ -30,9 +30,9 @@ public sealed class ReviewQueuePageTests
     Assert.Equal(2, Assert.IsAssignableFrom<IEnumerable>(collection.ItemsSource).Cast<ReviewQueueRow>().Count());
     Assert.Equal("Rendered review title", Find<Label>(rejected, "review-queue-row-title").Text);
     Assert.Equal("Rendered preview", Find<Label>(rejected, "review-queue-row-preview").Text);
-    Assert.Equal("Author: author-1", Find<Label>(rejected, "review-queue-row-author").Text);
+    Assert.Equal("Author: Target unavailable", Find<Label>(rejected, "review-queue-row-author").Text);
     Assert.Equal("Post type: discussion", Find<Label>(rejected, "review-queue-row-post-type").Text);
-    Assert.Equal("Root thread: article · root-slug · root-1", Find<Label>(rejected, "review-queue-row-root").Text);
+    Assert.Equal("Root thread: article · root-slug", Find<Label>(rejected, "review-queue-row-root").Text);
     Assert.True(Find<Button>(rejected, "review-queue-approve").IsEnabled);
     Assert.True(Find<Button>(rejected, "review-queue-reject").IsEnabled);
     Assert.True(Find<Button>(rejected, "review-queue-re-review").IsEnabled);
@@ -281,7 +281,8 @@ public sealed class ReviewQueuePageTests
           AdminModerationDisposition.Review,
           new AdminModerationEvidenceSummary(1, 2),
           ["provider_flagged"]),
-      media ?? new(false, []));
+      media ?? new(false, []),
+      PostLabel: title);
 
   private sealed class BlockingLoadService : ReviewQueueModerationServiceStub
   {

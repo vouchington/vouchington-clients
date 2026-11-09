@@ -145,6 +145,7 @@ enum ModerationReportsTestFixtures {
             "community_id": "community-1",
             "community_slug": "native-community",
             "source_user_id": "banned-user",
+            "source_display_name": NSNull(),
             "source_username": "banned",
             "score": 0.85,
             "flagged_at": "2026-06-01T12:00:00.000Z"

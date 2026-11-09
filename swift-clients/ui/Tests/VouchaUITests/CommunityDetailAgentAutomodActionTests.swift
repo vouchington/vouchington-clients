@@ -44,8 +44,8 @@ extension CommunityDetailActionTests {
         let result = try XCTUnwrap(viewModel.automodSimulation)
         XCTAssertEqual(viewModel.state, .loaded)
         let summary = CommunityAutomodSimulationSummary(result: result)
-        XCTAssertNoThrow(try summary.inspect().find(text: "Simulation sample: 0 posts, 0 flagged"))
-        XCTAssertNoThrow(try summary.inspect().find(text: "Estimate sample: 0 flagged, 0 approved"))
+        XCTAssertNoThrow(try summary.inspect().find(text: "Simulation sample. Posts: 0. Flagged: 0."))
+        XCTAssertNoThrow(try summary.inspect().find(text: "Estimate sample. Flagged: 0. Approved: 0."))
 
         CannedFeedURLProtocol.handlers[path] = (Data(), 500)
         await viewModel.simulateCommunityAutomod(promptId: "prompt-1")

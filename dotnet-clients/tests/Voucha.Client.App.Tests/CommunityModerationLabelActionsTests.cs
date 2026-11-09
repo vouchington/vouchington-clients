@@ -42,8 +42,7 @@ public sealed class CommunityModerationLabelActionsTests
     Assert.Equal(nameof(CommunityModerationRow.Title), Assert.IsType<Binding>(picker.ItemDisplayBinding).Path);
     Assert.DoesNotContain(VisualTreeElements.Descendants<Entry>(page), entry =>
         entry.Placeholder == UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesPostId) ||
-        entry.Placeholder == UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesUserId) ||
-        entry.Placeholder == UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesReportId));
+        entry.Placeholder == UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesUserId));
     picker.SelectedItem = selected;
     var resolve = Assert.Single(VisualTreeElements.Descendants<Button>(page), button =>
         button.Text == UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesResolveReport));

@@ -50,6 +50,8 @@ final class ImagePlacementRecoveryTests: NativeRouteSurfaceViewModelTestCase {
                 XCTAssertEqual(model.bodyText, "Preserved body")
                 XCTAssertEqual(model.images.first?.caption, "Preserved caption")
                 XCTAssertEqual(model.images.first?.imageId, "full-image")
+                XCTAssertNil(model.turnstileToken, "Turnstile tokens are single-use; retry needs a fresh challenge")
+                model.turnstileToken = "verification-retry"
                 XCTAssertTrue(model.canPublish)
                 XCTAssertNil(model.publishedPostId)
                 if replaceImage {

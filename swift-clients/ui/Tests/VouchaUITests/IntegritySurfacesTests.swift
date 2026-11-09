@@ -92,7 +92,8 @@ final class IntegritySurfacesTests: XCTestCase {
         let relation = try IntegrityTestSupport.voteFlag(
             id: "relation-flag",
             postId: nil,
-            entityRelationId: "relation-1"
+            entityRelationId: "relation-1",
+            entityLabel: "Related entity"
         )
         let viewModel = VoteIntegrityViewModel(service: nil, viewerTier: .administrator)
         viewModel.flags = [domain, relation]
@@ -104,8 +105,8 @@ final class IntegritySurfacesTests: XCTestCase {
 
         try inspection.find(button: "Reported post").tap()
         XCTAssertEqual(path, "/domain/domain-1")
-        XCTAssertNoThrow(try inspection.find(text: "Reported post"))
-        XCTAssertThrowsError(try inspection.find(button: "Reported post"))
+        XCTAssertNoThrow(try inspection.find(text: "Related entity"))
+        XCTAssertThrowsError(try inspection.find(button: "Related entity"))
     }
 
     func testLoadingEmptyInitialAndContinuationErrorsRenderRetryStates() throws {

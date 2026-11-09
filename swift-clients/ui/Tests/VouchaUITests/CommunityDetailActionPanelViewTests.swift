@@ -61,7 +61,7 @@ final class CommunityDetailActionPanelViewTests: NativeRouteSurfaceViewModelTest
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Unpublish"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Escalate"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Ban"))
-        XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Lift ban"))
+        XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Active"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Activate"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Enable"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Create"))
