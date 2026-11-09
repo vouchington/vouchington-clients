@@ -1,6 +1,12 @@
 import VouchaModels
 
 let moderationParityFixtureCoverage: [RegisteredFixture] = [
+    RegisteredFixture(id: "native.moderation.context.member") {
+        try assertFixtureCoversDTO($0, as: UserModerationContextResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.context.staff") {
+        try assertFixtureCoversDTO($0, as: UserModerationContextResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.removed-posts.default") {
         try assertFixtureCoversDTO($0, as: MemberRemovedPostNoticesResponse.self)
     },
