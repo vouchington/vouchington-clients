@@ -126,6 +126,15 @@
 "extracted.votes.semanticVote.vote" = "Votar";
 "extracted.votes.semanticVote.vouch" = "Endossar";
 "images.uploadPreviewUnavailable" = "Imagem enviada. Pré-visualização indisponível.";
+"moderation.communityBans.active" = "Ativo";
+"moderation.communityBans.confirmLiftAll" = "Remover todos os banimentos ativos?";
+"moderation.communityBans.confirmLiftAllDescription" = "Isso removerá todos os banimentos ativos de {userLabel} nesta comunidade.";
+"moderation.communityBans.detailLoadFailed" = "Não foi possível carregar os detalhes do banimento";
+"moderation.communityBans.liftAll" = "Remover todos os banimentos";
+"moderation.communityBans.liftAllForbidden" = "Alguns banimentos não podem ser removidos em conjunto. Remova individualmente os que forem permitidos.";
+"moderation.communityBans.liftAllLimit" = "Há mais de {cap} banimentos ativos. Remova-os individualmente.";
+"moderation.communityBans.liftAllLimitUnknown" = "Há banimentos ativos demais. Remova-os individualmente.";
+"moderation.communityBans.liftFailed" = "Não foi possível remover o banimento";
 "native.apiKeys.active" = "Ativa";
 "native.apiKeys.administratorInvalid" = "Esta chave de administrador é inválida. Renove-a por 30 ou 90 dias, ou revogue-a.";
 "native.apiKeys.expired" = "Expirada";

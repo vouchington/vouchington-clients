@@ -150,8 +150,8 @@ public sealed partial class ApiCommunitiesService : ICommunitiesService
   public Task BanAsync(string idOrSlug, BanCommunityMemberRequest request, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.BanCommunityMember(idOrSlug, request), cancellationToken);
 
-  public Task LiftBanAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
-      client.SendAsync(VouchaApiEndpoints.LiftCommunityBan(idOrSlug, userId), cancellationToken);
+  public Task<CommunityBanLiftResponse> LiftBanAsync(string idOrSlug, string banId, CancellationToken cancellationToken = default) =>
+      client.SendAsync<CommunityBanLiftResponse>(VouchaApiEndpoints.LiftCommunityBan(idOrSlug, banId), cancellationToken);
 
   public Task ActivateRestrictionsAsync(string idOrSlug, ActivateCommunityRestrictionsRequest request, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.ActivateCommunityRestrictions(idOrSlug, request), cancellationToken);

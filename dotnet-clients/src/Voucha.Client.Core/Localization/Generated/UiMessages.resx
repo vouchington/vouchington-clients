@@ -280,6 +280,15 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Vote</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Vouch</value></data>
   <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Image uploaded. Preview unavailable.</value></data>
+  <data name="moderation.communityBans.active" xml:space="preserve"><value>Active</value></data>
+  <data name="moderation.communityBans.confirmLiftAll" xml:space="preserve"><value>Lift all active bans?</value></data>
+  <data name="moderation.communityBans.confirmLiftAllDescription" xml:space="preserve"><value>This lifts every active ban for {userLabel} in this community.</value></data>
+  <data name="moderation.communityBans.detailLoadFailed" xml:space="preserve"><value>Failed to load ban details</value></data>
+  <data name="moderation.communityBans.liftAll" xml:space="preserve"><value>Lift all bans</value></data>
+  <data name="moderation.communityBans.liftAllForbidden" xml:space="preserve"><value>Some bans cannot be lifted together. Lift permitted bans individually.</value></data>
+  <data name="moderation.communityBans.liftAllLimit" xml:space="preserve"><value>More than {cap} bans are active. Lift bans individually.</value></data>
+  <data name="moderation.communityBans.liftAllLimitUnknown" xml:space="preserve"><value>Too many bans are active. Lift bans individually.</value></data>
+  <data name="moderation.communityBans.liftFailed" xml:space="preserve"><value>Failed to lift ban</value></data>
   <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
   <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>This administrator key is invalid. Rotate with a 30- or 90-day lifetime, or revoke it.</value></data>
   <data name="native.apiKeys.expired" xml:space="preserve"><value>Expired</value></data>

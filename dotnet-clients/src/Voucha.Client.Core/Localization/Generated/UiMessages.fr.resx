@@ -280,6 +280,15 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Voter</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Appuyer</value></data>
   <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Image téléversée. Aperçu indisponible.</value></data>
+  <data name="moderation.communityBans.active" xml:space="preserve"><value>Actif</value></data>
+  <data name="moderation.communityBans.confirmLiftAll" xml:space="preserve"><value>Lever tous les bannissements actifs ?</value></data>
+  <data name="moderation.communityBans.confirmLiftAllDescription" xml:space="preserve"><value>Cette action lèvera tous les bannissements actifs de {userLabel} dans cette communauté.</value></data>
+  <data name="moderation.communityBans.detailLoadFailed" xml:space="preserve"><value>Impossible de charger les détails du bannissement</value></data>
+  <data name="moderation.communityBans.liftAll" xml:space="preserve"><value>Lever tous les bannissements</value></data>
+  <data name="moderation.communityBans.liftAllForbidden" xml:space="preserve"><value>Certains bannissements ne peuvent pas être levés ensemble. Levez séparément ceux qui sont autorisés.</value></data>
+  <data name="moderation.communityBans.liftAllLimit" xml:space="preserve"><value>Plus de {cap} bannissements sont actifs. Levez-les séparément.</value></data>
+  <data name="moderation.communityBans.liftAllLimitUnknown" xml:space="preserve"><value>Trop de bannissements sont actifs. Levez-les séparément.</value></data>
+  <data name="moderation.communityBans.liftFailed" xml:space="preserve"><value>Impossible de lever le bannissement</value></data>
   <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
   <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Cette clé administrateur est invalide. Renouvelez-la pour 30 ou 90 jours, ou révoquez-la.</value></data>
   <data name="native.apiKeys.expired" xml:space="preserve"><value>Expirée</value></data>

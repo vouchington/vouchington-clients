@@ -280,6 +280,15 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Votar</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Avalar</value></data>
   <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Imagen subida. Vista previa no disponible.</value></data>
+  <data name="moderation.communityBans.active" xml:space="preserve"><value>Activo</value></data>
+  <data name="moderation.communityBans.confirmLiftAll" xml:space="preserve"><value>¿Levantar todos los baneos activos?</value></data>
+  <data name="moderation.communityBans.confirmLiftAllDescription" xml:space="preserve"><value>Esto levantará todos los baneos activos de {userLabel} en esta comunidad.</value></data>
+  <data name="moderation.communityBans.detailLoadFailed" xml:space="preserve"><value>No se pudieron cargar los detalles del baneo</value></data>
+  <data name="moderation.communityBans.liftAll" xml:space="preserve"><value>Levantar todos los baneos</value></data>
+  <data name="moderation.communityBans.liftAllForbidden" xml:space="preserve"><value>Algunos baneos no se pueden levantar en conjunto. Levanta por separado los que sí estén permitidos.</value></data>
+  <data name="moderation.communityBans.liftAllLimit" xml:space="preserve"><value>Hay más de {cap} baneos activos. Levanta los baneos por separado.</value></data>
+  <data name="moderation.communityBans.liftAllLimitUnknown" xml:space="preserve"><value>Hay demasiados baneos activos. Levántalos por separado.</value></data>
+  <data name="moderation.communityBans.liftFailed" xml:space="preserve"><value>No se pudo levantar el baneo</value></data>
   <data name="native.apiKeys.active" xml:space="preserve"><value>Activa</value></data>
   <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Esta clave de administrador no es válida. Renuévala por 30 o 90 días, o revócala.</value></data>
   <data name="native.apiKeys.expired" xml:space="preserve"><value>Caducada</value></data>

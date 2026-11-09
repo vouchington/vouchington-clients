@@ -93,7 +93,7 @@ public abstract partial class CommunitySectionPage
               DateTimeOffset? parsed = DateTimeOffset.TryParse(expiresAt.Text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value) ? value : null;
               return viewModel.BanAsync(userId.Text ?? string.Empty, OptionalText(reason), parsed, ct);
             }).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesLift).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.LiftBanAsync(userId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
+            BuildBanRowActions(),
           },
         },
       },

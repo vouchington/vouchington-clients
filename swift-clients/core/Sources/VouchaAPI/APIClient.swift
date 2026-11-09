@@ -126,6 +126,10 @@ public actor APIClient {
         guard status >= 200, status < 300 else {
             let payload = APIErrorPayload.decode(from: data, logger: logger)
             let code = payload?.code
+            if (status == 403 && code == "COMMUNITY_BAN_LIFT_ALL_FORBIDDEN")
+                || (status == 409 && code == "COMMUNITY_BAN_LIFT_ALL_LIMIT_REACHED") {
+                throw CommunityBanLiftFailure(statusCode: status, code: code ?? "", cap: payload?.cap)
+            }
             if status == 409 || status == 429, [
                 "IDEMPOTENCY_KEY_REUSED",
                 "CONTRIBUTION_ADMISSION_IN_PROGRESS",

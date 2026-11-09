@@ -13,6 +13,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
     )
 
     static let registry: [String: Endpoint] = moderationFixtureEndpoints
+        .merging(communityBanFixtureEndpoints) { _, replacement in replacement }
         .merging(entityProvenanceFixtureEndpoints) { _, replacement in replacement }
         .merging(communityAutomodFixtureEndpoints) { _, replacement in replacement }
         .merging(communityLimitFixtureEndpoints) { _, replacement in replacement }
