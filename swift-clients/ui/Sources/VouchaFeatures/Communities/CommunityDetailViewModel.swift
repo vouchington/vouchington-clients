@@ -66,6 +66,7 @@ final class CommunityDetailViewModel {
         }
     }
 
+    var automodSimulation: CommunityAutomodSimulation?
     var statusMessage: UiMessage?
     var summary = CommunityWorkspaceSummary()
     var rowPagination = CursorPaginationState<CommunityForwardRow>()

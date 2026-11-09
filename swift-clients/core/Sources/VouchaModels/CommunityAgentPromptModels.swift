@@ -3,12 +3,17 @@ import Foundation
 public struct CommunityAgentPrompt: Codable, Identifiable, Sendable {
     public let id: String
     public let communityId: String
-    @RequiredNullable public var createdById: String?
+    @RequiredNullable
+    public var createdById: String?
     public let isSlotAllocated: Bool
-    @RequiredNullable public var activatedAt: Date?
-    @RequiredNullable public var deactivatedAt: Date?
-    @RequiredNullable public var deletedAt: Date?
-    @RequiredNullable public var deletedById: String?
+    @RequiredNullable
+    public var activatedAt: Date?
+    @RequiredNullable
+    public var deactivatedAt: Date?
+    @RequiredNullable
+    public var deletedAt: Date?
+    @RequiredNullable
+    public var deletedById: String?
     public let agentId: String
     public let prompt: String
     public let modelName: String
@@ -31,8 +36,10 @@ public struct CommunityAgentPromptPlanLimits: Codable, Sendable {
 
 public struct CommunityAgentPromptPageInfo: Codable, Sendable {
     public let hasNextPage: Bool
-    @RequiredNullable public var startCursor: String?
-    @RequiredNullable public var endCursor: String?
+    @RequiredNullable
+    public var startCursor: String?
+    @RequiredNullable
+    public var endCursor: String?
 }
 
 public enum CommunityAgentPromptHistoryAction: String, Codable, Sendable {
@@ -99,8 +106,10 @@ public struct CommunityAutomodAction: Codable, Sendable {
     public let moderatorSlug: String?
     public let title: String
     public let authoredTitle: String?
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
     public let markdownPreview: String
     public let postType: String
     public let postHref: String
@@ -135,8 +144,10 @@ public struct CommunityAutomodFeedbackInput: Codable, Sendable {
 public struct CommunityAutomodSimulationResult: Codable, Sendable {
     public let postId: String
     public let title: String
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
     public let postType: String
     public let approvedAt: Date
     public let contentExcerpt: String
@@ -144,8 +155,8 @@ public struct CommunityAutomodSimulationResult: Codable, Sendable {
 }
 
 public struct CommunityAutomodFalsePositiveEstimate: Codable, Sendable {
-    public let historicalFlaggedCount: Int
-    public let historicalApprovedCount: Int
+    public let sampledFlaggedCount: Int
+    public let sampledApprovedCount: Int
     public let rate: Double?
 }
 

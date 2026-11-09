@@ -1,4 +1,5 @@
 import Foundation
+import ViewInspector
 @testable import VouchaFeatures
 import VouchaLocalization
 import XCTest
@@ -31,6 +32,26 @@ extension CommunityDetailActionTests {
             viewModel.statusMessage,
             UiMessage(.nativeSwiftCommunityStatusCommunityDigestsResumed)
         )
+    }
+
+    func testSimulationShowsSampleCountsAndClearsPreviousResultOnFailure() async throws {
+        let path = "/api/v1/communities/builders/automod/simulate"
+        CannedFeedURLProtocol.handlers[path] = try (
+            ApiFixtureLoader.data("web.communities.automod-simulate.default"), 200
+        )
+        let viewModel = try CommunityDetailViewModel(client: makeClient(), slug: "builders")
+        await viewModel.simulateCommunityAutomod(promptId: "prompt-1")
+        let result = try XCTUnwrap(viewModel.automodSimulation)
+        XCTAssertEqual(viewModel.state, .loaded)
+        let summary = CommunityAutomodSimulationSummary(result: result)
+        XCTAssertNoThrow(try summary.inspect().find(text: "Simulation sample: 0 posts, 0 flagged"))
+        XCTAssertNoThrow(try summary.inspect().find(text: "Estimate sample: 0 flagged, 0 approved"))
+
+        CannedFeedURLProtocol.handlers[path] = (Data(), 500)
+        await viewModel.simulateCommunityAutomod(promptId: "prompt-1")
+        XCTAssertNil(viewModel.automodSimulation)
+        XCTAssertNil(viewModel.statusMessage)
+        XCTAssertEqual(viewModel.state, .error(UiMessage(.nativeSwiftCommunityStatusActionFailed)))
     }
 
     func testAgentPromptAutomodAndVacationActionsCallCommunityEndpoints() async throws {
