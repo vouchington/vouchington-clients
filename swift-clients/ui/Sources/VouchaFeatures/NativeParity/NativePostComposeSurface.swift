@@ -136,6 +136,12 @@ struct NativePostComposeSurface: View {
 
     @ViewBuilder
     private func composeStatus(viewModel: NativePostComposeViewModel) -> some View {
+        if case let .error(error) = viewModel.state,
+           let message = ImagePlacementErrorPresentation.message(for: error) {
+            Text(UiMessages.string(message, locale: nativeUiLocale))
+                .foregroundStyle(Colors.negativeVote)
+        }
+
         if case let .error(.api(_, code)) = viewModel.state,
            let key = NativeContributionAdmissionPresentation.messageKey(code) {
             Text(UiMessages.string(key, locale: nativeUiLocale))
@@ -161,17 +167,6 @@ struct NativePostComposeSurface: View {
         }
     }
 
-}
-
-enum NativeContributionAdmissionPresentation {
-    static func messageKey(_ code: String?) -> UiMessageKey? {
-        switch code {
-        case "CONTRIBUTION_ADMISSION_IN_PROGRESS": .nativeTaxonomyContributionAdmissionInProgress
-        case "CONTRIBUTION_QUOTA_EXCEEDED": .nativeTaxonomyContributionAdmissionCapacityUnavailable
-        case "IDEMPOTENCY_KEY_REUSED": .nativeTaxonomyContributionAdmissionIdempotencyMismatch
-        default: nil
-        }
-    }
 }
 
 extension NativePostComposeSurface {

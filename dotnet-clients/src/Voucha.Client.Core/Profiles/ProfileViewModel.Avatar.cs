@@ -81,12 +81,12 @@ public sealed partial class ProfileViewModel
     }
     catch (TimeoutException ex)
     {
-      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ImagePlacementErrors.Message(ex, localization);
       return false;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
-      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ex.Message;
+      if (IsCurrentAvatarMutation(generation, cancellationToken)) ErrorMessage = ImagePlacementErrors.Message(ex, localization);
       return false;
     }
     finally
