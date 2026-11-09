@@ -5,7 +5,7 @@ import VouchaLocalization
 extension SettingsSurface {
     var sessionsSection: some View {
         section(.nativeSwiftSettingsSessions, systemImage: "clock") {
-            if viewModel.sessions.isEmpty {
+            if viewModel.sessions.isEmpty, !viewModel.sessionPagination.hasMore {
                 Text(UiMessages.string(.nativeSwiftSettingsNoActiveSessions, locale: nativeUiLocale))
                     .font(Typography.subheadline)
                     .foregroundStyle(Colors.secondaryLabel)
@@ -53,25 +53,26 @@ extension SettingsSurface {
                             .disabled(viewModel.isLoading)
                         }
                     }
-                    HybridPaginationControl(
-                        hasMore: viewModel.sessionPagination.hasMore,
-                        isLoading: viewModel.sessionPagination.isLoading,
-                        hasError: viewModel.sessionPagination.lastError != nil,
-                        accessibilityIdentifier: "sessions-pagination"
-                    ) {
-                        await viewModel.loadMoreSessions()
-                    }
                 }
-
-                Button(
-                    UiMessages.string(.nativeSwiftSettingsRevokeAllSessions, locale: nativeUiLocale),
-                    role: .destructive
-                ) {
-                    confirmingAllSessionRevocation = true
-                }
-                .buttonStyle(.bordered)
-                .disabled(viewModel.isLoading)
             }
+
+            HybridPaginationControl(
+                hasMore: viewModel.sessionPagination.hasMore,
+                isLoading: viewModel.sessionPagination.isLoading,
+                hasError: viewModel.sessionPagination.lastError != nil,
+                accessibilityIdentifier: "sessions-pagination"
+            ) {
+                await viewModel.loadMoreSessions()
+            }
+
+            Button(
+                UiMessages.string(.nativeSwiftSettingsRevokeAllSessions, locale: nativeUiLocale),
+                role: .destructive
+            ) {
+                confirmingAllSessionRevocation = true
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.isLoading)
         }
     }
 }
