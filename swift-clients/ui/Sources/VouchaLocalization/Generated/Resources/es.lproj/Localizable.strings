@@ -179,6 +179,7 @@
 "native.authoredPost.unavailable" = "Este contenido no está disponible.";
 "native.authoredPost.viewAppeals" = "Ver apelaciones";
 "native.common.done" = "Listo";
+"native.common.imagePlacementLimitReached" = "Esta imagen ha alcanzado el límite de usos. Elige otra imagen o elimina uno de sus usos actuales y vuelve a intentarlo.";
 "native.common.ok" = "Aceptar";
 "native.common.relatedArticles.__plural.one" = "{count} artículo relacionado";
 "native.common.relatedArticles.__plural.other" = "{count} artículos relacionados";
@@ -186,6 +187,10 @@
 "native.common.relatedArticlesMore.__plural.other" = "{count}+ artículos relacionados";
 "native.common.retry" = "Intentar de nuevo";
 "native.common.somethingWentWrong" = "Algo salió mal";
+"native.communities.automodEstimateSample" = "Muestra estimada. Marcadas: {sampledFlaggedCount}. Aprobadas: {sampledApprovedCount}.";
+"native.communities.automodSampleSummary" = "Muestra de simulación. Publicaciones: {sampleCount}. Marcadas: {wouldFlagCount}.";
+"native.communities.membershipLimitReached" = "Esta cuenta ha alcanzado su límite de membresías en comunidades. Debe abandonar una comunidad antes de que se pueda añadir otra membresía.";
+"native.communities.moderatorLimitReached" = "Esta comunidad ha alcanzado su límite de moderadores, incluidos los propietarios. Libera un puesto de moderador antes de promover a otro miembro.";
 "native.copyrightNotices.acceptedDate" = "Aceptado {date}";
 "native.copyrightNotices.affectedHostedMaterial" = "Material alojado afectado";
 "native.copyrightNotices.affectedPlacementCount.__plural.one" = "{count} ubicación afectada.";
@@ -1090,7 +1095,6 @@
 "native.swift.integrity.penalizedReporters" = "Denunciantes sancionados: {count}";
 "native.swift.integrity.penalizedUsers" = "Usuarios sancionados: {count}";
 "native.swift.integrity.penalties" = "Sanciones";
-"native.swift.integrity.penaltyId" = "ID de la sanción";
 "native.swift.integrity.postCommentId" = "ID de la publicación o comentario {id}";
 "native.swift.integrity.postId" = "ID de la publicación {id}";
 "native.swift.integrity.reason" = "Motivo";

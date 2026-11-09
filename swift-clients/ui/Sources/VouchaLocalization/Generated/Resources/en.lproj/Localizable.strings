@@ -179,6 +179,7 @@
 "native.authoredPost.unavailable" = "This content is unavailable.";
 "native.authoredPost.viewAppeals" = "View appeals";
 "native.common.done" = "Done";
+"native.common.imagePlacementLimitReached" = "This image has reached the placement limit. Choose another image or remove an existing use and retry.";
 "native.common.ok" = "OK";
 "native.common.relatedArticles.__plural.one" = "{count} related article";
 "native.common.relatedArticles.__plural.other" = "{count} related articles";
@@ -186,6 +187,10 @@
 "native.common.relatedArticlesMore.__plural.other" = "{count}+ related articles";
 "native.common.retry" = "Try Again";
 "native.common.somethingWentWrong" = "Something went wrong";
+"native.communities.automodEstimateSample" = "Estimate sample. Flagged: {sampledFlaggedCount}. Approved: {sampledApprovedCount}.";
+"native.communities.automodSampleSummary" = "Simulation sample. Posts: {sampleCount}. Flagged: {wouldFlagCount}.";
+"native.communities.membershipLimitReached" = "This account has reached its community membership limit. It must leave an existing community before another membership can be added.";
+"native.communities.moderatorLimitReached" = "This community has reached its moderator limit, including owners. Free a moderator slot before promoting another member.";
 "native.copyrightNotices.acceptedDate" = "Accepted {date}";
 "native.copyrightNotices.affectedHostedMaterial" = "Affected hosted material";
 "native.copyrightNotices.affectedPlacementCount.__plural.one" = "{count} affected placement.";
@@ -1090,7 +1095,6 @@
 "native.swift.integrity.penalizedReporters" = "Penalized reporters: {count}";
 "native.swift.integrity.penalizedUsers" = "Penalized users: {count}";
 "native.swift.integrity.penalties" = "Penalties";
-"native.swift.integrity.penaltyId" = "Penalty ID";
 "native.swift.integrity.postCommentId" = "Post or comment ID {id}";
 "native.swift.integrity.postId" = "Post ID {id}";
 "native.swift.integrity.reason" = "Reason";

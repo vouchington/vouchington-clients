@@ -312,9 +312,12 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeAuthoredPostRemoved = new("native.authoredPost.removed");
     public static readonly UiMessageKey NativeAuthoredPostUnavailable = new("native.authoredPost.unavailable");
     public static readonly UiMessageKey NativeAuthoredPostViewAppeals = new("native.authoredPost.viewAppeals");
+    public static readonly UiMessageKey NativeCommonImagePlacementLimitReached = new("native.common.imagePlacementLimitReached");
     public static readonly UiMessageKey NativeCommonRelatedArticles = new("native.common.relatedArticles");
     public static readonly UiMessageKey NativeCommonRelatedArticlesMore = new("native.common.relatedArticlesMore");
     public static readonly UiMessageKey NativeCommonRetry = new("native.common.retry");
+    public static readonly UiMessageKey NativeCommunitiesMembershipLimitReached = new("native.communities.membershipLimitReached");
+    public static readonly UiMessageKey NativeCommunitiesModeratorLimitReached = new("native.communities.moderatorLimitReached");
     public static readonly UiMessageKey NativeCopyrightNoticesAcceptedDate = new("native.copyrightNotices.acceptedDate");
     public static readonly UiMessageKey NativeCopyrightNoticesAffectedHostedMaterial = new("native.copyrightNotices.affectedHostedMaterial");
     public static readonly UiMessageKey NativeCopyrightNoticesAffectedPlacementCount = new("native.copyrightNotices.affectedPlacementCount");
@@ -549,7 +552,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesActivate = new("native.dotnet.csharpCommunities.activate");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesActive = new("native.dotnet.csharpCommunities.active");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAdd = new("native.dotnet.csharpCommunities.add");
-    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAfter = new("native.dotnet.csharpCommunities.after");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAgentPrompts = new("native.dotnet.csharpCommunities.agentPrompts");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAgentSlug = new("native.dotnet.csharpCommunities.agentSlug");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesAiAgents = new("native.dotnet.csharpCommunities.aiAgents");
@@ -631,7 +633,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesRejectedFirstPosts = new("native.dotnet.csharpCommunities.rejectedFirstPosts");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesRemove = new("native.dotnet.csharpCommunities.remove");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesReopen = new("native.dotnet.csharpCommunities.reopen");
-    public static readonly UiMessageKey NativeDotnetCsharpCommunitiesReportId = new("native.dotnet.csharpCommunities.reportId");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesResolve = new("native.dotnet.csharpCommunities.resolve");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesResolveReport = new("native.dotnet.csharpCommunities.resolveReport");
     public static readonly UiMessageKey NativeDotnetCsharpCommunitiesRestrictionId = new("native.dotnet.csharpCommunities.restrictionId");
@@ -1574,7 +1575,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftImportExportVideo = new("native.swift.importExport.video");
     public static readonly UiMessageKey NativeSwiftIntegrityActive = new("native.swift.integrity.active");
     public static readonly UiMessageKey NativeSwiftIntegrityAdministratorMessage = new("native.swift.integrity.administratorMessage");
-    public static readonly UiMessageKey NativeSwiftIntegrityAgentModerationId = new("native.swift.integrity.agentModerationId");
     public static readonly UiMessageKey NativeSwiftIntegrityAll = new("native.swift.integrity.all");
     public static readonly UiMessageKey NativeSwiftIntegrityApplyVotePenalty = new("native.swift.integrity.applyVotePenalty");
     public static readonly UiMessageKey NativeSwiftIntegrityCancel = new("native.swift.integrity.cancel");
@@ -1584,10 +1584,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftIntegrityCreatedBy = new("native.swift.integrity.createdBy");
     public static readonly UiMessageKey NativeSwiftIntegrityDismiss = new("native.swift.integrity.dismiss");
     public static readonly UiMessageKey NativeSwiftIntegrityDismissedResolution = new("native.swift.integrity.dismissedResolution");
-    public static readonly UiMessageKey NativeSwiftIntegrityDomainId = new("native.swift.integrity.domainId");
-    public static readonly UiMessageKey NativeSwiftIntegrityEntityRelationId = new("native.swift.integrity.entityRelationId");
     public static readonly UiMessageKey NativeSwiftIntegrityEvidence = new("native.swift.integrity.evidence");
-    public static readonly UiMessageKey NativeSwiftIntegrityFlagId = new("native.swift.integrity.flagId");
     public static readonly UiMessageKey NativeSwiftIntegrityFlags = new("native.swift.integrity.flags");
     public static readonly UiMessageKey NativeSwiftIntegrityIpCorrelation = new("native.swift.integrity.ipCorrelation");
     public static readonly UiMessageKey NativeSwiftIntegrityLoadMore = new("native.swift.integrity.loadMore");
@@ -1603,9 +1600,7 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftIntegrityPenalizedResolution = new("native.swift.integrity.penalizedResolution");
     public static readonly UiMessageKey NativeSwiftIntegrityPenalizedUsers = new("native.swift.integrity.penalizedUsers");
     public static readonly UiMessageKey NativeSwiftIntegrityPenalties = new("native.swift.integrity.penalties");
-    public static readonly UiMessageKey NativeSwiftIntegrityPenaltyId = new("native.swift.integrity.penaltyId");
     public static readonly UiMessageKey NativeSwiftIntegrityPending = new("native.swift.integrity.pending");
-    public static readonly UiMessageKey NativeSwiftIntegrityPostId = new("native.swift.integrity.postId");
     public static readonly UiMessageKey NativeSwiftIntegrityReason = new("native.swift.integrity.reason");
     public static readonly UiMessageKey NativeSwiftIntegrityReconcile = new("native.swift.integrity.reconcile");
     public static readonly UiMessageKey NativeSwiftIntegrityReconciliationFailed = new("native.swift.integrity.reconciliationFailed");
@@ -1624,8 +1619,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftIntegrityStatus = new("native.swift.integrity.status");
     public static readonly UiMessageKey NativeSwiftIntegritySuspend = new("native.swift.integrity.suspend");
     public static readonly UiMessageKey NativeSwiftIntegritySuspendedResolution = new("native.swift.integrity.suspendedResolution");
-    public static readonly UiMessageKey NativeSwiftIntegrityTopicId = new("native.swift.integrity.topicId");
-    public static readonly UiMessageKey NativeSwiftIntegrityUserId = new("native.swift.integrity.userId");
     public static readonly UiMessageKey NativeSwiftIntegrityVelocitySpike = new("native.swift.integrity.velocitySpike");
     public static readonly UiMessageKey NativeSwiftIntegrityVotePenaltiesTitle = new("native.swift.integrity.votePenaltiesTitle");
     public static readonly UiMessageKey NativeSwiftIntegrityVotingRing = new("native.swift.integrity.votingRing");
@@ -1871,7 +1864,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftReviewDisputesRerunStillProcessing = new("native.swift.reviewDisputes.rerunStillProcessing");
     public static readonly UiMessageKey NativeSwiftReviewDisputesResolution = new("native.swift.reviewDisputes.resolution");
     public static readonly UiMessageKey NativeSwiftReviewDisputesResolved = new("native.swift.reviewDisputes.resolved");
-    public static readonly UiMessageKey NativeSwiftReviewDisputesReviewDispute = new("native.swift.reviewDisputes.reviewDispute");
     public static readonly UiMessageKey NativeSwiftReviewDisputesSave = new("native.swift.reviewDisputes.save");
     public static readonly UiMessageKey NativeSwiftReviewDisputesSignInMessage = new("native.swift.reviewDisputes.signInMessage");
     public static readonly UiMessageKey NativeSwiftReviewDisputesStaffAccessMessage = new("native.swift.reviewDisputes.staffAccessMessage");
@@ -2341,9 +2333,12 @@ public readonly record struct UiMessageKey(string Value)
         NativeAuthoredPostRemoved,
         NativeAuthoredPostUnavailable,
         NativeAuthoredPostViewAppeals,
+        NativeCommonImagePlacementLimitReached,
         NativeCommonRelatedArticles,
         NativeCommonRelatedArticlesMore,
         NativeCommonRetry,
+        NativeCommunitiesMembershipLimitReached,
+        NativeCommunitiesModeratorLimitReached,
         NativeCopyrightNoticesAcceptedDate,
         NativeCopyrightNoticesAffectedHostedMaterial,
         NativeCopyrightNoticesAffectedPlacementCount,
@@ -2578,7 +2573,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesActivate,
         NativeDotnetCsharpCommunitiesActive,
         NativeDotnetCsharpCommunitiesAdd,
-        NativeDotnetCsharpCommunitiesAfter,
         NativeDotnetCsharpCommunitiesAgentPrompts,
         NativeDotnetCsharpCommunitiesAgentSlug,
         NativeDotnetCsharpCommunitiesAiAgents,
@@ -2660,7 +2654,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpCommunitiesRejectedFirstPosts,
         NativeDotnetCsharpCommunitiesRemove,
         NativeDotnetCsharpCommunitiesReopen,
-        NativeDotnetCsharpCommunitiesReportId,
         NativeDotnetCsharpCommunitiesResolve,
         NativeDotnetCsharpCommunitiesResolveReport,
         NativeDotnetCsharpCommunitiesRestrictionId,
@@ -3603,7 +3596,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftImportExportVideo,
         NativeSwiftIntegrityActive,
         NativeSwiftIntegrityAdministratorMessage,
-        NativeSwiftIntegrityAgentModerationId,
         NativeSwiftIntegrityAll,
         NativeSwiftIntegrityApplyVotePenalty,
         NativeSwiftIntegrityCancel,
@@ -3613,10 +3605,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftIntegrityCreatedBy,
         NativeSwiftIntegrityDismiss,
         NativeSwiftIntegrityDismissedResolution,
-        NativeSwiftIntegrityDomainId,
-        NativeSwiftIntegrityEntityRelationId,
         NativeSwiftIntegrityEvidence,
-        NativeSwiftIntegrityFlagId,
         NativeSwiftIntegrityFlags,
         NativeSwiftIntegrityIpCorrelation,
         NativeSwiftIntegrityLoadMore,
@@ -3632,9 +3621,7 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftIntegrityPenalizedResolution,
         NativeSwiftIntegrityPenalizedUsers,
         NativeSwiftIntegrityPenalties,
-        NativeSwiftIntegrityPenaltyId,
         NativeSwiftIntegrityPending,
-        NativeSwiftIntegrityPostId,
         NativeSwiftIntegrityReason,
         NativeSwiftIntegrityReconcile,
         NativeSwiftIntegrityReconciliationFailed,
@@ -3653,8 +3640,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftIntegrityStatus,
         NativeSwiftIntegritySuspend,
         NativeSwiftIntegritySuspendedResolution,
-        NativeSwiftIntegrityTopicId,
-        NativeSwiftIntegrityUserId,
         NativeSwiftIntegrityVelocitySpike,
         NativeSwiftIntegrityVotePenaltiesTitle,
         NativeSwiftIntegrityVotingRing,
@@ -3900,7 +3885,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftReviewDisputesRerunStillProcessing,
         NativeSwiftReviewDisputesResolution,
         NativeSwiftReviewDisputesResolved,
-        NativeSwiftReviewDisputesReviewDispute,
         NativeSwiftReviewDisputesSave,
         NativeSwiftReviewDisputesSignInMessage,
         NativeSwiftReviewDisputesStaffAccessMessage,

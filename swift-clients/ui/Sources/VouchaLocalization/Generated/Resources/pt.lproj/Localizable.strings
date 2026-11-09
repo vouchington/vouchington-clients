@@ -179,6 +179,7 @@
 "native.authoredPost.unavailable" = "Este conteúdo não está disponível.";
 "native.authoredPost.viewAppeals" = "Ver apelações";
 "native.common.done" = "Concluído";
+"native.common.imagePlacementLimitReached" = "Esta imagem atingiu o limite de utilizações. Escolha outra imagem ou remova uma utilização existente e tente novamente.";
 "native.common.ok" = "OK";
 "native.common.relatedArticles.__plural.one" = "{count} artigo relacionado";
 "native.common.relatedArticles.__plural.other" = "{count} artigos relacionados";
@@ -186,6 +187,10 @@
 "native.common.relatedArticlesMore.__plural.other" = "{count}+ artigos relacionados";
 "native.common.retry" = "Tentar novamente";
 "native.common.somethingWentWrong" = "Algo deu errado";
+"native.communities.automodEstimateSample" = "Amostra da estimativa. Sinalizadas: {sampledFlaggedCount}. Aprovadas: {sampledApprovedCount}.";
+"native.communities.automodSampleSummary" = "Amostra da simulação. Publicações: {sampleCount}. Sinalizadas: {wouldFlagCount}.";
+"native.communities.membershipLimitReached" = "Esta conta atingiu o limite de adesões a comunidades. Tem de sair de uma comunidade antes de poder ser adicionada outra adesão.";
+"native.communities.moderatorLimitReached" = "Esta comunidade atingiu o limite de moderadores, incluindo os proprietários. Liberte uma vaga de moderador antes de promover outro membro.";
 "native.copyrightNotices.acceptedDate" = "Aceito em {date}";
 "native.copyrightNotices.affectedHostedMaterial" = "Material hospedado afetado";
 "native.copyrightNotices.affectedPlacementCount.__plural.one" = "{count} posicionamento afetado.";
@@ -1090,7 +1095,6 @@
 "native.swift.integrity.penalizedReporters" = "Denunciantes penalizados: {count}";
 "native.swift.integrity.penalizedUsers" = "Usuários penalizados: {count}";
 "native.swift.integrity.penalties" = "Penalidades";
-"native.swift.integrity.penaltyId" = "ID da penalidade";
 "native.swift.integrity.postCommentId" = "ID da publicação ou comentário {id}";
 "native.swift.integrity.postId" = "ID da publicação {id}";
 "native.swift.integrity.reason" = "Motivo";
