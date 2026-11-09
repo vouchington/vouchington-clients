@@ -25,7 +25,6 @@ final class PostThreadDecodingTests: XCTestCase {
         XCTAssertEqual(descendants.posts["comment-d"]?.placeholderState, "deleted")
         XCTAssertEqual(descendants.posts["comment-d"]?.isCommentPlaceholder, true)
         XCTAssertEqual(descendants.posts["comment-d"]?.contentPresentation(viewerId: nil), .unavailable)
-        XCTAssertEqual(descendants.postsMetrics?["comment-b"]?.count.ancestors, 2)
         XCTAssertEqual(descendants.postElections?["comment-a"]?.votesScoreNet, 8)
         XCTAssertEqual(descendants.electionVotes?["comment-b"]?.choice, .dislike)
         XCTAssertEqual(descendants.markdownToHtml?["comment-a"], "<p>Top-level native comment</p>")

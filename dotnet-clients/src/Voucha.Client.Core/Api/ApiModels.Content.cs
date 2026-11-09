@@ -79,8 +79,7 @@ public sealed record PostHashtag(
 
 public sealed record PostMetricCounts(
     [property: JsonPropertyName("descendants")] int Descendants,
-    [property: JsonPropertyName("children")] int Children = 0,
-    [property: JsonPropertyName("ancestors")] int Ancestors = 0);
+    [property: JsonPropertyName("children")] int Children = 0);
 
 public sealed record PostMetrics(
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,

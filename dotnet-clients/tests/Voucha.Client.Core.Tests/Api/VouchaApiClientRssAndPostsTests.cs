@@ -247,7 +247,6 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("commenter", descendants.Posts["comment-b"].CreatedBy?.Username);
     Assert.True(descendants.Posts["comment-c"].IsAnonymous);
     Assert.NotNull(descendants.Posts["comment-d"].DeletedAt);
-    Assert.Equal(2, descendants.PostsMetrics?["comment-b"].Count.Ancestors);
     Assert.Equal(8, descendants.PostElections?["comment-a"].VotesScoreNet);
     Assert.Equal(ElectionVoteChoice.Dislike, descendants.ElectionVotes?["comment-b"].Choice);
     Assert.Equal("<p>Top-level native comment</p>", descendants.MarkdownToHtml?["comment-a"]);

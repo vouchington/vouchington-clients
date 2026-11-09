@@ -33,7 +33,7 @@ final class NativeCommentThreadPlaceholderTests: XCTestCase {
             let model = NativeCommentThreadNode(post: post)
             let metrics = try JSONDecoder.vouchaFixtureDecoder.decode(
                 PostMetrics.self,
-                from: Data(#"{"count":{"children":42,"descendants":84,"ancestors":1}}"#.utf8)
+                from: Data(#"{"count":{"children":42,"descendants":84}}"#.utf8)
             )
             let view = NativeCommentThreadNodeView(
                 node: model, rootPostId: "root", rootPostType: "discussion", depth: 0,
