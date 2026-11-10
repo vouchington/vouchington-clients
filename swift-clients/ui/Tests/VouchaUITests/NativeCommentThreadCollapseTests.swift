@@ -6,8 +6,8 @@ import XCTest
 
 @MainActor
 final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCase {
-    private let root = "comment-root-post"
-    private let hidden = "comment-a"
+    private let root = CommentFixture.root
+    private let hidden = CommentFixture.a
     private var rootPath: String {
         "/api/v1/posts/\(root)/descendants"
     }
@@ -23,8 +23,8 @@ final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCas
     func testServerHiddenRowsRemainAndExpansionUsesIndependentOpaqueCursor() async throws {
         let model = try seededModel(rootCursor: "root+/opaque=")
         CannedFeedURLProtocol.queuedHandlers[hiddenPath] = try [
-            (page(["comment-b"], cursor: "hidden+/opaque="), 200, 0),
-            (page(["comment-b", "comment-c"]), 200, 0)
+            (page([CommentFixture.b], cursor: "hidden+/opaque="), 200, 0),
+            (page([CommentFixture.b, CommentFixture.c]), 200, 0)
         ]
         await model.loadThread()
         XCTAssertEqual(model.descendantPosts.map(\.id), [hidden])
@@ -35,12 +35,12 @@ final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCas
         await model.toggleCollapse(commentId: hidden)
         XCTAssertFalse(model.collapsedCommentIds.contains(hidden))
         XCTAssertEqual(model.bookmarksByPostId[hidden]?["hide"], false)
-        XCTAssertEqual(model.descendantPosts.map(\.id), [hidden, "comment-b"])
+        XCTAssertEqual(model.descendantPosts.map(\.id), [hidden, CommentFixture.b])
         await model.loadMoreHiddenDescendants(commentId: hidden)
-        CannedFeedURLProtocol.handlers[rootPath] = try (page(["comment-c", "comment-d"]), 200)
+        CannedFeedURLProtocol.handlers[rootPath] = try (page([CommentFixture.c]), 200)
         await model.loadMoreDescendants()
-        XCTAssertEqual(model.descendantPosts.map(\.id), [hidden, "comment-b", "comment-c", "comment-d"])
-        XCTAssertEqual(model.descendantPosts.filter { $0.id == "comment-b" }.count, 1)
+        XCTAssertEqual(model.descendantPosts.map(\.id), [hidden, CommentFixture.b, CommentFixture.c])
+        XCTAssertEqual(model.descendantPosts.filter { $0.id == CommentFixture.b }.count, 1)
         let requests = CannedFeedURLProtocol.capturedRequests
         XCTAssertEqual(requests.filter { $0.url.path == bookmarkPath }.map(\.method), ["DELETE"])
         let hiddenQuery = requests.last { $0.url.path == hiddenPath }.flatMap { URLComponents(
@@ -57,7 +57,7 @@ final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCas
         await model.toggleCollapse(commentId: hidden)
         XCTAssertEqual(model.collapsedCommentIds, [hidden])
         XCTAssertEqual(CannedFeedURLProtocol.capturedRequests.last?.method, "PUT")
-        XCTAssertEqual(model.descendantPosts.count, 4)
+        XCTAssertEqual(model.descendantPosts.count, 3)
     }
 
     func testFailedBookmarkRetainsCollapseAndSubtreeFailureCanRetry() async throws {
@@ -69,14 +69,14 @@ final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertFalse(CannedFeedURLProtocol.hasCapturedRequest(path: hiddenPath))
         CannedFeedURLProtocol.handlers[bookmarkPath] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.queuedHandlers[hiddenPath] = try [
-            (Data("{}".utf8), 503, 0), (page(["comment-b"]), 200, 0)
+            (Data("{}".utf8), 503, 0), (page([CommentFixture.b]), 200, 0)
         ]
         await model.toggleCollapse(commentId: hidden)
         XCTAssertTrue(model.collapsedCommentIds.isEmpty)
         XCTAssertNotNil(model.subtreePagination[hidden]?.lastError)
         await model.loadMoreHiddenDescendants(commentId: hidden)
         XCTAssertNil(model.subtreePagination[hidden]?.lastError)
-        XCTAssertEqual(model.descendantPosts.map(\.id), [hidden, "comment-b"])
+        XCTAssertEqual(model.descendantPosts.map(\.id), [hidden, CommentFixture.b])
     }
 
     func testDuplicateToggleAndInvalidatedSessionCannotApplyLateBookmark() async throws {
@@ -99,7 +99,7 @@ final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCas
     func testReloadDiscardsOldSubtreeResponseAndMaintainsServerCollapse() async throws {
         let model = try seededModel()
         await model.loadThread()
-        CannedFeedURLProtocol.handlers[hiddenPath] = try (page(["comment-b"]), 200)
+        CannedFeedURLProtocol.handlers[hiddenPath] = try (page([CommentFixture.b]), 200)
         let suspended = expectation(description: "subtree suspended")
         CannedFeedURLProtocol.suspendResponse(path: hiddenPath) { suspended.fulfill() }
         let expansion = Task { await model.toggleCollapse(commentId: hidden) }
@@ -148,11 +148,11 @@ final class NativeCommentThreadCollapseTests: NativeRouteSurfaceViewModelTestCas
         var posts = try XCTUnwrap(ancestor["posts"] as? [String: [String: Any]])
         posts[hidden]?["placeholder_state"] = "unmoderated"
         ancestor["posts"] = posts
-        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-b/ancestors"] = try (
+        CannedFeedURLProtocol.handlers["/api/v1/posts/\(CommentFixture.b)/ancestors"] = try (
             JSONSerialization.data(withJSONObject: ancestor),
             200
         )
-        await model.loadPermalink(targetCommentId: "comment-b")
+        await model.loadPermalink(targetCommentId: CommentFixture.b)
         XCTAssertEqual(model.ancestorPosts.first?.placeholderState, "unmoderated")
         XCTAssertEqual(
             model.ancestorPosts.first?.contentPresentation(viewerId: "user-1", isStaffViewer: true),

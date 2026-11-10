@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaFeatures
+import VouchaLocalization
 import XCTest
 
 @MainActor
@@ -34,11 +35,19 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNil(viewModel.actionErrors[reportId])
     }
 
-    func testFailedRunWithoutJudgementIdStopsInsteadOfReadingAgain() async throws {
+    func testFailedRunStopsAndSurfacesLocalizedFailure() async throws {
+        try await assertEndedRun(status: "failed", key: .nativeSwiftModerationReportsAiJudgementRunFailed)
+    }
+
+    func testExpiredRunStopsAndSurfacesLocalizedExpiry() async throws {
+        try await assertEndedRun(status: "expired", key: .nativeSwiftModerationReportsAiJudgementRunExpired)
+    }
+
+    private func assertEndedRun(status: String, key: UiMessageKey) async throws {
         let viewModel = try await loadedStaff(reads: 4)
         stubAdmission(ModerationReportsTestFixtures.judgement)
         CannedFeedURLProtocol.queuedHandlers[runPath(admittedRunId)] = try [
-            (schemaRun(status: "failed", judgementId: nil), 200, 0),
+            (schemaRun(status: status, judgementId: nil), 200, 0),
             (pendingRun, 200, 0)
         ]
 
@@ -46,7 +55,7 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
 
         XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
         XCTAssertEqual(requestCount(method: "GET", path: runPath(admittedRunId)), 1)
-        XCTAssertNil(viewModel.actionErrors[reportId])
+        XCTAssertEqual(viewModel.actionErrors[reportId], .message(key))
     }
 
     func testUnqueuedAdmissionDoesNotReadARun() async throws {

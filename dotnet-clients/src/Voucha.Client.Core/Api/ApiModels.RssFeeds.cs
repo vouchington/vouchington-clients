@@ -108,7 +108,10 @@ public sealed record RssFeedItemsFeedResponse(
     [property: JsonPropertyName("stories")] IReadOnlyDictionary<string, Story>? Stories = null,
     [property: JsonPropertyName("story_member_pages")] IReadOnlyDictionary<string, StoryMemberPage>? StoryMemberPages = null,
     [property: JsonPropertyName("story_post_ids")] IReadOnlyDictionary<string, string>? StoryPostIds = null,
-    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser>? Users = null);
+    [property: JsonPropertyName("users")] IReadOnlyDictionary<string, PublicUser>? Users = null,
+    [property: JsonPropertyName("rss_feed_bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? RssFeedBookmarks = null,
+    [property: JsonPropertyName("rss_feed_item_content_html")] IReadOnlyDictionary<string, string>? RssFeedItemContentHtml = null,
+    [property: JsonPropertyName("rss_feed_item_hacker_news_references")] IReadOnlyDictionary<string, HackerNewsReferences>? RssFeedItemHackerNewsReferences = null);
 
 public sealed record RssFeedUrl(
     [property: JsonPropertyName("url")] Uri Url,

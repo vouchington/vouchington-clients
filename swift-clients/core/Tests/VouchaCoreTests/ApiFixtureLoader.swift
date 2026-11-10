@@ -61,6 +61,11 @@ enum ApiFixtureLoader {
             }
     }
 
+    /// A query parameter the manifest declares for the fixture's request, for cursor-bearing routes.
+    static func queryValue(_ id: String, _ name: String) -> String {
+        manifestEntry(for: id)?.query?[name] ?? ""
+    }
+
     private static func manifestEntry(for id: String) -> ApiFixtureManifestEntry? {
         manifest.first { $0.id == id }
     }

@@ -11,21 +11,28 @@ public sealed partial class CommentThreadViewModelTests
   [Fact]
   public async Task LandedDeletedFixtureRetainsItsPlaceInTheThreadWithoutContent()
   {
-    var response = JsonSerializer.Deserialize<PostThreadResponse>(
+    const string topLevelId = "70000000-0000-7000-8000-000000005401";
+    const string nestedId = "70000000-0000-7000-8000-000000005402";
+    var fixture = JsonSerializer.Deserialize<PostThreadResponse>(
         ApiFixtureLoader.LoadResponse("native.comments.descendants.default"), VouchaApiJson.Options)!;
+    // The producer fixture no longer lands a deleted comment, so tombstone the nested reply here.
+    var deleted = fixture.Posts[nestedId] with { PlaceholderState = "deleted", DeletedAt = DateTimeOffset.UnixEpoch };
+    var response = fixture with
+    {
+      Posts = new Dictionary<string, Post>(fixture.Posts) { [nestedId] = deleted },
+    };
     var root = JsonSerializer.Deserialize<PostResponse>(
         ApiFixtureLoader.LoadResponse("native.comments.post-detail.default"), VouchaApiJson.Options)!;
     var service = new RecordingPostsService { RootResponse = root, DescendantsResponse = response };
     var model = new CommentThreadViewModel(service, root.Post.Id);
     await model.LoadAsync(TestContext.Current.CancellationToken);
-    var deleted = response.Posts["comment-d"];
-    var row = new CommentThreadRow(deleted, 3, false, false);
+    var row = new CommentThreadRow(deleted, 2, false, false);
     Assert.Equal("deleted", deleted.PlaceholderState);
     Assert.Equal("[deleted]", row.LocalizedTitle);
     Assert.Empty(row.Body);
     Assert.Empty(row.Author);
-    Assert.Equal("comment-d", model.Comments.Single(node => node.Id == "comment-a").Children[0].Children[0].Id);
-    Assert.Equal(1, model.DirectReplyCount("comment-a"));
+    Assert.Equal(nestedId, model.Comments.Single(node => node.Id == topLevelId).Children[0].Id);
+    Assert.Equal(1, model.DirectReplyCount(topLevelId));
   }
 
   [Theory]

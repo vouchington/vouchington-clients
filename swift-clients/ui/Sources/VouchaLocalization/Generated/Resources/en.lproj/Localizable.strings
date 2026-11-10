@@ -1299,6 +1299,8 @@
 "native.swift.moderationReports.actionUnavailable" = "This action is not available for this report.";
 "native.swift.moderationReports.actioned" = "Actioned";
 "native.swift.moderationReports.aiJudgement" = "AI judgement: {action}";
+"native.swift.moderationReports.aiJudgementRunExpired" = "AI judgement is taking longer than expected. Check again later.";
+"native.swift.moderationReports.aiJudgementRunFailed" = "AI judgement could not be completed. You can re-run it.";
 "native.swift.moderationReports.aiJudgementUnavailable" = "AI judgement unavailable";
 "native.swift.moderationReports.banEvasionSignal" = "Ban-evasion signal";
 "native.swift.moderationReports.characterLimit" = "{count}/{limit}";

@@ -65,7 +65,7 @@ final class FirstPagePaginationRaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testLateInitialThreadFailureCannotReplaceNewerSuccessfulThread() async throws {
-        let detailPath = "/api/v1/posts/comment-root-post"
+        let detailPath = "/api/v1/posts/\(CommentFixture.root)"
         let descendantsPath = "\(detailPath)/descendants"
         let detail = ApiFixtureLoader.data("native.comments.post-detail.default")
         let descendants = ApiFixtureLoader.data("native.comments.descendants.default")
@@ -81,14 +81,14 @@ final class FirstPagePaginationRaceTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.loadThread()
         await staleLoad.value
 
-        XCTAssertEqual(viewModel.rootPost?.id, "comment-root-post")
+        XCTAssertEqual(viewModel.rootPost?.id, CommentFixture.root)
         XCTAssertTrue(isLoaded(viewModel.threadState))
-        XCTAssertEqual(viewModel.descendantPosts.count, 4)
+        XCTAssertEqual(viewModel.descendantPosts.count, 3)
         XCTAssertNil(viewModel.descendantPagination.lastError)
     }
 
     func testLatePermalinkFailureCannotReplaceNewerPermalink() async throws {
-        let detailPath = "/api/v1/posts/comment-root-post"
+        let detailPath = "/api/v1/posts/\(CommentFixture.root)"
         let descendantsPath = "\(detailPath)/descendants"
         let detail = ApiFixtureLoader.data("native.comments.post-detail.default")
         let descendants = ApiFixtureLoader.data("native.comments.descendants.default")
@@ -97,21 +97,21 @@ final class FirstPagePaginationRaceTests: NativeRouteSurfaceViewModelTestCase {
             (descendants, 200, 0.1),
             (descendants, 200, 0)
         ]
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts/comment-a/ancestors"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts/\(CommentFixture.a)/ancestors"] = [
             (Data(#"{"message":"stale"}"#.utf8), 500, 0.1)
         ]
-        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-b/ancestors"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts/\(CommentFixture.b)/ancestors"] = (
             ApiFixtureLoader.data("native.comments.ancestors.permalink"),
             200
         )
         let viewModel = try makeCommentViewModel()
 
-        let staleLoad = Task { await viewModel.loadPermalink(targetCommentId: "comment-a") }
-        await waitForCapturedRequest(path: "/api/v1/posts/comment-a/ancestors")
-        await viewModel.loadPermalink(targetCommentId: "comment-b")
+        let staleLoad = Task { await viewModel.loadPermalink(targetCommentId: CommentFixture.a) }
+        await waitForCapturedRequest(path: "/api/v1/posts/\(CommentFixture.a)/ancestors")
+        await viewModel.loadPermalink(targetCommentId: CommentFixture.b)
         await staleLoad.value
 
-        XCTAssertEqual(viewModel.focusedCommentId, "comment-b")
+        XCTAssertEqual(viewModel.focusedCommentId, CommentFixture.b)
         XCTAssertTrue(isLoaded(viewModel.threadState))
         XCTAssertTrue(isLoaded(viewModel.ancestorState))
         XCTAssertTrue(isLoaded(viewModel.focusedState))
@@ -137,7 +137,7 @@ final class FirstPagePaginationRaceTests: NativeRouteSurfaceViewModelTestCase {
         let client = try makeClient()
         return NativeCommentThreadViewModel(
             client: client,
-            rootPostId: "comment-root-post",
+            rootPostId: CommentFixture.root,
             currentUserId: "user-1"
         )
     }

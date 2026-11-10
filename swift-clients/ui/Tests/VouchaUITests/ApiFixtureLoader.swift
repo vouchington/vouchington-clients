@@ -76,3 +76,11 @@ private struct ApiFixtureManifestEntry: Decodable {
     let bodyFile: String?
     let consumers: [String]
 }
+
+/// Ids of the shared producer comment-thread fixtures (`native.comments.*`).
+enum CommentFixture {
+    static let root = "70000000-0000-7000-8000-000000005400"
+    static let a = "70000000-0000-7000-8000-000000005401"
+    static let b = "70000000-0000-7000-8000-000000005402"
+    static let c = "70000000-0000-7000-8000-000000005403"
+}

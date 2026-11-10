@@ -1742,6 +1742,8 @@
   <data name="native.swift.moderationReports.actionUnavailable" xml:space="preserve"><value>Esta acción no está disponible para este informe.</value></data>
   <data name="native.swift.moderationReports.actioned" xml:space="preserve"><value>Procesado</value></data>
   <data name="native.swift.moderationReports.aiJudgement" xml:space="preserve"><value>Criterio de IA: {action}</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunExpired" xml:space="preserve"><value>El criterio de IA está tardando más de lo esperado. Vuelve a comprobarlo más tarde.</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunFailed" xml:space="preserve"><value>No se pudo completar el criterio de IA. Puedes volver a ejecutarlo.</value></data>
   <data name="native.swift.moderationReports.clusterSummary" xml:space="preserve"><value>{reports} · {reporters}</value></data>
   <data name="native.swift.moderationReports.confirmBanEvasion" xml:space="preserve"><value>Confirmar evasión de bloqueo</value></data>
   <data name="native.swift.moderationReports.dismiss" xml:space="preserve"><value>Descartar</value></data>

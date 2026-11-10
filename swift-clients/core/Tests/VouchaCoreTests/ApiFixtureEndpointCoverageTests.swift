@@ -342,12 +342,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "swift.integration.rss-feed-items.video": Endpoint.rssFeedItems(mediaType: "video"),
             "swift.integration.rss-feed-items.audio": Endpoint.rssFeedItems(mediaType: "audio"),
             "native.comments.post-detail.default": Endpoint.post(idOrSlug: "comment-root"),
-            "native.comments.descendants.default": Endpoint.postDescendants(
-                postId: "comment-root-post",
-                after: "fixture-root-and-subtree-scoped-cursor",
-                limit: 2
-            ),
-            "native.comments.ancestors.permalink": Endpoint.postAncestors(postId: "comment-b"),
             "native.lists.default": Endpoint.lists(),
             "native.list-items.default": Endpoint.listItems(listId: "list-1"),
             "native.hostname.default": Endpoint.hostname(idOrHostname: "hostname-1"),
@@ -449,7 +443,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(copyrightMediaFixtureEndpoints) { _, replacement in replacement }
         .merging(copyrightNoticesFixtureEndpoints) { _, replacement in replacement }
         .merging(storyFixtureEndpoints) { _, replacement in replacement }
-        .merging(membershipGrantAndAncestorFixtureEndpoints) { _, replacement in replacement }
+        .merging(nativeContentFixtureEndpoints) { _, replacement in replacement }
         .merging(membershipStoreFixtureEndpoints) { _, replacement in replacement }
         .merging(topicClaimFixtureEndpoints) { _, replacement in replacement }
         .merging(nativeSessionFixtureEndpoints) { _, replacement in replacement }

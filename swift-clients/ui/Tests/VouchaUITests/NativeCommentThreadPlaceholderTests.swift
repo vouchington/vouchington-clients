@@ -52,11 +52,7 @@ final class NativeCommentThreadPlaceholderTests: XCTestCase {
     }
 
     func testPlaceholderDescendantKeepsItsVisibleRepliesInTree() throws {
-        let envelope = try JSONDecoder.vouchaFixtureDecoder.decode(
-            PostThreadEnvelope.self,
-            from: ApiFixtureLoader.data("native.comments.descendants.default")
-        )
-        let deleted = try XCTUnwrap(envelope.posts["comment-d"])
+        let deleted = try placeholder("deleted", parent: CommentFixture.root, id: "deleted-comment")
         let child = try placeholder(nil, parent: deleted.id)
         let tree = NativeCommentThreadViewModel.buildTree(posts: [child, deleted])
         XCTAssertEqual(tree.map(\.id), [deleted.id])
@@ -88,14 +84,14 @@ final class NativeCommentThreadPlaceholderTests: XCTestCase {
         await fulfillment(of: [retry], timeout: 2)
     }
 
-    private func placeholder(_ state: String?, parent: String = "root") throws -> Post {
+    private func placeholder(_ state: String?, parent: String = "root", id: String = "unsafe-comment") throws -> Post {
         let envelope = try JSONDecoder.vouchaFixtureDecoder.decode(
             PostThreadEnvelope.self,
             from: ApiFixtureLoader.data("native.comments.descendants.default")
         )
-        let author = try XCTUnwrap(envelope.posts["comment-a"]?.createdBy)
+        let author = try XCTUnwrap(envelope.posts[CommentFixture.a]?.createdBy)
         return Post(
-            id: "unsafe-comment", slug: nil, postType: .comment, title: "Secret title",
+            id: id, slug: nil, postType: .comment, title: "Secret title",
             markdown: "Secret body", html: nil, parentId: parent, rootId: "root",
             createdById: author.id, createdAt: Date(timeIntervalSince1970: 0),
             broadcast: .everyone, privacy: .public, isAnonymous: false, communityId: nil,

@@ -1299,6 +1299,8 @@
 "native.swift.moderationReports.actionUnavailable" = "Esta ação não está disponível para esta denúncia.";
 "native.swift.moderationReports.actioned" = "Processado";
 "native.swift.moderationReports.aiJudgement" = "Avaliação da IA: {action}";
+"native.swift.moderationReports.aiJudgementRunExpired" = "A avaliação da IA está demorando mais do que o esperado. Verifique novamente mais tarde.";
+"native.swift.moderationReports.aiJudgementRunFailed" = "Não foi possível concluir a avaliação da IA. Você pode executá-la novamente.";
 "native.swift.moderationReports.aiJudgementUnavailable" = "Avaliação da IA indisponível";
 "native.swift.moderationReports.banEvasionSignal" = "Sinal de evasão de banimento";
 "native.swift.moderationReports.characterLimit" = "{count}/{limit}";

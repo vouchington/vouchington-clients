@@ -44,6 +44,7 @@ public struct UserProfilePostFeedResponse: Codable, Sendable {
     public let postElections: [String: PostElection]
     public let electionVotes: [String: PostVote]?
     public let markdownToHtml: [String: String]?
+    public let postHackerNewsReferences: [String: HackerNewsReferences]?
 }
 
 public struct UserProfilePostResult: Codable, Identifiable, Sendable {

@@ -264,12 +264,6 @@ internal static partial class ApiFixtureCoverage
     ["native.memberships.plans.default"] = typeof(MembershipPlansResponse),
     ["native.memberships.me.default"] = typeof(JsonElement),
     ["native.memberships.grant.default"] = typeof(GrantMembershipResponse),
-    ["native.comments.post-detail.default"] = typeof(PostResponse),
-    ["native.comments.descendants.default"] = typeof(PostThreadResponse),
-    ["native.comments.ancestors.permalink"] = typeof(PostThreadResponse),
-    ["native.comments.ancestors.bounded.shallow"] = typeof(PostThreadResponse),
-    ["native.comments.ancestors.bounded.deep-initial"] = typeof(PostThreadResponse),
-    ["native.comments.ancestors.bounded.deep-continuation"] = typeof(PostThreadResponse),
     ["native.lists.default"] = typeof(ListsSearchResponse),
     ["native.list-items.default"] = typeof(ListItemsResponse),
     ["native.lists-containing.default"] = typeof(ListsContainingResponse),
@@ -379,7 +373,7 @@ internal static partial class ApiFixtureCoverage
     ["web.admin.valkey.cache-groups.default"] = typeof(CacheGroupsResponse),
     ["web.admin.valkey.caches.clear.default"] = typeof(ClearCacheResponse),
     ["web.admin.valkey.flush.default"] = typeof(FlushValkeyResponse),
-  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures().WithNativeSessionFixtures().WithContractDriftFixtures();
+  }.WithCopyrightMediaFixtures().WithCurrentFixtureTypes().WithTopicClaimFixtures().WithNativeSessionFixtures().WithContractDriftFixtures().WithNativeContentFixtures();
 
   /// <summary>
   /// Per-fixture key paths this client intentionally does not model, with a one-line reason.

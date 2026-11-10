@@ -149,7 +149,7 @@ public sealed partial class ModerationReportsViewModel
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      rowErrors[reportId] = ex.Message;
+      rowErrors[reportId] = RowError(ex);
       OnPropertyChanged(nameof(RowErrors));
       return false;
     }

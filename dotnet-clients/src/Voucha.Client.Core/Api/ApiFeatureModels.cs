@@ -15,7 +15,8 @@ public sealed record FetchPostsRequest(
     string? Sort = "hot",
     string? After = null,
     int Limit = 25,
-    string? SemanticSearchQuery = null);
+    string? SemanticSearchQuery = null,
+    string? TimeRange = null);
 
 public sealed record PostResponse(
     [property: JsonPropertyName("post")] Post Post,
@@ -28,7 +29,8 @@ public sealed record PostResponse(
     [property: JsonPropertyName("election_vote")] ElectionVote? ElectionVote = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>>? Bookmarks = null,
     [property: JsonPropertyName("author_aside")] PostDetailAuthorAside? AuthorAside = null,
-    [property: JsonPropertyName("link_embed")] UrlEmbed? LinkEmbed = null);
+    [property: JsonPropertyName("link_embed")] UrlEmbed? LinkEmbed = null,
+    [property: JsonPropertyName("post_hacker_news_references")] IReadOnlyDictionary<string, HackerNewsReferences>? PostHackerNewsReferences = null);
 
 public sealed record PostMutationResponse(
     [property: JsonPropertyName("post")] Post Post,

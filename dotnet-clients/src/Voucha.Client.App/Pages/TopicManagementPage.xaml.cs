@@ -143,7 +143,7 @@ public partial class TopicManagementPage : ContentPage
       var response = await topicsService.MergeTopicAliasesAsync(topicId, MergeDestinationEntry.Text.Trim()).ConfigureAwait(true);
       StatusLabel.Text = UiCopy.Format(
           UiMessageKey.NativeDotnetCsharpStatusMergedInto,
-          ("id", response.Topic.Id));
+          ("id", response.TopicMerge.DestinationTopicId));
     }).ConfigureAwait(true);
   }
 

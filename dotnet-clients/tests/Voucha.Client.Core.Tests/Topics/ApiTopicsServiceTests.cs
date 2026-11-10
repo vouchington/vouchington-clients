@@ -154,11 +154,16 @@ public sealed class ApiTopicsServiceTests
   private static string TopicMergeJson() =>
       $$"""
       {
-        "topic": {{TopicJson("topic-2", "Destination")}},
         "topic_merge": {
+          "id": "merge-1",
           "source_topic_id": "topic-1",
           "destination_topic_id": "topic-2",
-          "moved_aliases": ["alt"]
+          "status": "queued",
+          "stage": "preflight",
+          "error_code": null,
+          "created_at": "2026-11-01T00:00:00.000Z",
+          "completed_at": null,
+          "status_url": "/api/v1/topics/topic-1/merges/merge-1"
         }
       }
       """;

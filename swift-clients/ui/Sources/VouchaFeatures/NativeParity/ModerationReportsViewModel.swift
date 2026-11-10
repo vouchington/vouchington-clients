@@ -186,6 +186,8 @@ public final class ModerationReportsViewModel {
         switch error {
         case let error as VouchaError:
             .verbatim(String(describing: error))
+        case let ended as ReportJudgementRunEnded:
+            .message(ended.messageKey)
         case AdminWarningValidationError.reasonTooLong:
             .message(.nativeSwiftModerationReportsWarningReasonTooLong)
         case AdminWarningValidationError.publicMessageTooLong:
