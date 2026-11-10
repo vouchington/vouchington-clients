@@ -1061,7 +1061,6 @@
 "native.swift.integrity.active" = "Active";
 "native.swift.integrity.administratorMessage" = "Vote and report integrity tools are available only to administrators.";
 "native.swift.integrity.administratorRequired" = "Administrator required";
-"native.swift.integrity.agentModerationId" = "Agent moderation ID {id}";
 "native.swift.integrity.all" = "All";
 "native.swift.integrity.applyVotePenalty" = "Apply vote penalty";
 "native.swift.integrity.cancel" = "Cancel";
@@ -1070,10 +1069,7 @@
 "native.swift.integrity.created" = "Created";
 "native.swift.integrity.createdBy" = "Created by";
 "native.swift.integrity.dismiss" = "Dismiss";
-"native.swift.integrity.domainId" = "Domain {id}";
-"native.swift.integrity.entityRelationId" = "Entity relation ID {id}";
 "native.swift.integrity.evidence" = "Evidence";
-"native.swift.integrity.flagId" = "Flag ID";
 "native.swift.integrity.flags" = "Flags";
 "native.swift.integrity.ipCorrelation" = "IP correlation";
 "native.swift.integrity.loadFailed" = "Unable to load integrity records.";
@@ -1095,8 +1091,6 @@
 "native.swift.integrity.penalizedReporters" = "Penalized reporters: {count}";
 "native.swift.integrity.penalizedUsers" = "Penalized users: {count}";
 "native.swift.integrity.penalties" = "Penalties";
-"native.swift.integrity.postCommentId" = "Post or comment ID {id}";
-"native.swift.integrity.postId" = "Post ID {id}";
 "native.swift.integrity.reason" = "Reason";
 "native.swift.integrity.reconcile" = "Reload result";
 "native.swift.integrity.reconciliationFailed" = "The result could not be reloaded. Try again.";
@@ -1124,9 +1118,7 @@
 "native.swift.integrity.status" = "Status";
 "native.swift.integrity.suspend" = "Suspend";
 "native.swift.integrity.target" = "Target";
-"native.swift.integrity.topicId" = "Topic {id}";
 "native.swift.integrity.user" = "User";
-"native.swift.integrity.userId" = "User {id}";
 "native.swift.integrity.velocitySpike" = "Vote velocity spike";
 "native.swift.integrity.voteFlagsTitle" = "Vote integrity flags";
 "native.swift.integrity.votePenaltiesTitle" = "Vote integrity penalties";

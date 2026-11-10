@@ -1061,7 +1061,6 @@
 "native.swift.integrity.active" = "Ativas";
 "native.swift.integrity.administratorMessage" = "As ferramentas de integridade de votos e denúncias estão disponíveis apenas para administradores.";
 "native.swift.integrity.administratorRequired" = "Acesso de administrador obrigatório";
-"native.swift.integrity.agentModerationId" = "ID de moderação do agente {id}";
 "native.swift.integrity.all" = "Todas";
 "native.swift.integrity.applyVotePenalty" = "Aplicar penalidade de voto";
 "native.swift.integrity.cancel" = "Cancelar";
@@ -1070,10 +1069,7 @@
 "native.swift.integrity.created" = "Criada em";
 "native.swift.integrity.createdBy" = "Criada por";
 "native.swift.integrity.dismiss" = "Dispensar";
-"native.swift.integrity.domainId" = "Domínio {id}";
-"native.swift.integrity.entityRelationId" = "ID da relação da entidade {id}";
 "native.swift.integrity.evidence" = "Evidências";
-"native.swift.integrity.flagId" = "ID da sinalização";
 "native.swift.integrity.flags" = "Sinalizações";
 "native.swift.integrity.ipCorrelation" = "Correlação de IP";
 "native.swift.integrity.loadFailed" = "Não foi possível carregar os registros de integridade.";
@@ -1095,8 +1091,6 @@
 "native.swift.integrity.penalizedReporters" = "Denunciantes penalizados: {count}";
 "native.swift.integrity.penalizedUsers" = "Usuários penalizados: {count}";
 "native.swift.integrity.penalties" = "Penalidades";
-"native.swift.integrity.postCommentId" = "ID da publicação ou comentário {id}";
-"native.swift.integrity.postId" = "ID da publicação {id}";
 "native.swift.integrity.reason" = "Motivo";
 "native.swift.integrity.reconcile" = "Recarregar resultado";
 "native.swift.integrity.reconciliationFailed" = "Não foi possível recarregar o resultado. Tente novamente.";
@@ -1124,9 +1118,7 @@
 "native.swift.integrity.status" = "Estado";
 "native.swift.integrity.suspend" = "Suspender";
 "native.swift.integrity.target" = "Alvo";
-"native.swift.integrity.topicId" = "Tópico {id}";
 "native.swift.integrity.user" = "Usuário";
-"native.swift.integrity.userId" = "Usuário {id}";
 "native.swift.integrity.velocitySpike" = "Pico de velocidade dos votos";
 "native.swift.integrity.voteFlagsTitle" = "Sinalizações de integridade de votos";
 "native.swift.integrity.votePenaltiesTitle" = "Penalidades de integridade de votos";
