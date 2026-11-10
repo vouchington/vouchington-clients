@@ -41,18 +41,34 @@ public enum FilamentsContractRoot {
         return candidate
     }
 
+    public static func apiContractURL(_ relativePath: String, root: URL) throws -> URL {
+        try dataURL(relativePath, directory: "api-contracts/v1", root: root)
+    }
+
+    public static func apiContractURL(_ relativePath: String) throws -> URL {
+        try apiContractURL(relativePath, root: url(requiredPaths: ["api-contracts/v1"]))
+    }
+
     public static func fixtureURL(_ bodyFile: String, root: URL) throws -> URL {
+        try dataURL(bodyFile, directory: "api-fixtures/v1", root: root)
+    }
+
+    private static func dataURL(_ bodyFile: String, directory: String, root: URL) throws -> URL {
         let components = bodyFile.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
         guard !components.isEmpty, components.allSatisfy(isSafePathComponent) else {
-            throw FilamentsContractRootError.invalidFixturePath(bodyFile)
+            throw directory == "api-fixtures/v1"
+                ? FilamentsContractRootError.invalidFixturePath(bodyFile)
+                : FilamentsContractRootError.invalidContractPath(bodyFile)
         }
 
-        let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
-        let fixture = try requiredURL("api-fixtures/v1/\(bodyFile)", root: root)
+        let fixtureRoot = root.appendingPathComponent(directory, isDirectory: true)
+        let fixture = try requiredURL("\(directory)/\(bodyFile)", root: root)
         let resolvedRoot = fixtureRoot.resolvingSymlinksInPath().standardizedFileURL
         let resolvedFixture = fixture.resolvingSymlinksInPath().standardizedFileURL
         guard isDescendant(resolvedFixture, of: resolvedRoot) else {
-            throw FilamentsContractRootError.invalidFixturePath(bodyFile)
+            throw directory == "api-fixtures/v1"
+                ? FilamentsContractRootError.invalidFixturePath(bodyFile)
+                : FilamentsContractRootError.invalidContractPath(bodyFile)
         }
         return fixture
     }
@@ -91,6 +107,7 @@ public enum FilamentsContractRootError: Error, CustomStringConvertible {
     case invalidRoot(String)
     case missingPath(String)
     case invalidFixturePath(String)
+    case invalidContractPath(String)
     case symbolicLink(String)
 
     public var description: String {
@@ -103,8 +120,10 @@ public enum FilamentsContractRootError: Error, CustomStringConvertible {
             "Filaments contract root is missing required path \(path)."
         case let .invalidFixturePath(path):
             "API fixture bodyFile must be a relative path beneath api-fixtures/v1, got \(path)."
+        case let .invalidContractPath(path):
+            "API contract path must be a relative path beneath api-contracts/v1, got \(path)."
         case let .symbolicLink(path):
-            "API fixture paths must not contain symbolic links, found \(path)."
+            "Filaments contract paths must not contain symbolic links, found \(path)."
         }
     }
 }

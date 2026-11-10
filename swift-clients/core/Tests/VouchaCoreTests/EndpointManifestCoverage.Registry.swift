@@ -32,12 +32,17 @@ enum EndpointManifestCoverage {
 
     private static let fixtureMapEndpoints: [ManifestRegisteredEndpoint] = [
         communityAutomodFixtureEndpoints,
+        communityLimitFixtureEndpoints,
         currentContractFixtureEndpoints,
         entityProvenanceFixtureEndpoints,
         copyrightNoticesFixtureEndpoints,
         topicClaimFixtureEndpoints,
         nativeSessionFixtureEndpoints,
-        contractDriftFixtureEndpoints
+        contractDriftFixtureEndpoints,
+        ApiFixtureEndpointCoverageTests.communityBanFixtureEndpoints,
+        ApiFixtureEndpointCoverageTests.moderationEndpointRegistry.filter { id, _ in
+            id.hasPrefix("native.moderation.topic-claims.") || id.hasPrefix("native.moderation.mod-notes.")
+        }
     ].flatMap { endpoints in
         endpoints.map { id, endpoint in ManifestRegisteredEndpoint(id: id) { endpoint } }
     }

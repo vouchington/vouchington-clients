@@ -40,13 +40,12 @@ final class UserProfileEndpointTests: XCTestCase {
     func testRestrictedProfileFixtureDoesNotExposeLegacyCollectionAggregates() throws {
         let data = ApiFixtureLoader.data("native.users.profile.restricted")
         let response = try makeVouchaDecoder().decode(UserProfileResponse.self, from: data)
-        XCTAssertEqual(response.userMetrics?.bookmarkers?["follow"], 0)
+        XCTAssertEqual(response.userMetrics?.countCapped?["comments"], false)
 
         let root = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let metrics = try XCTUnwrap(root["user_metrics"] as? [String: Any])
-        let bookmarks = try XCTUnwrap(metrics["bookmarks"] as? [String: Any])
-        let follow = try XCTUnwrap(bookmarks["follow"] as? [String: Int])
-        XCTAssertEqual(follow, ["topics": 0, "posts": 0, "users": 0])
+        XCTAssertNil(metrics["bookmarks"])
+        XCTAssertNil(metrics["bookmarkers"])
     }
 
     private func query(_ endpoint: Endpoint) -> [String: String] {

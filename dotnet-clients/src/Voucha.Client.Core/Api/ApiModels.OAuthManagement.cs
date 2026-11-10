@@ -14,7 +14,8 @@ public sealed record ScopeCatalogEntry(
 public sealed record ScopeAudiencePolicy(
     [property: JsonPropertyName("audience")] string Audience,
     [property: JsonPropertyName("accepts_api_keys")] bool AcceptsApiKeys,
-    [property: JsonPropertyName("requires_administrator")] bool RequiresAdministrator);
+    [property: JsonPropertyName("requires_administrator")] bool RequiresAdministrator,
+    [property: JsonPropertyName("requires_moderation_staff")] bool RequiresModerationStaff = false);
 
 [method: JsonConstructor]
 public sealed record ScopeCatalogResponse(

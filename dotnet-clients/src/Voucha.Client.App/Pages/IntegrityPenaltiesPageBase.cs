@@ -113,22 +113,20 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
   private View PenaltyCard(IntegrityPenaltyRow row)
   {
     var content = IntegrityPageViews.CardLines(
-        UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityPenaltyId), row.Id,
-        UiCopy.Format(UiMessageKey.NativeSwiftIntegrityUserId, ("id", row.UserId)),
         UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityReason), LocalizedReason(row.Reason),
         row.SourceFlagId is null ? string.Empty : UiCopy.Localize(UiMessageKey.NativeSwiftIntegritySourceFlag),
-        row.SourceFlagId ?? string.Empty,
+        row.SourceFlagType is { } flagType ? IntegrityPageViews.FlagType(flagType) : string.Empty,
         UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityCreated), UiCopy.FormatDateTime(row.CreatedAt),
-        row.CreatedById is null ? string.Empty : UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityCreatedBy),
-        row.CreatedById ?? string.Empty,
+        UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityCreatedBy),
+        UiCopy.Resolve(row.CreatorLabel),
         row.Multiplier is null ? string.Empty : UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityMultiplier),
         row.Multiplier is null ? string.Empty : UiCopy.FormatPercent((decimal)row.Multiplier.Value),
         UiCopy.Localize(row.RevokedAt is null ? UiMessageKey.NativeSwiftIntegrityActive : UiMessageKey.NativeSwiftIntegrityRevoked),
         row.RevokedAt is null ? string.Empty : UiCopy.FormatDateTime(row.RevokedAt.Value),
-        row.RevokedById is null ? string.Empty : UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityRevokedBy),
-        row.RevokedById ?? string.Empty);
+        row.RevokedAt is null ? string.Empty : UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityRevokedBy),
+        row.RevokedAt is null ? string.Empty : UiCopy.Resolve(row.RevokerLabel));
     content.Children.Insert(2, IntegrityPageViews.Entity(new(
-        UiText.Localized(UiMessageKey.NativeSwiftIntegrityUserId, ("id", row.UserId)),
+        row.UserLabel,
         row.UserId, $"/user/{row.UserId}")));
     if (viewModel.CanRevoke(row.Id) || confirmingId == row.Id)
       content.Children.Add(RevokeButton(row.Id));

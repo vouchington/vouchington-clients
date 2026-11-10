@@ -101,6 +101,7 @@ public sealed partial class CommunityDetailViewModel
         ModerationRows = ModerationRows.Where(row => !dismissedIds.Contains(row.Id)).ToArray();
         Moderation = Moderation.Where(row => !dismissedIds.Contains(row.Id)).ToArray();
         OnPropertyChanged(nameof(ModerationRows));
+        OnPropertyChanged(nameof(ModerationActionRows));
         OnPropertyChanged(nameof(Moderation));
         automodFlagNotice = UiText.Localized(UiMessageKey.ExtractedCommunitiesCommunityAutomodFlagsPanelAutomodFlagDismissed66ee7e46);
       }

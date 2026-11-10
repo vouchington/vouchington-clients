@@ -223,29 +223,15 @@ public sealed partial class VouchaApiEndpointParityTests
   [Fact]
   public void ModerationDisputesDecodeFromProductionStrings()
   {
-    const string Json = """
-        {
-          "disputes": [
-            {
-              "id": "dispute-1",
-              "post_id": "post-1",
-              "status": "resolved",
-              "reason": "I own this content",
-              "created_at": "2026-03-01T11:55:00Z",
-              "updated_at": "2026-03-01T12:00:00Z"
-            }
-          ],
-          "page_info": { "has_next_page": false }
-        }
-        """;
-
-    var response = JsonSerializer.Deserialize<ModerationDisputeListResponse>(Json, VouchaApiJson.Options);
+    var response = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.disputes.default"), VouchaApiJson.Options);
 
     Assert.NotNull(response);
-    Assert.Equal("dispute-1", response.Disputes[0].Id);
+    Assert.Equal("00000000-0000-7000-8000-000000000201", response.Disputes[0].Id);
     Assert.Equal("post-1", response.Disputes[0].PostId);
-    Assert.Equal(ModerationDisputeStatus.Resolved, response.Disputes[0].Status);
-    Assert.Equal("I own this content", response.Disputes[0].Reason);
+    Assert.Equal(ModerationDisputeStatus.Pending, response.Disputes[0].Status);
+    Assert.Equal("other", response.Disputes[0].Reason);
+    Assert.Equal("A disputed review", response.Disputes[0].PostLabel);
   }
 
   public static IEnumerable<object[]> CoreEndpointCases()
@@ -379,7 +365,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("featureFlags", VouchaApiEndpoints.FeatureFlags(), HttpMethod.Get, "/api/v1/feature-flags", Query());
     yield return Case("localization", VouchaApiEndpoints.Localization("dotnet", "en", "common.*,nav.*"), HttpMethod.Get, "/api/v1/localization", Query(("consumer", "dotnet"), ("locales", "en"), ("selectors", "common.*,nav.*")));
     yield return Case("fediverseSearch", VouchaApiEndpoints.FediverseSearch("swift", "peertube,mastodon", "video", 12, "cursor-1"), HttpMethod.Get, "/api/v1/fediverse/search", Query(("q", "swift"), ("providers", "peertube,mastodon"), ("type", "video"), ("limit", "12"), ("after", "cursor-1")));
-    yield return Case("trendingReferralPrograms", VouchaApiEndpoints.TrendingReferralPrograms("cursor-2", 13), HttpMethod.Get, "/api/v1/trending-referral-programs", Query(("limit", "13"), ("after", "cursor-2")));
+    yield return Case("trendingReferralPrograms", VouchaApiEndpoints.TrendingReferralPrograms(13), HttpMethod.Get, "/api/v1/topics", Query(("sort", "link_count"), ("limit", "13")));
     yield return Case("referralLinksFeed", VouchaApiEndpoints.ReferralLinksFeed("any", "cursor-3", 14), HttpMethod.Get, "/api/v1/feeds/referral_links/any", Query(("limit", "14"), ("after", "cursor-3")));
     yield return Case("recommendedTopics", VouchaApiEndpoints.RecommendedTopics("cursor-4", 15, ["rss_feed", "spending_category"], "score", true, false), HttpMethod.Get, "/api/v1/recommended-topics", Query(("limit", "15"), ("after", "cursor-4"), ("topic_types", "rss_feed,spending_category"), ("sort", "score"), ("spending_category", "true"), ("rss_feed", "false")));
     yield return Case("topicRecommendations", VouchaApiEndpoints.TopicRecommendations("cursor-5", 16), HttpMethod.Get, "/api/v1/topic-recommendations", Query(("limit", "16"), ("after", "cursor-5")));

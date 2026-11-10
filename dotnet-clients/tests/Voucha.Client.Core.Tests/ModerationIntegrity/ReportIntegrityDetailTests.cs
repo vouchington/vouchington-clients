@@ -11,7 +11,7 @@ namespace Voucha.Client.Core.Tests.ModerationIntegrity;
 public sealed class ReportIntegrityDetailTests
 {
   [Fact]
-  public async Task DetailReadsReporterIdsWithoutReplacingSummaryQueue()
+  public async Task DetailRetainsReporterIdsAsTransportFactsWithoutPresentingThem()
   {
     var summary = JsonSerializer.Deserialize<ReportIntegrityFlagsResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.report-integrity.default"), VouchaApiJson.Options)!;
@@ -35,8 +35,9 @@ public sealed class ReportIntegrityDetailTests
     var opened = await viewModel.FetchDetailAsync(detail.Flag.Id, TestContext.Current.CancellationToken);
 
     Assert.Equal([detail.Flag.Id], reads);
-    Assert.Contains("reporter-1", opened.Evidence);
-    Assert.Contains("reporter-2", opened.Evidence);
+    Assert.DoesNotContain("reporter-1", opened.Evidence);
+    Assert.Contains("reporter-1", opened.Flag.Details["reporter_user_ids"].GetRawText());
+    Assert.DoesNotContain("reporter-2", opened.Evidence);
     Assert.DoesNotContain(viewModel.Items, row => row.Evidence.Contains("reporter_user_ids", StringComparison.Ordinal));
   }
 
@@ -59,7 +60,7 @@ public sealed class ReportIntegrityDetailTests
 
     var refreshed = viewModel.PresentDetail(flag);
     Assert.Contains("ratio: 12,5", refreshed.Evidence);
-    Assert.Contains("reporter-1", refreshed.Evidence);
+    Assert.DoesNotContain("reporter-1", refreshed.Evidence);
   }
 
   [Fact]

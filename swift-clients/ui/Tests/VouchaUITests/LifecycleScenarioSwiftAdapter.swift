@@ -294,13 +294,13 @@ private enum LifecycleScenarioSwiftIntegrityAdapter {
         case .report:
             return try .report(
                 decode(
-                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"reason\":\"reason\",\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\",\"updated_at\":\"2026-01-01T00:00:00.000Z\"}"
+                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"reason\":\"reason\",\"source_flag_type\":null,\"user_display_name\":null,\"user_username\":null,\"creator_display_name\":null,\"creator_username\":null,\"revoker_display_name\":null,\"revoker_username\":null,\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\",\"updated_at\":\"2026-01-01T00:00:00.000Z\"}"
                 )
             )
         case .vote:
             return try .vote(
                 decode(
-                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"penalty_multiplier\":0.5,\"reason\":\"reason\",\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\"}"
+                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"penalty_multiplier\":0.5,\"reason\":\"reason\",\"source_flag_type\":null,\"user_display_name\":null,\"user_username\":null,\"creator_display_name\":null,\"creator_username\":null,\"revoker_display_name\":null,\"revoker_username\":null,\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\"}"
                 )
             )
         }

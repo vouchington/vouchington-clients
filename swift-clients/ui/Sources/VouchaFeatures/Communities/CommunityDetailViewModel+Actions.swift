@@ -9,7 +9,8 @@ extension CommunityDetailViewModel {
         guard !userId.isEmpty else { return }
         await perform(
             .updateCommunityMemberRole(idOrSlug: slug, userId: userId, role: role),
-            success: UiMessage(.nativeSwiftCommunityStatusUpdatedMember)
+            success: UiMessage(.nativeSwiftCommunityStatusUpdatedMember),
+            limit: .moderator
         )
     }
 
@@ -27,7 +28,8 @@ extension CommunityDetailViewModel {
         guard !userId.isEmpty else { return }
         await perform(
             .transferCommunityOwnership(idOrSlug: slug, userId: userId),
-            success: UiMessage(.nativeSwiftCommunityStatusTransferredOwnership)
+            success: UiMessage(.nativeSwiftCommunityStatusTransferredOwnership),
+            limit: .moderator
         )
     }
 
@@ -63,7 +65,8 @@ extension CommunityDetailViewModel {
         guard canReviewApplication(applicationId) else { return }
         await perform(
             .approveCommunityApplication(idOrSlug: slug, applicationId: applicationId),
-            success: UiMessage(.nativeSwiftCommunityStatusApprovedApplication)
+            success: UiMessage(.nativeSwiftCommunityStatusApprovedApplication),
+            limit: .membership
         )
     }
 

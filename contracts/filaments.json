@@ -4,6 +4,7 @@
   "ref": "main",
   "paths": [
     "api-fixtures/v1",
+    "api-contracts/v1",
     "swift-clients/ui/Sources/VouchaLocalization/Generated",
     "dotnet-clients/src/Voucha.Client.Core/Localization/Generated"
   ]

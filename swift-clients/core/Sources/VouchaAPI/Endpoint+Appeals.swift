@@ -123,4 +123,8 @@ public extension Endpoint {
     static func appealResolutionDrafts(id: String) -> Endpoint {
         Endpoint(.POST, path: "/api/v1/appeals/\(pathSegment(id))/resolution-drafts")
     }
+
+    static func appealResolutionDraftRun(id: String, runId: String) -> Endpoint {
+        Endpoint(.GET, path: "/api/v1/appeals/\(pathSegment(id))/resolution-drafts/\(pathSegment(runId))")
+    }
 }

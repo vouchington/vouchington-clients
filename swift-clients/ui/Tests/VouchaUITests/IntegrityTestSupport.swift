@@ -2,6 +2,7 @@ import Foundation
 @testable import VouchaAPI
 @testable import VouchaFeatures
 import VouchaModels
+import XCTest
 
 enum IntegrityTestSupport {
     static func reportFlag(
@@ -12,24 +13,16 @@ enum IntegrityTestSupport {
         rssFeedItemId: String? = nil,
         resolution: String? = nil
     ) throws -> ReportIntegrityFlag {
-        try decode("""
-        {
-          "id":"\(id)",
-          "post_id":\(json(postId)),
-          "reported_user_id":\(json(userId)),
-          "hostname_id":\(json(hostnameId)),
-          "rss_feed_item_id":\(json(rssFeedItemId)),
-          "flag_type":"mass_report_suspected",
-          "entity_label":null,"reported_username":null,"resolver_display_name":null,"resolver_username":null,
-          "reporter_count":5,
-          "new_account_reporter_percent":0.6,
-          "details":{"window_minutes":30,"evidence":"captured"},
-          "resolved_at":\(resolution == nil ? "null" : "\"2026-07-01T12:00:00.000Z\""),
-          "resolved_by_id":\(resolution == nil ? "null" : "\"admin-1\""),
-          "resolution":\(json(resolution)),
-          "created_at":"2026-07-01T10:00:00.000Z"
-        }
-        """)
+        try canonicalFlag("report", overrides: [
+            "id": id, "post_id": postId as Any? ?? NSNull(), "reported_user_id": userId as Any? ?? NSNull(),
+            "hostname_id": hostnameId as Any? ?? NSNull(), "rss_feed_item_id": rssFeedItemId as Any? ?? NSNull(),
+            "reporter_count": 5, "new_account_reporter_percent": 0.6,
+            "details": ["window_minutes": 30, "evidence": "captured"],
+            "resolved_at": resolution == nil ? NSNull() : "2026-07-01T12:00:00.000Z" as Any,
+            "resolved_by_id": resolution == nil ? NSNull() : "admin-1" as Any,
+            "resolver_username": NSNull(), "resolver_display_name": NSNull(),
+            "resolution": resolution as Any? ?? NSNull()
+        ])
     }
 
     static func voteFlag(
@@ -40,25 +33,33 @@ enum IntegrityTestSupport {
         rssFeedItemId: String? = nil,
         entityRelationId: String? = nil,
         agentModerationId: String? = nil,
-        resolution: String? = nil
+        resolution: String? = nil,
+        entityLabel: String? = nil
     ) throws -> VoteIntegrityFlag {
-        try decode("""
-        {
-          "id":"\(id)",
-          "post_id":\(json(postId)),
-          "topic_id":\(json(topicId)),
-          "hostname_id":\(json(hostnameId)),
-          "rss_feed_item_id":\(json(rssFeedItemId)),
-          "entity_relation_id":\(json(entityRelationId)),
-          "agent_moderation_id":\(json(agentModerationId)),
-          "flag_type":"velocity_spike",
-          "details":{"vote_count":20,"evidence":"captured"},
-          "resolved_at":\(resolution == nil ? "null" : "\"2026-07-01T12:00:00.000Z\""),
-          "resolved_by_id":\(resolution == nil ? "null" : "\"admin-1\""),
-          "resolution":\(json(resolution)),
-          "created_at":"2026-07-01T10:00:00.000Z"
-        }
-        """)
+        try canonicalFlag("vote", overrides: [
+            "id": id, "post_id": postId as Any? ?? NSNull(), "topic_id": topicId as Any? ?? NSNull(),
+            "hostname_id": hostnameId as Any? ?? NSNull(), "rss_feed_item_id": rssFeedItemId as Any? ?? NSNull(),
+            "entity_relation_id": entityRelationId as Any? ?? NSNull(),
+            "agent_moderation_id": agentModerationId as Any? ?? NSNull(),
+            "details": ["vote_count": 20, "evidence": "captured"],
+            "resolved_at": resolution == nil ? NSNull() : "2026-07-01T12:00:00.000Z" as Any,
+            "resolved_by_id": resolution == nil ? NSNull() : "admin-1" as Any,
+            "resolver_username": NSNull(), "resolver_display_name": NSNull(),
+            "resolution": resolution as Any? ?? NSNull(),
+            "entity_label": entityLabel ?? "Reported post"
+        ])
+    }
+
+    private static func canonicalFlag<Value: Decodable>(
+        _ domain: String, overrides: [String: Any]
+    ) throws -> Value {
+        let data = ApiFixtureLoader.data("native.moderation.\(domain)-integrity.default")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var flag = try XCTUnwrap((object["results"] as? [[String: Any]])?.first)
+        flag.merge(overrides) { _, new in new }
+        return try JSONDecoder.vouchaFixtureDecoder.decode(
+            Value.self, from: JSONSerialization.data(withJSONObject: flag)
+        )
     }
 
     static func reportPage(

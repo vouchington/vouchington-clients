@@ -116,8 +116,11 @@ struct NativeTopicManagementSurface: View {
         case .loading:
             ProgressView()
         case let .error(error):
-            Text(error.localizedDescription)
-                .foregroundStyle(Colors.negativeVote)
+            Text(UiMessages.string(
+                ImagePlacementErrorPresentation.message(for: error) ?? .verbatim(error.localizedDescription),
+                locale: nativeUiLocale
+            ))
+            .foregroundStyle(Colors.negativeVote)
         default:
             if let topic = viewModel.topic {
                 Text(topic.id)

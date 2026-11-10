@@ -14,6 +14,12 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest RerunModerationReportJudgement(string reportId) =>
       new(HttpMethod.Post, $"/api/v1/reports/{Path(reportId)}/judgements");
 
+  public static ApiRequest ModerationReport(string reportId) =>
+      Get($"/api/v1/reports/{Path(reportId)}");
+
+  public static ApiRequest AppealResolutionDraftRun(string appealId, string runId) =>
+      Get($"/api/v1/appeals/{Path(appealId)}/resolution-drafts/{Path(runId)}");
+
   public static ApiRequest ModerationReportJudgementRun(string reportId, string runId) =>
       Get($"/api/v1/reports/{Path(reportId)}/judgements/{Path(runId)}");
 

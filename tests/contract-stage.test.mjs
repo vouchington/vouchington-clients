@@ -19,6 +19,7 @@ async function fixture(t, { legacy = true } = {}) {
   ])
   await writeTree(filamentsRoot, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     ...(legacy
       ? {
           'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
@@ -46,6 +47,10 @@ test('stages every declared legacy contract directory into an isolated root', as
   assert.equal(
     await readFile(join(options.outputRoot, 'api-fixtures/v1/manifest.json'), 'utf8'),
     '{"fixtures":[]}\n',
+  )
+  assert.equal(
+    await readFile(join(options.outputRoot, 'api-contracts/v1/request-contracts.json'), 'utf8'),
+    '{"requests":[]}\n',
   )
   assert.equal(
     await readFile(
@@ -96,6 +101,10 @@ test('prefers the Filaments-owned exporter over legacy localization trees when a
     '{"fixtures":[]}\n',
   )
   assert.equal(
+    await readFile(join(options.outputRoot, 'api-contracts/v1/request-contracts.json'), 'utf8'),
+    '{"requests":[]}\n',
+  )
+  assert.equal(
     await readFile(
       join(
         options.outputRoot,
@@ -144,6 +153,10 @@ test('stages an isolated exporter output tree as data without executing producer
   assert.equal(
     await stageNativeContract({ ...options, exporterOutputRoot }),
     'isolated-exporter-data',
+  )
+  assert.equal(
+    await readFile(join(options.outputRoot, 'api-contracts/v1/request-contracts.json'), 'utf8'),
+    '{"requests":[]}\n',
   )
   assert.equal(
     await readFile(
@@ -304,4 +317,36 @@ test('fails closed for partial legacy trees, symlinks, a nonempty output, and in
     /symbolic link found at staged contract api-fixtures/,
   )
   await assert.rejects(readFile(join(outside, 'v1/manifest.json')), { code: 'ENOENT' })
+})
+
+for (const mode of ['legacy', 'exporter']) {
+  test(`rejects missing and symlinked request contracts in ${mode} staging`, async t => {
+    for (const symlinked of [false, true]) {
+      const options = await fixture(t)
+      const source = join(options.filamentsRoot, 'api-contracts/v1')
+      await rm(source, { recursive: true })
+      if (symlinked) await symlink('../../api-fixtures/v1', source)
+      await assert.rejects(
+        stageNativeContract({
+          ...options,
+          ...(mode === 'exporter' ? { runExporter: async () => {} } : {}),
+        }),
+        symlinked ? /symbolic link/ : /missing directory.*api-contracts\/v1/,
+      )
+    }
+  })
+}
+
+test('rejects request contracts supplied by the localization exporter', async t => {
+  const options = await fixture(t)
+  await assert.rejects(
+    stageNativeContract({
+      ...options,
+      runExporter: async () =>
+        writeTree(options.outputRoot, {
+          'api-contracts/v1/request-contracts.json': 'injected\n',
+        }),
+    }),
+    /unexpected staged contract path api-contracts/,
+  )
 })

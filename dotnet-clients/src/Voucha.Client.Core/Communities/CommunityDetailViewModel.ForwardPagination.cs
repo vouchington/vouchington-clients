@@ -79,7 +79,9 @@ public sealed partial class CommunityDetailViewModel
         communityListEndCursor = invites.PageInfo.EndCursor;
         return true;
       case CommunityDetailSurfaceSection.Bans:
-        var bans = await service.FetchBansPageAsync(community, after, 20, cancellationToken).ConfigureAwait(true);
+        var bans = ActiveBansUserId is { } userId
+            ? await service.FetchActiveBansAsync(community, userId, after, 20, cancellationToken).ConfigureAwait(true)
+            : await service.FetchBansPageAsync(community, after, 20, cancellationToken).ConfigureAwait(true);
         if (!IsCurrentCommunityPage(revision, pageRequest, community, section, threadId)) return true;
         var banRows = bans.Results
             .Select(reference => reference.Id)
@@ -131,6 +133,7 @@ public sealed partial class CommunityDetailViewModel
             queue.Entries.Select(CommunityModerationRow.FromQueueEntry),
             row => row.Id);
         Moderation = AppendUnique(Moderation, ModerationRows.Select(ModerationSummary), row => row.Id);
+        OnPropertyChanged(nameof(ModerationActionRows));
         communityListEndCursor = queue.PageInfo.EndCursor;
         return true;
       default:

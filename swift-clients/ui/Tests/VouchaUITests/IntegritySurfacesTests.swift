@@ -22,22 +22,23 @@ final class IntegritySurfacesTests: XCTestCase {
         ).inspect()
 
         XCTAssertNoThrow(try inspection.find(text: "Suspected mass report abuse"))
-        XCTAssertNoThrow(try inspection.find(text: "report-1"))
+        XCTAssertThrowsError(try inspection.find(text: "report-1"))
         XCTAssertNoThrow(try inspection.find(text: "5"))
         XCTAssertNoThrow(try inspection.find(text: "60%"))
         XCTAssertNoThrow(try inspection.find(text: "Mark penalized"))
-        XCTAssertNoThrow(try inspection.find(text: "admin-1"))
+        XCTAssertThrowsError(try inspection.find(text: "admin-1"))
+        XCTAssertNoThrow(try inspection.find(text: "Not available"))
         XCTAssertNoThrow(try inspection.find(text: "Penalized reporters: 3"))
         XCTAssertThrowsError(try inspection.find(text: "evidence: captured"))
         XCTAssertThrowsError(try inspection.find(text: "window_minutes: 30"))
         XCTAssertNoThrow(try inspection.find(button: "Evidence"))
         XCTAssertThrowsError(try inspection.find(button: "Dismiss"))
 
-        try inspection.find(button: "User user-1").tap()
+        try inspection.find(button: "Reported post").tap()
         XCTAssertEqual(path, "/user/user-1")
     }
 
-    func testReportPostAndRssTargetsStayIdOnly() throws {
+    func testReportPostAndRssTargetsUseProducerLabels() throws {
         let post = try IntegrityTestSupport.reportFlag(id: "post-flag")
         let rss = try IntegrityTestSupport.reportFlag(
             id: "rss-flag",
@@ -48,10 +49,10 @@ final class IntegritySurfacesTests: XCTestCase {
         viewModel.flags = [post, rss]
         let inspection = try ReportIntegritySurface(viewModel: viewModel).inspect()
 
-        XCTAssertNoThrow(try inspection.find(text: "Post or comment ID post-1"))
-        XCTAssertNoThrow(try inspection.find(text: "RSS item ID rss-1"))
-        XCTAssertThrowsError(try inspection.find(button: "Post or comment ID post-1"))
-        XCTAssertThrowsError(try inspection.find(button: "RSS item ID rss-1"))
+        XCTAssertNoThrow(try inspection.find(text: "Reported post"))
+        XCTAssertNoThrow(try inspection.find(text: "Reported post"))
+        XCTAssertThrowsError(try inspection.find(button: "Reported post"))
+        XCTAssertThrowsError(try inspection.find(button: "Reported post"))
     }
 
     func testVoteCardRendersActionsEvidenceAndCanonicalTopicDestination() throws {
@@ -69,7 +70,7 @@ final class IntegritySurfacesTests: XCTestCase {
         ).inspect()
 
         XCTAssertNoThrow(try inspection.find(text: "Vote velocity spike"))
-        XCTAssertNoThrow(try inspection.find(text: "vote-1"))
+        XCTAssertThrowsError(try inspection.find(text: "vote-1"))
         XCTAssertNoThrow(try inspection.find(text: "Pending"))
         XCTAssertNoThrow(try inspection.find(text: "Penalized users: 4"))
         XCTAssertNoThrow(try inspection.find(text: "evidence: captured"))
@@ -78,11 +79,11 @@ final class IntegritySurfacesTests: XCTestCase {
             XCTAssertNoThrow(try inspection.find(button: action))
         }
 
-        try inspection.find(button: "Topic topic-1").tap()
+        try inspection.find(button: "Reported post").tap()
         XCTAssertEqual(path, "/topic/topic-1")
     }
 
-    func testVoteDomainIsCanonicalAndUnknownTypesStayIdOnly() throws {
+    func testVoteDomainIsCanonicalAndUnknownTypesUseProducerLabels() throws {
         let domain = try IntegrityTestSupport.voteFlag(
             id: "domain-flag",
             postId: nil,
@@ -91,7 +92,8 @@ final class IntegritySurfacesTests: XCTestCase {
         let relation = try IntegrityTestSupport.voteFlag(
             id: "relation-flag",
             postId: nil,
-            entityRelationId: "relation-1"
+            entityRelationId: "relation-1",
+            entityLabel: "Related entity"
         )
         let viewModel = VoteIntegrityViewModel(service: nil, viewerTier: .administrator)
         viewModel.flags = [domain, relation]
@@ -101,10 +103,10 @@ final class IntegritySurfacesTests: XCTestCase {
             onNavigate: { path = $0 }
         ).inspect()
 
-        try inspection.find(button: "Domain domain-1").tap()
+        try inspection.find(button: "Reported post").tap()
         XCTAssertEqual(path, "/domain/domain-1")
-        XCTAssertNoThrow(try inspection.find(text: "Entity relation ID relation-1"))
-        XCTAssertThrowsError(try inspection.find(button: "Entity relation ID relation-1"))
+        XCTAssertNoThrow(try inspection.find(text: "Related entity"))
+        XCTAssertThrowsError(try inspection.find(button: "Related entity"))
     }
 
     func testLoadingEmptyInitialAndContinuationErrorsRenderRetryStates() throws {

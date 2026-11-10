@@ -15,7 +15,6 @@ public static class UiMessageDescriptors
         [UiMessageKey.NativeCommonRelatedArticlesMore] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeCopyrightNoticesAffectedPlacementCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeDotnetPostsImageNumber] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
-        [UiMessageKey.NativeDotnetReferralLinksActiveLinks] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeModerationSummaryEvidenceFlaggedCategories] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeModerationSummaryEvidenceSignals] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),
         [UiMessageKey.NativeSwiftModerationReportsPostCount] = new(UiMessageDescriptorKind.Plural, "count", null, ["count"], []),

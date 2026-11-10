@@ -385,8 +385,8 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(5, simulation.Simulation.SampleCount);
     Assert.Equal(1, simulation.Simulation.WouldFlagCount);
     Assert.Equal("record_only", simulation.Simulation.CommunityAutomodAction);
-    Assert.Equal(10, simulation.Simulation.FalsePositiveEstimate!.HistoricalFlaggedCount);
-    Assert.Equal(2, simulation.Simulation.FalsePositiveEstimate.HistoricalApprovedCount);
+    Assert.Equal(10, simulation.Simulation.FalsePositiveEstimate!.SampledFlaggedCount);
+    Assert.Equal(2, simulation.Simulation.FalsePositiveEstimate.SampledApprovedCount);
     Assert.Equal(0.2m, simulation.Simulation.FalsePositiveEstimate.Rate);
     Assert.Equal("community", analytics.Scope.Type);
     Assert.Equal("community-1", analytics.Scope.CommunityId);

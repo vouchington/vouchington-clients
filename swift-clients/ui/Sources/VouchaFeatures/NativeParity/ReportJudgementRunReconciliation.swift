@@ -20,7 +20,7 @@ enum ReportJudgementRunReconciliation {
                 if isCancellation(error) { return }
                 throw error
             }
-            if run.completed || Task.isCancelled { return }
+            if run.status.isTerminal || Task.isCancelled { return }
             if attempt + 1 < maximumReads {
                 do {
                     try await delay()

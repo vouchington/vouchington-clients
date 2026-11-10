@@ -15,13 +15,14 @@ public sealed class ScopeAudiencePolicyContractTests
 
     Assert.Equal(
         [
-            ("user", true, false),
-            ("community_moderation", true, false),
-            ("brand", true, false),
-            ("admin", false, true),
-            ("legal", false, true),
+            ("user", true, false, false),
+            ("community_moderation", true, false, false),
+            ("brand", true, false, false),
+            ("admin", false, false, true),
+            ("legal", false, true, false),
         ],
         catalog.Audiences.Select(policy =>
-            (policy.Audience, policy.AcceptsApiKeys, policy.RequiresAdministrator)).ToArray());
+            (policy.Audience, policy.AcceptsApiKeys, policy.RequiresAdministrator,
+                policy.RequiresModerationStaff)).ToArray());
   }
 }

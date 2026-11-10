@@ -13,8 +13,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
     )
 
     static let registry: [String: Endpoint] = moderationFixtureEndpoints
+        .merging(communityBanFixtureEndpoints) { _, replacement in replacement }
         .merging(entityProvenanceFixtureEndpoints) { _, replacement in replacement }
         .merging(communityAutomodFixtureEndpoints) { _, replacement in replacement }
+        .merging(communityLimitFixtureEndpoints) { _, replacement in replacement }
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
         .merging(contractDriftFixtureEndpoints) { _, replacement in replacement }
@@ -186,7 +188,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.referral-links.feed.default": Endpoint.referralLinksFeed(feedType: "follow_users"),
             "native.referral-links.mine.default": Endpoint.referralLinks(),
             "native.referral-clicks.mine.default": Endpoint.myReferralClicks(),
-            "web.trending-referral-programs.default": Endpoint.trendingReferralPrograms(),
             "web.referral-links.prioritized.default": Endpoint.prioritizedReferralLinks(
                 referralProgramId: "referral-program-1",
                 all: true

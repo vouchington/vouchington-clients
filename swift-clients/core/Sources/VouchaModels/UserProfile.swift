@@ -29,7 +29,7 @@ public struct UserProfileMetrics: Codable, Sendable {
     public let id: String
     public let count: [String: Int]
     public let viewerCount: [String: Int]?
-    public let bookmarkers: [String: Int]?
+    public let countCapped: [String: Bool]?
 
     public func visibleCount(_ key: String) -> Int {
         viewerCount?[key] ?? count[key] ?? 0

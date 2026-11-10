@@ -1,5 +1,6 @@
 #pragma warning disable CA1031
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Images;
 
 namespace Voucha.Client.Core.Settings;
 
@@ -20,7 +21,7 @@ public sealed partial class SettingsViewModel
     }
     catch (Exception ex)
     {
-      ErrorMessage = ex.Message;
+      ErrorMessage = ImagePlacementErrors.Message(ex, localization);
     }
   }
 

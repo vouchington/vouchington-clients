@@ -113,6 +113,18 @@ let moderationAppealLifecycleFixtureCoverage: [RegisteredFixture] = [
             ignoring: moderationAppealResolvedNilFieldIgnores
         )
     },
+    RegisteredFixture(id: "native.moderation.appeals.resolution-draft-run.active") {
+        try assertFixtureCoversDTO($0, as: ModerationAppealDraftRunResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.resolution-draft-run.succeeded") {
+        try assertFixtureCoversDTO($0, as: ModerationAppealDraftRunResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.resolution-draft-run.failed") {
+        try assertFixtureCoversDTO($0, as: ModerationAppealDraftRunResponse.self)
+    },
+    RegisteredFixture(id: "native.moderation.appeals.resolution-draft-run.expired") {
+        try assertFixtureCoversDTO($0, as: ModerationAppealDraftRunResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.appeals.resolution-drafts.default") {
         try assertFixtureCoversDTO($0, as: ModerationAppealQueueResponse.self)
     }

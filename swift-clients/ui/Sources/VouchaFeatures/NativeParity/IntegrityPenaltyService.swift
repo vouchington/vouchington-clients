@@ -34,13 +34,6 @@ enum IntegrityPenaltyRow: Identifiable {
         }
     }
 
-    var createdById: String? {
-        switch self {
-        case let .report(penalty): penalty.createdById
-        case let .vote(penalty): penalty.createdById
-        }
-    }
-
     var createdAt: Date {
         switch self {
         case let .report(penalty): penalty.createdAt

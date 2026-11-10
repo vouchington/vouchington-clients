@@ -18,7 +18,7 @@ public sealed record CommunityModerationQueueEntry(
     [property: JsonPropertyName("report_count")] int ReportCount,
     [property: JsonPropertyName("action_at")] DateTimeOffset ActionAt,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("target_label")] string? TargetLabel,
+    [property: JsonPropertyName("target_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TargetLabel,
     [property: JsonPropertyName("target_path")] string? TargetPath,
     [property: JsonPropertyName("target_available")] bool TargetAvailable,
     [property: JsonPropertyName("target_is_anonymous")] bool TargetIsAnonymous,
@@ -38,7 +38,10 @@ public sealed record CommunityModerationQueueEntry(
     [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank,
     [property: JsonPropertyName("case_id")] string? CaseId = null,
     [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt = null,
-    [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent = null);
+    [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent = null,
+    [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);
 
 public sealed record CommunityModerationQueueResponse(
     [property: JsonPropertyName("entries")] IReadOnlyList<CommunityModerationQueueEntry> Entries,
@@ -105,8 +108,8 @@ public sealed record CommunityAutomodSimulationSummary(
     [property: JsonPropertyName("false_positive_estimate")] CommunityAutomodFalsePositiveEstimate? FalsePositiveEstimate);
 
 public sealed record CommunityAutomodFalsePositiveEstimate(
-    [property: JsonPropertyName("historical_flagged_count")] int HistoricalFlaggedCount,
-    [property: JsonPropertyName("historical_approved_count")] int HistoricalApprovedCount,
+    [property: JsonPropertyName("sampled_flagged_count")] int SampledFlaggedCount,
+    [property: JsonPropertyName("sampled_approved_count")] int SampledApprovedCount,
     [property: JsonPropertyName("rate")] decimal? Rate);
 
 public sealed record CommunityAutomodFeedbackResponse(

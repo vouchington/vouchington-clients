@@ -126,6 +126,15 @@
 "extracted.votes.semanticVote.vote" = "Votar";
 "extracted.votes.semanticVote.vouch" = "Endossar";
 "images.uploadPreviewUnavailable" = "Imagem enviada. Pré-visualização indisponível.";
+"moderation.communityBans.active" = "Ativo";
+"moderation.communityBans.confirmLiftAll" = "Remover todos os banimentos ativos?";
+"moderation.communityBans.confirmLiftAllDescription" = "Isso removerá todos os banimentos ativos de {userLabel} nesta comunidade.";
+"moderation.communityBans.detailLoadFailed" = "Não foi possível carregar os detalhes do banimento";
+"moderation.communityBans.liftAll" = "Remover todos os banimentos";
+"moderation.communityBans.liftAllForbidden" = "Alguns banimentos não podem ser removidos em conjunto. Remova individualmente os que forem permitidos.";
+"moderation.communityBans.liftAllLimit" = "Há mais de {cap} banimentos ativos. Remova-os individualmente.";
+"moderation.communityBans.liftAllLimitUnknown" = "Há banimentos ativos demais. Remova-os individualmente.";
+"moderation.communityBans.liftFailed" = "Não foi possível remover o banimento";
 "native.apiKeys.active" = "Ativa";
 "native.apiKeys.administratorInvalid" = "Esta chave de administrador é inválida. Renove-a por 30 ou 90 dias, ou revogue-a.";
 "native.apiKeys.expired" = "Expirada";
@@ -170,6 +179,7 @@
 "native.authoredPost.unavailable" = "Este conteúdo não está disponível.";
 "native.authoredPost.viewAppeals" = "Ver apelações";
 "native.common.done" = "Concluído";
+"native.common.imagePlacementLimitReached" = "Esta imagem atingiu o limite de utilizações. Escolha outra imagem ou remova uma utilização existente e tente novamente.";
 "native.common.ok" = "OK";
 "native.common.relatedArticles.__plural.one" = "{count} artigo relacionado";
 "native.common.relatedArticles.__plural.other" = "{count} artigos relacionados";
@@ -177,6 +187,10 @@
 "native.common.relatedArticlesMore.__plural.other" = "{count}+ artigos relacionados";
 "native.common.retry" = "Tentar novamente";
 "native.common.somethingWentWrong" = "Algo deu errado";
+"native.communities.automodEstimateSample" = "Amostra da estimativa. Sinalizadas: {sampledFlaggedCount}. Aprovadas: {sampledApprovedCount}.";
+"native.communities.automodSampleSummary" = "Amostra da simulação. Publicações: {sampleCount}. Sinalizadas: {wouldFlagCount}.";
+"native.communities.membershipLimitReached" = "Esta conta atingiu o limite de adesões a comunidades. Tem de sair de uma comunidade antes de poder ser adicionada outra adesão.";
+"native.communities.moderatorLimitReached" = "Esta comunidade atingiu o limite de moderadores, incluindo os proprietários. Liberte uma vaga de moderador antes de promover outro membro.";
 "native.copyrightNotices.acceptedDate" = "Aceito em {date}";
 "native.copyrightNotices.affectedHostedMaterial" = "Material hospedado afetado";
 "native.copyrightNotices.affectedPlacementCount.__plural.one" = "{count} posicionamento afetado.";
@@ -1047,7 +1061,6 @@
 "native.swift.integrity.active" = "Ativas";
 "native.swift.integrity.administratorMessage" = "As ferramentas de integridade de votos e denúncias estão disponíveis apenas para administradores.";
 "native.swift.integrity.administratorRequired" = "Acesso de administrador obrigatório";
-"native.swift.integrity.agentModerationId" = "ID de moderação do agente {id}";
 "native.swift.integrity.all" = "Todas";
 "native.swift.integrity.applyVotePenalty" = "Aplicar penalidade de voto";
 "native.swift.integrity.cancel" = "Cancelar";
@@ -1056,10 +1069,7 @@
 "native.swift.integrity.created" = "Criada em";
 "native.swift.integrity.createdBy" = "Criada por";
 "native.swift.integrity.dismiss" = "Dispensar";
-"native.swift.integrity.domainId" = "Domínio {id}";
-"native.swift.integrity.entityRelationId" = "ID da relação da entidade {id}";
 "native.swift.integrity.evidence" = "Evidências";
-"native.swift.integrity.flagId" = "ID da sinalização";
 "native.swift.integrity.flags" = "Sinalizações";
 "native.swift.integrity.ipCorrelation" = "Correlação de IP";
 "native.swift.integrity.loadFailed" = "Não foi possível carregar os registros de integridade.";
@@ -1081,9 +1091,6 @@
 "native.swift.integrity.penalizedReporters" = "Denunciantes penalizados: {count}";
 "native.swift.integrity.penalizedUsers" = "Usuários penalizados: {count}";
 "native.swift.integrity.penalties" = "Penalidades";
-"native.swift.integrity.penaltyId" = "ID da penalidade";
-"native.swift.integrity.postCommentId" = "ID da publicação ou comentário {id}";
-"native.swift.integrity.postId" = "ID da publicação {id}";
 "native.swift.integrity.reason" = "Motivo";
 "native.swift.integrity.reconcile" = "Recarregar resultado";
 "native.swift.integrity.reconciliationFailed" = "Não foi possível recarregar o resultado. Tente novamente.";
@@ -1111,9 +1118,7 @@
 "native.swift.integrity.status" = "Estado";
 "native.swift.integrity.suspend" = "Suspender";
 "native.swift.integrity.target" = "Alvo";
-"native.swift.integrity.topicId" = "Tópico {id}";
 "native.swift.integrity.user" = "Usuário";
-"native.swift.integrity.userId" = "Usuário {id}";
 "native.swift.integrity.velocitySpike" = "Pico de velocidade dos votos";
 "native.swift.integrity.voteFlagsTitle" = "Sinalizações de integridade de votos";
 "native.swift.integrity.votePenaltiesTitle" = "Penalidades de integridade de votos";

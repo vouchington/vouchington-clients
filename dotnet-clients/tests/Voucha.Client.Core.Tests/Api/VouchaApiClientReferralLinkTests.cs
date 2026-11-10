@@ -117,16 +117,15 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task FetchTrendingReferralProgramsAsyncUsesSharedFixture()
   {
-    var (client, handler) = CreateClient("web.trending-referral-programs.default");
+    var (client, handler) = CreateClient("web.topics.link-count.default");
 
     var response = await client.FetchTrendingReferralProgramsAsync(
         new FetchTrendingReferralProgramsRequest(),
         TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/trending-referral-programs?limit=10");
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?limit=5&sort=link_count");
     Assert.Equal("referral-program-1", response.Results[0].Id);
-    Assert.Equal(9, response.Results[0].TrendingScore);
-    Assert.Equal(2, response.Results[0].LinkCount);
+    Assert.Equal("Test Referral Program", response.Topics["referral-program-1"].Name);
   }
 
   [Fact]

@@ -135,7 +135,12 @@ public sealed partial class ReferralLinksViewModel : ObservableObject, IDisposab
           var response = await referralLinksService
               .FetchTrendingProgramsAsync(new FetchTrendingReferralProgramsRequest(), cancellationToken)
               .ConfigureAwait(true);
-          CompleteReferralRows(currentRequest, response.Results.Select(RowFromTrendingProgram).ToArray());
+          CompleteReferralRows(
+              currentRequest,
+              response.Results
+                  .Where(result => result.Id is not null)
+                  .Select(result => RowFromTrendingProgram(result.Id!, result.Name))
+                  .ToArray());
         },
         () => CompleteCanceled(currentRequest),
         message => CompleteError(currentRequest, message)).ConfigureAwait(true);

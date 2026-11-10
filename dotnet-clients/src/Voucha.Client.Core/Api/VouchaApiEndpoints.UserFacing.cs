@@ -22,8 +22,8 @@ public static partial class VouchaApiEndpoints
           "/api/v1/fediverse/search",
           Query(("q", query), ("providers", providers), ("type", type), ("limit", limit), ("after", after)));
 
-  public static ApiRequest TrendingReferralPrograms(string? after = null, int limit = 10) =>
-      Get("/api/v1/trending-referral-programs", Query(("limit", limit), ("after", after)));
+  public static ApiRequest TrendingReferralPrograms(int limit = 5) =>
+      Get("/api/v1/topics", Query(("sort", "link_count"), ("limit", limit)));
 
   public static ApiRequest ReferralLinksFeed(string feedType, string? after = null, int limit = 25) =>
       Get($"/api/v1/feeds/referral_links/{Path(feedType)}", Query(("limit", limit), ("after", after)));

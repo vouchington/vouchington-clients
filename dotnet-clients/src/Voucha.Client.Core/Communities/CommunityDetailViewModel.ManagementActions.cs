@@ -34,9 +34,6 @@ public sealed partial class CommunityDetailViewModel
   public Task<bool> BanAsync(string userId, string? reason = null, DateTimeOffset? expiresAt = null, CancellationToken cancellationToken = default) =>
       MutateAndReloadSectionAsync(() => service.BanAsync(communityIdOrSlug, new BanCommunityMemberRequest(userId, reason, expiresAt), cancellationToken), cancellationToken);
 
-  public Task<bool> LiftBanAsync(string userId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.LiftBanAsync(communityIdOrSlug, userId, cancellationToken), cancellationToken);
-
   public Task<bool> ActivateRestrictionsAsync(
       IReadOnlyList<string> restrictionTypes,
       DateTimeOffset? expiresAt = null,

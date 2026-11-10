@@ -37,7 +37,8 @@ struct CommunityAgentAndAutomodControls: View {
 
 extension CommunityAgentAndAutomodControls {
     var body: some View {
-        @Bindable var prompts = viewModel.agentPromptWorkspace
+        @Bindable
+        var prompts = viewModel.agentPromptWorkspace
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(UiMessages.string(.nativeSwiftCommunitiesAiAgentsAndAutomod, locale: nativeUiLocale))
                 .font(Typography.headline)
@@ -167,6 +168,9 @@ extension CommunityAgentAndAutomodControls {
                             )
                         }
                     }
+                }
+                if let result = viewModel.automodSimulation {
+                    CommunityAutomodSimulationSummary(result: result)
                 }
             }
         }

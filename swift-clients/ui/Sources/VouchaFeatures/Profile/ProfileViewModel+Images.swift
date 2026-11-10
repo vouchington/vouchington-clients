@@ -38,9 +38,12 @@ extension ProfileViewModel {
             avatarUploadErrorMessage = .app(error.message)
         } catch {
             guard generation == avatarUploadGeneration else { return }
-            avatarPreviewData = nil
-            avatarPreviewDecodeFailed = false
-            avatarUploadErrorMessage = .verbatim(error.localizedDescription)
+            if ImagePlacementErrorPresentation.message(for: error) == nil {
+                avatarPreviewData = nil
+                avatarPreviewDecodeFailed = false
+            }
+            avatarUploadErrorMessage = ImagePlacementErrorPresentation.message(for: error)
+                ?? .verbatim(error.localizedDescription)
         }
     }
 
@@ -61,7 +64,8 @@ extension ProfileViewModel {
             identity = response.identity.withProfileImageId(nil)
         } catch {
             guard generation == avatarUploadGeneration else { return }
-            avatarUploadErrorMessage = .verbatim(error.localizedDescription)
+            avatarUploadErrorMessage = ImagePlacementErrorPresentation.message(for: error)
+                ?? .verbatim(error.localizedDescription)
         }
     }
 

@@ -1,4 +1,3 @@
-using System.Globalization;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 
@@ -69,38 +68,6 @@ public abstract partial class CommunitySectionPage
         var committed = await viewModel.CreateAgentPromptAsync(submitted, OptionalText(modelName), OptionalText(modelProvider), ct).ConfigureAwait(true);
         if (committed && prompt.Text == submitted) prompt.Text = string.Empty;
       });
-
-  private View BuildModerationActions()
-  {
-    var after = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesAfter);
-    var limit = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesLimit, UiText.Verbatim("25"));
-    var postId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPostId);
-    var userId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesUserId);
-    var reason = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReason);
-    var reportId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReportId);
-    var status = TextField(UiMessageKey.NativeDotnetResidualStatus, UiText.Verbatim("reviewed"));
-    return new VerticalStackLayout
-    {
-      Spacing = 8,
-      Children =
-      {
-        new HorizontalStackLayout { Spacing = 8, Children = { after, limit, ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesRecentActions).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.LoadAutomodRecentActionsAsync(OptionalText(after), int.TryParse(limit.Text, out var parsedLimit) ? parsedLimit : 25, cancellationToken: ct)).ConfigureAwait(true)), ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesModerationResults).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(async ct => { await viewModel.LoadModerationResultsAsync(postId.Text ?? string.Empty, ct).ConfigureAwait(true); }).ConfigureAwait(true)) } },
-        new HorizontalStackLayout { Spacing = 8, Children = { postId, userId, reason, reportId, status } },
-        new HorizontalStackLayout
-        {
-          Spacing = 8,
-          Children =
-          {
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesWarn).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.IssueWarningAsync(userId.Text ?? string.Empty, reason.Text ?? string.Empty, reportId: OptionalText(reportId), cancellationToken: ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReviewPost).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ReviewPostAsync(postId.Text ?? string.Empty, status.Text ?? "approved", OptionalText(reason), ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesResolveReport).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ResolveModerationReportAsync(reportId.Text ?? string.Empty, status.Text ?? "reviewed", ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesConfirmEvasion).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ConfirmBanEvasionAsync(userId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesDismissEvasion).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.DismissBanEvasionAsync(userId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
-          },
-        },
-      },
-    };
-  }
 
   private View BuildModmailActions()
   {

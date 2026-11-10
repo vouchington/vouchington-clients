@@ -36,8 +36,8 @@ case "$stage_root/" in
     exit 2
     ;;
 esac
-[[ -d "$producer_root/api-fixtures/v1" && -f "$producer_root/dev/native-localization.mts" ]] || {
-  echo '--producer-root must name a complete Vouchington checkout with fixtures and exporter.' >&2
+[[ -d "$producer_root/api-fixtures/v1" && -d "$producer_root/api-contracts/v1" && -f "$producer_root/dev/native-localization.mts" ]] || {
+  echo '--producer-root must name a complete Vouchington checkout with fixtures, request contracts, and exporter.' >&2
   exit 2
 }
 [[ "$(git -C "$producer_root" rev-parse --show-toplevel 2>/dev/null || true)" == "$producer_root" ]] || {

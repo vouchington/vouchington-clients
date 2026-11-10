@@ -19,12 +19,14 @@ public sealed record ReviewQueueRow(
     bool RequiresReconciliation = false)
 {
   public string Id => Post.Id;
-  public string DisplayTitle => TrimmedText.NonEmpty(Post.Title) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueUntitledPost);
+  public string DisplayTitle => ModerationLabels.Entity(Post.PostLabel, Localization);
   public string UserContentPreview => TrimmedText.NonEmpty(Post.MarkdownPreview) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueNoPreview);
   public AuthoredContentLanguage ContentLanguage => AuthoredContentLanguage.Resolve(Post.DeclaredLanguage, Post.LinguaRsDetectedLanguage);
   public string? TitleFlowDirection => TrimmedText.NonEmpty(Post.Title) is null ? null : ContentLanguage.Direction?.ToString();
   public string? PreviewFlowDirection => TrimmedText.NonEmpty(Post.MarkdownPreview) is null ? null : ContentLanguage.Direction?.ToString();
-  public string Author => TrimmedText.NonEmpty(Post.CreatedById) ?? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueAnonymous);
+  public string Author => Post.CreatedById is null
+      ? Localization.Localize(UiMessageKey.NativeSwiftModerationReportsReviewQueueAnonymous)
+      : ModerationLabels.Person(null, null, Localization);
   public string PostType => Post.PostType;
   public DateTimeOffset CreatedAt => Post.CreatedAt;
   public UiMessageKey DispositionKey => Post.ModerationSummary.Disposition switch
@@ -68,7 +70,7 @@ public sealed record ReviewQueueRow(
       ("count", Post.ModerationSummary.EvidenceSummary.SignalCount));
   public string? RootContext => Post.RootId is null
       ? null
-      : string.Join(" · ", new[] { Post.RootPostType, Post.RootSlug, Post.RootId }.Where(value => !string.IsNullOrWhiteSpace(value)));
+      : string.Join(" · ", new[] { Post.RootPostType, Post.RootSlug }.Where(value => !string.IsNullOrWhiteSpace(value)));
   public bool CanMarkForReReview =>
       ClearanceStatus == AdminReviewQueueClearanceStatus.Rejected && CanAct;
   public bool CanAct => !IsMutating && !RequiresReconciliation;

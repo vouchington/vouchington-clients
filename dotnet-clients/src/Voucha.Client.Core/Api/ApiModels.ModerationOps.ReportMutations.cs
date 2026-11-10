@@ -26,10 +26,6 @@ public sealed record ModerationReportJudgementResponse(
     [property: JsonPropertyName("rerun_by_id")] string RerunById,
     [property: JsonPropertyName("run_id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string RunId);
 
-public sealed record ModerationReportJudgementRunResponse(
-    [property: JsonPropertyName("completed"), JsonRequired] bool Completed,
-    [property: JsonPropertyName("judgement_id"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? JudgementId);
-
 public sealed record AdminUserWarning(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("case_id")] string CaseId,

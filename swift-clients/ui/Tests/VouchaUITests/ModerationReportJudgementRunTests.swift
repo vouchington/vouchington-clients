@@ -19,12 +19,12 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNil(viewModel.actionErrors[reportId])
     }
 
-    func testSchemaCompletedRunStopsBeforeTheBoundWithoutAnotherAdmission() async throws {
+    func testSucceededRunStopsBeforeTheBoundWithoutAnotherAdmission() async throws {
         let viewModel = try await loadedStaff(reads: 4)
         stubAdmission(ModerationReportsTestFixtures.judgement)
         CannedFeedURLProtocol.queuedHandlers[runPath(admittedRunId)] = try [
             (pendingRun, 200, 0),
-            (schemaRun(completed: true, judgementId: "00000000-0000-7000-8000-000000000399"), 200, 0)
+            (schemaRun(status: "succeeded", judgementId: "00000000-0000-7000-8000-000000000399"), 200, 0)
         ]
 
         await viewModel.perform(.rerunJudgement, reportId: reportId)
@@ -34,11 +34,11 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNil(viewModel.actionErrors[reportId])
     }
 
-    func testCompletedRunWithoutJudgementIdStopsInsteadOfReadingAgain() async throws {
+    func testFailedRunWithoutJudgementIdStopsInsteadOfReadingAgain() async throws {
         let viewModel = try await loadedStaff(reads: 4)
         stubAdmission(ModerationReportsTestFixtures.judgement)
         CannedFeedURLProtocol.queuedHandlers[runPath(admittedRunId)] = try [
-            (schemaRun(completed: true, judgementId: nil), 200, 0),
+            (schemaRun(status: "failed", judgementId: nil), 200, 0),
             (pendingRun, 200, 0)
         ]
 
@@ -152,8 +152,8 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    private func schemaRun(completed: Bool, judgementId: String?) throws -> Data {
-        var body: [String: Any] = ["completed": completed]
+    private func schemaRun(status: String, judgementId: String?) throws -> Data {
+        var body: [String: Any] = ["status": status, "run_id": admittedRunId]
         if let judgementId {
             body["judgement_id"] = judgementId
         } else {

@@ -27,7 +27,7 @@ struct StaffModerationReportCard: View {
                     .buttonStyle(.plain)
                     .disabled(viewModel.isQueueActionInProgress || viewModel.inFlightReportIds.contains(report.id))
                     reportHeader(
-                        label: report.targetLabel ?? report.entityType,
+                        label: report.targetLabel,
                         status: report.status,
                         path: report.targetPath,
                         locale: nativeUiLocale,
@@ -61,9 +61,23 @@ struct StaffModerationReportCard: View {
                 }
                 Text(UiMessages.string(
                     .nativeSwiftModerationReportsReporter,
-                    parameters: ["reporter": report.reporterUsername ?? report.reporterUserId],
+                    parameters: ["reporter": moderationIdentityLabel(
+                        displayName: report.reporterDisplayName,
+                        username: report.reporterUsername,
+                        locale: nativeUiLocale
+                    )],
                     locale: nativeUiLocale
                 ))
+                if report.reviewedAt != nil {
+                    LabeledContent(
+                        UiMessages.string(.nativeSwiftIntegrityResolvedBy, locale: nativeUiLocale),
+                        value: moderationIdentityLabel(
+                            displayName: report.resolverDisplayName,
+                            username: report.resolverUsername,
+                            locale: nativeUiLocale
+                        )
+                    )
+                }
                 if let note = report.note {
                     Text(UiMessages.string(
                         .nativeSwiftModerationReportsNote,

@@ -2,7 +2,11 @@ import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
-import { declaredFilamentsContractPaths } from './contracts.mjs'
+import {
+  contractDataPaths,
+  declaredFilamentsContractPaths,
+  localizationPaths,
+} from './contracts.mjs'
 import {
   absoluteDirectoryPath,
   assertOnlyDeclaredPaths,
@@ -72,9 +76,9 @@ export async function stageNativeContract(options = {}) {
     emptyOutputRoot(outputRoot),
   ])
   const paths = await loadDeclaredPaths(configurationPath, declaredFilamentsContractPaths)
-  const [fixturePath, ...localizationPaths] = paths
-  if (!(await descendantInfo(filamentsRoot, fixturePath, 'Filaments contract')))
-    fail(`missing directory at Filaments contract/${fixturePath}`)
+  for (const path of contractDataPaths)
+    if (!(await descendantInfo(filamentsRoot, path, 'Filaments contract')))
+      fail(`missing directory at Filaments contract/${path}`)
   const legacyState = await Promise.all(
     localizationPaths.map(path => descendantInfo(filamentsRoot, path, 'Filaments contract')),
   )
@@ -89,7 +93,7 @@ export async function stageNativeContract(options = {}) {
         `isolated exporter output ${path}`,
       )
     }
-    await copyDirectory(filamentsRoot, outputRoot, fixturePath)
+    for (const path of contractDataPaths) await copyDirectory(filamentsRoot, outputRoot, path)
     for (const path of localizationPaths) await copyDirectory(exporterOutputRoot, outputRoot, path)
     await assertOnlyDeclaredPaths(outputRoot, paths)
     return 'isolated-exporter-data'
@@ -103,13 +107,13 @@ export async function stageNativeContract(options = {}) {
     }
     // Validate the exporter's complete output before creating or copying through
     // any exporter-controlled destination ancestor.
-    await assertOnlyDeclaredPaths(outputRoot, paths)
+    await assertOnlyDeclaredPaths(outputRoot, localizationPaths)
     for (const path of localizationPaths) {
       if (!(await descendantInfo(outputRoot, path, 'staged contract')))
         fail(`missing directory at staged contract/${path}`)
       await tree(join(outputRoot, ...contractPathComponents(path)), `staged contract ${path}`)
     }
-    await copyDirectory(filamentsRoot, outputRoot, fixturePath)
+    for (const path of contractDataPaths) await copyDirectory(filamentsRoot, outputRoot, path)
     await assertOnlyDeclaredPaths(outputRoot, paths)
     return 'exporter'
   }

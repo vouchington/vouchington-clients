@@ -30,7 +30,7 @@ internal static class IntegrityFlagPresentation
 
   public static ReportIntegrityRow ReportDetailRow(
       ReportIntegrityFlag flag, IUiLocalization localization) =>
-      ReportRow(flag, localization) with { Evidence = Evidence(flag.Details, localization) };
+      ReportRow(flag, localization);
 
   public static VoteIntegrityRow VoteRow(
       VoteIntegrityFlag flag, IUiLocalization localization) =>
@@ -39,39 +39,43 @@ internal static class IntegrityFlagPresentation
   private static IntegrityEntityTarget ReportEntity(ReportIntegrityFlag flag)
   {
     if (flag.ReportedUserId is { } userId)
-      return Target(UiMessageKey.NativeSwiftIntegrityUserId, userId, $"/user/{userId}");
+      return Target(flag.EntityLabel, userId, $"/user/{userId}");
     if (flag.HostnameId is { } hostnameId)
-      return Target(UiMessageKey.NativeSwiftIntegrityDomainId, hostnameId, $"/domain/{hostnameId}");
-    if (flag.PostId is { } postId) return Target(UiMessageKey.NativeSwiftIntegrityPostId, postId);
+      return Target(flag.EntityLabel, hostnameId, $"/domain/{hostnameId}");
+    if (flag.PostId is { } postId) return Target(flag.EntityLabel, postId);
     if (flag.RssFeedItemId is { } itemId)
-      return Target(UiMessageKey.NativeSwiftIntegrityRssItemId, itemId);
-    return Target(UiMessageKey.NativeSwiftIntegrityFlagId, flag.Id);
+      return Target(flag.EntityLabel, itemId);
+    return Target(flag.EntityLabel, flag.Id);
   }
 
   private static IntegrityEntityTarget VoteEntity(VoteIntegrityFlag flag)
   {
     if (flag.TopicId is { } topicId)
-      return Target(UiMessageKey.NativeSwiftIntegrityTopicId, topicId, $"/topic/{topicId}");
+      return Target(flag.EntityLabel, topicId, $"/topic/{topicId}");
     if (flag.HostnameId is { } hostnameId)
-      return Target(UiMessageKey.NativeSwiftIntegrityDomainId, hostnameId, $"/domain/{hostnameId}");
-    if (flag.PostId is { } postId) return Target(UiMessageKey.NativeSwiftIntegrityPostId, postId);
+      return Target(flag.EntityLabel, hostnameId, $"/domain/{hostnameId}");
+    if (flag.PostId is { } postId) return Target(flag.EntityLabel, postId);
     if (flag.RssFeedItemId is { } itemId)
-      return Target(UiMessageKey.NativeSwiftIntegrityRssItemId, itemId);
+      return Target(flag.EntityLabel, itemId);
     if (flag.EntityRelationId is { } relationId)
-      return Target(UiMessageKey.NativeSwiftIntegrityEntityRelationId, relationId);
+      return Target(flag.EntityLabel, relationId);
     if (flag.AgentModerationId is { } moderationId)
-      return Target(UiMessageKey.NativeSwiftIntegrityAgentModerationId, moderationId);
-    return Target(UiMessageKey.NativeSwiftIntegrityFlagId, flag.Id);
+      return Target(flag.EntityLabel, moderationId);
+    return Target(flag.EntityLabel, flag.Id);
   }
 
-  private static IntegrityEntityTarget Target(UiMessageKey key, string id, string? route = null) =>
-      new(UiText.Localized(key, ("id", id)), id, route);
+  private static UiText EntityLabel(string? label) => string.IsNullOrWhiteSpace(label)
+      ? UiText.Localized(UiMessageKey.NativeDotnetModerationRebasedTargetUnavailable)
+      : UiText.UserContent(label);
+
+  private static IntegrityEntityTarget Target(string? label, string id, string? route = null) =>
+      new(EntityLabel(label), id, route);
 
   private static string Evidence(
       IReadOnlyDictionary<string, JsonElement> details, IUiLocalization localization) =>
       string.Join(
           " · ",
-          details.OrderBy(item => item.Key, StringComparer.Ordinal)
+          details.Where(item => !item.Key.EndsWith("_id", StringComparison.Ordinal) && !item.Key.EndsWith("_ids", StringComparison.Ordinal)).OrderBy(item => item.Key, StringComparer.Ordinal)
               .Select(item => $"{item.Key}: {EvidenceValue(item.Value, localization)}"));
 
   private static string EvidenceValue(JsonElement value, IUiLocalization localization) =>

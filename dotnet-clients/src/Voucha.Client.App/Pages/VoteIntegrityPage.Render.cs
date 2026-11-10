@@ -16,13 +16,13 @@ public sealed partial class VoteIntegrityPage
     var flag = row.Flag;
     var content = IntegrityPageViews.CardLines(
         IntegrityPageViews.FlagType(flag.FlagType),
-        UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityFlagId), flag.Id,
+
         UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityCreated),
         UiCopy.FormatDateTime(flag.CreatedAt),
         string.IsNullOrWhiteSpace(row.Evidence) ? string.Empty :
             UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityEvidence),
         row.Evidence);
-    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedById);
+    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedAt is null ? null : Voucha.Client.Core.Moderation.ModerationLabels.Person(flag.ResolverDisplayName, flag.ResolverUsername, UiCopy.CurrentLocalization));
     content.Children.Insert(1, IntegrityPageViews.Entity(row.Entity));
     if (flag.Resolution is null && flag.ResolvedAt is null) AddActions(content, flag.Id);
     if (viewModel.PenalizedUserCount(flag.Id) is { } count)

@@ -1,8 +1,7 @@
 import Foundation
 
 public struct PublicReviewDispute: Codable, Identifiable, Sendable {
-    @TolerantNullable
-    public var postLabel: String?
+    public let postLabel: String
     public let id: String
     public let postId: String
     public let topicId: String

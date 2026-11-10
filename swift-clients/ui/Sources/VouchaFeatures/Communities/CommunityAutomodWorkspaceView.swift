@@ -67,7 +67,7 @@ struct CommunityAutomodWorkspaceView: View {
                 Button {
                     if let path = entry.targetPath { onNavigate(path) }
                 } label: {
-                    Text(verbatim: UiMessages.string(.userContent(entry.targetLabel ?? entry.entityId), locale: locale))
+                    Text(verbatim: UiMessages.string(.userContent(entry.targetLabel), locale: locale))
                 }
                 .disabled(entry.targetPath == nil || !entry.targetAvailable)
                 .accessibilityIdentifier("community-automod-post-\(entry.id)")

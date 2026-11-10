@@ -336,6 +336,39 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertNoThrow(try sut.inspect().find(ViewType.TextEditor.self))
     }
 
+    func testPlacementConflictPreservesIdentityAndPreviewAndAllowsRetry() async throws {
+        let vm = try makeViewModel()
+        vm.identity = try makeIdentity(profileImageId: "existing-avatar")
+        let file = try makeImageFile(name: "capacity-avatar", extension: "gif", data: Self.validImageData)
+        defer { try? FileManager.default.removeItem(at: file) }
+        try registerImageUploadFlow(
+            imageId: "capacity-avatar",
+            uploadURL: XCTUnwrap(URL(string: "https://upload.example.test/capacity-avatar")),
+            contentType: "image/gif",
+            stateBody: #"{"upload_state":{"id":"capacity-avatar","upload_status":"complete","upload_error":null,"ready":true,"blocked":false}}"#
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            ApiFixtureLoader.data("native.posts.images.placement-limit.conflict"), 409
+        )
+
+        await vm.uploadAvatar(from: file)
+
+        XCTAssertEqual(vm.identity?.profileImageId, "existing-avatar")
+        XCTAssertNotNil(vm.avatarPreviewData)
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertEqual(vm.avatarUploadErrorMessage, .app(UiMessage(.nativeCommonImagePlacementLimitReached)))
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            ApiFixtureLoader.data("swift.my.identity.default"), 200
+        )
+
+        await vm.uploadAvatar(from: file)
+
+        XCTAssertNil(vm.avatarUploadErrorMessage)
+        XCTAssertNil(vm.avatarPreviewData)
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 2)
+    }
+
     private func makeViewModel() throws -> ProfileViewModel {
         let config = AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test-site-key")
         let cookieStorage = HTTPCookieStorage()

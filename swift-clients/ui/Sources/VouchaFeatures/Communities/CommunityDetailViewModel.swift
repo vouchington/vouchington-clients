@@ -66,6 +66,20 @@ final class CommunityDetailViewModel {
         }
     }
 
+    var automodSimulation: CommunityAutomodSimulation?
+    var banHistory: [CommunityBan] = []
+    var activeBans: [CommunityBan] = []
+    var banHistoryCursor: String?
+    var activeBansCursor: String?
+    var banDetail: CommunityBan?
+    var banError: UiMessage?
+    var activeBansUserId = ""
+    var pendingLiftAllUserId: String?
+    var isLoadingBans = false
+    var isLiftingBans = false
+    var banRequestRevision = 0
+    var banDetailRevision = 0
+
     var statusMessage: UiMessage?
     var summary = CommunityWorkspaceSummary()
     var rowPagination = CursorPaginationState<CommunityForwardRow>()

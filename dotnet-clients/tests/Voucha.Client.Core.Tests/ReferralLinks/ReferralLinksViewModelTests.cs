@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Tests.Api;
 using Voucha.Client.Core.ReferralLinks;
 using Voucha.Client.Core.Support;
 using Xunit;
@@ -112,9 +114,8 @@ public sealed partial class ReferralLinksViewModelTests
   {
     var service = new RecordingReferralLinksService
     {
-      TrendingResponse = new TrendingReferralProgramsResponse(
-          [new TrendingReferralProgram("program-1", LinkCount: 4)],
-          new PageInfo(null, false, null)),
+      TrendingResponse = JsonSerializer.Deserialize<TopicSearchResponse>(
+          ApiFixtureLoader.LoadResponse("web.topics.link-count.default"), VouchaApiJson.Options),
     };
     var viewModel = new ReferralLinksViewModel(service);
 
@@ -123,10 +124,10 @@ public sealed partial class ReferralLinksViewModelTests
     Assert.Equal(LoadState.Loaded, viewModel.State);
     Assert.Collection(viewModel.Items, item =>
     {
-      Assert.Equal("program-1", item.Id);
-      Assert.Equal("program-1", item.Title);
+      Assert.Equal("referral-program-1", item.Id);
+      Assert.Equal("Test Referral Program", item.Title);
       Assert.Null(item.Url);
-      Assert.Equal("4 active links", item.Detail);
+      Assert.Equal("Trending referral program", item.Detail);
     });
   }
 
@@ -275,7 +276,7 @@ public sealed partial class ReferralLinksViewModelTests
 
     public IReadOnlyList<ReferralClickLogResponse>? ClickResponses { get; init; }
 
-    public TrendingReferralProgramsResponse? TrendingResponse { get; init; }
+    public TopicSearchResponse? TrendingResponse { get; init; }
 
     public TopicSearchResponse? TopicSearchResponse { get; init; }
 
@@ -369,7 +370,7 @@ public sealed partial class ReferralLinksViewModelTests
       return Task.FromResult(PrioritizedResponse ?? throw new InvalidOperationException("Missing response."));
     }
 
-    public Task<TrendingReferralProgramsResponse> FetchTrendingProgramsAsync(
+    public Task<TopicSearchResponse> FetchTrendingProgramsAsync(
         FetchTrendingReferralProgramsRequest request,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(TrendingResponse ?? throw new InvalidOperationException("Missing response."));

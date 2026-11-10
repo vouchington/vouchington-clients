@@ -46,7 +46,7 @@ public sealed class VoteIntegrityViewModelTests
   }
 
   [Fact]
-  public async Task RemainingVoteEntityKindsStayIdOnly()
+  public async Task VoteEntityKindsRetainFactualLabelsWithoutIdFallbacks()
   {
     var rss = ModerationIntegrityTestService.VoteFlag("rss", postId: null) with
     {
@@ -70,10 +70,10 @@ public sealed class VoteIntegrityViewModelTests
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    Assert.Equal("RSS item ID rss-1", UiLocalization.English.Resolve(viewModel.Items[0].Entity.Label));
-    Assert.Equal("Entity relation ID relation-1", UiLocalization.English.Resolve(viewModel.Items[1].Entity.Label));
-    Assert.Equal("Agent moderation ID agent-1", UiLocalization.English.Resolve(viewModel.Items[2].Entity.Label));
-    Assert.Equal("Flag ID", UiLocalization.English.Resolve(viewModel.Items[3].Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items[0].Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items[1].Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items[2].Entity.Label));
+    Assert.Equal("Reported post", UiLocalization.English.Resolve(viewModel.Items[3].Entity.Label));
     Assert.All(viewModel.Items, row => Assert.Null(row.Entity.Route));
   }
 

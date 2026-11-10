@@ -280,6 +280,15 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Vote</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Vouch</value></data>
   <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Image uploaded. Preview unavailable.</value></data>
+  <data name="moderation.communityBans.active" xml:space="preserve"><value>Active</value></data>
+  <data name="moderation.communityBans.confirmLiftAll" xml:space="preserve"><value>Lift all active bans?</value></data>
+  <data name="moderation.communityBans.confirmLiftAllDescription" xml:space="preserve"><value>This lifts every active ban for {userLabel} in this community.</value></data>
+  <data name="moderation.communityBans.detailLoadFailed" xml:space="preserve"><value>Failed to load ban details</value></data>
+  <data name="moderation.communityBans.liftAll" xml:space="preserve"><value>Lift all bans</value></data>
+  <data name="moderation.communityBans.liftAllForbidden" xml:space="preserve"><value>Some bans cannot be lifted together. Lift permitted bans individually.</value></data>
+  <data name="moderation.communityBans.liftAllLimit" xml:space="preserve"><value>More than {cap} bans are active. Lift bans individually.</value></data>
+  <data name="moderation.communityBans.liftAllLimitUnknown" xml:space="preserve"><value>Too many bans are active. Lift bans individually.</value></data>
+  <data name="moderation.communityBans.liftFailed" xml:space="preserve"><value>Failed to lift ban</value></data>
   <data name="native.apiKeys.active" xml:space="preserve"><value>Active</value></data>
   <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>This administrator key is invalid. Rotate with a 30- or 90-day lifetime, or revoke it.</value></data>
   <data name="native.apiKeys.expired" xml:space="preserve"><value>Expired</value></data>
@@ -300,11 +309,14 @@
   <data name="native.authoredPost.removed" xml:space="preserve"><value>This content was removed by a moderator.</value></data>
   <data name="native.authoredPost.unavailable" xml:space="preserve"><value>This content is unavailable.</value></data>
   <data name="native.authoredPost.viewAppeals" xml:space="preserve"><value>View appeals</value></data>
+  <data name="native.common.imagePlacementLimitReached" xml:space="preserve"><value>This image has reached the placement limit. Choose another image or remove an existing use and retry.</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} related article</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} related articles</value></data>
   <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ related articles</value></data>
   <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ related articles</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Try Again</value></data>
+  <data name="native.communities.membershipLimitReached" xml:space="preserve"><value>This account has reached its community membership limit. It must leave an existing community before another membership can be added.</value></data>
+  <data name="native.communities.moderatorLimitReached" xml:space="preserve"><value>This community has reached its moderator limit, including owners. Free a moderator slot before promoting another member.</value></data>
   <data name="native.copyrightNotices.acceptedDate" xml:space="preserve"><value>Accepted {date}</value></data>
   <data name="native.copyrightNotices.affectedHostedMaterial" xml:space="preserve"><value>Affected hosted material</value></data>
   <data name="native.copyrightNotices.affectedPlacementCount.__plural.one" xml:space="preserve"><value>{count} affected placement.</value></data>
@@ -540,7 +552,6 @@
   <data name="native.dotnet.csharpCommunities.activate" xml:space="preserve"><value>Activate</value></data>
   <data name="native.dotnet.csharpCommunities.active" xml:space="preserve"><value>Active</value></data>
   <data name="native.dotnet.csharpCommunities.add" xml:space="preserve"><value>Add</value></data>
-  <data name="native.dotnet.csharpCommunities.after" xml:space="preserve"><value>After</value></data>
   <data name="native.dotnet.csharpCommunities.agentPrompts" xml:space="preserve"><value>Agent Prompts</value></data>
   <data name="native.dotnet.csharpCommunities.agentSlug" xml:space="preserve"><value>Agent slug</value></data>
   <data name="native.dotnet.csharpCommunities.aiAgents" xml:space="preserve"><value>AI Agents</value></data>
@@ -622,7 +633,6 @@
   <data name="native.dotnet.csharpCommunities.rejectedFirstPosts" xml:space="preserve"><value>{rejected} rejected of {total}</value></data>
   <data name="native.dotnet.csharpCommunities.remove" xml:space="preserve"><value>Remove</value></data>
   <data name="native.dotnet.csharpCommunities.reopen" xml:space="preserve"><value>Reopen</value></data>
-  <data name="native.dotnet.csharpCommunities.reportId" xml:space="preserve"><value>Report ID</value></data>
   <data name="native.dotnet.csharpCommunities.resolve" xml:space="preserve"><value>Resolve</value></data>
   <data name="native.dotnet.csharpCommunities.resolveReport" xml:space="preserve"><value>Resolve report</value></data>
   <data name="native.dotnet.csharpCommunities.restrictionId" xml:space="preserve"><value>Restriction ID</value></data>
@@ -1113,8 +1123,6 @@
   <data name="native.dotnet.profile.uploadAvatar" xml:space="preserve"><value>Upload avatar</value></data>
   <data name="native.dotnet.profile.userSafety" xml:space="preserve"><value>User Safety</value></data>
   <data name="native.dotnet.profile.videos" xml:space="preserve"><value>Videos</value></data>
-  <data name="native.dotnet.referralLinks.activeLinks.__plural.one" xml:space="preserve"><value>{count} active link</value></data>
-  <data name="native.dotnet.referralLinks.activeLinks.__plural.other" xml:space="preserve"><value>{count} active links</value></data>
   <data name="native.dotnet.referralLinks.empty" xml:space="preserve"><value>No referral links loaded</value></data>
   <data name="native.dotnet.referralLinks.emptyDescription" xml:space="preserve"><value>Sign in or refresh after the API is available.</value></data>
   <data name="native.dotnet.referralLinks.inactive" xml:space="preserve"><value>{name} inactive</value></data>
@@ -1569,7 +1577,6 @@
   <data name="native.swift.importExport.video" xml:space="preserve"><value>Video</value></data>
   <data name="native.swift.integrity.active" xml:space="preserve"><value>Active</value></data>
   <data name="native.swift.integrity.administratorMessage" xml:space="preserve"><value>Vote and report integrity tools are available only to administrators.</value></data>
-  <data name="native.swift.integrity.agentModerationId" xml:space="preserve"><value>Agent moderation ID {id}</value></data>
   <data name="native.swift.integrity.all" xml:space="preserve"><value>All</value></data>
   <data name="native.swift.integrity.applyVotePenalty" xml:space="preserve"><value>Apply vote penalty</value></data>
   <data name="native.swift.integrity.cancel" xml:space="preserve"><value>Cancel</value></data>
@@ -1579,10 +1586,7 @@
   <data name="native.swift.integrity.createdBy" xml:space="preserve"><value>Created by</value></data>
   <data name="native.swift.integrity.dismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="native.swift.integrity.dismissedResolution" xml:space="preserve"><value>Dismissed</value></data>
-  <data name="native.swift.integrity.domainId" xml:space="preserve"><value>Domain {id}</value></data>
-  <data name="native.swift.integrity.entityRelationId" xml:space="preserve"><value>Entity relation ID {id}</value></data>
   <data name="native.swift.integrity.evidence" xml:space="preserve"><value>Evidence</value></data>
-  <data name="native.swift.integrity.flagId" xml:space="preserve"><value>Flag ID</value></data>
   <data name="native.swift.integrity.flags" xml:space="preserve"><value>Flags</value></data>
   <data name="native.swift.integrity.ipCorrelation" xml:space="preserve"><value>IP correlation</value></data>
   <data name="native.swift.integrity.loadMore" xml:space="preserve"><value>Load more</value></data>
@@ -1598,9 +1602,7 @@
   <data name="native.swift.integrity.penalizedResolution" xml:space="preserve"><value>Penalized</value></data>
   <data name="native.swift.integrity.penalizedUsers" xml:space="preserve"><value>Penalized users: {count}</value></data>
   <data name="native.swift.integrity.penalties" xml:space="preserve"><value>Penalties</value></data>
-  <data name="native.swift.integrity.penaltyId" xml:space="preserve"><value>Penalty ID</value></data>
   <data name="native.swift.integrity.pending" xml:space="preserve"><value>Pending</value></data>
-  <data name="native.swift.integrity.postId" xml:space="preserve"><value>Post ID {id}</value></data>
   <data name="native.swift.integrity.reason" xml:space="preserve"><value>Reason</value></data>
   <data name="native.swift.integrity.reconcile" xml:space="preserve"><value>Reload result</value></data>
   <data name="native.swift.integrity.reconciliationFailed" xml:space="preserve"><value>The result could not be reloaded. Try again.</value></data>
@@ -1619,8 +1621,6 @@
   <data name="native.swift.integrity.status" xml:space="preserve"><value>Status</value></data>
   <data name="native.swift.integrity.suspend" xml:space="preserve"><value>Suspend</value></data>
   <data name="native.swift.integrity.suspendedResolution" xml:space="preserve"><value>Suspended</value></data>
-  <data name="native.swift.integrity.topicId" xml:space="preserve"><value>Topic {id}</value></data>
-  <data name="native.swift.integrity.userId" xml:space="preserve"><value>User {id}</value></data>
   <data name="native.swift.integrity.velocitySpike" xml:space="preserve"><value>Vote velocity spike</value></data>
   <data name="native.swift.integrity.votePenaltiesTitle" xml:space="preserve"><value>Vote integrity penalties</value></data>
   <data name="native.swift.integrity.votingRing" xml:space="preserve"><value>Voting ring</value></data>
@@ -1871,7 +1871,6 @@
   <data name="native.swift.reviewDisputes.rerunStillProcessing" xml:space="preserve"><value>The AI draft is still processing. Refresh to check again.</value></data>
   <data name="native.swift.reviewDisputes.resolution" xml:space="preserve"><value>Resolution: {action}</value></data>
   <data name="native.swift.reviewDisputes.resolved" xml:space="preserve"><value>Resolved</value></data>
-  <data name="native.swift.reviewDisputes.reviewDispute" xml:space="preserve"><value>Review dispute</value></data>
   <data name="native.swift.reviewDisputes.save" xml:space="preserve"><value>Save</value></data>
   <data name="native.swift.reviewDisputes.signInMessage" xml:space="preserve"><value>Sign in with a staff account to review disputes.</value></data>
   <data name="native.swift.reviewDisputes.staffAccessMessage" xml:space="preserve"><value>Review disputes are available to administrators and site moderators.</value></data>

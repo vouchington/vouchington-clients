@@ -267,7 +267,7 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
         try assertFixtureCoversDTO(
             $0,
             as: CommunityAutomodSimulation.self,
-            ignoring: ["simulation.false_positive_estimate"]
+            ignoring: ["simulation.false_positive_estimate.rate"]
         )
     },
     RegisteredFixture(id: "web.communities.automod-recent-actions.default") {

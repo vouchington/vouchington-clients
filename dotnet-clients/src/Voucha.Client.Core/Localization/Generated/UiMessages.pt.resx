@@ -280,6 +280,15 @@
   <data name="extracted.votes.semanticVote.vote" xml:space="preserve"><value>Votar</value></data>
   <data name="extracted.votes.semanticVote.vouch" xml:space="preserve"><value>Endossar</value></data>
   <data name="images.uploadPreviewUnavailable" xml:space="preserve"><value>Imagem enviada. Pré-visualização indisponível.</value></data>
+  <data name="moderation.communityBans.active" xml:space="preserve"><value>Ativo</value></data>
+  <data name="moderation.communityBans.confirmLiftAll" xml:space="preserve"><value>Remover todos os banimentos ativos?</value></data>
+  <data name="moderation.communityBans.confirmLiftAllDescription" xml:space="preserve"><value>Isso removerá todos os banimentos ativos de {userLabel} nesta comunidade.</value></data>
+  <data name="moderation.communityBans.detailLoadFailed" xml:space="preserve"><value>Não foi possível carregar os detalhes do banimento</value></data>
+  <data name="moderation.communityBans.liftAll" xml:space="preserve"><value>Remover todos os banimentos</value></data>
+  <data name="moderation.communityBans.liftAllForbidden" xml:space="preserve"><value>Alguns banimentos não podem ser removidos em conjunto. Remova individualmente os que forem permitidos.</value></data>
+  <data name="moderation.communityBans.liftAllLimit" xml:space="preserve"><value>Há mais de {cap} banimentos ativos. Remova-os individualmente.</value></data>
+  <data name="moderation.communityBans.liftAllLimitUnknown" xml:space="preserve"><value>Há banimentos ativos demais. Remova-os individualmente.</value></data>
+  <data name="moderation.communityBans.liftFailed" xml:space="preserve"><value>Não foi possível remover o banimento</value></data>
   <data name="native.apiKeys.active" xml:space="preserve"><value>Ativa</value></data>
   <data name="native.apiKeys.administratorInvalid" xml:space="preserve"><value>Esta chave de administrador é inválida. Renove-a por 30 ou 90 dias, ou revogue-a.</value></data>
   <data name="native.apiKeys.expired" xml:space="preserve"><value>Expirada</value></data>
@@ -300,11 +309,14 @@
   <data name="native.authoredPost.removed" xml:space="preserve"><value>Este conteúdo foi removido por um moderador.</value></data>
   <data name="native.authoredPost.unavailable" xml:space="preserve"><value>Este conteúdo não está disponível.</value></data>
   <data name="native.authoredPost.viewAppeals" xml:space="preserve"><value>Ver apelações</value></data>
+  <data name="native.common.imagePlacementLimitReached" xml:space="preserve"><value>Esta imagem atingiu o limite de utilizações. Escolha outra imagem ou remova uma utilização existente e tente novamente.</value></data>
   <data name="native.common.relatedArticles.__plural.one" xml:space="preserve"><value>{count} artigo relacionado</value></data>
   <data name="native.common.relatedArticles.__plural.other" xml:space="preserve"><value>{count} artigos relacionados</value></data>
   <data name="native.common.relatedArticlesMore.__plural.one" xml:space="preserve"><value>{count}+ artigos relacionados</value></data>
   <data name="native.common.relatedArticlesMore.__plural.other" xml:space="preserve"><value>{count}+ artigos relacionados</value></data>
   <data name="native.common.retry" xml:space="preserve"><value>Tentar novamente</value></data>
+  <data name="native.communities.membershipLimitReached" xml:space="preserve"><value>Esta conta atingiu o limite de adesões a comunidades. Tem de sair de uma comunidade antes de poder ser adicionada outra adesão.</value></data>
+  <data name="native.communities.moderatorLimitReached" xml:space="preserve"><value>Esta comunidade atingiu o limite de moderadores, incluindo os proprietários. Liberte uma vaga de moderador antes de promover outro membro.</value></data>
   <data name="native.copyrightNotices.acceptedDate" xml:space="preserve"><value>Aceito em {date}</value></data>
   <data name="native.copyrightNotices.affectedHostedMaterial" xml:space="preserve"><value>Material hospedado afetado</value></data>
   <data name="native.copyrightNotices.affectedPlacementCount.__plural.one" xml:space="preserve"><value>{count} posicionamento afetado.</value></data>
@@ -540,7 +552,6 @@
   <data name="native.dotnet.csharpCommunities.activate" xml:space="preserve"><value>Ativar</value></data>
   <data name="native.dotnet.csharpCommunities.active" xml:space="preserve"><value>Ativo</value></data>
   <data name="native.dotnet.csharpCommunities.add" xml:space="preserve"><value>Adicionar</value></data>
-  <data name="native.dotnet.csharpCommunities.after" xml:space="preserve"><value>Depois de</value></data>
   <data name="native.dotnet.csharpCommunities.agentPrompts" xml:space="preserve"><value>Instruções dos agentes</value></data>
   <data name="native.dotnet.csharpCommunities.agentSlug" xml:space="preserve"><value>Slug do agente</value></data>
   <data name="native.dotnet.csharpCommunities.aiAgents" xml:space="preserve"><value>Agentes de IA</value></data>
@@ -622,7 +633,6 @@
   <data name="native.dotnet.csharpCommunities.rejectedFirstPosts" xml:space="preserve"><value>{rejected} rejeitados de {total}</value></data>
   <data name="native.dotnet.csharpCommunities.remove" xml:space="preserve"><value>Remover</value></data>
   <data name="native.dotnet.csharpCommunities.reopen" xml:space="preserve"><value>Reabrir</value></data>
-  <data name="native.dotnet.csharpCommunities.reportId" xml:space="preserve"><value>ID da denúncia</value></data>
   <data name="native.dotnet.csharpCommunities.resolve" xml:space="preserve"><value>Resolver</value></data>
   <data name="native.dotnet.csharpCommunities.resolveReport" xml:space="preserve"><value>Resolver denúncia</value></data>
   <data name="native.dotnet.csharpCommunities.restrictionId" xml:space="preserve"><value>ID da restrição</value></data>
@@ -1113,8 +1123,6 @@
   <data name="native.dotnet.profile.uploadAvatar" xml:space="preserve"><value>Carregar avatar</value></data>
   <data name="native.dotnet.profile.userSafety" xml:space="preserve"><value>Segurança do utilizador</value></data>
   <data name="native.dotnet.profile.videos" xml:space="preserve"><value>Vídeos</value></data>
-  <data name="native.dotnet.referralLinks.activeLinks.__plural.one" xml:space="preserve"><value>{count} ligação ativa</value></data>
-  <data name="native.dotnet.referralLinks.activeLinks.__plural.other" xml:space="preserve"><value>{count} ligações ativas</value></data>
   <data name="native.dotnet.referralLinks.empty" xml:space="preserve"><value>Não há ligações de referência carregadas</value></data>
   <data name="native.dotnet.referralLinks.emptyDescription" xml:space="preserve"><value>Inicie sessão ou atualize quando a API estiver disponível.</value></data>
   <data name="native.dotnet.referralLinks.inactive" xml:space="preserve"><value>{name} inativo</value></data>
@@ -1569,7 +1577,6 @@
   <data name="native.swift.importExport.video" xml:space="preserve"><value>Vídeo</value></data>
   <data name="native.swift.integrity.active" xml:space="preserve"><value>Ativas</value></data>
   <data name="native.swift.integrity.administratorMessage" xml:space="preserve"><value>As ferramentas de integridade de votos e denúncias estão disponíveis apenas para administradores.</value></data>
-  <data name="native.swift.integrity.agentModerationId" xml:space="preserve"><value>ID de moderação do agente {id}</value></data>
   <data name="native.swift.integrity.all" xml:space="preserve"><value>Todas</value></data>
   <data name="native.swift.integrity.applyVotePenalty" xml:space="preserve"><value>Aplicar penalidade de voto</value></data>
   <data name="native.swift.integrity.cancel" xml:space="preserve"><value>Cancelar</value></data>
@@ -1579,10 +1586,7 @@
   <data name="native.swift.integrity.createdBy" xml:space="preserve"><value>Criada por</value></data>
   <data name="native.swift.integrity.dismiss" xml:space="preserve"><value>Dispensar</value></data>
   <data name="native.swift.integrity.dismissedResolution" xml:space="preserve"><value>Descartado</value></data>
-  <data name="native.swift.integrity.domainId" xml:space="preserve"><value>Domínio {id}</value></data>
-  <data name="native.swift.integrity.entityRelationId" xml:space="preserve"><value>ID da relação da entidade {id}</value></data>
   <data name="native.swift.integrity.evidence" xml:space="preserve"><value>Evidências</value></data>
-  <data name="native.swift.integrity.flagId" xml:space="preserve"><value>ID da sinalização</value></data>
   <data name="native.swift.integrity.flags" xml:space="preserve"><value>Sinalizações</value></data>
   <data name="native.swift.integrity.ipCorrelation" xml:space="preserve"><value>Correlação de IP</value></data>
   <data name="native.swift.integrity.loadMore" xml:space="preserve"><value>Carregar mais</value></data>
@@ -1598,9 +1602,7 @@
   <data name="native.swift.integrity.penalizedResolution" xml:space="preserve"><value>Penalizado</value></data>
   <data name="native.swift.integrity.penalizedUsers" xml:space="preserve"><value>Usuários penalizados: {count}</value></data>
   <data name="native.swift.integrity.penalties" xml:space="preserve"><value>Penalidades</value></data>
-  <data name="native.swift.integrity.penaltyId" xml:space="preserve"><value>ID da penalidade</value></data>
   <data name="native.swift.integrity.pending" xml:space="preserve"><value>Pendentes</value></data>
-  <data name="native.swift.integrity.postId" xml:space="preserve"><value>ID da publicação {id}</value></data>
   <data name="native.swift.integrity.reason" xml:space="preserve"><value>Motivo</value></data>
   <data name="native.swift.integrity.reconcile" xml:space="preserve"><value>Recarregar resultado</value></data>
   <data name="native.swift.integrity.reconciliationFailed" xml:space="preserve"><value>Não foi possível recarregar o resultado. Tente novamente.</value></data>
@@ -1619,8 +1621,6 @@
   <data name="native.swift.integrity.status" xml:space="preserve"><value>Estado</value></data>
   <data name="native.swift.integrity.suspend" xml:space="preserve"><value>Suspender</value></data>
   <data name="native.swift.integrity.suspendedResolution" xml:space="preserve"><value>Suspenso</value></data>
-  <data name="native.swift.integrity.topicId" xml:space="preserve"><value>Tópico {id}</value></data>
-  <data name="native.swift.integrity.userId" xml:space="preserve"><value>Usuário {id}</value></data>
   <data name="native.swift.integrity.velocitySpike" xml:space="preserve"><value>Pico de velocidade dos votos</value></data>
   <data name="native.swift.integrity.votePenaltiesTitle" xml:space="preserve"><value>Penalidades de integridade de votos</value></data>
   <data name="native.swift.integrity.votingRing" xml:space="preserve"><value>Rede de votos</value></data>
@@ -1871,7 +1871,6 @@
   <data name="native.swift.reviewDisputes.rerunStillProcessing" xml:space="preserve"><value>O rascunho da IA ainda está a ser processado. Atualize para verificar.</value></data>
   <data name="native.swift.reviewDisputes.resolution" xml:space="preserve"><value>Resolução: {action}</value></data>
   <data name="native.swift.reviewDisputes.resolved" xml:space="preserve"><value>Resolvida</value></data>
-  <data name="native.swift.reviewDisputes.reviewDispute" xml:space="preserve"><value>Contestação de avaliação</value></data>
   <data name="native.swift.reviewDisputes.save" xml:space="preserve"><value>Guardar</value></data>
   <data name="native.swift.reviewDisputes.signInMessage" xml:space="preserve"><value>Inicie sessão com uma conta da equipa para rever contestações.</value></data>
   <data name="native.swift.reviewDisputes.staffAccessMessage" xml:space="preserve"><value>As contestações estão disponíveis para administradores e moderadores do site.</value></data>

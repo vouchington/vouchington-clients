@@ -15,7 +15,7 @@ public sealed partial class ReportIntegrityPage
     var flag = row.Flag;
     var content = IntegrityPageViews.CardLines(
         IntegrityPageViews.FlagType(flag.FlagType),
-        UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityFlagId), flag.Id,
+
         UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityCreated),
         UiCopy.FormatDateTime(flag.CreatedAt),
         UiCopy.Resolve(row.ReporterCountText),
@@ -31,7 +31,7 @@ public sealed partial class ReportIntegrityPage
             token => viewModel.FetchDetailAsync(flag.Id, token),
             detail => IntegrityPageViews.CardLines(viewModel.PresentDetail(detail.Flag).Evidence), viewModel)).ConfigureAwait(true);
     content.Children.Add(open);
-    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedById);
+    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedAt is null ? null : Voucha.Client.Core.Moderation.ModerationLabels.Person(flag.ResolverDisplayName, flag.ResolverUsername, UiCopy.CurrentLocalization));
     content.Children.Insert(1, IntegrityPageViews.Entity(row.Entity));
     if (flag.Resolution is null && flag.ResolvedAt is null)
     {

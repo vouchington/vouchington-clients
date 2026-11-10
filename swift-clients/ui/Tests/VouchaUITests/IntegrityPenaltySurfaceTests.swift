@@ -20,10 +20,11 @@ final class IntegrityPenaltySurfaceTests: XCTestCase {
         )
         let inspection = try surface.inspect()
 
-        for text in ["Active", "Revoked", "All", "Mass report campaign", row.id] {
+        for text in ["Active", "Revoked", "All", "Mass report campaign"] {
             XCTAssertNoThrow(try inspection.find(text: text))
         }
-        try inspection.find(button: "User \(row.userId)").tap()
+        XCTAssertThrowsError(try inspection.find(text: row.id))
+        try inspection.find(button: "penalty-recipient").tap()
         XCTAssertEqual(path, "/user/\(row.userId)")
 
         try inspection.find(button: "Revoke").tap()
@@ -48,7 +49,8 @@ final class IntegrityPenaltySurfaceTests: XCTestCase {
 
         XCTAssertNoThrow(try inspection.find(text: "Voting ring"))
         XCTAssertNoThrow(try inspection.find(text: "20%"))
-        XCTAssertNoThrow(try inspection.find(text: XCTUnwrap(row.revokedById)))
+        XCTAssertNoThrow(try inspection.find(text: "moderator"))
+        XCTAssertThrowsError(try inspection.find(text: XCTUnwrap(row.revokedById)))
         XCTAssertThrowsError(try inspection.find(button: "Revoke"))
     }
 

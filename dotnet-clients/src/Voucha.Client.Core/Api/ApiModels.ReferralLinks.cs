@@ -71,19 +71,6 @@ public sealed record ReferralClickLogResponse(
     [property: JsonPropertyName("users")] IReadOnlyDictionary<string, User> Users,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
-public sealed record TrendingReferralProgram(
-    [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("trending_score")] double? TrendingScore = null,
-    [property: JsonPropertyName("link_count")] int? LinkCount = null);
-
-public sealed record TrendingReferralProgramsResponse(
-    [property: JsonPropertyName("referral_programs")] IReadOnlyList<TrendingReferralProgram> ReferralPrograms,
-    [property: JsonPropertyName("page_info")] PageInfo PageInfo)
-{
-  [JsonIgnore]
-  public IReadOnlyList<TrendingReferralProgram> Results => ReferralPrograms;
-}
-
 public sealed record PrioritizedReferralLink(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("user_id")] string? UserId,

@@ -27,14 +27,23 @@ extension NativeTopicManagementViewModel {
         guard let client else { return }
         state = .loading
         do {
-            let response: TopicEnvelope = try await client.send(.createTopic(body: createBody))
-            apply(topic: response.topic)
-            if let followUpBody = createFollowUpBody {
+            let followUpBody = createFollowUpBody
+            let createdTopic: Topic
+            if let topic {
+                createdTopic = topic
+            } else {
+                let response: TopicEnvelope = try await client.send(.createTopic(body: createBody))
+                createdTopic = response.topic
+                topic = createdTopic
+            }
+            if let followUpBody {
                 let updated: TopicEnvelope = try await client.send(.updateTopic(
-                    id: response.topic.id,
+                    id: createdTopic.id,
                     body: followUpBody
                 ))
                 apply(topic: updated.topic)
+            } else {
+                apply(topic: createdTopic)
             }
             state = .loaded
         } catch let error as VouchaError {

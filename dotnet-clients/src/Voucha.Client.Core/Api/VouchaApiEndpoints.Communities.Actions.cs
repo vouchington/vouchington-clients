@@ -50,8 +50,8 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest BanCommunityMember(string idOrSlug, BanCommunityMemberRequest body) =>
       new(HttpMethod.Post, $"/api/v1/communities/{Path(idOrSlug)}/bans") { Body = body };
 
-  public static ApiRequest LiftCommunityBan(string idOrSlug, string userId) =>
-      new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/bans/{Path(userId)}");
+  public static ApiRequest LiftCommunityBan(string idOrSlug, string banId) =>
+      new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/bans/{Path(banId)}");
 
   public static ApiRequest CommunityRestrictions(string idOrSlug, string? after = null) =>
       Get($"/api/v1/communities/{Path(idOrSlug)}/restrictions", Query(("after", after)));

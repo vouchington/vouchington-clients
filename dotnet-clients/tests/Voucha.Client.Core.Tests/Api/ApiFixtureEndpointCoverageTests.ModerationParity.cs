@@ -7,6 +7,10 @@ public sealed partial class ApiFixtureEndpointCoverageTests
   private static IReadOnlyDictionary<string, ApiRequest> CreateModerationParityRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
+        ["native.moderation.context.member"] = VouchaApiEndpoints.UserModerationContext(
+            ApiFixtureLoader.RouteParameterValue("native.moderation.context.member", "userId")),
+        ["native.moderation.context.staff"] = VouchaApiEndpoints.UserModerationContext(
+            ApiFixtureLoader.RouteParameterValue("native.moderation.context.staff", "userId")),
         ["native.moderation.transparency.default"] =
             VouchaApiEndpoints.ModerationTransparency(),
         ["native.community.moderation-transparency.default"] =
@@ -41,6 +45,22 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.moderation.disputes.resolution-drafts.default"] =
             VouchaApiEndpoints.DisputeResolutionDrafts(
                 Id("native.moderation.disputes.resolution-drafts.default")),
+        ["native.moderation.report-detail.pending"] = VouchaApiEndpoints.ModerationReport(Id("native.moderation.report-detail.pending")),
+        ["native.moderation.report-detail.saved"] = VouchaApiEndpoints.ModerationReport(Id("native.moderation.report-detail.saved")),
+        ["native.moderation.report-judgement-run.succeeded"] = VouchaApiEndpoints.ModerationReportJudgementRun(
+            Id("native.moderation.report-judgement-run.succeeded"), RunId("native.moderation.report-judgement-run.succeeded")),
+        ["native.moderation.report-judgement-run.failed"] = VouchaApiEndpoints.ModerationReportJudgementRun(
+            Id("native.moderation.report-judgement-run.failed"), RunId("native.moderation.report-judgement-run.failed")),
+        ["native.moderation.report-judgement-run.expired"] = VouchaApiEndpoints.ModerationReportJudgementRun(
+            Id("native.moderation.report-judgement-run.expired"), RunId("native.moderation.report-judgement-run.expired")),
+        ["native.moderation.appeals.resolution-draft-run.active"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+            Id("native.moderation.appeals.resolution-draft-run.active"), RunId("native.moderation.appeals.resolution-draft-run.active")),
+        ["native.moderation.appeals.resolution-draft-run.succeeded"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+            Id("native.moderation.appeals.resolution-draft-run.succeeded"), RunId("native.moderation.appeals.resolution-draft-run.succeeded")),
+        ["native.moderation.appeals.resolution-draft-run.failed"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+            Id("native.moderation.appeals.resolution-draft-run.failed"), RunId("native.moderation.appeals.resolution-draft-run.failed")),
+        ["native.moderation.appeals.resolution-draft-run.expired"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+            Id("native.moderation.appeals.resolution-draft-run.expired"), RunId("native.moderation.appeals.resolution-draft-run.expired")),
         ["native.moderation.exposure.default"] = VouchaApiEndpoints.ModerationExposure(),
         ["native.moderation.reveals.default"] = VouchaApiEndpoints.RecordModerationReveal(
             "00000000-0000-7000-8000-000000000301",
@@ -50,4 +70,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
 
   private static string Id(string fixtureId) =>
       ApiFixtureLoader.RouteParameterValue(fixtureId, "id");
+
+  private static string RunId(string fixtureId) =>
+      ApiFixtureLoader.RouteParameterValue(fixtureId, "runId");
 }

@@ -17,6 +17,7 @@ struct ReportIntegrityDetail: View {
                 }
             } else if let flag = viewModel.detailFlag, flag.id == id {
                 VStack(alignment: .leading) {
+                    Text(verbatim: flag.entityLabel)
                     Text(UiMessages.string(.nativeSwiftIntegrityEvidence, locale: locale))
                     ForEach(integrityDetails(flag.details, locale: locale), id: \.self) { value in
                         Text(verbatim: value)

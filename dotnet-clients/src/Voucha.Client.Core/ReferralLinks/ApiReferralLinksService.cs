@@ -45,7 +45,7 @@ public sealed class ApiReferralLinksService : IReferralLinksService
       CancellationToken cancellationToken = default) =>
       client.FetchPrioritizedReferralLinksAsync(request, cancellationToken);
 
-  public Task<TrendingReferralProgramsResponse> FetchTrendingProgramsAsync(
+  public Task<TopicSearchResponse> FetchTrendingProgramsAsync(
       FetchTrendingReferralProgramsRequest request,
       CancellationToken cancellationToken = default) =>
       client.FetchTrendingReferralProgramsAsync(request, cancellationToken);

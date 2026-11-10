@@ -4,7 +4,8 @@ import VouchaLocalization
 import VouchaModels
 
 extension StaffModerationReportCard {
-    @ViewBuilder var judgement: some View {
+    @ViewBuilder
+    var judgement: some View {
         if let judgement = report.judgement {
             VStack(alignment: .leading) {
                 Text(UiMessages.string(
@@ -31,7 +32,8 @@ extension StaffModerationReportCard {
         }
     }
 
-    @ViewBuilder var banEvasion: some View {
+    @ViewBuilder
+    var banEvasion: some View {
         if let context = report.communityBanEvasion {
             VStack(alignment: .leading) {
                 Label(
@@ -45,7 +47,11 @@ extension StaffModerationReportCard {
                 ))
                 Text(UiMessages.string(
                     .nativeSwiftModerationReportsMatchedAccount,
-                    parameters: ["account": context.sourceUsername ?? context.sourceUserId],
+                    parameters: ["account": moderationIdentityLabel(
+                        displayName: context.sourceDisplayName,
+                        username: context.sourceUsername,
+                        locale: nativeUiLocale
+                    )],
                     locale: nativeUiLocale
                 ))
                 Text(UiMessages.string(

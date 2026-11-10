@@ -363,7 +363,7 @@ public sealed class CommunityDetailViewModelCoverageTests
 
     await viewModel.SelectSectionAsync(CommunityDetailSurfaceSection.Moderation, TestContext.Current.CancellationToken);
     Assert.Contains(viewModel.Moderation, row => row.Title == "user-1" && row.Detail == "2");
-    Assert.Contains(viewModel.Moderation, row => row.Title == "post-1" && row.Detail == "reported");
+    Assert.Contains(viewModel.Moderation, row => row.Title == "Fixture post" && row.Detail == "spam");
     Assert.Single(viewModel.ModerationRows);
   }
 
@@ -399,7 +399,8 @@ public sealed class CommunityDetailViewModelCoverageTests
     Assert.True(await viewModel.RevokeInviteAsync("invite-1", TestContext.Current.CancellationToken));
     Assert.True(await viewModel.UpdatePinnedPostsAsync(["post-1"], TestContext.Current.CancellationToken));
     Assert.True(await viewModel.BanAsync("user-4", "spam", cancellationToken: TestContext.Current.CancellationToken));
-    Assert.True(await viewModel.LiftBanAsync("user-4", TestContext.Current.CancellationToken));
+    await viewModel.LoadBansAsync(TestContext.Current.CancellationToken);
+    Assert.True(await viewModel.LiftBanAsync(viewModel.BanRows[0].Id, TestContext.Current.CancellationToken));
     Assert.True(await viewModel.ActivateRestrictionsAsync(["raid_mode"], reason: "spike", cancellationToken: TestContext.Current.CancellationToken));
     Assert.True(await viewModel.LiftRestrictionAsync("restriction-1", TestContext.Current.CancellationToken));
     Assert.True(await viewModel.SetModeratorVacationAsync(DateTimeOffset.Parse("2026-07-08T00:00:00Z"), TestContext.Current.CancellationToken));

@@ -120,10 +120,11 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal(0, response.UserMetrics?.Count.UsersFollowers);
     Assert.Equal(0, response.UserMetrics?.Count.TopicsFollowing);
     Assert.Equal(0, response.UserMetrics?.Count.RssFeedsFollowing);
-    Assert.Equal(0, response.UserMetrics?.Bookmarks?["follow"]["topics"]);
-    Assert.Equal(0, response.UserMetrics?.Bookmarks?["follow"]["posts"]);
-    Assert.Equal(0, response.UserMetrics?.Bookmarks?["follow"]["users"]);
-    Assert.Equal(0, response.UserMetrics?.Bookmarkers?["follow"]);
+    var capped = response.UserMetrics?.CountCapped;
+    Assert.NotNull(capped);
+    Assert.False(capped.Reviews || capped.Discussions || capped.Comments || capped.UsersFollowing
+        || capped.UsersFollowers || capped.TopicsFollowing || capped.RssFeedsFollowing
+        || capped.CommunitiesMember);
   }
 
   [Fact]

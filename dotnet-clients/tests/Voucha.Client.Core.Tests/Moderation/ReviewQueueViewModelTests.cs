@@ -24,7 +24,7 @@ public sealed class ReviewQueueViewModelTests
     Assert.Equal(LoadState.Loaded, viewModel.State);
     Assert.Equal("/api/v1/posts/review-queue?limit=25", handler.Requests.Single().PathAndQuery);
     var rejected = Assert.Single(viewModel.Items, row => row.Id == RejectedPostId);
-    Assert.Equal("review-author-rejected", rejected.Author);
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeDotnetModerationRebasedTargetUnavailable), rejected.Author);
     Assert.Equal("discussion", rejected.PostType);
     Assert.Equal(new DateTimeOffset(2026, 6, 1, 11, 30, 0, TimeSpan.Zero), rejected.CreatedAt);
     Assert.Equal(UiMessageKey.NativeModerationSummaryDispositionReview, rejected.DispositionKey);
@@ -37,7 +37,7 @@ public sealed class ReviewQueueViewModelTests
     Assert.True(viewModel.CanPerform(rejected, PostClearanceAction.InReview));
     var inReview = Assert.Single(viewModel.Items, row => row.Id == InReviewPostId);
     Assert.Equal("Anonymous", inReview.Author);
-    Assert.Equal("discussion · review-root-discussion · review-root-post", inReview.RootContext);
+    Assert.Equal("discussion · review-root-discussion", inReview.RootContext);
     Assert.Equal(UiMessageKey.NativeModerationSummaryDispositionReview, inReview.DispositionKey);
     Assert.Equal("0 flagged categories", inReview.FlaggedCategoriesPresentation);
     Assert.Equal("1 signal", inReview.SignalsPresentation);

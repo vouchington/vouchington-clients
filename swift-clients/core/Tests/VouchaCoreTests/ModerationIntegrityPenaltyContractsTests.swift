@@ -74,7 +74,7 @@ final class ModerationIntegrityPenaltyContractsTests: XCTestCase {
             )
             XCTAssertTrue(response.filterScope?.confirmsFlagOnly == true)
             XCTAssertNil(response.filterScope?.sourceFlagId)
-            XCTAssertTrue(response.results.allSatisfy { !$0.createdById.isEmpty })
+            XCTAssertTrue(response.results.allSatisfy { $0.createdById?.isEmpty != true })
         }
         let exact: VoteIntegrityPenaltyEnvelope = try decode("native.moderation.vote-integrity.penalties.get")
         let revoked: VoteIntegrityPenaltyEnvelope = try decode("native.moderation.vote-integrity.penalties.revoke")

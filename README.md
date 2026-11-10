@@ -14,7 +14,7 @@ For a Linux coding agent, use the [Linux setup and portable test guide](docs/dev
 The native clients consume a deliberately narrow contract from
 [`vouchington/vouchington`](https://github.com/vouchington/vouchington). The source-path
 allowlist in [`contracts/filaments.json`](contracts/filaments.json) is the only cross-repository input:
-`api-fixtures/v1` and the generated Swift and .NET localization trees. When Vouchington provides its
+`api-fixtures/v1`, `api-contracts/v1`, and the generated Swift and .NET localization trees. When Vouchington provides its
 native-localization exporter, the trusted producer uses it in preference to any legacy generated
 trees; this keeps the staged localization contract aligned during extraction. Older producer
 revisions without that exporter fall back to their generated trees.

@@ -40,7 +40,7 @@ struct StaffModerationReportClusterCard: View {
                 .padding(.top, Spacing.sm)
             } label: {
                 VStack(alignment: .leading) {
-                    Text(cluster.targetLabel ?? cluster.entityType).font(Typography.headline)
+                    Text(cluster.targetLabel).font(Typography.headline)
                     if let content = cluster.targetContent,
                        let text = NormalizedAuthoredText(
                            text: content.text,
