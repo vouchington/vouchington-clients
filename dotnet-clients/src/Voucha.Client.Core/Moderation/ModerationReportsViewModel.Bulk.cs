@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Moderation;
 
@@ -64,7 +65,7 @@ public sealed partial class ModerationReportsViewModel
       var succeeded = results.Where(result => result.Error is null).Select(result => result.Report.Id).ToArray();
       foreach (var failed in results.Where(result => result.Error is not null))
       {
-        rowErrors[failed.Report.Id] = failed.Error!.Message;
+        rowErrors[failed.Report.Id] = RowError(failed.Error!);
       }
       await ApplySuccessfulMutationAsync(succeeded, cancellationToken).ConfigureAwait(true);
       return new(succeeded.Length, results.Length - succeeded.Length, skipped);
@@ -103,7 +104,7 @@ public sealed partial class ModerationReportsViewModel
       var succeeded = results.Where(result => result.Error is null).SelectMany(result => result.Reports).ToArray();
       foreach (var failed in results.Where(result => result.Error is not null))
       {
-        foreach (var report in failed.Reports) rowErrors[report.Id] = failed.Error!.Message;
+        foreach (var report in failed.Reports) rowErrors[report.Id] = RowError(failed.Error!);
       }
       var allReports = AllStaffReports();
       await ApplySuccessfulMutationAsync(
@@ -152,13 +153,13 @@ public sealed partial class ModerationReportsViewModel
     foreach (var id in requestedIds.Where(id => !eligibleIds.Contains(id)))
     {
       var report = FindStaffReport(id);
-      rowErrors[id] = report switch
+      rowErrors[id] = UiText.Verbatim(report switch
       {
         null => "This report is no longer available.",
         { Status: not ModerationReportStatus.Pending } => "Only pending reports can be dismissed.",
         { IsSystemGenerated: true } => "System reports require their dedicated action.",
         _ => "This report cannot be dismissed.",
-      };
+      });
     }
   }
 
@@ -170,13 +171,13 @@ public sealed partial class ModerationReportsViewModel
     foreach (var id in requestedIds.Where(id => !eligibleIds.Contains(id)))
     {
       var report = FindStaffReport(id);
-      rowErrors[id] = report switch
+      rowErrors[id] = UiText.Verbatim(report switch
       {
         null => "This report is no longer available.",
         { Status: not ModerationReportStatus.Pending } => "Only pending reports can remove targets.",
         { IsSystemGenerated: true } => "System reports require their dedicated action.",
         _ => "Only post and comment reports can remove targets.",
-      };
+      });
     }
   }
 }

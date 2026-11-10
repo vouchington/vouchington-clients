@@ -110,7 +110,7 @@ public sealed class ModerationReportsRemediationTests
     Assert.True(viewModel.IsSelected("00000000-0000-7000-8100-000000000102"));
     Assert.True(viewModel.IsSelected("00000000-0000-7000-8100-000000000103"));
     Assert.Contains("00000000-0000-7000-8100-000000000102", viewModel.RowErrors.Keys);
-    Assert.Equal("Only pending reports can be dismissed.", viewModel.RowErrors["00000000-0000-7000-8100-000000000103"]);
+    Assert.Equal("Only pending reports can be dismissed.", viewModel.RowErrors["00000000-0000-7000-8100-000000000103"].VerbatimValue);
     Assert.Null(viewModel.FindStaffReport("00000000-0000-7000-8100-000000000101"));
     var duplicate = Assert.Single(viewModel.DuplicateClusters);
     Assert.Equal(8, duplicate.ReportCount);

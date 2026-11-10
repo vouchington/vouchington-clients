@@ -120,7 +120,7 @@ public sealed partial class ModerationReportsPage
           ("context", context.GetRawText())));
     content.Children.Add(ReportActions(report));
     if (viewModel.RowErrors.TryGetValue(report.Id, out var error))
-      content.Children.Add(new Label { Text = error, TextColor = Colors.IndianRed });
+      content.Children.Add(new Label { Text = UiCopy.Resolve(error), TextColor = Colors.IndianRed });
     return CardBorder(content);
   }
 
