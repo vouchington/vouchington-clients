@@ -74,11 +74,11 @@ extension NativeTopicManagementViewModel {
         guard !destination.isEmpty else { return }
         state = .loading
         do {
-            let response: TopicEnvelope = try await client.send(.mergeTopicAliases(
+            // The producer queues merges (202); the source topic is unchanged until the operation completes.
+            let _: TopicMergeEnvelope = try await client.send(.mergeTopicAliases(
                 sourceTopicId: topicIdentifier,
                 destinationIdOrSlug: destination
             ))
-            apply(topic: response.topic)
             state = .loaded
         } catch let error as VouchaError {
             state = .error(error)

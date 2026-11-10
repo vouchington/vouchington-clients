@@ -1742,6 +1742,8 @@
   <data name="native.swift.moderationReports.actionUnavailable" xml:space="preserve"><value>Esta ação não está disponível para esta denúncia.</value></data>
   <data name="native.swift.moderationReports.actioned" xml:space="preserve"><value>Processado</value></data>
   <data name="native.swift.moderationReports.aiJudgement" xml:space="preserve"><value>Avaliação da IA: {action}</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunExpired" xml:space="preserve"><value>A avaliação da IA está demorando mais do que o esperado. Verifique novamente mais tarde.</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunFailed" xml:space="preserve"><value>Não foi possível concluir a avaliação da IA. Você pode executá-la novamente.</value></data>
   <data name="native.swift.moderationReports.clusterSummary" xml:space="preserve"><value>{reports} · {reporters}</value></data>
   <data name="native.swift.moderationReports.confirmBanEvasion" xml:space="preserve"><value>Confirmar evasão de banimento</value></data>
   <data name="native.swift.moderationReports.dismiss" xml:space="preserve"><value>Dispensar</value></data>

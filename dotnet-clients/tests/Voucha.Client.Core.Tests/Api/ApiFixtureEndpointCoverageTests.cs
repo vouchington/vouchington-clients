@@ -5,13 +5,13 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed partial class ApiFixtureEndpointCoverageTests
 {
   private static readonly IReadOnlyDictionary<string, ApiRequest> Registry =
-      WithMembershipStoreEndpoints(
+      WithNativeContentEndpoints(WithMembershipStoreEndpoints(
       WithOAuthBrokerEndpoints(
           WithRewardsProgramStatusEndpoints(
               WithAiCostEndpoints(
                   StoryFixtureRequests.AddTo(new Dictionary<string, ApiRequest>(CreateCoreRegistry(), StringComparer.Ordinal))
                       .Concat(CreateModerationParityRegistry())
-                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests().WithPrimaryFixtureRequests();
+                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests().WithPrimaryFixtureRequests());
 
   private static IReadOnlyDictionary<string, ApiRequest> CreateCoreRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
@@ -265,19 +265,6 @@ public sealed partial class ApiFixtureEndpointCoverageTests
             VouchaApiEndpoints.UserCommunities("user-abc", "proxy-following"),
         ["native.lists-containing.default"] = VouchaApiEndpoints.ListsContaining("rss_feed_item", "item-1"),
         ["native.list-import.default"] = VouchaApiEndpoints.ImportCommunityList("list-1", ImportCommunityListFixtureBody()),
-        ["native.comments.post-detail.default"] = VouchaApiEndpoints.Post("comment-root"),
-        ["native.comments.descendants.default"] = VouchaApiEndpoints.PostDescendants(
-            "comment-root-post",
-            "fixture-root-and-subtree-scoped-cursor",
-            2),
-        ["native.comments.ancestors.permalink"] = VouchaApiEndpoints.PostAncestors("comment-b"),
-        ["native.comments.ancestors.bounded.shallow"] = VouchaApiEndpoints.PostAncestors("comment-b", limit: 5),
-        ["native.comments.ancestors.bounded.deep-initial"] =
-            VouchaApiEndpoints.PostAncestors("bounded-ancestor-comment-7", limit: 5),
-        ["native.comments.ancestors.bounded.deep-continuation"] = VouchaApiEndpoints.PostAncestors(
-            "bounded-ancestor-comment-7",
-            "fixture-ancestor-deep-initial-end",
-            5),
         ["native.lists.default"] = VouchaApiEndpoints.Lists(),
         ["native.list-items.default"] = VouchaApiEndpoints.ListItems("list-1"),
         ["native.landing-pages.default"] = VouchaApiEndpoints.MyLandingPages(),

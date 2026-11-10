@@ -228,30 +228,33 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task FetchPostThreadAsyncUsesSharedFixtures()
   {
+    const string rootId = "70000000-0000-7000-8000-000000005400";
+    const string commentA = "70000000-0000-7000-8000-000000005401";
+    const string commentB = "70000000-0000-7000-8000-000000005402";
+    const string commentC = "70000000-0000-7000-8000-000000005403";
     var (client, handler) = CreateClient(
         "native.comments.post-detail.default",
         "native.comments.descendants.default",
         "native.comments.ancestors.permalink");
 
     var detail = await client.FetchPostAsync("comment-root", TestContext.Current.CancellationToken);
-    var descendants = await client.FetchPostDescendantsAsync("comment-root-post", TestContext.Current.CancellationToken);
-    var ancestors = await client.FetchPostAncestorsAsync("comment-b", TestContext.Current.CancellationToken);
+    var descendants = await client.FetchPostDescendantsAsync(rootId, TestContext.Current.CancellationToken);
+    var ancestors = await client.FetchPostAncestorsAsync(commentB, TestContext.Current.CancellationToken);
 
     Assert.Equal(HttpMethod.Get, handler.Requests[2].Method);
-    Assert.Equal("/api/v1/posts/comment-b/ancestors", handler.Requests[2].PathAndQuery);
-    Assert.Equal("comment-root-post", detail.Post.Id);
+    Assert.Equal($"/api/v1/posts/{commentB}/ancestors", handler.Requests[2].PathAndQuery);
+    Assert.Equal(rootId, detail.Post.Id);
     Assert.Equal(2, detail.PostMetrics?.Count.Children);
     Assert.True(detail.Bookmarks?[detail.Post.Id]["save"]);
-    Assert.Equal(["comment-a", "comment-b", "comment-c", "comment-d"], descendants.Results.Select(x => x.Id));
-    Assert.True(descendants.Posts["comment-a"].CanEditContent);
-    Assert.Equal("commenter", descendants.Posts["comment-b"].CreatedBy?.Username);
-    Assert.True(descendants.Posts["comment-c"].IsAnonymous);
-    Assert.NotNull(descendants.Posts["comment-d"].DeletedAt);
-    Assert.Equal(8, descendants.PostElections?["comment-a"].VotesScoreNet);
-    Assert.Equal(ElectionVoteChoice.Dislike, descendants.ElectionVotes?["comment-b"].Choice);
-    Assert.Equal("<p>Top-level native comment</p>", descendants.MarkdownToHtml?["comment-a"]);
-    Assert.True(descendants.Bookmarks?["comment-a"]["save"]);
-    Assert.Equal("comment-root-post", ancestors.Results[0].Id ?? ancestors.Results[0].EntityId);
+    Assert.Equal([commentA, commentB, commentC], descendants.Results.Select(x => x.Id));
+    Assert.True(descendants.Posts[commentA].CanEditContent);
+    Assert.Equal("commenter", descendants.Posts[commentB].CreatedBy?.Username);
+    Assert.True(descendants.Posts[commentC].IsAnonymous);
+    Assert.Equal(8, descendants.PostElections?[commentA].VotesScoreNet);
+    Assert.Equal(ElectionVoteChoice.Dislike, descendants.ElectionVotes?[commentB].Choice);
+    Assert.Equal("<p>Top-level native comment</p>", descendants.MarkdownToHtml?[commentA]);
+    Assert.True(descendants.Bookmarks?[commentA]["save"]);
+    Assert.Equal(rootId, ancestors.Results[0].Id ?? ancestors.Results[0].EntityId);
   }
 
   [Fact]

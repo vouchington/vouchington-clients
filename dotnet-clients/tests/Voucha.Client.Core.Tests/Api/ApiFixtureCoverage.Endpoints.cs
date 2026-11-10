@@ -334,11 +334,6 @@ internal static partial class ApiFixtureCoverage
         ["swift.integration.rss-feed-items.audio"] = VouchaApiEndpoints.RssFeedItems(mediaType: "audio"),
         ["swift.podcast-playback-position.default"] = VouchaApiEndpoints.PodcastPlaybackPosition("episode-1"),
         ["swift.podcast-episode-chapters.default"] = VouchaApiEndpoints.PodcastEpisodeChapters("episode-1"),
-        ["native.comments.post-detail.default"] = VouchaApiEndpoints.Post("comment-root"),
-        ["native.comments.descendants.default"] = VouchaApiEndpoints.PostDescendants(
-            "comment-root-post",
-            "fixture-root-and-subtree-scoped-cursor",
-            2),
         ["native.lists.default"] = VouchaApiEndpoints.Lists(),
         ["native.list-items.default"] = VouchaApiEndpoints.ListItems("list-1"),
         ["native.lists-containing.default"] = VouchaApiEndpoints.ListsContaining("rss_feed_item", "item-1"),
@@ -479,5 +474,5 @@ internal static partial class ApiFixtureCoverage
         ["web.paid.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
-      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints()))).WithCurrentFixtureRequests().WithContractDriftEndpoints();
+      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints().WithNativeContentEndpoints()))).WithCurrentFixtureRequests().WithContractDriftEndpoints();
 }

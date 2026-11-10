@@ -160,9 +160,12 @@ public struct RssFeedItemFeedResponse: Codable, Sendable {
     public let results: [FixtureReference]
     public let pageInfo: Page<FixtureReference>.PageInfo
     public let rssFeedItems: [String: RssFeedItem]
-    public let rssFeedItemElections: [String: RssFeedItemElection]
-    public let electionVotes: [String: ElectionVote]
+    public let rssFeedItemElections: [String: RssFeedItemElection]?
+    public let electionVotes: [String: ElectionVote]?
     public let storyMemberPages: [String: StoryMemberPage]?
     public let storyPostIds: [String: String]?
     public let rssFeedItemEmbeds: [String: UrlEmbed]?
+    public let rssFeedBookmarks: [String: [String: Bool]]?
+    public let rssFeedItemContentHtml: [String: String]?
+    public let rssFeedItemHackerNewsReferences: [String: HackerNewsReferences]?
 }

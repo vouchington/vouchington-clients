@@ -29,7 +29,9 @@ public sealed record EntityReference(
     [property: JsonPropertyName("shared_at")] DateTimeOffset? SharedAt,
     [property: JsonPropertyName("story_id")] string? StoryId,
     [property: JsonPropertyName("published_at")] DateTimeOffset? PublishedAt = null,
-    [property: JsonPropertyName("post_type")] string? PostType = null);
+    [property: JsonPropertyName("post_type")] string? PostType = null,
+    [property: JsonPropertyName("ranking")] double? Ranking = null,
+    [property: JsonPropertyName("search_vector_ts")] string? SearchVectorTs = null);
 
 public sealed record User(
     [property: JsonPropertyName("id")] string Id,

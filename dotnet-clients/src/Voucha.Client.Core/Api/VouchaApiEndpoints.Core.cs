@@ -55,6 +55,9 @@ public static partial class VouchaApiEndpoints
         Body = new { destination_id_or_slug = destinationIdOrSlug },
       };
 
+  public static ApiRequest TopicMergeStatus(string sourceTopicId, string operationId) =>
+      Get($"/api/v1/topics/{Path(sourceTopicId)}/merges/{Path(operationId)}");
+
   public static ApiRequest SpendingCategoryAttributes(string topicId) =>
       Get($"/api/v1/topics/{Path(topicId)}/spending-category");
 

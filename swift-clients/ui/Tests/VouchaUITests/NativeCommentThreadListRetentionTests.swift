@@ -7,7 +7,7 @@ import XCTest
 @MainActor
 final class NativeCommentThreadListRetentionTests: NativeRouteSurfaceViewModelTestCase {
     func testCommentHideRemainsInFeedOnReadAndBothMutationDirections() async throws {
-        let id = "comment-a"
+        let id = CommentFixture.a
         let path = "/api/v1/bookmarks/post/\(id)/hide"
         CannedFeedURLProtocol.handlers["/api/v1/feeds/posts/any"] = try (threadPage(ids: [id], hidden: true), 200)
         CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 200)
@@ -29,7 +29,7 @@ final class NativeCommentThreadListRetentionTests: NativeRouteSurfaceViewModelTe
     func testHiddenPostsScreenKeepsCommentRows() async throws {
         let fixture = try object("native.comments.descendants.default")
         let posts = try XCTUnwrap(fixture["posts"] as? [String: [String: Any]])
-        let comment = try XCTUnwrap(posts["comment-a"])
+        let comment = try XCTUnwrap(posts[CommentFixture.a])
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (PrivateUserTestFixture.identityEnvelope(), 200)
         CannedFeedURLProtocol.handlers["/api/v1/users/user-1/posts/hidden"] = try (
             JSONSerialization.data(withJSONObject: ["results": [comment], "page_info": ["has_next_page": false]]), 200
@@ -37,39 +37,42 @@ final class NativeCommentThreadListRetentionTests: NativeRouteSurfaceViewModelTe
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/my/posts/hidden"))
         let model = try NativeRouteSurfaceViewModel(entry: route.entry, client: makeClient(), routeMatch: route.match)
         await model.load()
-        XCTAssertEqual(model.bookmarkRows.map(\.entityId), ["comment-a"])
-        XCTAssertEqual(model.bookmarkRows.first?.destination, .comment(id: "comment-a", rootId: "comment-root-post"))
+        XCTAssertEqual(model.bookmarkRows.map(\.entityId), [CommentFixture.a])
+        XCTAssertEqual(
+            model.bookmarkRows.first?.destination,
+            .comment(id: CommentFixture.a, rootId: CommentFixture.root)
+        )
     }
 
     func testDeleteReloadsPlaceholderConnectorAndPreservesItsReply() async throws {
-        let root = "comment-root-post"
+        let root = CommentFixture.root
         let descendantsPath = "/api/v1/posts/\(root)/descendants"
         CannedFeedURLProtocol.handlers["/api/v1/posts/\(root)"] = (
             ApiFixtureLoader.data("native.comments.post-detail.default"),
             200
         )
         var deletedPage = try JSONSerialization.jsonObject(with: threadPage(ids: [
-            "comment-a",
-            "comment-b"
+            CommentFixture.a,
+            CommentFixture.b
         ])) as? [String: Any]
         var posts = try XCTUnwrap(deletedPage?["posts"] as? [String: [String: Any]])
-        posts["comment-a"]?["placeholder_state"] = "deleted"
-        posts["comment-a"]?["deleted_at"] = "2026-01-02T00:00:00Z"
-        posts["comment-a"]?["markdown"] = ""
-        posts["comment-a"]?["created_by_id"] = NSNull()
-        posts["comment-a"]?["created_by"] = NSNull()
+        posts[CommentFixture.a]?["placeholder_state"] = "deleted"
+        posts[CommentFixture.a]?["deleted_at"] = "2026-01-02T00:00:00Z"
+        posts[CommentFixture.a]?["markdown"] = ""
+        posts[CommentFixture.a]?["created_by_id"] = NSNull()
+        posts[CommentFixture.a]?["created_by"] = NSNull()
         deletedPage?["posts"] = posts
         CannedFeedURLProtocol.queuedHandlers[descendantsPath] = try [
-            (threadPage(ids: ["comment-a", "comment-b"]), 200, 0),
+            (threadPage(ids: [CommentFixture.a, CommentFixture.b]), 200, 0),
             (JSONSerialization.data(withJSONObject: XCTUnwrap(deletedPage)), 200, 0)
         ]
-        CannedFeedURLProtocol.handlers["/api/v1/posts/comment-a"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/posts/\(CommentFixture.a)"] = (Data("{}".utf8), 200)
         let model = try NativeCommentThreadViewModel(client: makeClient(), rootPostId: root, currentUserId: "user-1")
         await model.loadThread()
-        await model.delete(postId: "comment-a")
-        XCTAssertEqual(model.commentTree.map(\.id), ["comment-a"])
+        await model.delete(postId: CommentFixture.a)
+        XCTAssertEqual(model.commentTree.map(\.id), [CommentFixture.a])
         XCTAssertEqual(model.commentTree.first?.post.placeholderState, "deleted")
-        XCTAssertEqual(model.commentTree.first?.children.map(\.id), ["comment-b"])
+        XCTAssertEqual(model.commentTree.first?.children.map(\.id), [CommentFixture.b])
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(descendantsPath), 2)
     }
 
@@ -77,7 +80,7 @@ final class NativeCommentThreadListRetentionTests: NativeRouteSurfaceViewModelTe
         var fixture = try object("native.comments.descendants.default")
         fixture["results"] = ids.map { ["entity_id": $0] }
         fixture["page_info"] = ["has_next_page": false]
-        fixture["bookmarks"] = ["comment-a": ["hide": hidden]]
+        fixture["bookmarks"] = [CommentFixture.a: ["hide": hidden]]
         return try JSONSerialization.data(withJSONObject: fixture)
     }
 

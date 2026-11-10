@@ -99,7 +99,8 @@ public sealed record PostsFeedResponse(
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null,
     [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null,
     [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics>? PostsMetrics = null,
-    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null);
+    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null,
+    [property: JsonPropertyName("post_hacker_news_references")] IReadOnlyDictionary<string, HackerNewsReferences>? PostHackerNewsReferences = null);
 
 public sealed record PostThreadResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,

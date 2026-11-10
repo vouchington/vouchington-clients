@@ -8,4 +8,5 @@ public struct RssFeedItemDetailResponse: Codable, Sendable {
     public let contentHtml: String?
     public let rssFeedItemThumbnailUrl: [String: String]?
     public let rssFeedItemEmbeds: [String: UrlEmbed]?
+    public let rssFeedItemHackerNewsReferences: [String: HackerNewsReferences]?
 }

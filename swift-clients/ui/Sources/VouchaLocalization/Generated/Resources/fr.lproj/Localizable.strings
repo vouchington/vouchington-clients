@@ -1299,6 +1299,8 @@
 "native.swift.moderationReports.actionUnavailable" = "Cette action n’est pas disponible pour ce signalement.";
 "native.swift.moderationReports.actioned" = "Traité";
 "native.swift.moderationReports.aiJudgement" = "Avis de l’IA : {action}";
+"native.swift.moderationReports.aiJudgementRunExpired" = "L’avis de l’IA prend plus de temps que prévu. Revenez vérifier plus tard.";
+"native.swift.moderationReports.aiJudgementRunFailed" = "L’avis de l’IA n’a pas pu être finalisé. Vous pouvez le relancer.";
 "native.swift.moderationReports.aiJudgementUnavailable" = "Avis de l’IA indisponible";
 "native.swift.moderationReports.banEvasionSignal" = "Signal de contournement de bannissement";
 "native.swift.moderationReports.characterLimit" = "{count}/{limit}";

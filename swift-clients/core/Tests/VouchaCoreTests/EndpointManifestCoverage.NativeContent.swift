@@ -5,29 +5,6 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.comments.post-detail.default") {
             Endpoint.post(idOrSlug: "comment-root")
         },
-        ManifestRegisteredEndpoint(id: "native.comments.descendants.default") {
-            Endpoint.postDescendants(
-                postId: "comment-root-post",
-                after: "fixture-root-and-subtree-scoped-cursor",
-                limit: 2
-            )
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.permalink") {
-            Endpoint.postAncestors(postId: "comment-b")
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.shallow") {
-            Endpoint.postAncestors(postId: "comment-b", limit: 5)
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.deep-initial") {
-            Endpoint.postAncestors(postId: "bounded-ancestor-comment-7", limit: 5)
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.deep-continuation") {
-            Endpoint.postAncestors(
-                postId: "bounded-ancestor-comment-7",
-                after: "fixture-ancestor-deep-initial-end",
-                limit: 5
-            )
-        },
         ManifestRegisteredEndpoint(id: "native.lists.default") {
             Endpoint.lists()
         },

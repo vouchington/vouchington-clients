@@ -17,7 +17,8 @@ public static partial class VouchaApiEndpoints
             ("sort", request.Sort),
             ("limit", request.Limit),
             ("after", request.After),
-            ("semantic_search_query", request.SemanticSearchQuery)));
+            ("semantic_search_query", request.SemanticSearchQuery),
+            ("time_range", request.TimeRange)));
   }
 
   public static ApiRequest Post(string postIdOrSlug) =>

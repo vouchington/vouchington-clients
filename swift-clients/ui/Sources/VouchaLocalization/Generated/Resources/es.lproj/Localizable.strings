@@ -1299,6 +1299,8 @@
 "native.swift.moderationReports.actionUnavailable" = "Esta acción no está disponible para este informe.";
 "native.swift.moderationReports.actioned" = "Procesado";
 "native.swift.moderationReports.aiJudgement" = "Criterio de IA: {action}";
+"native.swift.moderationReports.aiJudgementRunExpired" = "El criterio de IA está tardando más de lo esperado. Vuelve a comprobarlo más tarde.";
+"native.swift.moderationReports.aiJudgementRunFailed" = "No se pudo completar el criterio de IA. Puedes volver a ejecutarlo.";
 "native.swift.moderationReports.aiJudgementUnavailable" = "Criterio de IA no disponible";
 "native.swift.moderationReports.banEvasionSignal" = "Señal de evasión de bloqueo";
 "native.swift.moderationReports.characterLimit" = "{count}/{limit}";

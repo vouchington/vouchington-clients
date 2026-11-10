@@ -287,18 +287,24 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testTopicManagementViewModelMergesTopicAliases() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/merges"] = (Self.topicEnvelope(name: "Merged"), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/merges"] = (Self.topicMergeAcceptedJson, 202)
         let mergeMatch = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/topic-1/settings/merge")?.match)
         let viewModel = try NativeTopicManagementViewModel(client: makeClient(), routeMatch: mergeMatch)
         viewModel.destinationIdOrSlug = " topic-2 "
 
         await viewModel.save()
 
-        XCTAssertEqual(viewModel.topic?.name, "Merged")
+        guard case .loaded = viewModel.state else { return XCTFail("Expected loaded state") }
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods, ["POST"])
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/topics/topic-1/merges")
         XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.first??.contains("destination_id_or_slug") == true)
     }
+
+    private static let topicMergeAcceptedJson = Data(
+        (#"{"topic_merge":{"id":"m1","source_topic_id":"topic-1","destination_topic_id":"topic-2","#
+            + #""status":"queued","stage":"queued","error_code":null,"created_at":"2026-01-01T00:00:00.000Z","#
+            + #""completed_at":null,"status_url":"/s"}}"#).utf8
+    )
 
     func testTopicManagementViewModelCreatesAndUpdatesTopic() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/topics"] = (Self.topicEnvelope(name: "Created"), 200)
@@ -491,5 +497,4 @@ final class NativeTopicParityTests: NativeRouteSurfaceViewModelTestCase {
             discoverable: discoverable
         )).rssFeed
     }
-
 }
