@@ -1296,6 +1296,8 @@ public struct UiMessageKey: Hashable, Sendable {
     public static let nativeSwiftModerationReportsActionUnavailable = UiMessageKey(rawValue: "native.swift.moderationReports.actionUnavailable")
     public static let nativeSwiftModerationReportsActioned = UiMessageKey(rawValue: "native.swift.moderationReports.actioned")
     public static let nativeSwiftModerationReportsAiJudgement = UiMessageKey(rawValue: "native.swift.moderationReports.aiJudgement")
+    public static let nativeSwiftModerationReportsAiJudgementRunExpired = UiMessageKey(rawValue: "native.swift.moderationReports.aiJudgementRunExpired")
+    public static let nativeSwiftModerationReportsAiJudgementRunFailed = UiMessageKey(rawValue: "native.swift.moderationReports.aiJudgementRunFailed")
     public static let nativeSwiftModerationReportsAiJudgementUnavailable = UiMessageKey(rawValue: "native.swift.moderationReports.aiJudgementUnavailable")
     public static let nativeSwiftModerationReportsBanEvasionSignal = UiMessageKey(rawValue: "native.swift.moderationReports.banEvasionSignal")
     public static let nativeSwiftModerationReportsCharacterLimit = UiMessageKey(rawValue: "native.swift.moderationReports.characterLimit")

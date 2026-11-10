@@ -1742,6 +1742,8 @@
   <data name="native.swift.moderationReports.actionUnavailable" xml:space="preserve"><value>Cette action n’est pas disponible pour ce signalement.</value></data>
   <data name="native.swift.moderationReports.actioned" xml:space="preserve"><value>Traité</value></data>
   <data name="native.swift.moderationReports.aiJudgement" xml:space="preserve"><value>Avis de l’IA : {action}</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunExpired" xml:space="preserve"><value>L’avis de l’IA prend plus de temps que prévu. Revenez vérifier plus tard.</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunFailed" xml:space="preserve"><value>L’avis de l’IA n’a pas pu être finalisé. Vous pouvez le relancer.</value></data>
   <data name="native.swift.moderationReports.clusterSummary" xml:space="preserve"><value>{reports} · {reporters}</value></data>
   <data name="native.swift.moderationReports.confirmBanEvasion" xml:space="preserve"><value>Confirmer le contournement</value></data>
   <data name="native.swift.moderationReports.dismiss" xml:space="preserve"><value>Rejeter</value></data>

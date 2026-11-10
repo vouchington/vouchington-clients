@@ -1739,6 +1739,8 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeSwiftModerationReportsActionUnavailable = new("native.swift.moderationReports.actionUnavailable");
     public static readonly UiMessageKey NativeSwiftModerationReportsActioned = new("native.swift.moderationReports.actioned");
     public static readonly UiMessageKey NativeSwiftModerationReportsAiJudgement = new("native.swift.moderationReports.aiJudgement");
+    public static readonly UiMessageKey NativeSwiftModerationReportsAiJudgementRunExpired = new("native.swift.moderationReports.aiJudgementRunExpired");
+    public static readonly UiMessageKey NativeSwiftModerationReportsAiJudgementRunFailed = new("native.swift.moderationReports.aiJudgementRunFailed");
     public static readonly UiMessageKey NativeSwiftModerationReportsClusterSummary = new("native.swift.moderationReports.clusterSummary");
     public static readonly UiMessageKey NativeSwiftModerationReportsConfirmBanEvasion = new("native.swift.moderationReports.confirmBanEvasion");
     public static readonly UiMessageKey NativeSwiftModerationReportsDismiss = new("native.swift.moderationReports.dismiss");
@@ -3759,6 +3761,8 @@ public readonly record struct UiMessageKey(string Value)
         NativeSwiftModerationReportsActionUnavailable,
         NativeSwiftModerationReportsActioned,
         NativeSwiftModerationReportsAiJudgement,
+        NativeSwiftModerationReportsAiJudgementRunExpired,
+        NativeSwiftModerationReportsAiJudgementRunFailed,
         NativeSwiftModerationReportsClusterSummary,
         NativeSwiftModerationReportsConfirmBanEvasion,
         NativeSwiftModerationReportsDismiss,

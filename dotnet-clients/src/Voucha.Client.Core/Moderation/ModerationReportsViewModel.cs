@@ -16,7 +16,7 @@ public sealed partial class ModerationReportsViewModel :
   private readonly HashSet<string> selectedIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> actionIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> successfulReportIds = new(StringComparer.Ordinal);
-  private readonly Dictionary<string, string> rowErrors = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, UiText> rowErrors = new(StringComparer.Ordinal);
   private readonly IDisposable? localeSubscription;
   private readonly int judgementRunReads;
   private readonly Func<CancellationToken, Task> judgementRunDelay;
@@ -92,7 +92,11 @@ public sealed partial class ModerationReportsViewModel :
   public IReadOnlyList<StaffModerationReportEntityCluster> Clusters { get => clusters; private set => SetProperty(ref clusters, value); }
   public IReadOnlyList<StaffModerationReportDuplicateCluster> DuplicateClusters { get => duplicateClusters; private set => SetProperty(ref duplicateClusters, value); }
   public IReadOnlySet<string> SelectedIds => selectedIds;
-  public IReadOnlyDictionary<string, string> RowErrors => rowErrors;
+  public IReadOnlyDictionary<string, UiText> RowErrors => rowErrors;
+
+  private static UiText RowError(Exception error) => error is ReportJudgementRunEndedException ended
+      ? UiText.Localized(ended.Key)
+      : UiText.Verbatim(error.Message);
   public bool IsQueueMutationRunning => IsBulkActionRunning || actionIds.Count > 0;
   public bool IsQueueInteractionBlocked => IsLoading || IsQueueMutationRunning;
 

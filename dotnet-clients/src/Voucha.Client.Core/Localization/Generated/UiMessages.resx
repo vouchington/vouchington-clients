@@ -1742,6 +1742,8 @@
   <data name="native.swift.moderationReports.actionUnavailable" xml:space="preserve"><value>This action is not available for this report.</value></data>
   <data name="native.swift.moderationReports.actioned" xml:space="preserve"><value>Actioned</value></data>
   <data name="native.swift.moderationReports.aiJudgement" xml:space="preserve"><value>AI judgement: {action}</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunExpired" xml:space="preserve"><value>AI judgement is taking longer than expected. Check again later.</value></data>
+  <data name="native.swift.moderationReports.aiJudgementRunFailed" xml:space="preserve"><value>AI judgement could not be completed. You can re-run it.</value></data>
   <data name="native.swift.moderationReports.clusterSummary" xml:space="preserve"><value>{reports} · {reporters}</value></data>
   <data name="native.swift.moderationReports.confirmBanEvasion" xml:space="preserve"><value>Confirm ban evasion</value></data>
   <data name="native.swift.moderationReports.dismiss" xml:space="preserve"><value>Dismiss</value></data>

@@ -1,6 +1,18 @@
 import VouchaAPI
 import VouchaCore
+import VouchaLocalization
 import VouchaModels
+
+enum ReportJudgementRunEnded: Error, Equatable {
+    case failed, expired
+
+    var messageKey: UiMessageKey {
+        switch self {
+        case .failed: .nativeSwiftModerationReportsAiJudgementRunFailed
+        case .expired: .nativeSwiftModerationReportsAiJudgementRunExpired
+        }
+    }
+}
 
 enum ReportJudgementRunReconciliation {
     static func read(
@@ -20,7 +32,7 @@ enum ReportJudgementRunReconciliation {
                 if isCancellation(error) { return }
                 throw error
             }
-            if run.status.isTerminal || Task.isCancelled { return }
+            if try Task.isCancelled || isFinished(run.status) { return }
             if attempt + 1 < maximumReads {
                 do {
                     try await delay()
@@ -29,6 +41,15 @@ enum ReportJudgementRunReconciliation {
                     throw error
                 }
             }
+        }
+    }
+
+    private static func isFinished(_ status: ModerationAIRunStatus) throws -> Bool {
+        switch status {
+        case .failed: throw ReportJudgementRunEnded.failed
+        case .expired: throw ReportJudgementRunEnded.expired
+        case .succeeded: true
+        case .active: false
         }
     }
 

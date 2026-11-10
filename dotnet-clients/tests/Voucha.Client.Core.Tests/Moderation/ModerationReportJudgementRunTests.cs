@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.Tests.Api;
@@ -69,7 +70,13 @@ public sealed class ModerationReportJudgementRunTests
     var reads = RunGets(handler);
     Assert.Single(reads);
     Assert.Equal(RunPath(AdmittedRunId), reads[0].PathAndQuery);
-    Assert.NotEmpty(viewModel.RowErrors);
+    var error = Assert.Single(viewModel.RowErrors).Value;
+    Assert.Null(error.VerbatimValue);
+    Assert.Equal(
+        status == "expired"
+            ? UiMessageKey.NativeSwiftModerationReportsAiJudgementRunExpired
+            : UiMessageKey.NativeSwiftModerationReportsAiJudgementRunFailed,
+        error.Key);
   }
 
   [Fact]
