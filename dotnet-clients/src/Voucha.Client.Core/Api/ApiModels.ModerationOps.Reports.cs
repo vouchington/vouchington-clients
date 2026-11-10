@@ -16,7 +16,9 @@ public sealed record ModerationReportJudgement(
     [property: JsonPropertyName("internal_response")] string InternalResponse,
     [property: JsonPropertyName("is_stale")] bool IsStale,
     [property: JsonPropertyName("judged_report_count")] int? JudgedReportCount,
-    [property: JsonPropertyName("current_report_count")] int CurrentReportCount);
+    [property: JsonPropertyName("current_report_count")] int CurrentReportCount,
+    [property: JsonPropertyName("current_report_count_capped")] bool CurrentReportCountCapped = false,
+    [property: JsonPropertyName("judged_report_count_capped")] bool JudgedReportCountCapped = false);
 
 public sealed record CommunityBanEvasionContext(
     [property: JsonPropertyName("community_id")] string CommunityId,
@@ -58,7 +60,8 @@ public sealed record StaffModerationReport(
     [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
     [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
     [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null,
-    [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false);
+    [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false,
+    [property: JsonPropertyName("report_count_capped")] bool ReportCountCapped = false);
 
 public sealed record MemberModerationReport(
     [property: JsonPropertyName("id")] string Id,

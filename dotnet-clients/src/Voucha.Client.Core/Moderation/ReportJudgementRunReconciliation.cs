@@ -24,7 +24,13 @@ internal static class ReportJudgementRunReconciliation
     {
       cancellationToken.ThrowIfCancellationRequested();
       var run = await read(reportId, runId, cancellationToken).ConfigureAwait(false);
-      if (run.Completed)
+      if (run.Status is ModerationRunStatus.Failed or ModerationRunStatus.Expired)
+      {
+        throw new InvalidOperationException(
+            $"Report judgement run {runId} ended with status {run.Status}.");
+      }
+
+      if (run.IsTerminal)
       {
         return;
       }

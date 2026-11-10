@@ -27,14 +27,14 @@ final class CredentialContractTests: XCTestCase {
         )
         XCTAssertEqual(
             catalog.audiences.map {
-                "\($0.audience.rawValue) \($0.acceptsApiKeys) \($0.requiresAdministrator)"
+                "\($0.audience.rawValue) \($0.acceptsApiKeys) \($0.requiresAdministrator) \($0.requiresModerationStaff)"
             },
             [
-                "user true false",
-                "community_moderation true false",
-                "brand true false",
-                "admin false true",
-                "legal false true"
+                "user true false false",
+                "community_moderation true false false",
+                "brand true false false",
+                "admin false false true",
+                "legal false true false"
             ]
         )
     }

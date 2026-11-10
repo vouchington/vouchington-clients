@@ -61,6 +61,7 @@ enum ApiFixtureCoverage {
         nativeImportExportCoverage +
         nativeModerationCoverage +
         moderationAppealLifecycleFixtureCoverage +
+        moderationRunFixtureCoverage +
         moderationParityFixtureCoverage +
         nativeListMessageCoverage +
         nativeCommentAncestorCoverage +

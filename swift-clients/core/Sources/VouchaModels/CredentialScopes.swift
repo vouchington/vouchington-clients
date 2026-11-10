@@ -82,6 +82,7 @@ public struct ScopeAudiencePolicy: Codable, Sendable {
     public let audience: ScopeAudience
     public let acceptsApiKeys: Bool
     public let requiresAdministrator: Bool
+    public let requiresModerationStaff: Bool
 }
 
 public struct ScopeCatalogResponse: Codable, Sendable {

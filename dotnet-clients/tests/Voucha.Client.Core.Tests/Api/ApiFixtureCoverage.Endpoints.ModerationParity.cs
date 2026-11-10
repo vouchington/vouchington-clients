@@ -60,6 +60,22 @@ internal static partial class ApiFixtureCoverage
         "00000000-0000-7000-8000-000000000301",
         null,
         ModerationRevealSurface.ReviewQueue);
+    registry["native.moderation.report-detail.pending"] = VouchaApiEndpoints.ModerationReport(Id("native.moderation.report-detail.pending"));
+    registry["native.moderation.report-detail.saved"] = VouchaApiEndpoints.ModerationReport(Id("native.moderation.report-detail.saved"));
+    registry["native.moderation.report-judgement-run.succeeded"] = VouchaApiEndpoints.ModerationReportJudgementRun(
+        Id("native.moderation.report-judgement-run.succeeded"), RunId("native.moderation.report-judgement-run.succeeded"));
+    registry["native.moderation.report-judgement-run.failed"] = VouchaApiEndpoints.ModerationReportJudgementRun(
+        Id("native.moderation.report-judgement-run.failed"), RunId("native.moderation.report-judgement-run.failed"));
+    registry["native.moderation.report-judgement-run.expired"] = VouchaApiEndpoints.ModerationReportJudgementRun(
+        Id("native.moderation.report-judgement-run.expired"), RunId("native.moderation.report-judgement-run.expired"));
+    registry["native.moderation.appeals.resolution-draft-run.active"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+        Id("native.moderation.appeals.resolution-draft-run.active"), RunId("native.moderation.appeals.resolution-draft-run.active"));
+    registry["native.moderation.appeals.resolution-draft-run.succeeded"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+        Id("native.moderation.appeals.resolution-draft-run.succeeded"), RunId("native.moderation.appeals.resolution-draft-run.succeeded"));
+    registry["native.moderation.appeals.resolution-draft-run.failed"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+        Id("native.moderation.appeals.resolution-draft-run.failed"), RunId("native.moderation.appeals.resolution-draft-run.failed"));
+    registry["native.moderation.appeals.resolution-draft-run.expired"] = VouchaApiEndpoints.AppealResolutionDraftRun(
+        Id("native.moderation.appeals.resolution-draft-run.expired"), RunId("native.moderation.appeals.resolution-draft-run.expired"));
     foreach (var fixture in new[] { "native.moderation.context.member", "native.moderation.context.staff" })
     {
       registry[fixture] = VouchaApiEndpoints.UserModerationContext(
@@ -70,4 +86,7 @@ internal static partial class ApiFixtureCoverage
 
   private static string Id(string fixtureId) =>
       ApiFixtureLoader.RouteParameterValue(fixtureId, "id");
+
+  private static string RunId(string fixtureId) =>
+      ApiFixtureLoader.RouteParameterValue(fixtureId, "runId");
 }

@@ -33,6 +33,16 @@ public sealed record UserMetricsCount(
     [property: JsonPropertyName("rss_feeds_following")] int RssFeedsFollowing = 0,
     [property: JsonPropertyName("communities_member")] int CommunitiesMember = 0);
 
+public sealed record UserMetricsCountCapped(
+    [property: JsonPropertyName("reviews")] bool Reviews = false,
+    [property: JsonPropertyName("discussions")] bool Discussions = false,
+    [property: JsonPropertyName("comments")] bool Comments = false,
+    [property: JsonPropertyName("users_following")] bool UsersFollowing = false,
+    [property: JsonPropertyName("users_followers")] bool UsersFollowers = false,
+    [property: JsonPropertyName("topics_following")] bool TopicsFollowing = false,
+    [property: JsonPropertyName("rss_feeds_following")] bool RssFeedsFollowing = false,
+    [property: JsonPropertyName("communities_member")] bool CommunitiesMember = false);
+
 public sealed record UserMetricsViewerCount(
     [property: JsonPropertyName("reviews")] int? Reviews = null,
     [property: JsonPropertyName("discussions")] int? Discussions = null,
@@ -43,9 +53,7 @@ public sealed record UserMetrics(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("count")] UserMetricsCount Count,
     [property: JsonPropertyName("viewer_count")] UserMetricsViewerCount? ViewerCount = null,
-    [property: JsonPropertyName("bookmarkers")] IReadOnlyDictionary<string, int>? Bookmarkers = null,
-    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>>? Bookmarks = null,
-    [property: JsonPropertyName("bookmarks__updated_at")] DateTimeOffset? BookmarksUpdatedAt = null);
+    [property: JsonPropertyName("count_capped")] UserMetricsCountCapped? CountCapped = null);
 
 public sealed record UserDataRequestResponse(
     [property: JsonPropertyName("id")] string Id,

@@ -12,9 +12,8 @@ public sealed class ModerationReportJudgementRunTests
 {
   private const string ReportId = "019f6559-6b31-7171-b5b1-ccd9d702c45e";
   private const string AdmittedRunId = "00000000-0000-7000-8000-000000000303";
-  private const string SchemaCompletedRun =
-      """{"completed":true,"judgement_id":"00000000-0000-7000-8000-000000000399"}""";
-  private const string SchemaIncompleteRun = """{"completed":true,"judgement_id":null}""";
+  private const string SucceededRun =
+      """{"judgement_id":"00000000-0000-7000-8000-000000000399","run_id":"00000000-0000-7000-8000-000000000303","status":"succeeded"}""";
 
   [Fact]
   public async Task PendingFixtureReadsOnlyTheAdmittedRunUntilTheBound()
@@ -36,13 +35,13 @@ public sealed class ModerationReportJudgementRunTests
   }
 
   [Fact]
-  public async Task SchemaCompletedRunStopsBeforeTheBoundWithoutAnotherAdmission()
+  public async Task SucceededRunStopsBeforeTheBoundWithoutAnotherAdmission()
   {
     var handler = Handler(
         Fixture("native.moderation.reports.default"),
         Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
         Fixture("native.moderation.report-judgement-run.pending"),
-        new RecordedResponse(SchemaCompletedRun));
+        new RecordedResponse(SucceededRun));
     var viewModel = await Loaded(handler, 4);
 
     Assert.True(await viewModel.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
@@ -52,22 +51,25 @@ public sealed class ModerationReportJudgementRunTests
     Assert.Equal(RunPath(AdmittedRunId), RunGets(handler)[1].PathAndQuery);
   }
 
-  [Fact]
-  public async Task CompletedRunWithoutJudgementIdStopsInsteadOfReadingAgain()
+  [Theory]
+  [InlineData("failed")]
+  [InlineData("expired")]
+  public async Task FailedOrExpiredRunStopsAndSurfacesAFailure(string status)
   {
     var handler = Handler(
         Fixture("native.moderation.reports.default"),
         Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
-        new RecordedResponse(SchemaIncompleteRun),
+        Fixture($"native.moderation.report-judgement-run.{status}"),
         Fixture("native.moderation.report-judgement-run.pending"));
     var viewModel = await Loaded(handler, 4);
 
-    Assert.True(await viewModel.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.False(await viewModel.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
 
     Assert.Single(Posts(handler));
     var reads = RunGets(handler);
     Assert.Single(reads);
     Assert.Equal(RunPath(AdmittedRunId), reads[0].PathAndQuery);
+    Assert.NotEmpty(viewModel.RowErrors);
   }
 
   [Fact]
