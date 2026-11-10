@@ -73,4 +73,12 @@ public sealed partial class VouchaApiClient
       SendAsync<TopicMergeResponse>(
           VouchaApiEndpoints.MergeTopicAliases(sourceTopicId, destinationIdOrSlug),
           cancellationToken);
+
+  public Task<TopicMergeResponse> FetchTopicMergeStatusAsync(
+      string sourceTopicId,
+      string operationId,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<TopicMergeResponse>(
+          VouchaApiEndpoints.TopicMergeStatus(sourceTopicId, operationId),
+          cancellationToken);
 }

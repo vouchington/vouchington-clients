@@ -1,6 +1,7 @@
 import Observation
 import VouchaAPI
 import VouchaCore
+import VouchaLocalization
 import VouchaModels
 
 enum NativeTopicManagementSection: String {
@@ -38,6 +39,9 @@ final class NativeTopicManagementViewModel {
     var aliasesPagination = CursorPaginationState<TopicAlias>()
     var aliasDraft = ""
     var destinationIdOrSlug = ""
+    var mergeOperation: TopicMergeOperation?
+    var mergeMessage: UiMessageKey?
+    var isCheckingMerge = false
     var state: LoadState = .idle
     var sourceDetail: RssFeedDetail?
 

@@ -68,7 +68,8 @@ struct NativeTopicManagementSurface: View {
             case .merge:
                 NativeTopicManagementMergeFields(viewModel: bindableModel)
             }
-            if let primaryActionTitle = primaryActionTitle(for: bindableModel.section) {
+            if bindableModel.mergeOperation == nil || bindableModel.section != .merge,
+               let primaryActionTitle = primaryActionTitle(for: bindableModel.section) {
                 Button(UiMessages.string(primaryActionTitle, locale: nativeUiLocale)) {
                     guard !operationState.isSavePending, !bindableModel.isLoading, !isImageUploadPending else { return }
                     operationState.isSavePending = true

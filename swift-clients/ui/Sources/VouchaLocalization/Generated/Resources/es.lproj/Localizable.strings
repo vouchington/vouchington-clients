@@ -2299,6 +2299,11 @@
 "settings.language.interfaceLabel" = "Idioma de la interfaz";
 "settings.language.noCountryPreference" = "Sin preferencia de país";
 "settings.language.useSiteDefault" = "Usar configuración predeterminada del sitio";
+"settings.topics.merge.checkStatus" = "Consultar estado";
+"settings.topics.merge.completed" = "Fusión de temas completada.";
+"settings.topics.merge.failed" = "No se pudieron fusionar los temas. Revisa su configuración antes de intentarlo de nuevo.";
+"settings.topics.merge.queued" = "Fusión en cola. Consulta su estado para ver cuándo termina.";
+"settings.topics.merge.statusFailed" = "No se pudo cargar el estado de la fusión.";
 "shared.accountType.aiAgent" = "Agente de IA";
 "shared.accountType.official" = "Oficial";
 "shared.accountType.system" = "Sistema";
