@@ -58,12 +58,14 @@ final class CommunityBanManagementRenderedTests: NativeRouteSurfaceViewModelTest
         let view = CommunityBanManagementControls(viewModel: model)
         try await ViewHosting.host(view) {
             try tap(view, title(.nativeSwiftCommunitiesBans))
-            await wait("history loads") { !model.banHistory.isEmpty }
+            await wait("history loads") { !model.banHistory.isEmpty && !model.isLoadingBans }
             XCTAssertNoThrow(try view.inspect().find(text: userId))
             try tap(view, title(.nativeSwiftCommonLoadMore))
-            await wait("next page requested") { self.afterCursorRequests(path: self.base) == 1 }
+            await wait("next page loaded") {
+                self.afterCursorRequests(path: self.base) == 1 && !model.isLoadingBans
+            }
             try tap(view, banId)
-            await wait("detail loads") { model.banDetail != nil }
+            await wait("detail loads") { model.banDetail != nil && !model.isLoadingBans }
             XCTAssertNoThrow(try view.inspect().find(text: "Repeated spam"))
             CannedFeedURLProtocol.handlers[base + "/" + banId] = (
                 ApiFixtureLoader.data("native.communities.bans.lift-one.default"), 200
@@ -87,7 +89,7 @@ final class CommunityBanManagementRenderedTests: NativeRouteSurfaceViewModelTest
             XCTAssertNoThrow(try view.inspect().find(text: userId))
             try tap(view, title(.nativeSwiftCommonLoadMore))
             await wait("next active page requested") {
-                self.afterCursorRequests(path: self.base + "/users/" + self.userId) == 1
+                self.afterCursorRequests(path: self.base + "/users/" + self.userId) == 1 && !model.isLoadingBans
             }
             CannedFeedURLProtocol.handlers[base + "/users/" + userId] = (
                 ApiFixtureLoader.data("native.communities.bans.lift-all.default"), 200
