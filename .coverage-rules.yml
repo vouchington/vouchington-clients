@@ -25,5 +25,9 @@ rules:
   # prints the unavailability reason and skips; the local measurement stays on the pull request.
   - paths: "swift-clients/ui/Tests/VouchaUITests/NativeChatFoundationModelsPinnedSDKAdmissionTests.swift"
     patch_coverage_min: 0
+  # Fixture-registry closures run only in testRegisteredFixturesRoundTripThroughTheirDTO, which the
+  # coverage job skips and runs separately without coverage (native-contract-tests.yml).
+  - paths: "swift-clients/core/Tests/VouchaCoreTests/ApiFixtureCoverage.*.swift"
+    patch_coverage_min: 0
   - paths: "swift-clients/**"
     patch_coverage_min: 90
