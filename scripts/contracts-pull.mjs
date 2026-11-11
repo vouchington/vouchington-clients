@@ -26,7 +26,9 @@ async function exists(path) {
 // Subprocess output goes to stderr so stdout carries only the resolved contract root.
 function run(command, args, cwd) {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { cwd, stdio: ['ignore', 2, 2] })
+    // Windows exposes pnpm as a .cmd shim, which only a shell can launch; its arguments are literals.
+    const shell = process.platform === 'win32' && command === 'pnpm'
+    const child = spawn(command, args, { cwd, shell, stdio: ['ignore', 2, 2] })
     child.once('error', reject)
     child.once('exit', (code, signal) =>
       code === 0
@@ -49,16 +51,18 @@ async function checkoutHead(path) {
   return output.trim()
 }
 
+async function cachedCheckout(final, commit) {
+  const marker = await readFile(join(final, markerName), 'utf8').catch(() => '')
+  if (marker.trim() !== commit || (await checkoutHead(final).catch(() => '')) !== commit)
+    fail(`cached checkout ${final} is not the pinned commit ${commit}; delete it and retry`)
+  return final
+}
+
 /** Shallow-fetches exactly the pinned commit into a SHA-keyed cache and installs exporter deps. */
 export async function pinnedCheckout(config, cacheRoot, exec = run) {
   const { commit, repository } = config
   const final = join(cacheRoot, commit)
-  if (await exists(final)) {
-    const marker = await readFile(join(final, markerName), 'utf8').catch(() => '')
-    if (marker.trim() !== commit || (await checkoutHead(final).catch(() => '')) !== commit)
-      fail(`cached checkout ${final} is not the pinned commit ${commit}; delete it and retry`)
-    return final
-  }
+  if (await exists(final)) return cachedCheckout(final, commit)
   await mkdir(cacheRoot, { recursive: true })
   const partial = await mkdtemp(join(cacheRoot, `${commit}.partial-`))
   try {
@@ -70,7 +74,14 @@ export async function pinnedCheckout(config, cacheRoot, exec = run) {
       fail(`fetched checkout is not the pinned commit ${commit}`)
     await exec('pnpm', ['install', '--frozen-lockfile', '--ignore-scripts'], partial)
     await writeFile(join(partial, markerName), `${commit}\n`)
-    await rename(partial, final)
+    try {
+      await rename(partial, final)
+    } catch (error) {
+      // A concurrent pull of the same pin published first; validate and reuse its checkout.
+      if (!['EEXIST', 'ENOTEMPTY', 'EPERM'].includes(error.code) || !(await exists(final)))
+        throw error
+      return cachedCheckout(final, commit)
+    }
   } finally {
     await rm(partial, { recursive: true, force: true })
   }

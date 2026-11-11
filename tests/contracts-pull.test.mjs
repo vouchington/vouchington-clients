@@ -160,6 +160,25 @@ test('pinnedCheckout fetches exactly the commit, installs, caches by SHA and reu
   )
 })
 
+test('pinnedCheckout reuses a checkout a concurrent pull of the same pin published', async t => {
+  const source = await scratch(t, 'voucha-pull-race-')
+  const git = (...args) => execFileSync('git', args, { cwd: source, encoding: 'utf8' }).trim()
+  git('init', '--quiet')
+  await writeFile(join(source, 'file.txt'), 'one\n')
+  git('add', '.')
+  git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '--quiet', '-m', 'one')
+  const config = { repository: 'vouchington/vouchington', commit: git('rev-parse', 'HEAD') }
+  const cacheRoot = await scratch(t, 'voucha-pull-cache-race-')
+  const exec = localExec(source)
+  const [first, second] = await Promise.all([
+    pinnedCheckout(config, cacheRoot, exec),
+    pinnedCheckout(config, cacheRoot, exec),
+  ])
+  assert.equal(first, join(cacheRoot, config.commit))
+  assert.equal(second, first)
+  assert.deepEqual(await readdir(cacheRoot), [config.commit])
+})
+
 test('pinnedCheckout fails closed when the fetched revision is not the pin', async t => {
   const source = await scratch(t, 'voucha-pull-wrong-')
   execFileSync('git', ['init', '--quiet'], { cwd: source })
