@@ -4,7 +4,7 @@ import XCTest
 
 private let createFixtureId = "native.posts.topic-recommendation.create"
 
-private struct TopicRecommendationCreateBody: Encodable, Sendable {
+private struct TopicRecommendationCreateBody: Encodable {
     let postType = "topic_recommendation"
     let title = "Native recommendation"
     let markdown = "Recommendation body"
@@ -18,13 +18,13 @@ let topicRecommendationCreateFixtureEndpoints: [String: Endpoint] = [
     createFixtureId: Endpoint.createTopicRecommendation(
         body: TopicRecommendationCreateBody(),
         idempotencyKey: "70000000-0000-7000-8000-000000005598"
-    ),
+    )
 ]
 
 let topicRecommendationCreateFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: createFixtureId) {
         try assertFixtureCoversDTO($0, as: TopicRecommendationPostEnvelope.self)
-    },
+    }
 ]
 
 final class TopicRecommendationCreateContractTests: XCTestCase {
