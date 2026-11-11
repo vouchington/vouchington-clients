@@ -715,7 +715,6 @@
   <data name="native.dotnet.csharpEditor.selectImage" xml:space="preserve"><value>Seleccionar imagen</value></data>
   <data name="native.dotnet.csharpEditor.suggestionWithDetail" xml:space="preserve"><value>{label}  {detail}</value></data>
   <data name="native.dotnet.csharpEditor.write" xml:space="preserve"><value>Escribir</value></data>
-  <data name="native.dotnet.csharpStatus.mergedInto" xml:space="preserve"><value>Combinado en {id}</value></data>
   <data name="native.dotnet.csharpStatus.saveTopicFirst" xml:space="preserve"><value>Guarda el tema antes de administrar la configuración.</value></data>
   <data name="native.dotnet.csharpStatus.savedItem" xml:space="preserve"><value>Guardado {id}</value></data>
   <data name="native.dotnet.csharpStatus.speed" xml:space="preserve"><value>{value}×</value></data>
@@ -2020,6 +2019,11 @@
   <data name="settings.language.supportedCount.__plural.one" xml:space="preserve"><value>{count} idioma</value></data>
   <data name="settings.language.supportedCount.__plural.other" xml:space="preserve"><value>{count} idiomas</value></data>
   <data name="settings.language.useSiteDefault" xml:space="preserve"><value>Usar configuración predeterminada del sitio</value></data>
+  <data name="settings.topics.merge.checkStatus" xml:space="preserve"><value>Consultar estado</value></data>
+  <data name="settings.topics.merge.completed" xml:space="preserve"><value>Fusión de temas completada.</value></data>
+  <data name="settings.topics.merge.failed" xml:space="preserve"><value>No se pudieron fusionar los temas. Revisa su configuración antes de intentarlo de nuevo.</value></data>
+  <data name="settings.topics.merge.queued" xml:space="preserve"><value>Fusión en cola. Consulta su estado para ver cuándo termina.</value></data>
+  <data name="settings.topics.merge.statusFailed" xml:space="preserve"><value>No se pudo cargar el estado de la fusión.</value></data>
   <data name="shared.accountType.aiAgent" xml:space="preserve"><value>Agente de IA</value></data>
   <data name="shared.accountType.official" xml:space="preserve"><value>Oficial</value></data>
   <data name="shared.accountType.system" xml:space="preserve"><value>Sistema</value></data>

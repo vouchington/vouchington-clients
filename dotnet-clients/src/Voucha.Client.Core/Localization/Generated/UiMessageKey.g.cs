@@ -715,7 +715,6 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NativeDotnetCsharpEditorSelectImage = new("native.dotnet.csharpEditor.selectImage");
     public static readonly UiMessageKey NativeDotnetCsharpEditorSuggestionWithDetail = new("native.dotnet.csharpEditor.suggestionWithDetail");
     public static readonly UiMessageKey NativeDotnetCsharpEditorWrite = new("native.dotnet.csharpEditor.write");
-    public static readonly UiMessageKey NativeDotnetCsharpStatusMergedInto = new("native.dotnet.csharpStatus.mergedInto");
     public static readonly UiMessageKey NativeDotnetCsharpStatusSaveTopicFirst = new("native.dotnet.csharpStatus.saveTopicFirst");
     public static readonly UiMessageKey NativeDotnetCsharpStatusSavedItem = new("native.dotnet.csharpStatus.savedItem");
     public static readonly UiMessageKey NativeDotnetCsharpStatusSpeed = new("native.dotnet.csharpStatus.speed");
@@ -2011,6 +2010,11 @@ public readonly record struct UiMessageKey(string Value)
     public static readonly UiMessageKey NavSettings = new("nav.settings");
     public static readonly UiMessageKey SettingsLanguageSupportedCount = new("settings.language.supportedCount");
     public static readonly UiMessageKey SettingsLanguageUseSiteDefault = new("settings.language.useSiteDefault");
+    public static readonly UiMessageKey SettingsTopicsMergeCheckStatus = new("settings.topics.merge.checkStatus");
+    public static readonly UiMessageKey SettingsTopicsMergeCompleted = new("settings.topics.merge.completed");
+    public static readonly UiMessageKey SettingsTopicsMergeFailed = new("settings.topics.merge.failed");
+    public static readonly UiMessageKey SettingsTopicsMergeQueued = new("settings.topics.merge.queued");
+    public static readonly UiMessageKey SettingsTopicsMergeStatusFailed = new("settings.topics.merge.statusFailed");
     public static readonly UiMessageKey SharedAccountTypeAiAgent = new("shared.accountType.aiAgent");
     public static readonly UiMessageKey SharedAccountTypeOfficial = new("shared.accountType.official");
     public static readonly UiMessageKey SharedAccountTypeSystem = new("shared.accountType.system");
@@ -2737,7 +2741,6 @@ public readonly record struct UiMessageKey(string Value)
         NativeDotnetCsharpEditorSelectImage,
         NativeDotnetCsharpEditorSuggestionWithDetail,
         NativeDotnetCsharpEditorWrite,
-        NativeDotnetCsharpStatusMergedInto,
         NativeDotnetCsharpStatusSaveTopicFirst,
         NativeDotnetCsharpStatusSavedItem,
         NativeDotnetCsharpStatusSpeed,
@@ -4033,6 +4036,11 @@ public readonly record struct UiMessageKey(string Value)
         NavSettings,
         SettingsLanguageSupportedCount,
         SettingsLanguageUseSiteDefault,
+        SettingsTopicsMergeCheckStatus,
+        SettingsTopicsMergeCompleted,
+        SettingsTopicsMergeFailed,
+        SettingsTopicsMergeQueued,
+        SettingsTopicsMergeStatusFailed,
         SharedAccountTypeAiAgent,
         SharedAccountTypeOfficial,
         SharedAccountTypeSystem,

@@ -68,25 +68,6 @@ extension NativeTopicManagementViewModel {
         }
     }
 
-    func mergeTopic() async {
-        guard let client, let topicIdentifier else { return }
-        let destination = destinationIdOrSlug.trimmed
-        guard !destination.isEmpty else { return }
-        state = .loading
-        do {
-            // The producer queues merges (202); the source topic is unchanged until the operation completes.
-            let _: TopicMergeEnvelope = try await client.send(.mergeTopicAliases(
-                sourceTopicId: topicIdentifier,
-                destinationIdOrSlug: destination
-            ))
-            state = .loaded
-        } catch let error as VouchaError {
-            state = .error(error)
-        } catch {
-            state = .error(.api(statusCode: 0, preconditionCode: nil))
-        }
-    }
-
     var createBody: CreateTopicBody {
         .init(
             name: name.trimmed,

@@ -90,6 +90,13 @@ public interface ITopicsService
       string destinationIdOrSlug,
       CancellationToken cancellationToken = default);
 
+  Task<TopicMergeResponse> FetchTopicMergeStatusAsync(
+      string sourceTopicId,
+      string operationId,
+      CancellationToken cancellationToken = default) =>
+      Task.FromException<TopicMergeResponse>(
+          new NotSupportedException("Topic merge status is not implemented by this topics service."));
+
   Task VoteTopicAsync(
       string topicId,
       ElectionVoteChoice choice,

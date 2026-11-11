@@ -135,18 +135,6 @@ public partial class TopicManagementPage : ContentPage
     }).ConfigureAwait(true);
   }
 
-  private async void OnMergeClicked(object? sender, EventArgs e)
-  {
-    if (!TryTopicId(out var topicId) || string.IsNullOrWhiteSpace(MergeDestinationEntry.Text)) return;
-    await RunAsync(async () =>
-    {
-      var response = await topicsService.MergeTopicAliasesAsync(topicId, MergeDestinationEntry.Text.Trim()).ConfigureAwait(true);
-      StatusLabel.Text = UiCopy.Format(
-          UiMessageKey.NativeDotnetCsharpStatusMergedInto,
-          ("id", response.TopicMerge.DestinationTopicId));
-    }).ConfigureAwait(true);
-  }
-
   private CreateTopicRequest CreateRequest() =>
       new(
           NameEntry.Text ?? "",

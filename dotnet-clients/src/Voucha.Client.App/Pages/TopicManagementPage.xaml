@@ -61,7 +61,8 @@
                 PaginationId="topic-additional-hostnames"
                 LoadNextPageRequested="OnLoadMoreHostnamesRequested" />
             <Entry x:Name="MergeDestinationEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.mergeDestination}" />
-            <Button Text="{DynamicResource native.dotnet.topicManagement.mergeTopic}" Clicked="OnMergeClicked" />
+            <Button x:Name="MergeButton" Text="{DynamicResource native.dotnet.topicManagement.mergeTopic}" Clicked="OnMergeClicked" />
+            <Button x:Name="CheckMergeStatusButton" IsVisible="False" Text="{DynamicResource settings.topics.merge.checkStatus}" Clicked="OnCheckMergeStatusClicked" />
             <HorizontalStackLayout Spacing="8">
                 <Button Text="{DynamicResource native.dotnet.topicManagement.toggleSourceEnabled}" Clicked="OnToggleSourceEnabledClicked" />
                 <Button Text="{DynamicResource native.dotnet.topicManagement.toggleSourceDiscoverable}" Clicked="OnToggleSourceDiscoverableClicked" />

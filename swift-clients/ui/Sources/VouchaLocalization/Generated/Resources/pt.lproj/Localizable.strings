@@ -2299,6 +2299,11 @@
 "settings.language.interfaceLabel" = "Idioma da interface";
 "settings.language.noCountryPreference" = "Sem preferência de país";
 "settings.language.useSiteDefault" = "Usar idioma padrão do site";
+"settings.topics.merge.checkStatus" = "Consultar status";
+"settings.topics.merge.completed" = "Mesclagem de tópicos concluída.";
+"settings.topics.merge.failed" = "Não foi possível mesclar os tópicos. Revise as configurações antes de tentar novamente.";
+"settings.topics.merge.queued" = "Mesclagem na fila. Consulte o status para saber quando terminar.";
+"settings.topics.merge.statusFailed" = "Não foi possível carregar o status da mesclagem.";
 "shared.accountType.aiAgent" = "Agente de IA";
 "shared.accountType.official" = "Oficial";
 "shared.accountType.system" = "Sistema";
