@@ -123,7 +123,7 @@ public sealed partial class VouchaApiClientTests
         "agent_moderation:post-1",
         new CommunityAutomodFeedbackRequest("true_positive", "keep_removed", "correct", "Matches the community rules."),
         token);
-    await client.FetchCommunityModerationResultsAsync("test community", "post-1", token);
+    await client.FetchCommunityModerationResultsAsync("test community", "post-1", cancellationToken: token);
     await client.IssueCommunityWarningAsync(
         "test community",
         new IssueCommunityWarningRequest("user-1", "Spam in community", "Please read the community rules.", ResolveReport: false),

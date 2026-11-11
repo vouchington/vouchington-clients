@@ -105,7 +105,7 @@ public sealed class ApiCommunitiesServiceTests
         "agent_moderation:post-1",
         new CommunityAutomodFeedbackRequest("true_positive", "keep_removed", "correct", "Matches the community rules."),
         TestContext.Current.CancellationToken);
-    var moderationResults = await service.FetchModerationResultsAsync("test-community", "post-1", TestContext.Current.CancellationToken);
+    var moderationResults = await service.FetchModerationResultsAsync("test-community", "post-1", cancellationToken: TestContext.Current.CancellationToken);
     var warning = await service.IssueWarningAsync(
         "test-community",
         new IssueCommunityWarningRequest("user-1", "Spam in community", "Please read the community rules.", ResolveReport: false),

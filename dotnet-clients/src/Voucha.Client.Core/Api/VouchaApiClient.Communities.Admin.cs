@@ -39,9 +39,11 @@ public sealed partial class VouchaApiClient
   public Task<CommunityModerationResultsResponse> FetchCommunityModerationResultsAsync(
       string idOrSlug,
       string postId,
+      string? after = null,
+      int? limit = null,
       CancellationToken cancellationToken = default) =>
       SendAsync<CommunityModerationResultsResponse>(
-          VouchaApiEndpoints.CommunityModerationResults(idOrSlug, postId),
+          VouchaApiEndpoints.CommunityModerationResults(idOrSlug, postId, after, limit),
           cancellationToken);
 
   public Task ConfirmCommunityBanEvasionAsync(
