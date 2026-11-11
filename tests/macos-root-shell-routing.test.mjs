@@ -78,10 +78,7 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
     new URL('../swift-clients/apps/macOS/project.yml', import.meta.url),
     'utf8',
   )
-  assert.match(
-    macProject,
-    /VOUCHA_CONTRACT_ROOT: '\$\(VOUCHA_CONTRACT_ROOT\)'/u,
-  )
+  assert.match(macProject, /VOUCHA_CONTRACT_ROOT: '\$\(VOUCHA_CONTRACT_ROOT\)'/u)
   assert.doesNotMatch(launch, /-only-testing:.*FeedFlowTests/u)
   assert.doesNotMatch(launch, /\/SignInFlowTests\/|testNotificationSettings|testFediverse/u)
   assert.match(launch, /platform:macOS/u)

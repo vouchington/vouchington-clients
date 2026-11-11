@@ -114,9 +114,7 @@ export function validatePairManifest(value) {
     !/^[0-9a-f]{40}$/u.test(value.contract.trustedPinnedCommit)
   )
     fail('manifest contract source is not the fixed producer contract')
-  if (
-    JSON.stringify(value.contract.declaredPaths) !== JSON.stringify(declaredContractPaths)
-  )
+  if (JSON.stringify(value.contract.declaredPaths) !== JSON.stringify(declaredContractPaths))
     fail('manifest contract paths differ from the trusted allowlist')
   if (!Array.isArray(value.contract.files) || value.contract.files.length === 0)
     fail('manifest file list is empty')

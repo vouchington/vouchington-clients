@@ -2,7 +2,7 @@
 import Foundation
 import PackageDescription
 
-// Generated localization is pulled from the pinned Vouchington contract and never committed.
+/// Generated localization is pulled from the pinned Vouchington contract and never committed.
 let pulledLocalizationKey = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
     .appendingPathComponent("Sources/VouchaLocalization/Generated/UiMessageKey.swift")

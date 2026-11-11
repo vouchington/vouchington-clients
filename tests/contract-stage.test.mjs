@@ -235,7 +235,10 @@ test('fails closed for partial legacy trees, symlinks, a nonempty output, and in
 
   const nestedOutput = await fixture(t)
   await assert.rejects(
-    stageNativeContract({ ...nestedOutput, outputRoot: join(nestedOutput.vouchingtonRoot, 'stage') }),
+    stageNativeContract({
+      ...nestedOutput,
+      outputRoot: join(nestedOutput.vouchingtonRoot, 'stage'),
+    }),
     /stage output root must be isolated/,
   )
 
@@ -255,7 +258,10 @@ test('fails closed for partial legacy trees, symlinks, a nonempty output, and in
   const linked = await fixture(t)
   await symlink(
     'UiMessageKey.swift',
-    join(linked.vouchingtonRoot, 'swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift'),
+    join(
+      linked.vouchingtonRoot,
+      'swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift',
+    ),
   )
   await assert.rejects(stageNativeContract(linked), /symbolic link/)
 

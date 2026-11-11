@@ -121,7 +121,9 @@ export async function checkContracts(options = {}) {
       'generated localization target parent',
     )
     if (!(await pathInfo(target.destination)))
-      fail(`generated localization is missing at ${target.destination}; run pnpm run contracts:pull`)
+      fail(
+        `generated localization is missing at ${target.destination}; run pnpm run contracts:pull`,
+      )
     await descendantDirectory(destinationRoot, target.destination, 'generated localization target')
     if (!(await sameTree(join(root, target.source), target.destination))) {
       fail(`generated localization differs at ${target.destination}; run pnpm run contracts:pull`)

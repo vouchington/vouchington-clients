@@ -2,11 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
-import {
-  contractDataPaths,
-  declaredContractPaths,
-  localizationPaths,
-} from './contracts.mjs'
+import { contractDataPaths, declaredContractPaths, localizationPaths } from './contracts.mjs'
 import {
   absoluteDirectoryPath,
   assertOnlyDeclaredPaths,
@@ -39,7 +35,9 @@ async function runVouchingtonExporter({ vouchingtonRoot, consumerRoot, outputRoo
       if (code === 0) resolvePromise()
       else
         reject(
-          new Error(`Vouchington exporter failed (${signal ? `signal ${signal}` : `exit ${code}`})`),
+          new Error(
+            `Vouchington exporter failed (${signal ? `signal ${signal}` : `exit ${code}`})`,
+          ),
         )
     })
   })

@@ -54,7 +54,10 @@ test('pull uses an explicit staged root as-is and writes the generated trees', a
   })
   assert.equal(root, staged)
   assert.match(logs.join('\n'), /as-is/)
-  assert.equal(await readFile(join(generatedRoot, 'swift/UiMessageKey.swift'), 'utf8'), 'enum Key {}\n')
+  assert.equal(
+    await readFile(join(generatedRoot, 'swift/UiMessageKey.swift'), 'utf8'),
+    'enum Key {}\n',
+  )
   await pullContract({
     env: { VOUCHA_CONTRACT_ROOT: staged },
     config,
@@ -129,7 +132,8 @@ function localExec(source) {
   return async (command, args, cwd) => {
     if (command === 'git' && args[0] === 'remote') return
     if (command === 'pnpm') return writeFile(join(cwd, 'installed'), 'ok')
-    const rewritten = args[0] === 'fetch' ? ['fetch', '--quiet', '--depth', '1', source, args.at(-1)] : args
+    const rewritten =
+      args[0] === 'fetch' ? ['fetch', '--quiet', '--depth', '1', source, args.at(-1)] : args
     execFileSync(command, rewritten, { cwd, stdio: 'ignore' })
   }
 }

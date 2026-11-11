@@ -88,7 +88,10 @@ export function createMetadata(options, config) {
   return {
     schema: 3,
     clientsRepository,
-    vouchington: { repository: contractRepository, sha: sha(options.vouchingtonSha, 'Vouchington SHA') },
+    vouchington: {
+      repository: contractRepository,
+      sha: sha(options.vouchingtonSha, 'Vouchington SHA'),
+    },
     candidate: {
       event: candidateEvent,
       number: candidateNumber,

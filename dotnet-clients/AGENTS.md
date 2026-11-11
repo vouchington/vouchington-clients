@@ -41,6 +41,7 @@ Core-vs-App test split, the test file-length cap, and local coverage.
   development cookie loading must stay in `#if DEBUG` code only.
 - Keep posts, referral links, and topics native in MAUI; do not use WebView fallback for parity surfaces.
 - Keep member chat and support native in MAUI, with list/detail/create flows backed by core chat/support services.
+- Generated localization (`src/Voucha.Client.Core/Localization/Generated`) is not committed. Run `pnpm run contracts:pull` from the repository root before building or testing; the contract rules are in the root `AGENTS.md`.
 - Every database-backed native list must forward opaque cursors and append pages safely; follow Vouchington's [cross-surface pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
 - Do not add Windows app packaging or signing CI. Hosted `windows-latest` jobs cover the native
   `BitmapDecoder` tests, the pinned Windows App SDK language-model surface probe, and unsigned MAUI

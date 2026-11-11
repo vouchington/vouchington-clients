@@ -102,3 +102,10 @@ The Swift UI package is separately pinned directly to SwiftSoup `2.13.9`
 (`18b80329749eca5ea29fc50211dca5c7eff5bfec`). Android retains its transitive
 SwiftSoup `2.13.7` lock because this behavior port does not require a resolution
 change there.
+
+## Contract mechanism renamed
+
+The former Filaments contract is now the pinned Vouchington contract: `contracts/filaments.json` is
+`contracts/vouchington.json` (a `commit` pin replaces `ref: main`), `VOUCHA_FILAMENTS_CONTRACT_ROOT` is
+`VOUCHA_CONTRACT_ROOT`, and generated localization is pulled by `pnpm run contracts:pull` instead of
+committed. See `docs/contracts.md`.
