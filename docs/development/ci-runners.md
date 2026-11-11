@@ -71,8 +71,6 @@ misread it. Unpinned, the lockfile stays one document.
   v6.1.0), so the action skips `self-update` and keeps it. pnpm 12.3.0 through 12.4.2 make
   `pnpm dlx` exit 1 with `ERR_PNPM_IGNORED_BUILDS` for packages with build scripts, such as
   `wrangler`; 12.5.0 fixed it.
-- The `/plan` and `/fix` gate jobs stay checkout-free: the action needs no `package.json`, and
-  those jobs only run `pnpm dlx`.
 - Workflows, scripts, and the native lock wrappers run `pnpm` from `PATH`. Nothing bootstraps pnpm
   through Corepack or a versioned `npx pnpm@<version>` call.
 - Dependabot runs the pnpm bundled with its updater image.
