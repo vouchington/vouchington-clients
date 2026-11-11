@@ -52,7 +52,8 @@ public sealed record FetchPostsFeedRequest(
     string Feed = "any",
     string? After = null,
     int Limit = 20,
-    string? PostTypes = null);
+    string? PostTypes = null,
+    string? TimeRange = null);
 
 public sealed record EntityRelationsRequest(
     string EntityType,

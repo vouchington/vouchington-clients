@@ -17,7 +17,7 @@ public sealed class PostsListViewModelTests
     };
     var viewModel = new PostsListViewModel(service);
 
-    await viewModel.LoadFeedAsync("follow_users", "review", TestContext.Current.CancellationToken);
+    await viewModel.LoadFeedAsync("follow_users", "review", cancellationToken: TestContext.Current.CancellationToken);
 
     Assert.Equal("follow_users", service.LastFeedRequest?.Feed);
     Assert.Equal("review", service.LastFeedRequest?.PostTypes);

@@ -41,6 +41,9 @@ public final class PostsListViewModel {
         }
     }
 
+    /// Selected finite window. `nil` is the default selection and omits `time_range`.
+    public private(set) var timeRange: PostTimeRange?
+
     var inFlightVotePostIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
 
@@ -48,9 +51,17 @@ public final class PostsListViewModel {
     /// The feed scope path segment, e.g. "any" (default), "follow_users".
     private let feedType: String
 
-    public init(client: APIClient, feedType: String = "any") {
+    public init(client: APIClient, feedType: String = "any", timeRange: PostTimeRange? = nil) {
         self.client = client
         self.feedType = feedType
+        self.timeRange = timeRange
+    }
+
+    /// Select a finite range (or `nil` for the default). A change drops the cursor and reloads.
+    public func selectTimeRange(_ range: PostTimeRange?) async {
+        guard range != timeRange else { return }
+        timeRange = range
+        await reload()
     }
 
     /// Load the first page if idle and there is more to load.
@@ -67,7 +78,12 @@ public final class PostsListViewModel {
 
     private func loadPage(_ request: CursorPageRequest) async {
         do {
-            let endpoint = Endpoint.posts(feedType: feedType, after: request.cursor, postTypes: filter.postTypes)
+            let endpoint = Endpoint.posts(
+                feedType: feedType,
+                after: request.cursor,
+                postTypes: filter.postTypes,
+                timeRange: timeRange?.rawValue
+            )
             let page: PostsPage = try await client.send(endpoint)
             guard pagination.isCurrent(request) else { return }
             let newItems = page.results.compactMap { result -> Post? in
@@ -88,7 +104,8 @@ public final class PostsListViewModel {
                 request,
                 items: newItems,
                 endCursor: page.pageInfo.endCursor,
-                hasNextPage: page.pageInfo.hasNextPage
+                // Continue only with both signals; a short or cursorless page is terminal.
+                hasNextPage: page.pageInfo.hasNextPage && page.pageInfo.endCursor != nil
             ) else { return }
             if request.cursor == nil {
                 postEmbedsByPostId = page.postLinkEmbeds ?? [:]

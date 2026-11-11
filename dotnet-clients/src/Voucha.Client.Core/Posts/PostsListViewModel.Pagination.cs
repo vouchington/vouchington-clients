@@ -23,9 +23,9 @@ public sealed partial class PostsListViewModel
         {
           var response = browsing
               ? await postsService.FetchPostsAsync(
-                  new FetchPostsRequest(PostTypes: activePostTypes, After: after), cancellationToken).ConfigureAwait(true)
+                  new FetchPostsRequest(PostTypes: activePostTypes, After: after, TimeRange: activeTimeRange), cancellationToken).ConfigureAwait(true)
               : await postsService.FetchFeedAsync(
-                  new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes), cancellationToken).ConfigureAwait(true);
+                  new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes, TimeRange: activeTimeRange), cancellationToken).ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: true);
         },
         () => CompleteCanceled(currentRequest),
