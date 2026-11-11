@@ -70,8 +70,8 @@ final class EndpointTests: XCTestCase {
         assertEndpoint(
             story,
             method: .POST,
-            path: "/api/v1/stories/story%201/discussions",
-            body: [:]
+            path: "/api/v1/posts",
+            body: ["post_type": "story", "story_id": "story 1"]
         )
         XCTAssertEqual(story.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000055")
         let rss = Endpoint.createRssFeedItemDiscussion(
@@ -80,10 +80,23 @@ final class EndpointTests: XCTestCase {
         assertEndpoint(
             rss,
             method: .POST,
-            path: "/api/v1/rss-feed-items/item%201/discussions",
-            body: [:]
+            path: "/api/v1/posts",
+            body: ["post_type": "link", "rss_feed_item_id": "item 1"]
         )
         XCTAssertEqual(rss.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000056")
+        let recommendation = Endpoint.createTopicRecommendation(
+            body: ["post_type": "topic_recommendation", "topic_slug": "swift"],
+            idempotencyKey: "00000000-0000-4000-8000-000000000059"
+        )
+        assertEndpoint(
+            recommendation,
+            method: .POST,
+            path: "/api/v1/posts",
+            body: ["post_type": "topic_recommendation", "topic_slug": "swift"]
+        )
+        XCTAssertEqual(recommendation.headers["Idempotency-Key"], "00000000-0000-4000-8000-000000000059")
+        let unkeyed = Endpoint.createTopicRecommendation(body: ["topic_slug": "swift"], idempotencyKey: nil)
+        XCTAssertTrue(unkeyed.headers.isEmpty)
     }
 
     func testDiscussionCreationEndpointsDecodeExpectedResponses() async throws {
@@ -97,7 +110,7 @@ final class EndpointTests: XCTestCase {
             protocolClasses: [MockURLProtocol.self]
         )
 
-        MockURLProtocol.handlers["/api/v1/rss-feed-items/item-1/discussions"] = (
+        MockURLProtocol.handlers["/api/v1/posts"] = (
             Data("""
             {
               "post": {
@@ -143,7 +156,7 @@ final class EndpointTests: XCTestCase {
         XCTAssertEqual(linkResult.post.id, "post-1")
         XCTAssertEqual(linkResult.post.postType, .link)
 
-        MockURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
+        MockURLProtocol.handlers["/api/v1/posts"] = (
             Data("""
             {
               "post": {
@@ -175,23 +188,6 @@ final class EndpointTests: XCTestCase {
                 "spam_detection_results": null,
                 "spam_detection_score": null,
                 "updated_by_id": null
-              },
-              "story": {
-                "id": "story-1",
-                "title": "Cluster title",
-                "cluster_reason": "shared topic",
-                "published_at": null,
-                "official_rss_feed_item_id": null,
-                "official_locked_at": null,
-                "created_at": "2026-01-01T00:00:00Z",
-                "updated_at": "2026-01-01T00:00:00Z",
-                "deleted_at": null
-              },
-              "postStory": {
-                "post_id": "post-2",
-                "story_id": "story-1",
-                "initiated_by_id": "user-1",
-                "created_at": "2026-01-01T00:00:00Z"
               }
             }
             """.utf8),
@@ -201,8 +197,7 @@ final class EndpointTests: XCTestCase {
             .createStoryDiscussion(storyId: "story-1", idempotencyKey: "00000000-0000-4000-8000-000000000058")
         )
         XCTAssertEqual(storyResult.post.id, "post-2")
-        XCTAssertEqual(storyResult.story.id, "story-1")
-        XCTAssertEqual(storyResult.postStory.storyId, "story-1")
+        XCTAssertEqual(storyResult.post.postType, .story)
     }
 
     func testVoteTopicEndpointUsesExpectedRoute() {

@@ -14,6 +14,5 @@ public struct AppAttestActionTag: RawRepresentable, Hashable, Sendable {
     public static let disputesCreate = AppAttestActionTag(rawValue: "disputes.create")
     public static let appealsCreate = AppAttestActionTag(rawValue: "appeals.create")
     public static let authEmailAddressTokens = AppAttestActionTag(rawValue: "auth.email-address-tokens")
-    public static let topicRecommendationsCreate = AppAttestActionTag(rawValue: "topic-recommendations.create")
     public static let reportsCreate = AppAttestActionTag(rawValue: "reports.create")
 }

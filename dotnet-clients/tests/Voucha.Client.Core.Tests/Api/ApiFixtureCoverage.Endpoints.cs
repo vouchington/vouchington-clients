@@ -203,7 +203,7 @@ internal static partial class ApiFixtureCoverage
         ["native.rss-feed-item.detail.default"] =
             VouchaApiEndpoints.RssFeedItem("00000000-0000-7000-8000-000000007886"),
         ["native.topic-recommendation.detail.default"] =
-            VouchaApiEndpoints.TopicRecommendation("recommendation-1"),
+            VouchaApiEndpoints.Post("recommendation-1"),
         ["web.topics.publisher-types.default"] = VouchaApiEndpoints.PublisherTypes(),
         ["native.topics.user-tags.default"] = VouchaApiEndpoints.UserTags(),
         ["native.entity-relations.post.category.topic.default"] = VouchaApiEndpoints.EntityRelations(

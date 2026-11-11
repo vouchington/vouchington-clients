@@ -1,6 +1,7 @@
 import VouchaModels
 
 struct NativeTopicRecommendationMutationBody: Encodable {
+    let postType: String?
     let title: String?
     let markdown: String
     let topicTitle: String

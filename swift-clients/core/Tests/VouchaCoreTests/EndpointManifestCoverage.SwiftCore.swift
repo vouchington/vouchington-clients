@@ -109,7 +109,7 @@ extension EndpointManifestCoverage {
             Endpoint.rssFeedItem(id: "00000000-0000-7000-8000-000000007886")
         },
         ManifestRegisteredEndpoint(id: "native.topic-recommendation.detail.default") {
-            Endpoint.topicRecommendation(id: "recommendation-1")
+            Endpoint.post(idOrSlug: "recommendation-1")
         },
         ManifestRegisteredEndpoint(id: "native.topic-recommendations.top-hashtags.default") {
             Endpoint.topHashtags()

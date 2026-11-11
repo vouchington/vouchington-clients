@@ -66,6 +66,7 @@ enum ApiFixtureCoverage {
         nativeListMessageCoverage +
         nativeCommentAncestorCoverage +
         nativeContentFixtureCoverage +
+        topicRecommendationCreateFixtureCoverage +
         nativeUrlApiFixtureCoverage +
         userProfileApiFixtureCoverage +
         nativeMembershipFixtureCoverage +

@@ -26,12 +26,8 @@ final class EndpointRouteParameterEncodingTests: XCTestCase {
         XCTAssertEqual(Endpoint.post(idOrSlug: "post/one%").path, "/api/v1/posts/post%2Fone%25")
         XCTAssertEqual(Endpoint.topic(id: "topic/one%").path, "/api/v1/topics/topic%2Fone%25")
         XCTAssertEqual(
-            Endpoint.topicRecommendation(id: "recommendation/one%").path,
-            "/api/v1/topic-recommendations/recommendation%2Fone%25"
-        )
-        XCTAssertEqual(
             Endpoint.updateTopicRecommendation(id: "recommendation/one%", body: ["title": "Updated"]).path,
-            "/api/v1/topic-recommendations/recommendation%2Fone%25"
+            "/api/v1/posts/recommendation%2Fone%25"
         )
     }
 }

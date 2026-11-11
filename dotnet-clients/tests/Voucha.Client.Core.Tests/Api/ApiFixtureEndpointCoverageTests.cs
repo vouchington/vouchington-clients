@@ -46,7 +46,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.rss-feed-item.detail.default"] =
             VouchaApiEndpoints.RssFeedItem("00000000-0000-7000-8000-000000007886"),
         ["native.topic-recommendation.detail.default"] =
-            VouchaApiEndpoints.TopicRecommendation("recommendation-1"),
+            VouchaApiEndpoints.Post("recommendation-1"),
         ["native.topic-recommendations.top-hashtags.default"] = VouchaApiEndpoints.TopHashtags(),
         ["web.topics.search.referral-programs.default"] = VouchaApiEndpoints.SearchTopics("test", "referral_program", 10),
         ["web.referral-links.feed.default"] = VouchaApiEndpoints.ReferralLinksFeed("follow_users"),

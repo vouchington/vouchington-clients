@@ -286,7 +286,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.rss-feed-item.detail.default": Endpoint.rssFeedItem(
                 id: "00000000-0000-7000-8000-000000007886"
             ),
-            "native.topic-recommendation.detail.default": Endpoint.topicRecommendation(id: "recommendation-1"),
+            "native.topic-recommendation.detail.default": Endpoint.post(idOrSlug: "recommendation-1"),
             "native.topic-recommendations.top-hashtags.default": Endpoint.topHashtags(),
             "native.bookmarks.posts.saved.default": Endpoint.userPosts(userId: "user-abc", listType: "saved"),
             "native.bookmarks.posts.saved.next-page": Endpoint.userPosts(
@@ -447,4 +447,5 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(membershipStoreFixtureEndpoints) { _, replacement in replacement }
         .merging(topicClaimFixtureEndpoints) { _, replacement in replacement }
         .merging(nativeSessionFixtureEndpoints) { _, replacement in replacement }
+        .merging(topicRecommendationCreateFixtureEndpoints) { _, replacement in replacement }
 }

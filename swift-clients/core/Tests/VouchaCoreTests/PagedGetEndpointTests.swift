@@ -17,7 +17,6 @@ final class PagedGetEndpointTests: XCTestCase {
             Endpoint.userTopicsFollowing(userId: "user/1", limit: 2),
             Endpoint.userTopics(userId: "user/1", listType: "following", limit: 2),
             Endpoint.referralLinksFeed(feedType: "follow_users", limit: 2),
-            Endpoint.topicRecommendations(limit: 2),
             Endpoint.myReferralClicks(limit: 2),
             Endpoint.referralLinks(limit: 2),
             Endpoint.myConversationMessages(conversationId: "conv/1", limit: 2),
@@ -59,7 +58,6 @@ final class PagedGetEndpointTests: XCTestCase {
                 limit: 10
             ),
             Endpoint.referralLinksFeed(feedType: "follow_users", after: cursor, limit: 10),
-            Endpoint.topicRecommendations(after: cursor, limit: 10),
             Endpoint.myReferralClicks(after: cursor, limit: 10),
             Endpoint.referralLinks(after: cursor, limit: 10),
             Endpoint.myConversationMessages(conversationId: "conv/1", after: cursor, limit: 10),

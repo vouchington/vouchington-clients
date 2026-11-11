@@ -12,7 +12,7 @@ public sealed class TopHashtagsTests
     var request = VouchaApiEndpoints.TopHashtags("rust-lang", TopHashtagMapping.Unlinked, "next", 10);
 
     Assert.Equal(HttpMethod.Get, request.Method);
-    Assert.Equal("/api/v1/topic-recommendations/top-hashtags", request.Path);
+    Assert.Equal("/api/v1/topics/top-hashtags", request.Path);
     Assert.Equal("rust-lang", request.Query["q"]);
     Assert.Equal("unlinked", request.Query["mapping"]);
     Assert.Equal("next", request.Query["after"]);

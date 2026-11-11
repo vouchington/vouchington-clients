@@ -368,8 +368,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("referralProgramsByLinkCount", VouchaApiEndpoints.ReferralProgramsByLinkCount(13, "cursor-2"), HttpMethod.Get, "/api/v1/topics", Query(("sort", "link_count"), ("limit", "13"), ("after", "cursor-2")));
     yield return Case("referralLinksFeed", VouchaApiEndpoints.ReferralLinksFeed("any", "cursor-3", 14), HttpMethod.Get, "/api/v1/feeds/referral_links/any", Query(("limit", "14"), ("after", "cursor-3")));
     yield return Case("recommendedTopics", VouchaApiEndpoints.RecommendedTopics("cursor-4", 15, ["rss_feed", "spending_category"], "score", true, false), HttpMethod.Get, "/api/v1/recommended-topics", Query(("limit", "15"), ("after", "cursor-4"), ("topic_types", "rss_feed,spending_category"), ("sort", "score"), ("spending_category", "true"), ("rss_feed", "false")));
-    yield return Case("topicRecommendations", VouchaApiEndpoints.TopicRecommendations("cursor-5", 16), HttpMethod.Get, "/api/v1/topic-recommendations", Query(("limit", "16"), ("after", "cursor-5")));
-    yield return Case("topicRecommendation", VouchaApiEndpoints.TopicRecommendation("recommendation 1"), HttpMethod.Get, "/api/v1/topic-recommendations/recommendation%201", Query());
+    yield return Case("topicRecommendations", VouchaApiEndpoints.TopicRecommendations("cursor-5", 16), HttpMethod.Get, "/api/v1/posts", Query(("limit", "16"), ("after", "cursor-5"), ("post_types", "topic_recommendation")));
     yield return Case("myCommunities", VouchaApiEndpoints.MyCommunities(), HttpMethod.Get, "/api/v1/my/communities", Query());
     yield return Case("myReferralClicks", VouchaApiEndpoints.MyReferralClicks("cursor-6", 17), HttpMethod.Get, "/api/v1/my/referral-clicks", Query(("limit", "17"), ("after", "cursor-6")));
     yield return Case("referralLinks", VouchaApiEndpoints.ReferralLinks("cursor-7", 18), HttpMethod.Get, "/api/v1/referral-links", Query(("limit", "18"), ("after", "cursor-7")));

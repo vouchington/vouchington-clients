@@ -8,14 +8,14 @@ import XCTest
 @MainActor
 final class StaffProvenancePostRouteTests: NativeRouteSurfaceViewModelTestCase {
     func testRecommendationListAndDetailKeepDecodedPostFacts() async throws {
-        let detailPath = "/api/v1/topic-recommendations/recommendation-1"
+        let detailPath = "/api/v1/posts/recommendation-1"
         let detail = try postFacts(in: ApiFixtureLoader.data("native.topic-recommendation.detail.default"))
         let post = try XCTUnwrap(detail["post"] as? [String: Any])
         let feed: [String: Any] = [
             "results": [["id": "recommendation-1", "entity_id": "recommendation-1"]],
             "posts": ["recommendation-1": post]
         ]
-        CannedFeedURLProtocol.handlers["/api/v1/topic-recommendations"] = try (
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = try (
             JSONSerialization.data(withJSONObject: feed), 200
         )
         CannedFeedURLProtocol.handlers[detailPath] = try (

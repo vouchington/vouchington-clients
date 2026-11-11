@@ -295,23 +295,6 @@ public sealed partial class VouchaApiClientTests
             "title": "Story title",
             "markdown": "",
             "created_by_id": "story-teller"
-          },
-          "story": {
-            "id": "story-1",
-            "title": "Story title",
-            "cluster_reason": "clustered",
-            "published_at": "2026-01-01T00:00:00Z",
-            "official_rss_feed_item_id": "item-1",
-            "official_locked_at": "2026-01-02T00:00:00Z",
-            "created_at": "2026-01-01T00:00:00Z",
-            "updated_at": "2026-01-03T00:00:00Z",
-            "deleted_at": null
-          },
-          "postStory": {
-            "post_id": "post-1",
-            "story_id": "story-1",
-            "initiated_by_id": "user-1",
-            "created_at": "2026-01-01T00:00:00Z"
           }
         }
         """);
@@ -320,14 +303,10 @@ public sealed partial class VouchaApiClientTests
     var response = await client.CreateStoryPostFromStoryAsync(
         "story 1", "00000000-0000-4000-8000-000000000021", TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Post, "/api/v1/stories/story%201/discussions");
+    AssertRequest(handler, HttpMethod.Post, "/api/v1/posts");
     Assert.Equal("00000000-0000-4000-8000-000000000021", handler.IdempotencyKey);
     Assert.Equal("post-1", response.Post.Id);
     Assert.Equal("story", response.Post.PostType);
-    Assert.Equal("story-1", response.Story.Id);
-    Assert.Equal(DateTimeOffset.Parse("2026-01-02T00:00:00Z"), response.Story.OfficialLockedAt);
-    Assert.Equal(DateTimeOffset.Parse("2026-01-03T00:00:00Z"), response.Story.UpdatedAt);
-    Assert.Equal("post-1", response.PostStory.PostId);
   }
 
   [Fact]
@@ -349,7 +328,7 @@ public sealed partial class VouchaApiClientTests
     var response = await client.CreateLinkPostFromRssFeedItemAsync(
         "item 1", "00000000-0000-4000-8000-000000000022", TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Post, "/api/v1/rss-feed-items/item%201/discussions");
+    AssertRequest(handler, HttpMethod.Post, "/api/v1/posts");
     Assert.Equal("00000000-0000-4000-8000-000000000022", handler.IdempotencyKey);
     Assert.Equal("post-1", response.Post.Id);
     Assert.Equal("link", response.Post.PostType);
