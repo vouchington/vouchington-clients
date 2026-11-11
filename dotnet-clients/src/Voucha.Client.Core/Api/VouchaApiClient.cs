@@ -130,7 +130,8 @@ public sealed partial class VouchaApiClient
               Require(request).Feed,
               request.After,
               request.Limit,
-              request.PostTypes),
+              request.PostTypes,
+              request.TimeRange),
           cancellationToken);
 
   public Task<NotificationsResponse> FetchNotificationsAsync(CancellationToken cancellationToken = default) =>

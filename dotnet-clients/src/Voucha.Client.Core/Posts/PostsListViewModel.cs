@@ -16,6 +16,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   private bool hasMore;
   private string activeFeedType = "any";
   private string? activePostTypes;
+  private string? activeTimeRange;
   private bool browsing;
   private int requestId;
   private readonly HashSet<string> votingIds = new(StringComparer.Ordinal);
@@ -76,10 +77,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   public async Task LoadFeedAsync(
       string feedType = "any",
       string? postTypes = null,
+      string? timeRange = null,
       CancellationToken cancellationToken = default)
   {
     activeFeedType = feedType;
     activePostTypes = postTypes;
+    activeTimeRange = timeRange;
     browsing = false;
     endCursor = null;
     HasMore = true;
@@ -89,7 +92,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         {
           var response = await postsService
               .FetchFeedAsync(
-                  new FetchPostsFeedRequest(Feed: feedType, PostTypes: postTypes),
+                  new FetchPostsFeedRequest(Feed: feedType, PostTypes: postTypes, TimeRange: timeRange),
                   cancellationToken)
               .ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);
@@ -100,9 +103,11 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public async Task LoadBrowseAsync(
       string? postTypes = null,
+      string? timeRange = null,
       CancellationToken cancellationToken = default)
   {
     activePostTypes = postTypes;
+    activeTimeRange = timeRange;
     browsing = true;
     endCursor = null;
     HasMore = true;
@@ -111,7 +116,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         async () =>
         {
           var response = await postsService
-              .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes), cancellationToken)
+              .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes, TimeRange: timeRange), cancellationToken)
               .ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);
         },
@@ -135,7 +140,8 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         ? Items.Concat(rows).DistinctBy(row => row.Id, StringComparer.Ordinal).ToArray()
         : rows;
     endCursor = response.PageInfo.EndCursor;
-    HasMore = response.PageInfo.HasMorePages;
+    // Continue only with has_next_page and an opaque cursor; a short page is terminal.
+    HasMore = response.PageInfo.HasNextPage && !string.IsNullOrEmpty(response.PageInfo.EndCursor);
     State = LoadState.Loaded;
   }
 
