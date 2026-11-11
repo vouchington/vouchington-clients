@@ -35,7 +35,7 @@ async function fixture(t) {
     JSON.stringify({
       schemaVersion: 1,
       repository: 'vouchington/vouchington',
-      ref: 'main',
+      commit: 'a'.repeat(40),
       paths,
     }),
   )
@@ -241,4 +241,29 @@ test('does not accept a copied source bundle in place of the checkout layout', a
     await readFile(join(root, 'api-fixtures/v1/manifest.json'), 'utf8'),
     '{"fixtures":[]}\n',
   )
+})
+
+test('sync creates absent generated trees and check names contracts:pull when they are missing', async t => {
+  const { config, generatedRoot, root, targets } = await fixture(t)
+  await Promise.all(targets.map(target => rm(target.destination, { recursive: true })))
+  const options = { config, destinationRoot: generatedRoot, root, targets }
+  await assert.rejects(checkContracts(options), /missing at .*run pnpm run contracts:pull/)
+  await syncContracts({ config, root, targets })
+  await checkContracts(options)
+})
+
+test('requires a pinned full-SHA contract configuration', async t => {
+  const { config, root } = await fixture(t)
+  const valid = JSON.parse(await readFile(config, 'utf8'))
+  for (const change of [
+    { commit: 'main' },
+    { commit: 'A'.repeat(40) },
+    { commit: 'a'.repeat(39) },
+    { repository: 'someone/else' },
+    { paths: paths.slice(1) },
+    { ref: 'main' },
+  ]) {
+    await writeFile(config, JSON.stringify({ ...valid, ...change }))
+    await assert.rejects(verifyContract({ config, root }), /contract configuration/)
+  }
 })

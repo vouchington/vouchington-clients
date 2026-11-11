@@ -4,6 +4,7 @@ node_modules/
 *.contracts-backup
 .contracts-stage-*
 coverage/
+.cache/
 
 # Agent worktree/runtime state
 .claude/worktrees/
