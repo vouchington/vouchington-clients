@@ -389,6 +389,11 @@ jobs:
         with:
           artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
           path: ${{ runner.temp }}/paired-contract
+      - name: Pull paired localization into the candidate
+        working-directory: clients-candidate
+        env:
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+        run: node scripts/contracts-pull.mjs
       - name: Set up Swift toolchain
         uses: ./trusted-clients/.github/actions/setup-mise-toolchain
         with:
@@ -487,6 +492,15 @@ jobs:
         with:
           artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
           path: ${{ runner.temp }}/paired-contract
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+      - name: Pull paired localization into the candidate
+        working-directory: clients-candidate
+        env:
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+        run: node scripts/contracts-pull.mjs
       - name: Set up trusted Swift toolchain
         uses: ./trusted-clients/.github/actions/setup-mise-toolchain
         with:
