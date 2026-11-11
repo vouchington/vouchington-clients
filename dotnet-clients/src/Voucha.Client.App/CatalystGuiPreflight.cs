@@ -22,7 +22,7 @@ internal static class CatalystGuiPreflight
     identityBody = string.Empty;
     emailPreferencesBody = string.Empty;
     if (!Environment.GetCommandLineArgs().Contains(LaunchArgument)) return false;
-    var root = Environment.GetEnvironmentVariable("VOUCHA_FILAMENTS_CONTRACT_ROOT");
+    var root = Environment.GetEnvironmentVariable("VOUCHA_CONTRACT_ROOT");
     if (!IsAbsoluteFixtureRoot(root)) return false;
     var fixtureRoot = Path.Combine(root!, "api-fixtures", "v1");
     try

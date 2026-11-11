@@ -12,7 +12,7 @@ import {
 import { createPairManifest } from './paired-contract-manifest.mjs'
 import { validatePairedExporterRuntimeEvidence } from './paired-exporter-runtime-evidence.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
-import { contractDataPaths, declaredFilamentsContractPaths } from './contracts.mjs'
+import { contractDataPaths, declaredContractPaths } from './contracts.mjs'
 
 async function assertNoSymlinkComponents(root, target, label) {
   const pathFromRoot = relative(root, target)
@@ -86,7 +86,7 @@ export async function createManifestCommand() {
   if (git(trustedRoot, ['status', '--porcelain', '--untracked-files=all']) !== '')
     fail(`trusted checkout changed during validation: ${trustedRoot}`)
   const contractConfig = await readJson(
-    join(trustedRoot, 'contracts/filaments.json'),
+    join(trustedRoot, 'contracts/vouchington.json'),
     'trusted contract configuration',
   )
   if (JSON.stringify(candidateEvidence.candidateConfig) !== JSON.stringify(contractConfig))
@@ -124,7 +124,7 @@ export async function createManifestCommand() {
     producerHead: candidateEvidence.producer.revision,
     lockBlob: producerLockBlob,
   })
-  for (const contractPath of declaredFilamentsContractPaths)
+  for (const contractPath of declaredContractPaths)
     await assertNoSymlinkComponents(
       contractRoot,
       join(contractRoot, ...contractPath.split('/')),

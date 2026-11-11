@@ -29,7 +29,7 @@ references are the
 and
 [native localization exporter](https://github.com/vouchington/vouchington/blob/main/dev/native-localization.mts).
 Stage those producer outputs with `scripts/stage-native-contract.mjs`, then point
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
+`VOUCHA_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
 `contracts:check`. Native quality and test planning never read product source from Vouchington.
 
 Restage with `--consumer-root` pointing at the final client worktree after changing product

@@ -32,7 +32,7 @@ public sealed class PublicEntityProvenanceSurfaceTests
   [Fact]
   public async Task SourceFetchCarriesProvenanceWhileUnrelatedFeedRowsStayUnlabeled()
   {
-    var handler = new RecordingHandler(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var handler = new RecordingHandler(File.ReadAllText(ContractPaths.ApiFixture(
         "responses/entity-provenance.rss-feeds.json")));
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var service = new ApiNewsFeedService(client);
@@ -50,7 +50,7 @@ public sealed class PublicEntityProvenanceSurfaceTests
   [Fact]
   public async Task SearchRowsPreservePublicProvenanceThroughCommunityAndTopicServices()
   {
-    var communityHandler = new RecordingHandler(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var communityHandler = new RecordingHandler(File.ReadAllText(ContractPaths.ApiFixture(
         "responses/entity-provenance.communities.json")));
     var communityClient = new VouchaApiClient(new HttpClient(communityHandler)
     { BaseAddress = new Uri("https://api.test") });
@@ -58,7 +58,7 @@ public sealed class PublicEntityProvenanceSurfaceTests
     communities.Query = "test";
     await communities.SearchAsync(TestContext.Current.CancellationToken);
 
-    var topicHandler = new RecordingHandler(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var topicHandler = new RecordingHandler(File.ReadAllText(ContractPaths.ApiFixture(
         "responses/entity-provenance.topics.json")));
     var topicClient = new VouchaApiClient(new HttpClient(topicHandler)
     { BaseAddress = new Uri("https://api.test") });
@@ -83,7 +83,7 @@ public sealed class PublicEntityProvenanceSurfaceTests
   }
 
   private static T Read<T>(string entity) =>
-      JsonSerializer.Deserialize<T>(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+      JsonSerializer.Deserialize<T>(File.ReadAllText(ContractPaths.ApiFixture(
           $"responses/entity-provenance.{entity}.json")), VouchaApiJson.Options)
       ?? throw new InvalidOperationException($"Missing {entity} fixture response.");
 

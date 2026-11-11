@@ -2,36 +2,36 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Api;
 
-public sealed class FilamentsContractPathsTests
+public sealed class ContractPathsTests
 {
   [Fact]
   public void ApiFixturesV1RootRequiresExplicitContractRoot()
   {
-    var error = Assert.Throws<InvalidOperationException>(() => FilamentsContractPaths.ApiFixturesV1Root(null));
+    var error = Assert.Throws<InvalidOperationException>(() => ContractPaths.ApiFixturesV1Root(null));
 
-    Assert.Contains("VOUCHA_FILAMENTS_CONTRACT_ROOT", error.Message, StringComparison.Ordinal);
+    Assert.Contains("VOUCHA_CONTRACT_ROOT", error.Message, StringComparison.Ordinal);
   }
 
   [Fact]
   public void ApiFixturesV1RootRejectsDirectoryWithoutFetchedApiFixtures()
   {
     var error = Assert.Throws<DirectoryNotFoundException>(() =>
-        FilamentsContractPaths.ApiFixturesV1Root(Path.GetFullPath("dotnet-clients")));
+        ContractPaths.ApiFixturesV1Root(Path.GetFullPath("dotnet-clients")));
 
     Assert.Contains("api-fixtures/v1", error.Message, StringComparison.Ordinal);
   }
 
   [Fact]
-  public void ApiFixturesV1RootDoesNotDiscoverAValidSiblingFilamentsDirectory()
+  public void ApiFixturesV1RootDoesNotDiscoverAValidSiblingVouchingtonDirectory()
   {
     var temporaryDirectory = TemporaryDirectory();
     try
     {
-      Directory.CreateDirectory(Path.Combine(temporaryDirectory, "filaments", "api-fixtures", "v1"));
+      Directory.CreateDirectory(Path.Combine(temporaryDirectory, "vouchington", "api-fixtures", "v1"));
 
-      var error = Assert.Throws<InvalidOperationException>(() => FilamentsContractPaths.ApiFixturesV1Root(null));
+      var error = Assert.Throws<InvalidOperationException>(() => ContractPaths.ApiFixturesV1Root(null));
 
-      Assert.Contains("VOUCHA_FILAMENTS_CONTRACT_ROOT", error.Message, StringComparison.Ordinal);
+      Assert.Contains("VOUCHA_CONTRACT_ROOT", error.Message, StringComparison.Ordinal);
     }
     finally
     {
@@ -49,7 +49,7 @@ public sealed class FilamentsContractPathsTests
     var root = FixtureRoot();
     try
     {
-      var error = Assert.Throws<InvalidOperationException>(() => FilamentsContractPaths.ApiFixture(root, bodyFile));
+      var error = Assert.Throws<InvalidOperationException>(() => ContractPaths.ApiFixture(root, bodyFile));
 
       Assert.Contains("Fixture path", error.Message, StringComparison.Ordinal);
     }
@@ -65,7 +65,7 @@ public sealed class FilamentsContractPathsTests
     var root = FixtureRoot();
     try
     {
-      var fixture = FilamentsContractPaths.ApiFixture(root, "responses/missing/fixture.json");
+      var fixture = ContractPaths.ApiFixture(root, "responses/missing/fixture.json");
 
       Assert.Equal(
           Path.Combine(root, "api-fixtures", "v1", "responses", "missing", "fixture.json"),
@@ -86,9 +86,9 @@ public sealed class FilamentsContractPathsTests
       var parent = Directory.GetParent(root)!.FullName;
       var sibling = Path.Combine(parent, $"{Path.GetFileName(root)}-sibling");
 
-      Assert.True(FilamentsContractPaths.IsStrictDescendant(root, Path.Combine(root, "fixture.json")));
-      Assert.False(FilamentsContractPaths.IsStrictDescendant(root, root));
-      Assert.False(FilamentsContractPaths.IsStrictDescendant(root, sibling));
+      Assert.True(ContractPaths.IsStrictDescendant(root, Path.Combine(root, "fixture.json")));
+      Assert.False(ContractPaths.IsStrictDescendant(root, root));
+      Assert.False(ContractPaths.IsStrictDescendant(root, sibling));
     }
     finally
     {
@@ -120,7 +120,7 @@ public sealed class FilamentsContractPathsTests
         File.CreateSymbolicLink(fixturePath, outsideFixture);
       }
 
-      var error = Assert.Throws<InvalidOperationException>(() => FilamentsContractPaths.ApiFixture(root, "responses/fixture.json"));
+      var error = Assert.Throws<InvalidOperationException>(() => ContractPaths.ApiFixture(root, "responses/fixture.json"));
 
       Assert.Contains("symbolic link", error.Message, StringComparison.Ordinal);
     }
@@ -141,7 +141,7 @@ public sealed class FilamentsContractPathsTests
       File.CreateSymbolicLink(fixturePath, Path.Combine(root, "missing.json"));
 
       var error = Assert.Throws<InvalidOperationException>(() =>
-          FilamentsContractPaths.ApiFixture(root, "fixture.json"));
+          ContractPaths.ApiFixture(root, "fixture.json"));
 
       Assert.Contains("symbolic link", error.Message, StringComparison.Ordinal);
     }

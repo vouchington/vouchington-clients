@@ -68,7 +68,7 @@ public sealed class DirectMessageParticipantRenderingTests
   {
     InstallResources();
     var fixture = JsonSerializer.Deserialize<DirectMessageParticipantsResponse>(
-        File.ReadAllText(FilamentsContractPaths.ApiFixture(BodyFile("native.messages.participants.default"))),
+        File.ReadAllText(ContractPaths.ApiFixture(BodyFile("native.messages.participants.default"))),
         VouchaApiJson.Options)!;
     var owner = fixture.Results[0];
     var member = fixture.Results[1];
@@ -145,7 +145,7 @@ public sealed class DirectMessageParticipantRenderingTests
 
   private static string BodyFile(string id)
   {
-    var manifest = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("manifest.json")))!;
+    var manifest = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture("manifest.json")))!;
     return manifest["fixtures"]!.AsArray().Single(entry => (string?)entry?["id"] == id)!["bodyFile"]!.GetValue<string>();
   }
 

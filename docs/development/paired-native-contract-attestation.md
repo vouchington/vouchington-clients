@@ -35,7 +35,7 @@ remains an informational paired-snapshot preflight, not an independent security 
 code.
 
 The workflow stages only the paths already declared by the trusted clients
-`contracts/filaments.json`, checks the candidate clients generated-localization copies, and writes
+`contracts/vouchington.json`, checks the candidate clients generated-localization copies, and writes
 a separate strict manifest with both PR snapshots, the operator and confirmation, the workflow
 run identity, allowlisted paths, and every staged file's size and SHA-256. The short-lived
 artifact is evidence for those exact snapshots; it is not GitHub approval and cannot be rebound

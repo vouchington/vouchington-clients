@@ -203,7 +203,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$CONTRACT_STAGE_ROOT"
           node trusted-clients/scripts/stage-native-contract.mjs \
-            --filaments-root "$PRODUCER_CANDIDATE_ROOT" \
+            --vouchington-root "$PRODUCER_CANDIDATE_ROOT" \
             --output-root "$CONTRACT_STAGE_ROOT" \
             --consumer-root "$CLIENTS_CANDIDATE_ROOT" \
             --exporter-output-root "$EXPORTER_OUTPUT_ROOT"
@@ -217,7 +217,7 @@ jobs:
 
       - name: Check paired candidate generated localization against staged contract
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
         run: >-
           node trusted-clients/scripts/contracts.mjs check
           --destination-root "$GITHUB_WORKSPACE/clients-candidate"
@@ -321,7 +321,7 @@ jobs:
 
       - name: Check exact candidate generated localization against untrusted data
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
         run: >-
           node trusted-clients/scripts/contracts.mjs check
           --destination-root "$GITHUB_WORKSPACE/clients-candidate"
@@ -408,13 +408,13 @@ jobs:
         env:
           MISE_DISABLE_TOOLS: ''
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
         run: mise exec swift -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/core" --force-resolved-versions --disable-dependency-cache
       - name: Test portable .NET
         working-directory: clients-candidate
         env:
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
           MSBuildEnableWorkloadResolver: 'false'
         run: >-
           mise exec -- dotnet test
@@ -457,7 +457,7 @@ jobs:
         env:
           MISE_DISABLE_TOOLS: ''
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
         run: mise exec swift -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/core" --force-resolved-versions --disable-dependency-cache
 
   native-android-build:
@@ -537,7 +537,7 @@ jobs:
         working-directory: trusted-clients
         env:
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
           GRADLE_USER_HOME: ${{ runner.temp }}/skip-swift-home/.cache/voucha/gradle
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'

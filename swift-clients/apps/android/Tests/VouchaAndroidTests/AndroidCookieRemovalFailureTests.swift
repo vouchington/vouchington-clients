@@ -13,9 +13,9 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         AndroidAuthURLProtocol.resetRequests()
         defer { AndroidAuthURLProtocol.resetRequests() }
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
+        let root = try ContractRoot.url(requiredPaths: [fixture])
         try AndroidAuthURLProtocol.setIdentity(
-            Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+            Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         )
         let secrets = VolatileCookieDeletionSecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
@@ -57,9 +57,9 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         AndroidAuthURLProtocol.resetRequests()
         defer { AndroidAuthURLProtocol.resetRequests() }
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
+        let root = try ContractRoot.url(requiredPaths: [fixture])
         try AndroidAuthURLProtocol.setIdentity(
-            Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+            Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         )
         let secrets = CookieRemovalFailureSecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)

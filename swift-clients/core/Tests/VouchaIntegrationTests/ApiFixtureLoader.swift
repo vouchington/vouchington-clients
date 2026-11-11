@@ -62,8 +62,8 @@ enum ApiFixtureLoader {
     }
 
     private static func fixtureURL(_ bodyFile: String) throws -> URL {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
-        return try FilamentsContractRoot.fixtureURL(bodyFile, root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+        return try ContractRoot.fixtureURL(bodyFile, root: root)
     }
 }
 

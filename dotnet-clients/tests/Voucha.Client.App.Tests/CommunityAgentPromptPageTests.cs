@@ -189,7 +189,7 @@ public sealed class CommunityAgentPromptPageTests
       body["page_info"] = JsonSerializer.SerializeToNode(new CommunityAgentPromptPageInfo(continuation ? null : "opaque/+?", !continuation, null), VouchaApiJson.Options);
       return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body.ToJsonString()) };
     }
-    private static string Fixture(string id) => File.ReadAllText(FilamentsContractPaths.ApiFixture($"responses/{id}.json"));
+    private static string Fixture(string id) => File.ReadAllText(ContractPaths.ApiFixture($"responses/{id}.json"));
   }
 
   private sealed class Session : ISessionStore

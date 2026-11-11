@@ -2,18 +2,18 @@ import Foundation
 @testable import VouchaTestSupport
 import XCTest
 
-final class FilamentsApiContractRootTests: XCTestCase {
+final class ApiContractRootTests: XCTestCase {
     func testContractURLReadsWithoutResponseFixturesAndRejectsMissingPaths() throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let directory = root.appendingPathComponent("api-contracts/v1")
-        XCTAssertThrowsError(try FilamentsContractRoot.apiContractURL("request-contracts.json", root: root))
+        XCTAssertThrowsError(try ContractRoot.apiContractURL("request-contracts.json", root: root))
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let file = directory.appendingPathComponent("request-contracts.json")
         try Data("contract".utf8).write(to: file)
-        let loaded = try FilamentsContractRoot.apiContractURL("request-contracts.json", root: root)
+        let loaded = try ContractRoot.apiContractURL("request-contracts.json", root: root)
         XCTAssertEqual(try Data(contentsOf: loaded), Data("contract".utf8))
-        XCTAssertThrowsError(try FilamentsContractRoot.apiContractURL("nested/missing.json", root: root))
+        XCTAssertThrowsError(try ContractRoot.apiContractURL("nested/missing.json", root: root))
     }
 
     func testContractURLRejectsUnsafePaths() throws {
@@ -28,7 +28,7 @@ final class FilamentsApiContractRootTests: XCTestCase {
             "C:contract.json",
             "nested//contract.json"
         ] {
-            XCTAssertThrowsError(try FilamentsContractRoot.apiContractURL(path, root: root), path)
+            XCTAssertThrowsError(try ContractRoot.apiContractURL(path, root: root), path)
         }
     }
 
@@ -64,7 +64,7 @@ final class FilamentsApiContractRootTests: XCTestCase {
                 target = component == "root" ? outside : outside.appendingPathComponent(component)
             }
             try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: target)
-            XCTAssertThrowsError(try FilamentsContractRoot.apiContractURL(
+            XCTAssertThrowsError(try ContractRoot.apiContractURL(
                 "nested/request-contracts.json",
                 root: root
             )) { error in
@@ -75,7 +75,7 @@ final class FilamentsApiContractRootTests: XCTestCase {
 
     private func makeRoot() throws -> URL {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filaments-contracts-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("vouchington-contracts-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         return root
     }

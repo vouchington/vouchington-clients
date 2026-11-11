@@ -2,17 +2,17 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Api;
 
-public sealed class FilamentsApiContractPathsTests
+public sealed class ApiContractPathsTests
 {
   [Fact]
   public void RequiresExplicitRootAndContractsDirectory()
   {
-    Assert.Throws<InvalidOperationException>(() => FilamentsContractPaths.ApiContractsV1Root(null));
+    Assert.Throws<InvalidOperationException>(() => ContractPaths.ApiContractsV1Root(null));
     var root = TemporaryDirectory();
     try
     {
       Directory.CreateDirectory(Path.Combine(root, "api-fixtures", "v1"));
-      Assert.Throws<DirectoryNotFoundException>(() => FilamentsContractPaths.ApiContractsV1Root(root));
+      Assert.Throws<DirectoryNotFoundException>(() => ContractPaths.ApiContractsV1Root(root));
     }
     finally { Directory.Delete(root, recursive: true); }
   }
@@ -30,7 +30,7 @@ public sealed class FilamentsApiContractPathsTests
     try
     {
       Directory.CreateDirectory(Path.Combine(root, "api-contracts", "v1"));
-      Assert.Throws<InvalidOperationException>(() => FilamentsContractPaths.ApiContract(root, path));
+      Assert.Throws<InvalidOperationException>(() => ContractPaths.ApiContract(root, path));
     }
     finally { Directory.Delete(root, recursive: true); }
   }
@@ -44,9 +44,9 @@ public sealed class FilamentsApiContractPathsTests
       var directory = Path.Combine(root, "api-contracts", "v1");
       Directory.CreateDirectory(directory);
       File.WriteAllText(Path.Combine(directory, "request-contracts.json"), "contract");
-      Assert.Equal("contract", File.ReadAllText(FilamentsContractPaths.ApiContract(root, "request-contracts.json")));
+      Assert.Equal("contract", File.ReadAllText(ContractPaths.ApiContract(root, "request-contracts.json")));
       Assert.Equal(Path.Combine(directory, "nested", "missing.json"),
-          FilamentsContractPaths.ApiContract(root, "nested/missing.json"));
+          ContractPaths.ApiContract(root, "nested/missing.json"));
     }
     finally { Directory.Delete(root, recursive: true); }
   }
@@ -83,7 +83,7 @@ public sealed class FilamentsApiContractPathsTests
         Directory.CreateSymbolicLink(linked, target);
       }
       var error = Assert.Throws<InvalidOperationException>(() =>
-          FilamentsContractPaths.ApiContract(root, "nested/request-contracts.json"));
+          ContractPaths.ApiContract(root, "nested/request-contracts.json"));
       Assert.Contains("symbolic link", error.Message, StringComparison.Ordinal);
     }
     finally { Directory.Delete(temporary, recursive: true); }

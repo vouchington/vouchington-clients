@@ -1,7 +1,7 @@
 import Foundation
 
-public enum FilamentsContractRoot {
-    public static let environmentKey = "VOUCHA_FILAMENTS_CONTRACT_ROOT"
+public enum ContractRoot {
+    public static let environmentKey = "VOUCHA_CONTRACT_ROOT"
 
     public static func url(
         environment: [String: String] = ProcessInfo.processInfo.environment,
@@ -11,14 +11,14 @@ public enum FilamentsContractRoot {
             let value = environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
             !value.isEmpty
         else {
-            throw FilamentsContractRootError.missingEnvironment(environmentKey)
+            throw ContractRootError.missingEnvironment(environmentKey)
         }
 
         let root = URL(fileURLWithPath: value).standardizedFileURL
         try rejectSymbolicLinks(beneath: root, components: [])
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            throw FilamentsContractRootError.invalidRoot(root.path)
+            throw ContractRootError.invalidRoot(root.path)
         }
 
         for requiredPath in requiredPaths {
@@ -30,13 +30,13 @@ public enum FilamentsContractRoot {
     public static func requiredURL(_ requiredPath: String, root: URL) throws -> URL {
         let components = requiredPath.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
         guard !components.isEmpty, components.allSatisfy(isSafePathComponent) else {
-            throw FilamentsContractRootError.missingPath(requiredPath)
+            throw ContractRootError.missingPath(requiredPath)
         }
 
         try rejectSymbolicLinks(beneath: root, components: components)
         let candidate = root.appendingPathComponent(requiredPath)
         guard FileManager.default.fileExists(atPath: candidate.path) else {
-            throw FilamentsContractRootError.missingPath(requiredPath)
+            throw ContractRootError.missingPath(requiredPath)
         }
         return candidate
     }
@@ -57,8 +57,8 @@ public enum FilamentsContractRoot {
         let components = bodyFile.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
         guard !components.isEmpty, components.allSatisfy(isSafePathComponent) else {
             throw directory == "api-fixtures/v1"
-                ? FilamentsContractRootError.invalidFixturePath(bodyFile)
-                : FilamentsContractRootError.invalidContractPath(bodyFile)
+                ? ContractRootError.invalidFixturePath(bodyFile)
+                : ContractRootError.invalidContractPath(bodyFile)
         }
 
         let fixtureRoot = root.appendingPathComponent(directory, isDirectory: true)
@@ -67,8 +67,8 @@ public enum FilamentsContractRoot {
         let resolvedFixture = fixture.resolvingSymlinksInPath().standardizedFileURL
         guard isDescendant(resolvedFixture, of: resolvedRoot) else {
             throw directory == "api-fixtures/v1"
-                ? FilamentsContractRootError.invalidFixturePath(bodyFile)
-                : FilamentsContractRootError.invalidContractPath(bodyFile)
+                ? ContractRootError.invalidFixturePath(bodyFile)
+                : ContractRootError.invalidContractPath(bodyFile)
         }
         return fixture
     }
@@ -83,14 +83,14 @@ public enum FilamentsContractRoot {
 
     private static func rejectSymbolicLinks(beneath root: URL, components: [String]) throws {
         if (try? FileManager.default.destinationOfSymbolicLink(atPath: root.path)) != nil {
-            throw FilamentsContractRootError.symbolicLink(root.path)
+            throw ContractRootError.symbolicLink(root.path)
         }
 
         var candidate = root
         for component in components {
             candidate = candidate.appendingPathComponent(component)
             if (try? FileManager.default.destinationOfSymbolicLink(atPath: candidate.path)) != nil {
-                throw FilamentsContractRootError.symbolicLink(candidate.path)
+                throw ContractRootError.symbolicLink(candidate.path)
             }
         }
     }
@@ -102,7 +102,7 @@ public enum FilamentsContractRoot {
     }
 }
 
-public enum FilamentsContractRootError: Error, CustomStringConvertible {
+public enum ContractRootError: Error, CustomStringConvertible {
     case missingEnvironment(String)
     case invalidRoot(String)
     case missingPath(String)
@@ -113,17 +113,17 @@ public enum FilamentsContractRootError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case let .missingEnvironment(key):
-            "Missing required \(key). Fetch Filaments contracts before running native contract tests."
+            "Missing required \(key). Fetch Vouchington contracts before running native contract tests."
         case let .invalidRoot(path):
-            "\(FilamentsContractRoot.environmentKey) must name an existing directory, got \(path)."
+            "\(ContractRoot.environmentKey) must name an existing directory, got \(path)."
         case let .missingPath(path):
-            "Filaments contract root is missing required path \(path)."
+            "Vouchington contract root is missing required path \(path)."
         case let .invalidFixturePath(path):
             "API fixture bodyFile must be a relative path beneath api-fixtures/v1, got \(path)."
         case let .invalidContractPath(path):
             "API contract path must be a relative path beneath api-contracts/v1, got \(path)."
         case let .symbolicLink(path):
-            "Filaments contract paths must not contain symbolic links, found \(path)."
+            "Vouchington contract paths must not contain symbolic links, found \(path)."
         }
     }
 }

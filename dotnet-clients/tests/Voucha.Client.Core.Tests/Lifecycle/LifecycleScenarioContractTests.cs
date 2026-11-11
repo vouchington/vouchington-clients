@@ -403,7 +403,7 @@ internal sealed class LifecycleScenarioContract
 
   public static LifecycleScenarioContract Load()
   {
-    var path = FilamentsContractPaths.ApiFixture("lifecycle-scenarios.json");
+    var path = ContractPaths.ApiFixture("lifecycle-scenarios.json");
     using var document = JsonDocument.Parse(File.ReadAllText(path));
     var root = document.RootElement;
     return new(

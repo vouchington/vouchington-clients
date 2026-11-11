@@ -94,8 +94,8 @@ final class AndroidAccountReplacementTests: XCTestCase {
         XCTAssertEqual(operations, 1)
         XCTAssertTrue(coordinator.isReplacing)
         let path = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [path])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(path, root: root))
+        let root = try ContractRoot.url(requiredPaths: [path])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
         let released = HeldAuthenticationURLProtocol.respond(host: host, statusCode: 200, body: identity)
         if !released { first.cancel() }
         await first.value

@@ -160,13 +160,13 @@ describe('iOS Simulator launch, feed-flow, and sign-in fan-in', () => {
     )
     assert.match(
       iosJob,
-      /test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="\$VOUCHA_FILAMENTS_CONTRACT_ROOT"/u,
+      /test-without-building VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u,
     )
     const project = readFileSync(
       new URL('../swift-clients/apps/iOS/project.yml', import.meta.url),
       'utf8',
     )
-    assert.match(project, /VOUCHA_FILAMENTS_CONTRACT_ROOT: '\$\(VOUCHA_FILAMENTS_CONTRACT_ROOT\)'/u)
+    assert.match(project, /VOUCHA_CONTRACT_ROOT: '\$\(VOUCHA_CONTRACT_ROOT\)'/u)
     assert.match(buildJob, /CODE_SIGNING_ALLOWED=NO/u)
     assert.match(
       iosJob,

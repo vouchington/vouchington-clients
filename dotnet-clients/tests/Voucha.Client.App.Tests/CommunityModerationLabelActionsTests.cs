@@ -55,10 +55,10 @@ public sealed class CommunityModerationLabelActionsTests
 
   private static string Fixture(string id)
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("manifest.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("manifest.json")));
     var file = manifest.RootElement.GetProperty("fixtures").EnumerateArray()
         .Single(entry => entry.GetProperty("id").GetString() == id).GetProperty("bodyFile").GetString()!;
-    return File.ReadAllText(FilamentsContractPaths.ApiFixture(file));
+    return File.ReadAllText(ContractPaths.ApiFixture(file));
   }
 
   private sealed class Session : ISessionStore

@@ -1,6 +1,6 @@
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { declaredFilamentsContractPaths } from './contracts.mjs'
+import { declaredContractPaths } from './contracts.mjs'
 import {
   fail,
   pairedRepositories,
@@ -79,7 +79,7 @@ export async function createPairManifest({
     !Array.isArray(paths) ||
     JSON.stringify(Object.keys(contractConfig).sort()) !==
       JSON.stringify(['paths', 'ref', 'repository', 'schemaVersion']) ||
-    JSON.stringify(paths) !== JSON.stringify(declaredFilamentsContractPaths)
+    JSON.stringify(paths) !== JSON.stringify(declaredContractPaths)
   )
     fail('trusted contract configuration is invalid')
   const files = await listFiles(stageRoot, paths)

@@ -1,4 +1,4 @@
-import { declaredFilamentsContractPaths } from './contracts.mjs'
+import { declaredContractPaths } from './contracts.mjs'
 import { fail, pairedRepositories, shaIsValid } from './paired-contract-policy.mjs'
 
 const digestPattern = /^[0-9a-f]{64}$/u
@@ -115,7 +115,7 @@ export function validatePairManifest(value) {
   )
     fail('manifest contract source is not the fixed producer main contract')
   if (
-    JSON.stringify(value.contract.declaredPaths) !== JSON.stringify(declaredFilamentsContractPaths)
+    JSON.stringify(value.contract.declaredPaths) !== JSON.stringify(declaredContractPaths)
   )
     fail('manifest contract paths differ from the trusted allowlist')
   if (!Array.isArray(value.contract.files) || value.contract.files.length === 0)
@@ -125,7 +125,7 @@ export function validatePairManifest(value) {
     exactKeys(record, ['path', 'sha256', 'sizeBytes'], 'contract file record')
     const declaredPath =
       typeof record.path === 'string'
-        ? declaredFilamentsContractPaths.find(path => record.path.startsWith(`${path}/`))
+        ? declaredContractPaths.find(path => record.path.startsWith(`${path}/`))
         : undefined
     const relativePath =
       declaredPath === undefined ? '' : record.path.slice(declaredPath.length + 1)
@@ -145,7 +145,7 @@ export function validatePairManifest(value) {
       fail('manifest file record is invalid or unsorted')
     previousPath = record.path
   }
-  for (const declaredPath of declaredFilamentsContractPaths) {
+  for (const declaredPath of declaredContractPaths) {
     if (!value.contract.files.some(record => record.path.startsWith(`${declaredPath}/`)))
       fail(`manifest has no file under declared path ${declaredPath}`)
   }

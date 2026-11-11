@@ -8,7 +8,7 @@ public sealed class FinancialMcpManifestContractTests
   [Fact]
   public void PublishedToolsSeparateFinancialReadsFromTheGeneralProfile()
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
     var tools = manifest.RootElement.GetProperty("servers")[0].GetProperty("tools");
     var general = Tool(tools, "read_my_profile");
     var financial = Tool(tools, "get_my_financial_profile");

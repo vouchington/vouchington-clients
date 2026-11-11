@@ -16,7 +16,7 @@ const paths = [
 ]
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-filaments-'))
+  const root = await mkdtemp(join(tmpdir(), 'voucha-vouchington-'))
   await writeTree(root, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
     'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
@@ -29,7 +29,7 @@ async function fixture(t) {
     'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessages.resx': '<root />\n',
   })
   const configRoot = await mkdtemp(join(tmpdir(), 'voucha-contract-config-'))
-  const config = join(configRoot, 'filaments.json')
+  const config = join(configRoot, 'vouchington.json')
   await writeFile(
     config,
     JSON.stringify({
@@ -62,8 +62,8 @@ async function fixture(t) {
   return { config, generatedRoot, root, targets }
 }
 
-test('requires an explicit Filaments checkout root', async t => {
-  const previous = process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+test('requires an explicit Vouchington checkout root', async t => {
+  const previous = process.env.VOUCHA_CONTRACT_ROOT
   const ancestor = await mkdtemp(join(tmpdir(), 'voucha-contract-ancestor-'))
   t.after(() => rm(ancestor, { recursive: true, force: true }))
   await writeTree(ancestor, {
@@ -77,14 +77,14 @@ test('requires an explicit Filaments checkout root', async t => {
   const nested = join(ancestor, 'nested', 'client')
   await mkdir(nested, { recursive: true })
   const previousDirectory = process.cwd()
-  delete process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+  delete process.env.VOUCHA_CONTRACT_ROOT
   try {
     process.chdir(nested)
-    await assert.rejects(verifyContract(), /VOUCHA_FILAMENTS_CONTRACT_ROOT is required/)
+    await assert.rejects(verifyContract(), /VOUCHA_CONTRACT_ROOT is required/)
   } finally {
     process.chdir(previousDirectory)
-    if (previous === undefined) delete process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
-    else process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT = previous
+    if (previous === undefined) delete process.env.VOUCHA_CONTRACT_ROOT
+    else process.env.VOUCHA_CONTRACT_ROOT = previous
   }
 })
 
@@ -95,7 +95,7 @@ test('validates the exact declared full-checkout paths', async t => {
   await rm(join(root, 'api-fixtures/v1'), { recursive: true, force: true })
   await assert.rejects(
     verifyContract({ config, root }),
-    /declared Filaments contract source api-fixtures\/v1/,
+    /declared Vouchington contract source api-fixtures\/v1/,
   )
 })
 
@@ -235,7 +235,7 @@ test('does not accept a copied source bundle in place of the checkout layout', a
   )
   await assert.rejects(
     verifyContract({ config, root: copied }),
-    /declared Filaments contract source api-fixtures\/v1/,
+    /declared Vouchington contract source api-fixtures\/v1/,
   )
   assert.equal(
     await readFile(join(root, 'api-fixtures/v1/manifest.json'), 'utf8'),

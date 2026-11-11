@@ -11,7 +11,7 @@ public sealed class McpFeedRssItemReceiptTests
   [Fact]
   public void CanonicalDeliveryRendersOnlyTheRssItemIdentifier()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray().Single(item =>
         item.GetProperty("id").GetString() == "native.mcp.read-feed.rss-items");
     var receipt = McpFeedRssItemReceipt.FromValidatedResult(

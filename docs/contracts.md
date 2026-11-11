@@ -1,8 +1,8 @@
 # Vouchington contract boundary
 
-Native clients do not read arbitrary files from Vouchington. `contracts/filaments.json` fixes the
+Native clients do not read arbitrary files from Vouchington. `contracts/vouchington.json` fixes the
 repository, branch, and allowed source paths. CI owns obtaining a normal full Vouchington checkout,
-then supplies its root explicitly through `VOUCHA_FILAMENTS_CONTRACT_ROOT`; the contract command
+then supplies its root explicitly through `VOUCHA_CONTRACT_ROOT`; the contract command
 validates the required layout and never performs repository acquisition itself.
 
 The localization contract is the generated Swift and .NET resource trees. When the trusted

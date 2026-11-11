@@ -87,7 +87,7 @@ public sealed class ClientIntentParityTests
   {
     public static ClientIntentParityContract Load()
     {
-      var path = FilamentsContractPaths.ApiFixture("client-intents.json");
+      var path = ContractPaths.ApiFixture("client-intents.json");
       return JsonSerializer.Deserialize<ClientIntentParityContract>(File.ReadAllText(path))
           ?? throw new InvalidOperationException("api-fixtures/v1/client-intents.json is empty.");
     }

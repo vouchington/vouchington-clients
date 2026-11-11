@@ -414,8 +414,8 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
     }
 
     private func fixtureObject(_ file: String) throws -> [String: Any] {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/\(file)"])
-        let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/\(file)", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/\(file)"])
+        let url = try ContractRoot.requiredURL("api-fixtures/v1/\(file)", root: root)
         return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
     }
 

@@ -11,7 +11,7 @@ describe('Windows MAUI compile routing', () => {
       '.editorconfig',
       'dotnet-clients/.editorconfig',
       '.github/actions/prepare-native-contract/action.yml',
-      'contracts/filaments.json',
+      'contracts/vouchington.json',
       'docs/development/ci-runners.md',
       'docs/development/native-ci-test-placement.md',
       'dotnet-clients/AGENTS.md',

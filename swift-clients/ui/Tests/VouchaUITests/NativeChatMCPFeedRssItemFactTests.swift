@@ -95,7 +95,7 @@ final class NativeChatMCPFeedRssItemFactTests: XCTestCase {
     }
 
     private func canonicalResult() throws -> DecodedJSONValue {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp-results.json"])
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp-results.json"])
         let data = try Data(contentsOf: root.appendingPathComponent("api-fixtures/v1/mcp-results.json"))
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let cases = try XCTUnwrap(object["cases"] as? [[String: Any]])

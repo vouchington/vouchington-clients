@@ -55,7 +55,7 @@ tests. macOS still runs the full core suite so Darwin `URLSession`, Security/Key
 and Swift DTO parity are exercised; those jobs compile different stacks. See
 [native CI test placement](../docs/development/native-ci-test-placement.md). The local harness uses
 `vouchington-tooling`'s `with-host-lock` primitive for compiler-heavy commands, so Core, UI,
-Periphery, and Android builds share the same per-user lock without copying a Filaments CI helper.
+Periphery, and Android builds share the same per-user lock without copying a Vouchington CI helper.
 The local harness can run `fmt,lint,lint-tests,ast-grep,build,periphery,generate`.
 `test-android-host` is opt-in and runs only the Android package's host SwiftPM source tests.
 

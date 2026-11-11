@@ -3,7 +3,7 @@
 Cursor is a supported local assistant for this repository. It reads the checked-in `AGENTS.md`
 files and discovers shared skills from [`.agents/skills/`](../.agents/skills) (including the
 tracked Claude discovery links in [`.claude/skills/`](../.claude/skills)). Do not add copied
-`AGENTS.md` files, provider-specific skills, or Filaments web-agent configuration.
+`AGENTS.md` files, provider-specific skills, or Vouchington web-agent configuration.
 
 - No repository file registers an MCP server or grants an MCP tool. vouchington-machines registers
   the `vouchington-tooling` server and pre-approves its tools in user configuration.
@@ -19,4 +19,4 @@ tracked Claude discovery links in [`.claude/skills/`](../.claude/skills)). Do no
   iteration when requested.
 
 `.cursor/worktrees/` is ignored runtime state. Cursor's worktree initializer is intentionally not
-configured: setup remains explicit so it cannot assume a Filaments web or service environment.
+configured: setup remains explicit so it cannot assume a Vouchington web or service environment.

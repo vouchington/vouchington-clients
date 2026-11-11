@@ -26,7 +26,7 @@ export function sharedIdentityFixture(root) {
 
 function requiredFixture(root, expected) {
   if (!root || !root.startsWith('/') || root.includes('$(') || root.includes('..'))
-    throw new Error('VOUCHA_FILAMENTS_CONTRACT_ROOT must be an absolute fixture checkout')
+    throw new Error('VOUCHA_CONTRACT_ROOT must be an absolute fixture checkout')
   const fixtureRoot = join(root, 'api-fixtures', 'v1')
   const manifest = JSON.parse(readFileSync(join(fixtureRoot, 'manifest.json'), 'utf8'))
   const fixture = manifest.fixtures?.find(item => item.id === expected.id)
@@ -59,7 +59,7 @@ function requireGuiFixtures(root) {
 
 function stageFixture(destination) {
   if (!destination?.startsWith('/')) throw new Error('--stage-fixture requires an absolute directory')
-  const root = process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+  const root = process.env.VOUCHA_CONTRACT_ROOT
   const bodyPaths = requireGuiFixtures(root)
   const sourceRoot = join(root, 'api-fixtures', 'v1')
   mkdirSync(join(destination, 'api-fixtures', 'v1'), { recursive: true })
@@ -168,7 +168,7 @@ async function session() {
   const appPath = process.env.CATALYST_APP_PATH
   if (!appPath || !existsSync(appPath))
     throw new Error('CATALYST_APP_PATH must be the Debug Mac Catalyst app')
-  requireGuiFixtures(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
+  requireGuiFixtures(process.env.VOUCHA_CONTRACT_ROOT)
   const prefix = appiumPrefix()
   const server = spawn(
     join(prefix, 'node_modules', '.bin', 'appium'),
@@ -187,7 +187,7 @@ async function session() {
           'appium:appPath': appPath,
           'appium:arguments': [launchArgument],
           'appium:environment': {
-            VOUCHA_FILAMENTS_CONTRACT_ROOT: process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT,
+            VOUCHA_CONTRACT_ROOT: process.env.VOUCHA_CONTRACT_ROOT,
             CATALYST_GUI_RESULT: process.env.CATALYST_GUI_RESULT,
           },
           'appium:showServerLogs': true,
@@ -216,7 +216,7 @@ async function session() {
 
 const mode = process.argv[2]
 try {
-  if (mode === '--check-fixture') requireGuiFixtures(process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT)
+  if (mode === '--check-fixture') requireGuiFixtures(process.env.VOUCHA_CONTRACT_ROOT)
   else if (mode === '--stage-fixture') stageFixture(process.argv[3])
   else if (mode === '--prebuild-host') await prebuildHost()
   else if (mode === '--session') await session()

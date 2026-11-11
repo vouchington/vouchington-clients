@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { it } from 'node:test'
-import { declaredFilamentsContractPaths } from '../scripts/contracts.mjs'
+import { declaredContractPaths } from '../scripts/contracts.mjs'
 import { pairedRepositories } from '../scripts/paired-contract-policy.mjs'
 import { finalizeNativeTestsCommand } from '../scripts/paired-native-test-finalize.mjs'
 import { sha256 } from '../scripts/sha256.mjs'
@@ -60,7 +60,7 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     runAttempt: 1,
     name: 'Paired native contract review evidence',
   }
-  const files = declaredFilamentsContractPaths
+  const files = declaredContractPaths
     .map((path, index) => ({
       path: `${path}/fixture-${index}.json`,
       sha256: createHash('sha256').update(`fixture-${index}`).digest('hex'),
@@ -83,7 +83,7 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
       outputOrigin: 'untrusted-candidate-exporter',
       repository: pairedRepositories.producer,
       ref: 'main',
-      declaredPaths: declaredFilamentsContractPaths,
+      declaredPaths: declaredContractPaths,
       files,
     },
   }

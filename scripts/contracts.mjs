@@ -8,7 +8,7 @@ export const localizationPaths = [
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
 export const contractDataPaths = ['api-fixtures/v1', 'api-contracts/v1']
-export const declaredFilamentsContractPaths = [...contractDataPaths, ...localizationPaths]
+export const declaredContractPaths = [...contractDataPaths, ...localizationPaths]
 function localizationTargets(destinationRoot = repositoryRoot) {
   return localizationPaths.map(source => ({
     source,
@@ -80,13 +80,13 @@ async function filesUnder(root, label) {
 }
 async function contractRoot({
   root,
-  config = resolve(repositoryRoot, 'contracts/filaments.json'),
+  config = resolve(repositoryRoot, 'contracts/vouchington.json'),
 } = {}) {
-  const configuredRoot = root ?? process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+  const configuredRoot = root ?? process.env.VOUCHA_CONTRACT_ROOT
   if (typeof configuredRoot !== 'string' || configuredRoot.trim() === '')
-    fail('VOUCHA_FILAMENTS_CONTRACT_ROOT is required')
+    fail('VOUCHA_CONTRACT_ROOT is required')
   const checkoutRoot = resolve(configuredRoot.trim())
-  await directory(checkoutRoot, 'Filaments contract root')
+  await directory(checkoutRoot, 'Vouchington contract root')
   let parsed
   try {
     parsed = JSON.parse(await readFile(config, 'utf8'))
@@ -97,16 +97,16 @@ async function contractRoot({
     parsed.schemaVersion !== 1 ||
     parsed.repository !== 'vouchington/vouchington' ||
     parsed.ref !== 'main' ||
-    JSON.stringify(parsed.paths) !== JSON.stringify(declaredFilamentsContractPaths)
+    JSON.stringify(parsed.paths) !== JSON.stringify(declaredContractPaths)
   )
     fail('contract configuration does not match the client contract')
-  for (const path of declaredFilamentsContractPaths)
-    await filesUnder(join(checkoutRoot, path), `declared Filaments contract source ${path}`)
+  for (const path of declaredContractPaths)
+    await filesUnder(join(checkoutRoot, path), `declared Vouchington contract source ${path}`)
   return checkoutRoot
 }
 async function sameTree(source, destination) {
   const [sourceFiles, destinationFiles] = await Promise.all([
-    filesUnder(source, 'declared Filaments localization source'),
+    filesUnder(source, 'declared Vouchington localization source'),
     filesUnder(destination, 'generated localization target'),
   ])
   if (JSON.stringify(sourceFiles) !== JSON.stringify(destinationFiles)) return false

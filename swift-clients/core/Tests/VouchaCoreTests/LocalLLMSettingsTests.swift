@@ -154,7 +154,7 @@ final class LocalLLMSettingsTests: XCTestCase {
 
     private func makeEndpointPolicyContractRoot() throws -> URL {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filaments-contract-root-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("vouchington-contract-root-\(UUID().uuidString)", isDirectory: true)
         let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
         try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
         try Data("{\"hostPolicyRows\":[],\"originPairs\":[]}".utf8).write(

@@ -132,11 +132,11 @@ describe('Mac Catalyst GUI preflight', () => {
       new URL('../dotnet-clients/tooling/catalyst-gui-preflight.mjs', import.meta.url),
     )
     execFileSync(process.execPath, [script, '--check-fixture'], {
-      env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
+      env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
     })
     const staged = join(root, 'staged')
     execFileSync(process.execPath, [script, '--stage-fixture', staged], {
-      env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
+      env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
     })
     assert.equal(
       existsSync(join(staged, 'api-fixtures', 'v1', 'responses', 'swift.my.identity.default.json')),
@@ -155,14 +155,14 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.throws(
       () =>
         execFileSync(process.execPath, [script, '--check-fixture'], {
-          env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: root },
+          env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
           stdio: 'pipe',
         }),
       /missing shared fixture native\.my\.email-preferences\.default/u,
     )
     assert.throws(() =>
       execFileSync(process.execPath, [script, '--check-fixture'], {
-        env: { ...process.env, VOUCHA_FILAMENTS_CONTRACT_ROOT: '/tmp/missing-fixture' },
+        env: { ...process.env, VOUCHA_CONTRACT_ROOT: '/tmp/missing-fixture' },
         stdio: 'pipe',
       }),
     )

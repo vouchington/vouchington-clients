@@ -80,7 +80,7 @@
         }
 
         private func loadFixtures() throws -> (identity: String, providers: String) {
-            let path = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_FILAMENTS_CONTRACT_ROOT"])
+            let path = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_CONTRACT_ROOT"])
             _ = try XCTUnwrap(path.hasPrefix("/") && !path.contains("$(") ? path : nil)
             let root = URL(fileURLWithPath: path, isDirectory: true)
                 .appendingPathComponent("api-fixtures/v1", isDirectory: true)

@@ -12,8 +12,8 @@ struct AndroidTranscriptFixture: Decodable {
 
 enum AndroidTranscriptFixtures {
     static func data(_ id: String) throws -> Data {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
-        let manifestURL = try FilamentsContractRoot.fixtureURL("manifest.json", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+        let manifestURL = try ContractRoot.fixtureURL("manifest.json", root: root)
         let manifest = try JSONDecoder().decode(
             AndroidTranscriptFixtureManifest.self,
             from: Data(contentsOf: manifestURL)
@@ -21,7 +21,7 @@ enum AndroidTranscriptFixtures {
         guard let fixture = manifest.fixtures.first(where: { $0.id == id }) else {
             throw FixtureError.missingFixture(id)
         }
-        let bodyURL = try FilamentsContractRoot.fixtureURL(fixture.bodyFile, root: root)
+        let bodyURL = try ContractRoot.fixtureURL(fixture.bodyFile, root: root)
         return try Data(contentsOf: bodyURL)
     }
 

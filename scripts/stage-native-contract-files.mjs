@@ -80,7 +80,7 @@ export async function emptyOutputRoot(root) {
 export async function copyDirectory(sourceRoot, destinationRoot, path) {
   const source = join(sourceRoot, ...contractPathComponents(path))
   const destination = join(destinationRoot, ...contractPathComponents(path))
-  await tree(source, `Filaments contract ${path}`)
+  await tree(source, `Vouchington contract ${path}`)
   await mkdir(resolve(destination, '..'), { recursive: true })
   await cp(source, destination, { recursive: true, dereference: false, errorOnExist: true })
   await tree(destination, `staged contract ${path}`)

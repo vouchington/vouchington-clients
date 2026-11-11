@@ -11,8 +11,8 @@ import XCTest
 final class AndroidPostAuthenticationRestoreTests: XCTestCase {
     func testSuccessfulOTPAndMFAOfferIdentityRetryWithoutReusingCredential() async throws {
         let path = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [path])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(path, root: root))
+        let root = try ContractRoot.url(requiredPaths: [path])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
         for mfa in [false, true] {
             let host = "post-auth-\(UUID().uuidString.lowercased()).example.com"
             defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }

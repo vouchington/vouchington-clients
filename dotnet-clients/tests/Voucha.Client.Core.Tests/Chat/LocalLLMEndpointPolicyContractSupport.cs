@@ -39,7 +39,7 @@ internal sealed class LocalLLMEndpointPolicyContract
 
   public static LocalLLMEndpointPolicyContract Load()
   {
-    var path = FilamentsContractPaths.ApiFixture("local-llm-endpoint-policy.json");
+    var path = ContractPaths.ApiFixture("local-llm-endpoint-policy.json");
     using var document = JsonDocument.Parse(File.ReadAllText(path));
     var root = document.RootElement;
     return new(

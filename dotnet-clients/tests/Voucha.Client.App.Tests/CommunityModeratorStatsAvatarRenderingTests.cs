@@ -161,9 +161,9 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
 
   private static string Fixture(string id)
   {
-    var manifest = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("manifest.json")))!;
+    var manifest = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture("manifest.json")))!;
     var path = manifest["fixtures"]!.AsArray().Single(entry => (string?)entry?["id"] == id)!["bodyFile"]!.GetValue<string>();
-    return File.ReadAllText(FilamentsContractPaths.ApiFixture(path));
+    return File.ReadAllText(ContractPaths.ApiFixture(path));
   }
 
   private static string ModeratorStatsFixtureWithMemberPlacement()

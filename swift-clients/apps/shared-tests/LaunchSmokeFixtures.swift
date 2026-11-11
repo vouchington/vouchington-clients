@@ -3,7 +3,7 @@ import XCTest
 
 enum LaunchSmokeFixtures {
     static func manifest() throws -> (root: URL, fixtures: [[String: Any]]) {
-        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_FILAMENTS_CONTRACT_ROOT"])
+        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_CONTRACT_ROOT"])
         _ = try XCTUnwrap(path.hasPrefix("/") && !path.contains("$(") ? path : nil)
         let root = URL(fileURLWithPath: path, isDirectory: true)
             .appendingPathComponent("api-fixtures/v1", isDirectory: true)

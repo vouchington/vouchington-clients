@@ -32,7 +32,7 @@ internal abstract class ModerationModalActionService
 internal sealed class ModerationModalAppealsService : ModerationModalActionService, IModerationAppealsService
 {
   public ModerationAppeal Current { get; set; } = JsonSerializer.Deserialize<ModerationAppealResponse>(
-      File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/native.moderation.appeals.detail.default.json")), VouchaApiJson.Options)!.Appeal;
+      File.ReadAllText(ContractPaths.ApiFixture("responses/native.moderation.appeals.detail.default.json")), VouchaApiJson.Options)!.Appeal;
 
   public Queue<StaffModerationAppealListResponse> Pages { get; } = new();
   public List<string?> Cursors { get; } = [];
@@ -75,7 +75,7 @@ internal sealed class ModerationModalAppealsService : ModerationModalActionServi
 internal sealed class ModerationModalDisputesService : ModerationModalActionService, IModerationDisputesService
 {
   public ModerationDispute Current { get; set; } = JsonSerializer.Deserialize<ModerationDisputeResponse>(
-      File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/native.moderation.disputes.detail.default.json")), VouchaApiJson.Options)!.Dispute;
+      File.ReadAllText(ContractPaths.ApiFixture("responses/native.moderation.disputes.detail.default.json")), VouchaApiJson.Options)!.Dispute;
 
   public Queue<StaffModerationDisputeListResponse> Pages { get; } = new();
   public List<string?> Cursors { get; } = [];

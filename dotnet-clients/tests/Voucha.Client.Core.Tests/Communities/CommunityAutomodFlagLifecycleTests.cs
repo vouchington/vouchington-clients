@@ -15,7 +15,7 @@ public sealed class CommunityAutomodFlagLifecycleTests
   [Fact]
   public void VerifiedAutomodFixtureUsesPostEntityIdWithoutPostId()
   {
-    var fixture = File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var fixture = File.ReadAllText(ContractPaths.ApiFixture(
         "responses/native.communities.moderation-queue.automod-flag.page-1.json"));
     var response = JsonSerializer.Deserialize<CommunityModerationQueueResponse>(fixture, VouchaApiJson.Options)!;
     var flag = Assert.Single(response.Entries);

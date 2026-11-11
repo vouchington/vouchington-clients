@@ -42,11 +42,11 @@ async function materializeSnapshotCommand() {
 
 async function trustedConfiguration(trustedRoot, candidateRoot) {
   const trustedConfig = await readJson(
-    join(trustedRoot, 'contracts/filaments.json'),
+    join(trustedRoot, 'contracts/vouchington.json'),
     'trusted contract configuration',
   )
   const candidateConfig = await readJson(
-    join(candidateRoot, 'contracts/filaments.json'),
+    join(candidateRoot, 'contracts/vouchington.json'),
     'candidate contract configuration',
   )
   if (JSON.stringify(candidateConfig) !== JSON.stringify(trustedConfig))

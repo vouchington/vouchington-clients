@@ -7,7 +7,7 @@ const windowsMauiPaths = [
   '.github/actions/setup-mise-toolchain/action.yml',
   '.github/workflows/native-contract-tests.yml',
   '.mise.toml',
-  'contracts/filaments.json',
+  'contracts/vouchington.json',
   'docs/development/ci-runners.md',
   'docs/development/native-ci-test-placement.md',
   'global.json',
