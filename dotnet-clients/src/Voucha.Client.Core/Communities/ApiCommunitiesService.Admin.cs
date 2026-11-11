@@ -113,8 +113,10 @@ public sealed partial class ApiCommunitiesService
   public Task<CommunityModerationResultsResponse> FetchModerationResultsAsync(
       string idOrSlug,
       string postId,
+      string? after = null,
+      int? limit = null,
       CancellationToken cancellationToken = default) =>
-      client.FetchCommunityModerationResultsAsync(idOrSlug, postId, cancellationToken);
+      client.FetchCommunityModerationResultsAsync(idOrSlug, postId, after, limit, cancellationToken);
 
   public Task EnableAiAgentAsync(string idOrSlug, string agentSlug, CancellationToken cancellationToken = default) =>
       client.EnableCommunityAiAgentAsync(idOrSlug, agentSlug, cancellationToken);

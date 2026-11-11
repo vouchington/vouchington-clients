@@ -141,7 +141,8 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         ] = (
             Data("""
             {
-              "community_agent_moderations": [],
+              "results": [],
+              "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null },
               "platform_moderation": { "status": "in_review" }
             }
             """.utf8),

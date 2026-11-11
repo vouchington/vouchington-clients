@@ -84,6 +84,8 @@ public partial interface ICommunitiesService
   Task<CommunityModerationResultsResponse> FetchModerationResultsAsync(
       string idOrSlug,
       string postId,
+      string? after = null,
+      int? limit = null,
       CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
