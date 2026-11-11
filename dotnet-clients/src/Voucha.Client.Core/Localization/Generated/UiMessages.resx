@@ -715,7 +715,6 @@
   <data name="native.dotnet.csharpEditor.selectImage" xml:space="preserve"><value>Select image</value></data>
   <data name="native.dotnet.csharpEditor.suggestionWithDetail" xml:space="preserve"><value>{label}  {detail}</value></data>
   <data name="native.dotnet.csharpEditor.write" xml:space="preserve"><value>Write</value></data>
-  <data name="native.dotnet.csharpStatus.mergedInto" xml:space="preserve"><value>Merged into {id}</value></data>
   <data name="native.dotnet.csharpStatus.saveTopicFirst" xml:space="preserve"><value>Save the topic before managing settings.</value></data>
   <data name="native.dotnet.csharpStatus.savedItem" xml:space="preserve"><value>Saved {id}</value></data>
   <data name="native.dotnet.csharpStatus.speed" xml:space="preserve"><value>{value}×</value></data>
@@ -2020,6 +2019,11 @@
   <data name="settings.language.supportedCount.__plural.one" xml:space="preserve"><value>{count} language</value></data>
   <data name="settings.language.supportedCount.__plural.other" xml:space="preserve"><value>{count} languages</value></data>
   <data name="settings.language.useSiteDefault" xml:space="preserve"><value>Use site default</value></data>
+  <data name="settings.topics.merge.checkStatus" xml:space="preserve"><value>Check status</value></data>
+  <data name="settings.topics.merge.completed" xml:space="preserve"><value>Topic merge completed.</value></data>
+  <data name="settings.topics.merge.failed" xml:space="preserve"><value>The topics could not be merged. Review their settings before trying again.</value></data>
+  <data name="settings.topics.merge.queued" xml:space="preserve"><value>Merge queued. Check its status for completion.</value></data>
+  <data name="settings.topics.merge.statusFailed" xml:space="preserve"><value>Could not load merge status.</value></data>
   <data name="shared.accountType.aiAgent" xml:space="preserve"><value>AI Agent</value></data>
   <data name="shared.accountType.official" xml:space="preserve"><value>Official</value></data>
   <data name="shared.accountType.system" xml:space="preserve"><value>System</value></data>
