@@ -34,7 +34,7 @@ extension EndpointManifestCoverage {
         },
         ManifestRegisteredEndpoint(id: "native.my.email-addresses.verify.default") {
             Endpoint.verifyMyEmailAddress(
-                emailAddress: "tests+native-user@voucha.ai", token: "ABCD1234", reAuthToken: "fresh-auth-fixture"
+                emailAddress: "tests+native-user@voucha.ai", token: "ABCDEFGHJK", reAuthToken: "fresh-auth-fixture"
             )
         },
         ManifestRegisteredEndpoint(id: "native.users.delete.default") {

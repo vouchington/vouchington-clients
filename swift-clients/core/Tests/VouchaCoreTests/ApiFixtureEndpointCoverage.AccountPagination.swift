@@ -64,7 +64,7 @@ extension ApiFixtureEndpointCoverageTests {
         ),
         "native.my.email-addresses.verify.default": Endpoint.verifyMyEmailAddress(
             emailAddress: "tests+native-user@voucha.ai",
-            token: "ABCD1234",
+            token: "ABCDEFGHJK",
             reAuthToken: "fresh-auth-fixture"
         ),
         "swift.my.profile.default": Endpoint.myProfile
