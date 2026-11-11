@@ -13,6 +13,11 @@ if [[ ! -f "$PROJECT_YAML" ]]; then
     exit 1
 fi
 
+if [[ ! -f ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift ]]; then
+    echo "Error: generated native localization is missing. Run 'pnpm run contracts:pull' from the repository root." >&2
+    exit 1
+fi
+
 LOCAL_XCCONFIG="apps/Voucha.local.xcconfig"
 
 # Preserve a developer's ignored worktree-local backend URL here. Clean clones

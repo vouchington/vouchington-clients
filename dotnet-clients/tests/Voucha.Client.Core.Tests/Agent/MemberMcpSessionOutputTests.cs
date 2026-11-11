@@ -13,7 +13,7 @@ public sealed partial class MemberMcpSessionTests
   [Fact]
   public async Task CanonicalFeedDeliveryProducesFactOnlyAfterBridgeValidation()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
         .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.posts");
     var factory = new FakeFactory { Catalog = ProducerCatalog() };
@@ -40,7 +40,7 @@ public sealed partial class MemberMcpSessionTests
   [Fact]
   public async Task CanonicalRssDeliveryProducesItsOwnFactAfterBridgeValidation()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
         .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.rss-items");
     var factory = new FakeFactory { Catalog = ProducerCatalog() };
@@ -64,7 +64,7 @@ public sealed partial class MemberMcpSessionTests
   [Fact]
   public async Task CanonicalReferralDeliveryProducesItsOwnFactAfterBridgeValidation()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
         .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.referral-links");
     var factory = new FakeFactory { Catalog = ProducerCatalog() };
@@ -90,7 +90,7 @@ public sealed partial class MemberMcpSessionTests
   public async Task InvalidMutationOutputStopsModelLoopWithoutRedispatch()
   {
     var catalog = ProducerCatalog();
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var fixture = fixtures.RootElement.GetProperty("cases").EnumerateArray()
         .Single(row => row.GetProperty("id").GetString() == "native.mcp.manage-bookmark.set");
     var rawArguments = fixture.GetProperty("arguments").GetRawText();
@@ -135,7 +135,7 @@ public sealed partial class MemberMcpSessionTests
           .Single(item => item.GetProperty("name").GetString() == descriptor.Name);
       Assert.Equal(tool.GetProperty("inputSchema").GetRawText(), descriptor.Parameters.GetRawText());
     }
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var cases = fixtures.RootElement.GetProperty("cases").EnumerateArray().ToArray();
     foreach (var row in cases)
     {
@@ -155,7 +155,7 @@ public sealed partial class MemberMcpSessionTests
 
   private static JsonElement ProducerCatalog()
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
     var tools = manifest.RootElement.GetProperty("servers").EnumerateArray()
         .Single(server => server.GetProperty("name").GetString() == "voucha-user-mcp")
         .GetProperty("tools").EnumerateArray().Select(row => row.GetProperty("tool")).ToArray();

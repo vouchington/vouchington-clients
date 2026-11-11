@@ -76,6 +76,7 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/pull-vouchington-contract
       - name: Archive unsigned iOS app
         timeout-minutes: 23
         env:

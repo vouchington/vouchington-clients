@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { it } from 'node:test'
-import { declaredFilamentsContractPaths } from '../scripts/contracts.mjs'
+import { declaredContractPaths } from '../scripts/contracts.mjs'
 import {
   pairedExporterImage,
   pairedExporterPackages,
@@ -51,15 +51,15 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     const configDirectory = join(trustedRoot, 'contracts')
     await mkdir(configDirectory)
     await writeFile(
-      join(configDirectory, 'filaments.json'),
+      join(configDirectory, 'vouchington.json'),
       JSON.stringify({
         schemaVersion: 1,
         repository: 'vouchington/vouchington',
-        ref: 'main',
-        paths: declaredFilamentsContractPaths,
+        commit: 'a'.repeat(40),
+        paths: declaredContractPaths,
       }),
     )
-    for (const [index, contractPath] of declaredFilamentsContractPaths.entries()) {
+    for (const [index, contractPath] of declaredContractPaths.entries()) {
       const directory = join(stageRoot, ...contractPath.split('/'))
       await mkdir(directory, { recursive: true })
       await writeFile(join(directory, `sample-${index}.txt`), `sample-${index}\n`)
@@ -72,8 +72,8 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     const config = {
       schemaVersion: 1,
       repository: 'vouchington/vouchington',
-      ref: 'main',
-      paths: declaredFilamentsContractPaths,
+      commit: 'a'.repeat(40),
+      paths: declaredContractPaths,
     }
     await writeFile(
       join(evidenceRoot, 'candidate-evidence.json'),
@@ -110,7 +110,7 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     git(['init', '-q'])
     git(['config', 'user.email', 'test@example.invalid'])
     git(['config', 'user.name', 'Paired contract test'])
-    git(['add', 'contracts/filaments.json'])
+    git(['add', 'contracts/vouchington.json'])
     git(['commit', '-q', '-m', 'test trusted declaration'])
     const trustedSha = git(['rev-parse', 'HEAD'])
     const manifest = await runCli(
@@ -132,7 +132,7 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     const manifestPath = join(evidenceRoot, 'paired-attestation.json')
     const result = JSON.parse(await readFile(manifestPath, 'utf8'))
     assert.equal(result.contract.outputOrigin, 'untrusted-candidate-exporter')
-    assert.equal(result.contract.files.length, declaredFilamentsContractPaths.length)
+    assert.equal(result.contract.files.length, declaredContractPaths.length)
     assert.ok(result.contract.files.every(file => file.sha256.length === 64))
 
     await rm(manifestPath)

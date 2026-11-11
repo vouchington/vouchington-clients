@@ -22,7 +22,7 @@ public sealed class SettingsCredentialsRenderedControlsTests
     var service = DispatchProxy.Create<ISettingsService, CredentialSettingsService>();
     var fake = (CredentialSettingsService)service;
     fake.Catalog = JsonSerializer.Deserialize<ScopeCatalogResponse>(
-        File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/shared.scopes.catalog.json")),
+        File.ReadAllText(ContractPaths.ApiFixture("responses/shared.scopes.catalog.json")),
         VouchaApiJson.Options)!;
     fake.Catalog = new ScopeCatalogResponse([
         ..fake.Catalog.Scopes,

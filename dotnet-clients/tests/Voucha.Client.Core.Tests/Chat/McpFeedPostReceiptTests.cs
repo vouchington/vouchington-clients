@@ -11,7 +11,7 @@ public sealed class McpFeedPostReceiptTests
   [Fact]
   public void CanonicalDeliveryRendersOnlyThePostIdentifier()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray().Single(item =>
         item.GetProperty("id").GetString() == "native.mcp.read-feed.posts");
     var receipt = McpFeedPostReceipt.FromValidatedResult(

@@ -2,12 +2,12 @@
 
 This is the client architecture for Apple, Google Play, and Microsoft Store memberships.
 It decides how the native apps present products, start store purchases, and recover, and how
-those flows map onto the Filaments membership contract. It does not implement billing.
+those flows map onto the Vouchington membership contract. It does not implement billing.
 [The current footprint](reference-native-clients-current-footprint.md) remains presentation-only
 until #89 lands.
 
-Filaments stays the entitlement authority. A store sheet can take payment. Only `memberships/me`
-changes the plan the app shows as effective. Issue #88 and Filaments plan
+Vouchington stays the entitlement authority. A store sheet can take payment. Only `memberships/me`
+changes the plan the app shows as effective. Issue #88 and Vouchington plan
 [#10630](https://github.com/jonathanong/filaments/issues/10630) are the source of this boundary.
 The fixtures below were read from Vouchington commit `d9a5b03f8d0f00f861bbf6d75891689bef3e2ac2`.
 
@@ -150,13 +150,13 @@ Used from the Swift iOS and macOS app targets:
 
 `Product.purchase(options: [.appAccountToken(uuid)])` uses the UUID from
 `launch.app_account_token`. The client does not create that UUID. In the Apple purchase-intent
-fixture and in Filaments `getNativeMembershipLaunch`, that value is the purchase-intent id.
+fixture and in Vouchington `getNativeMembershipLaunch`, that value is the purchase-intent id.
 
 Direct purchases require the token. Family Sharing does not. `Transaction.ownershipType.purchased`
 is the purchaser. `Transaction.ownershipType.familyShared` is a family member's own transaction, and
 `appAccountToken` may be nil. The client still submits `jwsRepresentation`. It does not copy a token
 onto another account and it does not decode the JWS. Any other ownership value, including a value the
-SDK may surface later, is submitted the same way and is not a local entitlement. Filaments accepts
+SDK may surface later, is submitted the same way and is not a local entitlement. Vouchington accepts
 family access only for `FAMILY_SHARED` evidence and does not expect an app account token on it.
 
 Purchase results:
@@ -213,7 +213,7 @@ request `ProductType.SUBS` only. `setObfuscatedAccountId` receives
 `launch.obfuscated_account_id` unchanged. The server sends the hex SHA-256 of the user id, which is
 64 characters. The client does not hash it again.
 
-The client does not call `BillingClient.acknowledgePurchase`. Filaments acknowledges a verified
+The client does not call `BillingClient.acknowledgePurchase`. Vouchington acknowledges a verified
 purchased subscription once. `Purchase.isAcknowledged() == false` with state `PURCHASED` is the
 finishing state on screen. Entitlement still comes from `memberships/me`.
 
@@ -227,7 +227,7 @@ and the client submits the new top-level token. Entitlement still comes from `me
 
 `linkedPurchaseToken` is a field on the Play Developer subscriptions resource. The client does not
 read it and does not send it. The client submits `Purchase.getPurchaseToken()` for the new purchase.
-Filaments follows the replacement chain. For a replacement launch, Library 9 uses both levels.
+Vouchington follows the replacement chain. For a replacement launch, Library 9 uses both levels.
 `SubscriptionProductReplacementParams.setOldProductId` is the Play product id from
 `queryPurchasesAsync`, and `setReplacementMode` is the item-level mode. The purchase being replaced
 is identified by `BillingFlowParams.setSubscriptionUpdateParams` with
@@ -241,7 +241,7 @@ values are `WITH_TIME_PRORATION` 1, `CHARGE_PRORATED_PRICE` 2, `WITHOUT_PRORATIO
 below. Without a mode, a purchase that would replace an owned subscription does not call
 `launchBillingFlow`.
 
-Restore and RTDN recovery use the same query. The client does not subscribe to Pub/Sub. Filaments
+Restore and RTDN recovery use the same query. The client does not subscribe to Pub/Sub. Vouchington
 receives Real-time developer notifications, fetches authoritative subscription state, and projects
 `memberships/me`. The client calls `queryPurchasesAsync` at launch, from Restore, and from
 `PurchasesUpdatedListener`, submits tokens that are not yet accepted, and refreshes `memberships/me`.
@@ -280,7 +280,7 @@ Store ID keys as valid for 30 days. The service ticket is a separate, shorter cr
 
 `GetUserCollectionAsync` and `GetAppLicenseAsync` tell the client what the Store currently lists for
 this install. They do not change the effective plan. Billing state, including active, canceled,
-expired, revoked, and dunning, is read by Filaments from the collections and recurrence services with
+expired, revoked, and dunning, is read by Vouchington from the collections and recurrence services with
 those keys. The client does not call the Microsoft collections, purchase, or change-billing-state
 REST APIs.
 
@@ -300,7 +300,7 @@ after a Microsoft verification returns `invalid_evidence`. A refreshed key pair 
 submission. The screen does not extend access past `access_ends_at` on `memberships/me`. A failed
 refresh keeps the last server snapshot and retries.
 
-Filaments plan #10630 has no Microsoft in-place SKU migration in v1. The client does not send a
+Vouchington plan #10630 has no Microsoft in-place SKU migration in v1. The client does not send a
 replacement or change-billing request. A different SKU is a new purchase intent. `409` shows
 `eligible_at`. There is no `StoreContext` method that cancels a subscription. Customer cancellation
 is documented by Microsoft on the account services page. Whether the Windows app may open that page
@@ -308,7 +308,7 @@ is an open decision below.
 
 Which launch field is the argument to `RequestPurchaseAsync` is also open. The sample Microsoft
 product id `9NBLGGH4V0Q1` has the shape of a Store ID. The sample `sku_id` is `0010`. Both values are
-submitted to Filaments with the Store ID keys once the evidence fixture exists. The purchase UI needs
+submitted to Vouchington with the Store ID keys once the evidence fixture exists. The purchase UI needs
 one Store ID.
 
 ## Upgrade, downgrade, and cancel
@@ -467,7 +467,7 @@ Vouchington commit accepts only `evidence.signed_transaction_info`
 - Option C: accept both keys on the server.
 
 Recommendation: option A. One key, matching the verifier that already exists, with the fixture updated
-in Filaments before #89 submits Apple evidence.
+in Vouchington before #89 submits Apple evidence.
 
 ### 2. Play and Microsoft verification request fixtures
 
@@ -476,7 +476,7 @@ Play evidence in the server parser is `purchase_token`. Microsoft evidence is
 with optional recovery ids. No native fixture publishes those request bodies. The OpenAPI evidence
 schema is an open object.
 
-- Option A: Filaments publishes those request fixtures, matching the parsers, before the adapters
+- Option A: Vouchington publishes those request fixtures, matching the parsers, before the adapters
   submit evidence.
 - Option B: #89 treats the server parsers as the contract without new fixtures.
 
@@ -510,11 +510,11 @@ the no-WebView invariant.
 
 ### 5. Play replacement mode
 
-Filaments asks for prorated Play upgrades and deferred downgrades. The purchase-intent launch payload
+Vouchington asks for prorated Play upgrades and deferred downgrades. The purchase-intent launch payload
 has no replacement mode. Library 9 expresses the choice on `SubscriptionProductReplacementParams`, and
 its constants differ from the deprecated `SubscriptionUpdateParams` values.
 
-- Option A: Filaments adds an explicit mode to the Play launch payload. The client sets
+- Option A: Vouchington adds an explicit mode to the Play launch payload. The client sets
   `setReplacementMode` only from that field, `setOldProductId` from the owned Play product, and
   `setOldPurchaseToken` from that purchase's token returned by `queryPurchasesAsync`.
 - Option B: the client ranks Plus and Pro itself and chooses `WITH_TIME_PRORATION` or `DEFERRED`.
@@ -534,7 +534,7 @@ submission.
 - Option B: load the product, find a `StoreSku` whose id equals `sku_id`, and call
   `StoreSku.RequestPurchaseAsync()`.
 
-Recommendation: option A, unless Filaments states that `sku_id` is itself a Store ID. The client does
+Recommendation: option A, unless Vouchington states that `sku_id` is itself a Store ID. The client does
 not guess a SKU match that the fixture does not define.
 
 ### 7. Play catalog row and launch payload mismatch
@@ -552,14 +552,14 @@ row to the Plus intent, or infer a row from the plan name. A Play launch whose c
 matching `google_play` row for `ai.voucha.android`, or whose `product_id` and `base_plan_id` differ from
 that row, does not open billing. The product is shown as unavailable.
 
-- Option A: Filaments corrects the plans fixture so canonical `...0701` has a Play row with
+- Option A: Vouchington corrects the plans fixture so canonical `...0701` has a Play row with
   `voucha.plus.monthly` and base plan `monthly`, matching the launch fixture.
-- Option B: Filaments corrects the launch fixture so it returns the Play row's `voucha.pro.monthly`
+- Option B: Vouchington corrects the launch fixture so it returns the Play row's `voucha.pro.monthly`
   for the canonical product that owns it.
-- Option C: Filaments states that the launch payload may legitimately differ from the catalog row, and
+- Option C: Vouchington states that the launch payload may legitimately differ from the catalog row, and
   defines which one wins.
 
-Recommendation: option A or B, chosen by Filaments, so the two fixtures pair on canonical product id,
+Recommendation: option A or B, chosen by Vouchington, so the two fixtures pair on canonical product id,
 store product id, and base plan id. The client then checks that the launch matches the selected row
 before it queries Play and fails closed on any difference. The fixture-backed Play adapter test in task
 5 waits for this.

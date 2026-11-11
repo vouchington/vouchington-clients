@@ -28,14 +28,15 @@ references are the
 [API fixture contract](https://github.com/vouchington/vouchington/blob/main/backend/test-helpers/api-fixtures/README.md)
 and
 [native localization exporter](https://github.com/vouchington/vouchington/blob/main/dev/native-localization.mts).
-Stage those producer outputs with `scripts/stage-native-contract.mjs`, then point
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
-`contracts:check`. Native quality and test planning never read product source from Vouchington.
+Run `pnpm run contracts:pull` to fetch the commit pinned in `contracts/vouchington.json`, run the
+exporter against this checkout, and write the (gitignored) generated localization; export the root
+it prints as `VOUCHA_CONTRACT_ROOT` for fixture tests. Native quality and test planning never read
+product source from Vouchington.
 
-Restage with `--consumer-root` pointing at the final client worktree after changing product
-localization references, even when generated resources have not changed. The producer exporter
-checks unknown keys and unused consumer claims. `contracts:check` only compares generated files,
-so checking an earlier stage cannot validate the final product references.
+Rerun `contracts:pull` after changing product localization references, even when generated
+resources have not changed: the producer exporter checks unknown keys and unused consumer claims
+against this checkout. `contracts:check` reruns that staging without writing, so it validates the
+final product references too.
 
 Collect local .NET patch coverage with the portable CI filter
 `FullyQualifiedName!~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto`, then run

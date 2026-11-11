@@ -3,7 +3,9 @@
 The `Paired native contract review evidence` workflow is a manually invoked, informational
 snapshot check for one open Vouchington pull request and one open native-clients pull request.
 It does not add a required status to either pull request or replace the default native contract
-workflow. The default workflow continues to validate its event-bound producer `main` contract.
+workflow. The default workflow continues to validate the producer commit pinned in `contracts/vouchington.json`, which
+must be reachable from producer `main`. This workflow is the CI path for a client pull request
+paired with a still-open producer pull request, which the default workflow rejects by design.
 
 An operator with live `maintain` or `admin` permission in the clients repository supplies both
 pull request numbers, the exact producer and clients head SHAs they reviewed, and an explicit
@@ -29,14 +31,15 @@ The final job runs trusted code on a fresh runner. It checks out the same exact 
 data, verifies their identities, validates the uploaded staging tree with trusted representative and
 generated-tree checks, compares the contract declaration with trusted clients `main`, and rechecks
 live PR snapshots before writing evidence. The fixture subtree is compared byte-for-byte with the
-exact producer merge checkout; staged localization is checked against the exact clients merge
-checkout. The manifest labels staged bytes as `untrusted-candidate-exporter` output; the evidence
+exact producer merge checkout; staged localization is produced by the exporter run against the
+exact clients merge checkout, since generated localization is no longer committed there. The manifest labels staged bytes as `untrusted-candidate-exporter` output; the evidence
 remains an informational paired-snapshot preflight, not an independent security review of candidate
 code.
 
 The workflow stages only the paths already declared by the trusted clients
-`contracts/filaments.json`, checks the candidate clients generated-localization copies, and writes
-a separate strict manifest with both PR snapshots, the operator and confirmation, the workflow
+`contracts/vouchington.json` (the candidate declaration must match it except for the `commit`
+pin, which a paired run ignores because the producer revision is the open pull request's merge
+commit), and writes a separate strict manifest with both PR snapshots, the operator and confirmation, the workflow
 run identity, allowlisted paths, and every staged file's size and SHA-256. The short-lived
 artifact is evidence for those exact snapshots; it is not GitHub approval and cannot be rebound
 to a later PR head by changing metadata.

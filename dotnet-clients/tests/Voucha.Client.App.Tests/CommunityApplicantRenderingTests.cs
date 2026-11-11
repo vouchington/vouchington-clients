@@ -168,7 +168,7 @@ public sealed class CommunityApplicantRenderingTests
           ? "native.list-items.default" : "native.lists.default";
       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
       {
-        Content = new StringContent(File.ReadAllText(FilamentsContractPaths.ApiFixture($"responses/{fixture}.json"))),
+        Content = new StringContent(File.ReadAllText(ContractPaths.ApiFixture($"responses/{fixture}.json"))),
       });
     }
   }
@@ -190,7 +190,7 @@ public sealed class CommunityApplicantRenderingTests
       }
       if (method?.Name != nameof(ICommunitiesService.FetchApplicationsPageAsync)) return base.Invoke(method, args);
       var response = JsonSerializer.Deserialize<CommunityApplicationsResponse>(File.ReadAllText(
-          FilamentsContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!;
+          ContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!;
       if (ReviewCount > 0 && StatusAfterReview is { } status)
         response = response with { CommunityApplicationSummaries = response.CommunityApplicationSummaries.ToDictionary(
             pair => pair.Key, pair => pair.Value with { Status = status }) };

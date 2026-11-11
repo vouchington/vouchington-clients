@@ -187,7 +187,7 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/FollowerDistributionVisibilityConverter.cs" Link="Pages/FollowerDistributionVisibilityConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TagRelationVoteEligibilityConverter.cs" Link="Pages/TagRelationVoteEligibilityConverter.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/Moderation/ReviewQueueModerationServiceStub.cs" Link="TestSupport/ReviewQueueModerationServiceStub.cs" />
-    <Compile Include="../Voucha.Client.Core.Tests/Api/FilamentsContractPaths.cs" Link="TestSupport/FilamentsContractPaths.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Api/ContractPaths.cs" Link="TestSupport/ContractPaths.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/Api/ApiFixtureLoader.cs" Link="TestSupport/ApiFixtureLoader.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/Support/StubDeviceLanguageProvider.cs" Link="TestSupport/StubDeviceLanguageProvider.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/Support/AnonymousSessionStore.cs" Link="TestSupport/AnonymousSessionStore.cs" />

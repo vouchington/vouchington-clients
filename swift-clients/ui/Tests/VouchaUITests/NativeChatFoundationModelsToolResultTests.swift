@@ -272,7 +272,7 @@ import XCTest
         private func profileFixture() throws -> (
             catalog: DecodedJSONValue, result: MemberMCPClient.ToolResult, arguments: String, structured: [String: Any]
         ) {
-            let root = try FilamentsContractRoot.url(requiredPaths: [
+            let root = try ContractRoot.url(requiredPaths: [
                 "api-fixtures/v1/mcp.json",
                 "api-fixtures/v1/mcp-results.json"
             ])

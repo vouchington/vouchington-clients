@@ -132,8 +132,8 @@ private func assertAuthenticationRequests(_ requests: [URLRequest]) throws {
 
 private func installAndroidIdentityFixture() throws {
     let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-    let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
+    let root = try ContractRoot.url(requiredPaths: [fixture])
     try AndroidAuthURLProtocol.setIdentity(
-        Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
     )
 }

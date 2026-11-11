@@ -17,7 +17,7 @@ const preparedCandidateInputs = [
 describe('native contract workflow boundary', () => {
   it('keeps contract path ownership in the checked-in configuration', async () => {
     const config = JSON.parse(
-      await readFile(new URL('../contracts/filaments.json', import.meta.url), 'utf8'),
+      await readFile(new URL('../contracts/vouchington.json', import.meta.url), 'utf8'),
     )
     const consumers = await Promise.all([
       readFile(new URL('../scripts/contract-artifact.mjs', import.meta.url), 'utf8'),
@@ -211,7 +211,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA" "\$SWIFT_PACKAGE_CLONES"/u)
     assert.doesNotMatch(candidateJobs, /coverage-transport|s3_transport|secrets\./u)
-    assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
+    assert.match(action, /VOUCHA_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
@@ -308,9 +308,9 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /pull_request:/u)
     assert.doesNotMatch(workflow, /pull_request_target:/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /pull_request\.head\.repo\.full_name/u)
-    assert.doesNotMatch(workflow, /FILAMENTS_DEPLOY_KEY/u)
+    assert.doesNotMatch(workflow, /VOUCHINGTON_DEPLOY_KEY/u)
     assert.doesNotMatch(workflow, /ssh-key:/u)
-    assert.match(workflow, /candidate-clients\/contracts\/filaments\.json/u)
+    assert.match(workflow, /candidate-clients\/contracts\/vouchington\.json/u)
     assert.match(
       workflow,
       /  produce:[\s\S]*?repository: vouchington\/vouchington[\s\S]*?  verify:/u,
@@ -335,18 +335,18 @@ describe('native contract workflow boundary', () => {
     assert.match(producer, /name: Install trusted Vouchington exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile/u,
+      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: vouchington\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile --ignore-scripts/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)
-    assert.match(producer, /--filaments-root "\$FILAMENTS_ROOT"/u)
+    assert.match(producer, /--vouchington-root "\$VOUCHINGTON_ROOT"/u)
     assert.match(producer, /--output-root "\$CONTRACT_STAGE_ROOT"/u)
     assert.match(producer, /--consumer-root "\$CANDIDATE_ROOT"/u)
     assert.match(producer, /name: Assert extracted localization representatives/u)
     assert.match(producer, /scripts\/assert-extracted-localization\.mjs/u)
     assert.match(
       producer,
-      /VOUCHA_FILAMENTS_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+      /VOUCHA_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
     )
     assert.equal(
       producer.indexOf('name: Install trusted Vouchington exporter dependencies') <
@@ -360,9 +360,42 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       producer.indexOf('name: Assert extracted localization representatives') <
-        producer.indexOf('name: Assert candidate generated localization parity'),
+        producer.indexOf('name: Verify the staged contract layout'),
       true,
     )
+  })
+
+  it('executes only a producer commit that is pinned and merged to producer main', async () => {
+    const producer = jobBlock(await readWorkflow('native-contract-tests.yml'), 'produce')
+
+    assert.match(producer, /id: pin\n\s+env:\n\s+GH_TOKEN: \$\{\{ github\.token \}\}/u)
+    assert.match(producer, /scripts\/assert-pinned-commit-on-main\.mjs --config/u)
+    assert.match(producer, /ref: \$\{\{ steps\.pin\.outputs\.commit \}\}/u)
+    assert.doesNotMatch(producer, /ref: main/u)
+    assert.match(producer, /rev-parse HEAD\)" = "\$PINNED_COMMIT"/u)
+    assert.ok(
+      producer.indexOf('assert-pinned-commit-on-main') <
+        producer.indexOf('name: Check out the pinned Vouchington commit'),
+      'the reachability check must precede the producer checkout and install',
+    )
+  })
+
+  it('materializes generated localization from the verified artifact in every candidate job', async () => {
+    const [action, workflow] = await Promise.all([
+      readAction('prepare-native-contract'),
+      readWorkflow('native-contract-tests.yml'),
+    ])
+
+    assert.match(
+      action,
+      /name: Pull generated localization from the verified contract\n\s+if: \$\{\{ inputs\.skip-candidate-checkout != 'true' \}\}\n\s+shell: bash\n\s+working-directory: candidate-clients\n\s+run: node scripts\/contracts-pull\.mjs/u,
+    )
+    assert.match(action, /VOUCHA_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
+    assert.ok(
+      action.indexOf('Check out exact candidate revision') <
+        action.indexOf('Pull generated localization'),
+    )
+    assert.match(workflow, /'\.vouchington\.sha == \$sha'/u)
   })
 
   it('restores a hash-keyed pnpm store for Vouchington and candidate installs', async () => {
@@ -377,7 +410,7 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(action, /uses: actions\/cache@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(
       jobBlock(workflow, 'produce'),
-      /key: \$\{\{ runner\.os \}\}-pnpm-vouchington-\$\{\{ hashFiles\('filaments\/pnpm-lock\.yaml'\) \}\}/u,
+      /key: \$\{\{ runner\.os \}\}-pnpm-vouchington-\$\{\{ hashFiles\('vouchington\/pnpm-lock\.yaml'\) \}\}/u,
     )
     assert.match(action, /hashFiles\('candidate-clients\/pnpm-lock\.yaml'\)/u)
     assert.match(action, /key: \$\{\{ runner\.os \}\}-pnpm-clients-/u)
@@ -428,7 +461,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /--expected-producer-run-attempt/u)
     assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: \$\{\{ !cancelled\(\) \}\}/u)
     assert.doesNotMatch(workflow, /pull_request\.head\.repo\.full_name/u)
-    assert.doesNotMatch(workflow, /Filaments contract parity|check-runs/u)
+    assert.doesNotMatch(workflow, /Vouchington contract parity|check-runs/u)
   })
 
   it('reports DTO fixture field drift in one advisory check outside the Tests gate', async () => {

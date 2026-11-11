@@ -33,7 +33,7 @@ import XCTest
                 try await runIsolatedProbe()
                 return
             }
-            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+            let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
             let inventory = try Self.catalogAdmission(root: root)
             let names = inventory.accepted.map(\.name) + inventory.excluded.compactMap { $0["name"] as? String }
             XCTAssertEqual(Set(names).count, names.count)
@@ -89,7 +89,7 @@ import XCTest
                 if let name = failure["name"] as? String { records[name] = failure }
             }
             let admission = try journal.latestAdmission()
-            let catalog = try Data(contentsOf: FilamentsContractRoot.requiredURL(
+            let catalog = try Data(contentsOf: ContractRoot.requiredURL(
                 "api-fixtures/v1/mcp.json",
                 root: root
             ))
@@ -194,7 +194,7 @@ import XCTest
             environment["VOUCHA_MCP_ADMISSION_JOURNAL"] = journal.url.path
             environment["VOUCHA_MCP_ADMISSION_PHASE"] = phase
             environment["VOUCHA_MCP_ADMISSION_SKIP"] = skip.joined(separator: ",")
-            environment[FilamentsContractRoot.environmentKey] = root.path
+            environment[ContractRoot.environmentKey] = root.path
             process.environment = environment
             let log = try FileHandle(forWritingTo: logURL)
             process.standardOutput = log
@@ -233,7 +233,7 @@ import XCTest
                 try await measureAdmission(journal: journal)
                 return
             }
-            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+            let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
             let skip = Set((ProcessInfo.processInfo.environment["VOUCHA_MCP_ADMISSION_SKIP"] ?? "")
                 .split(separator: ",").map(String.init))
             let done = try Set(journal.latestByName().filter {
@@ -382,7 +382,7 @@ import XCTest
         private static func catalogAdmission(root: URL) throws -> (
             accepted: [AuthorizedDescriptor], excluded: [[String: Any]]
         ) {
-            let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
+            let url = try ContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
             let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
             let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
             var accepted: [AuthorizedDescriptor] = []
@@ -423,8 +423,8 @@ import XCTest
         private static func producerManifestSHA(root: URL) -> String? {
             guard let data = try? Data(contentsOf: root.appendingPathComponent("manifest.json")),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let filaments = json["filaments"] as? [String: Any] else { return nil }
-            return filaments["sha"] as? String
+                  let vouchington = json["vouchington"] as? [String: Any] else { return nil }
+            return vouchington["sha"] as? String
         }
 
         private static func command(_ path: String, _ arguments: [String]) -> String? {

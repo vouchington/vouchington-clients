@@ -109,8 +109,8 @@ final class AndroidPendingDiscardInvalidationTests: XCTestCase {
             protocolClasses: [HeldAuthenticationURLProtocol.self]
         )
         let path = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [path])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(path, root: root))
+        let root = try ContractRoot.url(requiredPaths: [path])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
         let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: "/api/v1/my/identity")
         let refresh = Task { await account.session.refresh() }
         await fulfillment(of: [started], timeout: 3)

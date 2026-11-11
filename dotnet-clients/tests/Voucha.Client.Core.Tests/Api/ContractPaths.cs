@@ -1,8 +1,8 @@
 namespace Voucha.Client.Core.Tests.Api;
 
-internal static class FilamentsContractPaths
+internal static class ContractPaths
 {
-  private const string ContractRootEnvironmentVariable = "VOUCHA_FILAMENTS_CONTRACT_ROOT";
+  private const string ContractRootEnvironmentVariable = "VOUCHA_CONTRACT_ROOT";
 
   internal static string ApiFixturesV1Root() =>
       ApiFixturesV1Root(Environment.GetEnvironmentVariable(ContractRootEnvironmentVariable));
@@ -21,7 +21,7 @@ internal static class FilamentsContractPaths
     if (string.IsNullOrWhiteSpace(contractRoot))
     {
       throw new InvalidOperationException(
-          $"{ContractRootEnvironmentVariable} is required to locate fetched Filaments contracts.");
+          $"{ContractRootEnvironmentVariable} is required to locate fetched Vouchington contracts.");
     }
 
     var root = Path.GetFullPath(contractRoot);

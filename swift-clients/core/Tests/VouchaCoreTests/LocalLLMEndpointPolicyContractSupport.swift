@@ -6,7 +6,7 @@ struct LocalLLMEndpointPolicyContract: Decodable {
     let originPairs: [LocalLLMOriginPair]
 
     static func load() throws -> Self {
-        try load(root: FilamentsContractRoot.url())
+        try load(root: ContractRoot.url())
     }
 
     static func load(root: URL) throws -> Self {

@@ -128,7 +128,7 @@ targets:
         - VouchaSentryBoundaryTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
-        VOUCHA_FILAMENTS_CONTRACT_ROOT: '$(VOUCHA_FILAMENTS_CONTRACT_ROOT)'
+        VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
 
   VouchaSentryBoundaryTests:
     type: bundle.unit-test

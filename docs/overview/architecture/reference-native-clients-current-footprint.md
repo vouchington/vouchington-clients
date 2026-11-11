@@ -61,8 +61,8 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
 
 ## Ownership boundaries
 
-Vouchington produces the shared API fixtures and localization contract consumed through the explicit
-`VOUCHA_FILAMENTS_CONTRACT_ROOT`. It also owns cross-surface route, pagination, TLS, and parity
+Vouchington produces the shared API fixtures and localization contract, consumed at the commit pinned
+in `contracts/vouchington.json` through `contracts:pull` and `VOUCHA_CONTRACT_ROOT`. It also owns cross-surface route, pagination, TLS, and parity
 decisions. This repository owns the Swift/.NET implementation, native test harnesses, and the
 client-specific deep-linking behavior documented in [`.NET deep linking`](dotnet-deep-linking.md)
 and the store billing behavior documented in [Native store billing](native-store-billing.md).

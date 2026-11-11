@@ -67,7 +67,7 @@ private enum ManifestLoader {
     }
 
     private static func manifestURL() -> URL? {
-        guard let root = try? FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"]) else {
+        guard let root = try? ContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"]) else {
             return nil
         }
         return root.appendingPathComponent("api-fixtures/v1/manifest.json")

@@ -78,7 +78,7 @@ describe('event-driven CI orchestration', () => {
       /SWIFT_OUTCOME: \$\{\{ needs\.test-swift-core\.outputs\.dto-fixture-parity-outcome \}\}/u,
     )
     assert.doesNotMatch(workflow, /dto-fixture-parity-(?:dotnet|swift)-\$\{\{/u)
-    assert.doesNotMatch(workflow, /workflow_run:|check-runs|Filaments contract parity/u)
+    assert.doesNotMatch(workflow, /workflow_run:|check-runs|Vouchington contract parity/u)
     assert.doesNotMatch(workflow, /sleep 15|seq 1 240/u)
   })
 

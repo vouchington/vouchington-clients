@@ -11,7 +11,7 @@ public sealed class McpFeedReferralLinkReceiptTests
   [Fact]
   public void CanonicalEmptyDeliveryRendersSharedEmptyCopy()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray().Single(item =>
         item.GetProperty("id").GetString() == "native.mcp.read-feed.referral-links");
     var receipt = McpFeedReferralLinkReceipt.FromValidatedResult(

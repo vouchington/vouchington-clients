@@ -2,4 +2,12 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" />
   </ItemGroup>
+  <!--
+    Generated localization is pulled from the pinned Vouchington contract and never committed.
+  -->
+  <Target Name="RequirePulledLocalization" BeforeTargets="CoreResGen;CoreCompile">
+    <Error
+      Condition="!Exists('$(MSBuildThisFileDirectory)Localization/Generated/UiMessageKey.g.cs')"
+      Text="Generated native localization is missing. Run 'pnpm run contracts:pull' from the repository root." />
+  </Target>
 </Project>

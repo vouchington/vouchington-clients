@@ -19,11 +19,11 @@ import {
 } from './contract-artifact-fs.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const configPath = join(repositoryRoot, 'contracts/filaments.json')
+const configPath = join(repositoryRoot, 'contracts/vouchington.json')
 
 export async function createContractArtifact(options) {
   const config = await configuredPaths(configPath)
-  const filamentsRoot = absolutePath(options?.filamentsRoot, 'Filaments root')
+  const vouchingtonRoot = absolutePath(options?.vouchingtonRoot, 'Vouchington root')
   const outputRoot = absolutePath(options?.outputRoot, 'artifact output root')
   const metadata = createMetadata(options ?? {}, config)
   const existingOutput = await info(outputRoot, 'artifact output root')
@@ -33,16 +33,16 @@ export async function createContractArtifact(options) {
   }
   const records = []
   for (const allowed of config.paths) {
-    const source = await descendantDirectory(filamentsRoot, allowed, 'Filaments contract')
-    for (const file of await treeFiles(source, `Filaments contract ${allowed}`))
-      records.push(await fileRecord(filamentsRoot, artifactPath(`${allowed}/${file}`)))
+    const source = await descendantDirectory(vouchingtonRoot, allowed, 'Vouchington contract')
+    for (const file of await treeFiles(source, `Vouchington contract ${allowed}`))
+      records.push(await fileRecord(vouchingtonRoot, artifactPath(`${allowed}/${file}`)))
   }
   records.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0))
   await mkdir(outputRoot, { recursive: true })
   for (const record of records) {
     const destination = join(outputRoot, ...record.path.split('/'))
     await mkdir(dirname(destination), { recursive: true })
-    await copyFile(join(filamentsRoot, ...record.path.split('/')), destination)
+    await copyFile(join(vouchingtonRoot, ...record.path.split('/')), destination)
   }
   const manifest = { ...metadata, allowlistedPaths: [...config.paths].sort(), files: records }
   await writeFile(join(outputRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)

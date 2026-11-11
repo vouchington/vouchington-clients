@@ -122,7 +122,7 @@ public sealed class CommunityApplicationReviewRowTests
     {
       if (method?.Name == nameof(ICommunitiesService.FetchApplicationsPageAsync))
         return Task.FromResult(JsonSerializer.Deserialize<CommunityApplicationsResponse>(File.ReadAllText(
-            FilamentsContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!);
+            ContractPaths.ApiFixture("responses/web.communities.applications.default.json")), VouchaApiJson.Options)!);
       if (method?.Name != nameof(ICommunitiesService.ReviewApplicationAsync)) return base.Invoke(method, args);
       Reviewed.SetResult(((string)args![0]!, (string)args[1]!, (UpdateCommunityPostReviewRequest)args[2]!));
       return Task.CompletedTask;

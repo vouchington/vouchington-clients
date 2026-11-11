@@ -65,7 +65,7 @@ public sealed class CommunityActionInvitePageLifecycleTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
     var service = DispatchProxy.Create<ICommunitiesService, InviteSurfaceService>();
-    var fixture = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var fixture = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture(
         "responses/web.communities.invites.default.json")))!;
     foreach (var entry in fixture["community_invites"]!.AsObject())
     {

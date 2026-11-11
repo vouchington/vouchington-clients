@@ -78,7 +78,7 @@ final class EngineeringPartitionRangeTests: XCTestCase {
     }
 
     func testBothRangeFamiliesMatchLandedRequestSchema() throws {
-        let data = try Data(contentsOf: FilamentsContractRoot.apiContractURL("request-contracts.json"))
+        let data = try Data(contentsOf: ContractRoot.apiContractURL("request-contracts.json"))
         let contracts = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let components = try XCTUnwrap(contracts["components"] as? [String: Any])
         let request = try XCTUnwrap(components["PsqlJobRequest"] as? [String: Any])

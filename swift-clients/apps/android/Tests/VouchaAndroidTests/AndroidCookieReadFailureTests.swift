@@ -11,8 +11,8 @@ final class AndroidCookieReadFailureTests: XCTestCase {
     @MainActor
     func testReadFailurePreservesSnapshotAndExplicitRetryRestoresBeforeIdentityRequest() async throws {
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         let host = "cookie-read-\(UUID().uuidString.lowercased()).voucha.ai"
         let secrets = CookieReadFailureSecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
@@ -73,8 +73,8 @@ final class AndroidCookieReadFailureTests: XCTestCase {
     @MainActor
     func testMalformedSnapshotBlocksBootstrapAndCannotBeOverwritten() async throws {
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         let host = "cookie-read-\(UUID().uuidString.lowercased()).voucha.ai"
         let secrets = CookieReadFailureSecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))

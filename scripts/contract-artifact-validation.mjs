@@ -48,11 +48,12 @@ export async function configuredPaths(configPath) {
   } catch (error) {
     fail(`cannot read ${configPath}: ${error.message}`)
   }
-  exactKeys(config, ['schemaVersion', 'repository', 'ref', 'paths'], 'contract configuration')
+  exactKeys(config, ['schemaVersion', 'repository', 'commit', 'paths'], 'contract configuration')
   if (config.schemaVersion !== 1) fail('unsupported contract configuration schema')
   if (!repositoryPattern.test(requiredString(config.repository, 'contract repository')))
     fail('contract repository must be owner/name')
-  requiredString(config.ref, 'contract ref')
+  if (!/^[0-9a-f]{40}$/u.test(requiredString(config.commit, 'contract commit')))
+    fail('contract commit must be a full 40-character SHA')
   if (!Array.isArray(config.paths) || config.paths.length === 0)
     fail('contract paths must be a nonempty array')
   const seen = new Set()
@@ -85,9 +86,12 @@ export function createMetadata(options, config) {
   if (candidateEvent === 'push' && options.candidateNumber !== undefined)
     fail('push candidates must not have a PR number')
   return {
-    schema: 2,
+    schema: 3,
     clientsRepository,
-    filaments: { repository: contractRepository, sha: sha(options.filamentsSha, 'Filaments SHA') },
+    vouchington: {
+      repository: contractRepository,
+      sha: sha(options.vouchingtonSha, 'Vouchington SHA'),
+    },
     candidate: {
       event: candidateEvent,
       number: candidateNumber,
@@ -107,7 +111,7 @@ export function validateManifest(value, config, expectedContractRepository = con
     [
       'schema',
       'clientsRepository',
-      'filaments',
+      'vouchington',
       'candidate',
       'producer',
       'allowlistedPaths',
@@ -115,21 +119,21 @@ export function validateManifest(value, config, expectedContractRepository = con
     ],
     'manifest',
   )
-  if (value.schema !== 2) fail('unsupported manifest schema')
+  if (value.schema !== 3) fail('unsupported manifest schema')
   if (
     !repositoryPattern.test(requiredString(value.clientsRepository, 'manifest clients repository'))
   )
     fail('invalid manifest clients repository')
-  exactKeys(value.filaments, ['repository', 'sha'], 'manifest filaments metadata')
+  exactKeys(value.vouchington, ['repository', 'sha'], 'manifest vouchington metadata')
   const contractRepository = requiredString(
     expectedContractRepository,
     'expected contract repository',
   )
   if (!repositoryPattern.test(contractRepository))
     fail('expected contract repository must be owner/name')
-  if (value.filaments.repository !== contractRepository)
-    fail('invalid manifest Filaments repository')
-  sha(value.filaments.sha, 'manifest Filaments SHA')
+  if (value.vouchington.repository !== contractRepository)
+    fail('invalid manifest Vouchington repository')
+  sha(value.vouchington.sha, 'manifest Vouchington SHA')
   exactKeys(value.candidate, ['event', 'number', 'base', 'head', 'revision'], 'manifest candidate')
   if (!['pull_request', 'push'].includes(value.candidate.event))
     fail('invalid manifest candidate event')
@@ -165,7 +169,7 @@ export function validateManifest(value, config, expectedContractRepository = con
 export function checkExpected(manifest, options) {
   const pairs = [
     ['clientsRepository', manifest.clientsRepository, options.expectedClientsRepository],
-    ['Filaments SHA', manifest.filaments.sha, options.expectedFilamentsSha],
+    ['Vouchington SHA', manifest.vouchington.sha, options.expectedVouchingtonSha],
     ['candidate event', manifest.candidate.event, options.expectedCandidateEvent],
     ['candidate number', String(manifest.candidate.number), options.expectedCandidateNumber],
     ['base SHA', manifest.candidate.base, options.expectedBaseSha],

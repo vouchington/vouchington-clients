@@ -95,11 +95,11 @@ public sealed class TopicLogoLocalPreviewTests
 
   private static Topic FixtureTopic()
   {
-    var manifest = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("manifest.json")))!;
+    var manifest = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture("manifest.json")))!;
     var path = manifest["fixtures"]!.AsArray()
         .Single(entry => (string?)entry?["id"] == "web.topics.show.default")!["bodyFile"]!.GetValue<string>();
     var response = JsonSerializer.Deserialize<TopicResponse>(
-        File.ReadAllText(FilamentsContractPaths.ApiFixture(path)),
+        File.ReadAllText(ContractPaths.ApiFixture(path)),
         VouchaApiJson.Options)!;
     var logo = response.Topic.LogoImagePlacement!;
     Assert.Equal("00000000-0000-7000-8000-000000000306", logo.PlacementId);

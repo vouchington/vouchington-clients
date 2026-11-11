@@ -26,7 +26,7 @@ test('Linux setup requires an explicit producer checkout and rejects a nonempty 
   writeFileSync(join(stage, 'existing'), 'preserve')
   const missingProducer = run('setup-linux', ['--stage-root', stage], {
     ...process.env,
-    VOUCHA_FILAMENTS_CONTRACT_ROOT: stage,
+    VOUCHA_CONTRACT_ROOT: stage,
   })
   assert.equal(missingProducer.status, 2)
   assert.match(missingProducer.stderr, /--producer-root/)
@@ -87,7 +87,7 @@ test('doctor and portable tests reject an implicit contract stage', () => {
   for (const script of ['linux-doctor', 'linux-portable-tests']) {
     const result = run(script, [], {
       ...process.env,
-      VOUCHA_FILAMENTS_CONTRACT_ROOT: '/untrusted/ambient/path',
+      VOUCHA_CONTRACT_ROOT: '/untrusted/ambient/path',
     })
     assert.equal(result.status, 2, script)
     assert.match(result.stderr, /--stage-root/, script)

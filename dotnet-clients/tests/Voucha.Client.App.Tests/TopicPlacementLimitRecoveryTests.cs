@@ -80,7 +80,7 @@ public sealed class TopicPlacementLimitRecoveryTests
           Updates++;
           LastBody = (UpdateTopicBody)args![1]!;
           if (Fail) return Task.FromException<TopicMutationResponse>(new VouchaApiException(
-              HttpStatusCode.Conflict, File.ReadAllText(FilamentsContractPaths.ApiFixture(
+              HttpStatusCode.Conflict, File.ReadAllText(ContractPaths.ApiFixture(
                   "responses/native.posts.images.placement-limit.conflict.json"))));
           return Task.FromResult(new TopicMutationResponse(new Topic("topic-1", LastBody.Name!, LastBody.Slug!,
               LastBody.TopicType!, Markdown: LastBody.Markdown, LogoImageId: LastBody.LogoImageId?.Value,

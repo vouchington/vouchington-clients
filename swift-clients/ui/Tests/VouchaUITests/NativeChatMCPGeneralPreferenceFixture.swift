@@ -12,7 +12,7 @@ struct NativeChatMCPGeneralPreferenceFixture {
     var structured: [String: Any]
 
     init() throws {
-        let root = try FilamentsContractRoot.url(requiredPaths: [
+        let root = try ContractRoot.url(requiredPaths: [
             "api-fixtures/v1/mcp.json", "api-fixtures/v1/mcp-results.json"
         ])
         func object(_ path: String) throws -> [String: Any] {

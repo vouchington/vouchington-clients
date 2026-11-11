@@ -203,7 +203,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$CONTRACT_STAGE_ROOT"
           node trusted-clients/scripts/stage-native-contract.mjs \
-            --filaments-root "$PRODUCER_CANDIDATE_ROOT" \
+            --vouchington-root "$PRODUCER_CANDIDATE_ROOT" \
             --output-root "$CONTRACT_STAGE_ROOT" \
             --consumer-root "$CLIENTS_CANDIDATE_ROOT" \
             --exporter-output-root "$EXPORTER_OUTPUT_ROOT"
@@ -215,12 +215,10 @@ jobs:
           node trusted-clients/scripts/assert-extracted-localization.mjs
           --contract-root "$CONTRACT_STAGE_ROOT"
 
-      - name: Check paired candidate generated localization against staged contract
+      - name: Verify the staged contract layout
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
-        run: >-
-          node trusted-clients/scripts/contracts.mjs check
-          --destination-root "$GITHUB_WORKSPACE/clients-candidate"
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+        run: node trusted-clients/scripts/contracts.mjs verify
 
       - name: Record candidate checkout identities for final trusted validation
         env:
@@ -319,12 +317,10 @@ jobs:
           node trusted-clients/scripts/assert-extracted-localization.mjs
           --contract-root "$CONTRACT_STAGE_ROOT"
 
-      - name: Check exact candidate generated localization against untrusted data
+      - name: Verify the staged contract layout
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
-        run: >-
-          node trusted-clients/scripts/contracts.mjs check
-          --destination-root "$GITHUB_WORKSPACE/clients-candidate"
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
+        run: node trusted-clients/scripts/contracts.mjs verify
 
       - name: Recheck live identities and write exact informational evidence
         env:
@@ -393,6 +389,11 @@ jobs:
         with:
           artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
           path: ${{ runner.temp }}/paired-contract
+      - name: Pull paired localization into the candidate
+        working-directory: clients-candidate
+        env:
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+        run: node scripts/contracts-pull.mjs
       - name: Set up Swift toolchain
         uses: ./trusted-clients/.github/actions/setup-mise-toolchain
         with:
@@ -408,13 +409,13 @@ jobs:
         env:
           MISE_DISABLE_TOOLS: ''
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
         run: mise exec swift -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/core" --force-resolved-versions --disable-dependency-cache
       - name: Test portable .NET
         working-directory: clients-candidate
         env:
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
           MSBuildEnableWorkloadResolver: 'false'
         run: >-
           mise exec -- dotnet test
@@ -457,7 +458,7 @@ jobs:
         env:
           MISE_DISABLE_TOOLS: ''
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
         run: mise exec swift -- swift test --package-path "$CLIENTS_CANDIDATE_ROOT/swift-clients/core" --force-resolved-versions --disable-dependency-cache
 
   native-android-build:
@@ -491,6 +492,15 @@ jobs:
         with:
           artifact-ids: ${{ needs.finalize.outputs.artifact_id }}
           path: ${{ runner.temp }}/paired-contract
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: trusted-clients/.nvmrc
+      - name: Pull paired localization into the candidate
+        working-directory: clients-candidate
+        env:
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+        run: node scripts/contracts-pull.mjs
       - name: Set up trusted Swift toolchain
         uses: ./trusted-clients/.github/actions/setup-mise-toolchain
         with:
@@ -537,7 +547,7 @@ jobs:
         working-directory: trusted-clients
         env:
           CLIENTS_CANDIDATE_ROOT: ${{ github.workspace }}/clients-candidate
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract/contracts
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
           GRADLE_USER_HOME: ${{ runner.temp }}/skip-swift-home/.cache/voucha/gradle
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'

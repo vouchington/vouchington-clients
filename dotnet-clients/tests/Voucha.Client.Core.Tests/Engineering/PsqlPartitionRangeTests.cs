@@ -55,7 +55,7 @@ public sealed class PsqlPartitionRangeTests
   [InlineData("cleanupPartitions")]
   public void RequestRangeSerializationMatchesTheCanonicalRequestSchema(string type)
   {
-    using var contracts = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiContract("request-contracts.json")));
+    using var contracts = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiContract("request-contracts.json")));
     var job = contracts.RootElement.GetProperty("components").GetProperty("PsqlJobRequest");
     var properties = job.GetProperty("properties");
     var requestRange = properties.GetProperty("requestRange");

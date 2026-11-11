@@ -1,3 +1,4 @@
+import { sameDeclarationIgnoringPin } from './contract-config.mjs'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
 import { decodeSnapshot, git, readJson } from './paired-contract-command-support.mjs'
@@ -12,7 +13,7 @@ import {
 import { createPairManifest } from './paired-contract-manifest.mjs'
 import { validatePairedExporterRuntimeEvidence } from './paired-exporter-runtime-evidence.mjs'
 import { captureLivePair } from './paired-contract-github.mjs'
-import { contractDataPaths, declaredFilamentsContractPaths } from './contracts.mjs'
+import { contractDataPaths, declaredContractPaths } from './contracts.mjs'
 
 async function assertNoSymlinkComponents(root, target, label) {
   const pathFromRoot = relative(root, target)
@@ -86,10 +87,10 @@ export async function createManifestCommand() {
   if (git(trustedRoot, ['status', '--porcelain', '--untracked-files=all']) !== '')
     fail(`trusted checkout changed during validation: ${trustedRoot}`)
   const contractConfig = await readJson(
-    join(trustedRoot, 'contracts/filaments.json'),
+    join(trustedRoot, 'contracts/vouchington.json'),
     'trusted contract configuration',
   )
-  if (JSON.stringify(candidateEvidence.candidateConfig) !== JSON.stringify(contractConfig))
+  if (!sameDeclarationIgnoringPin(candidateEvidence.candidateConfig, contractConfig))
     fail('candidate contract configuration differs from the trusted main declaration')
   assertCheckoutMatchesSnapshot(captured.pair.producer, candidateEvidence.producer)
   assertCheckoutMatchesSnapshot(captured.pair.clients, candidateEvidence.clients)
@@ -124,7 +125,7 @@ export async function createManifestCommand() {
     producerHead: candidateEvidence.producer.revision,
     lockBlob: producerLockBlob,
   })
-  for (const contractPath of declaredFilamentsContractPaths)
+  for (const contractPath of declaredContractPaths)
     await assertNoSymlinkComponents(
       contractRoot,
       join(contractRoot, ...contractPath.split('/')),

@@ -3,7 +3,7 @@ import { afterEach, describe, it } from 'node:test'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { declaredFilamentsContractPaths } from '../scripts/contracts.mjs'
+import { declaredContractPaths } from '../scripts/contracts.mjs'
 
 import {
   capturePairSnapshot,
@@ -33,7 +33,7 @@ describe('paired contract exact file evidence', () => {
   it('builds and validates a sorted hash manifest for only the declared contract paths', async () => {
     const stageRoot = await mkdtemp(join(tmpdir(), 'paired-contract-stage-'))
     temporaryRoots.add(stageRoot)
-    for (const [index, path] of declaredFilamentsContractPaths.entries()) {
+    for (const [index, path] of declaredContractPaths.entries()) {
       const directory = join(stageRoot, ...path.split('/'))
       await mkdir(directory, { recursive: true })
       await writeFile(join(directory, `fixture-${index}.txt`), `fixture-${index}\n`)
@@ -49,8 +49,8 @@ describe('paired contract exact file evidence', () => {
       contractConfig: {
         schemaVersion: 1,
         repository: pairedRepositories.producer,
-        ref: 'main',
-        paths: declaredFilamentsContractPaths,
+        commit: 'a'.repeat(40),
+        paths: declaredContractPaths,
       },
       stageRoot,
       workflow: {
@@ -66,7 +66,7 @@ describe('paired contract exact file evidence', () => {
     assert.equal(validatePairManifest(manifest), manifest)
     assert.deepEqual(
       manifest.contract.files.map(file => file.path),
-      declaredFilamentsContractPaths.map((path, index) => `${path}/fixture-${index}.txt`).sort(),
+      declaredContractPaths.map((path, index) => `${path}/fixture-${index}.txt`).sort(),
     )
     assert.equal(manifest.attestation.reviewedBothSnapshots, true)
     const changedDigest = structuredClone(manifest)
@@ -96,7 +96,7 @@ describe('paired contract exact file evidence', () => {
   it('rejects a manifest path outside the canonical allowlist', async () => {
     const stageRoot = await mkdtemp(join(tmpdir(), 'paired-contract-stage-'))
     temporaryRoots.add(stageRoot)
-    for (const [index, path] of declaredFilamentsContractPaths.entries()) {
+    for (const [index, path] of declaredContractPaths.entries()) {
       const directory = join(stageRoot, ...path.split('/'))
       await mkdir(directory, { recursive: true })
       await writeFile(join(directory, `fixture-${index}.txt`), `fixture-${index}\n`)
@@ -115,8 +115,8 @@ describe('paired contract exact file evidence', () => {
         contractConfig: {
           schemaVersion: 1,
           repository: pairedRepositories.producer,
-          ref: 'main',
-          paths: declaredFilamentsContractPaths,
+          commit: 'a'.repeat(40),
+          paths: declaredContractPaths,
         },
         stageRoot,
         workflow: {

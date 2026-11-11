@@ -15,11 +15,11 @@ const paths = [
 ]
 
 async function fixture(t) {
-  const filamentsRoot = await mkdtemp(join(tmpdir(), 'voucha-artifact-filaments-'))
+  const vouchingtonRoot = await mkdtemp(join(tmpdir(), 'voucha-artifact-vouchington-'))
   const artifactRoot = join(await mkdtemp(join(tmpdir(), 'voucha-artifact-')), 'artifact')
-  t.after(() => rm(filamentsRoot, { recursive: true, force: true }))
+  t.after(() => rm(vouchingtonRoot, { recursive: true, force: true }))
   t.after(() => rm(dirname(artifactRoot), { recursive: true, force: true }))
-  await writeTree(filamentsRoot, {
+  await writeTree(vouchingtonRoot, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
     'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
@@ -28,9 +28,9 @@ async function fixture(t) {
       'class UiMessageKey {}\n',
   })
   const identity = {
-    filamentsRoot,
+    vouchingtonRoot,
     outputRoot: artifactRoot,
-    filamentsSha: 'a'.repeat(40),
+    vouchingtonSha: 'a'.repeat(40),
     clientsRepository: 'vouchington/vouchington-clients',
     candidateEvent: 'pull_request',
     candidateNumber: 17,
@@ -47,7 +47,7 @@ function expected(identity) {
   return {
     artifactRoot: identity.outputRoot,
     expectedClientsRepository: identity.clientsRepository,
-    expectedFilamentsSha: identity.filamentsSha,
+    expectedVouchingtonSha: identity.vouchingtonSha,
     expectedCandidateEvent: identity.candidateEvent,
     expectedCandidateNumber: identity.candidateNumber,
     expectedBaseSha: identity.baseSha,
@@ -81,7 +81,7 @@ test('records an explicitly trusted producer without changing the trusted path a
   }
   const manifest = await createContractArtifact(identity)
 
-  assert.equal(manifest.filaments.repository, identity.contractRepository)
+  assert.equal(manifest.vouchington.repository, identity.contractRepository)
   assert.deepEqual(manifest.allowlistedPaths, [...paths].sort())
   await verifyContractArtifact({
     ...expected(identity),
@@ -92,13 +92,13 @@ test('records an explicitly trusted producer without changing the trusted path a
       ...expected(identity),
       expectedContractRepository: 'vouchington/vouchington',
     }),
-    /invalid manifest Filaments repository/,
+    /invalid manifest Vouchington repository/,
   )
 })
 
 test('uses the verifier ordinal order for punctuation-bearing paths', async t => {
   const identity = await fixture(t)
-  await writeTree(identity.filamentsRoot, {
+  await writeTree(identity.vouchingtonRoot, {
     'api-fixtures/v1/a-.json': '{}\n',
     'api-fixtures/v1/a_.json': '{}\n',
   })
@@ -218,12 +218,12 @@ test('rejects manifests missing producer run ID or attempt', async t => {
   }
 })
 
-test('rejects symlinked Filaments sources before copying', async t => {
+test('rejects symlinked Vouchington sources before copying', async t => {
   const identity = await fixture(t)
   await symlink(
     'UiMessageKey.swift',
     join(
-      identity.filamentsRoot,
+      identity.vouchingtonRoot,
       'swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift',
     ),
   )
@@ -242,7 +242,7 @@ test('verifies the request contract bytes and rejects request contract symlinks'
   await assert.rejects(verifyContractArtifact(expected(identity)), /hash mismatch|size mismatch/)
   await symlink(
     'request-contracts.json',
-    join(identity.filamentsRoot, 'api-contracts/v1/alias.json'),
+    join(identity.vouchingtonRoot, 'api-contracts/v1/alias.json'),
   )
   await assert.rejects(
     createContractArtifact({

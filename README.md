@@ -12,34 +12,24 @@ For a Linux coding agent, use the [Linux setup and portable test guide](docs/dev
 ## Vouchington contracts
 
 The native clients consume a deliberately narrow contract from
-[`vouchington/vouchington`](https://github.com/vouchington/vouchington). The source-path
-allowlist in [`contracts/filaments.json`](contracts/filaments.json) is the only cross-repository input:
-`api-fixtures/v1`, `api-contracts/v1`, and the generated Swift and .NET localization trees. When Vouchington provides its
-native-localization exporter, the trusted producer uses it in preference to any legacy generated
-trees; this keeps the staged localization contract aligned during extraction. Older producer
-revisions without that exporter fall back to their generated trees.
-
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` is required for every command and explicitly identifies a full
-Vouchington checkout. It is never inferred from an ignored workspace or nearby checkout.
-
-First stage the contract with the trusted Vouchington exporter and the candidate client checkout,
-then use that isolated stage for synchronization and checking:
+[`vouchington/vouchington`](https://github.com/vouchington/vouchington). The allowlist and the
+pinned producer `commit` in [`contracts/vouchington.json`](contracts/vouchington.json) are the only
+cross-repository input: `api-fixtures/v1`, `api-contracts/v1`, and the generated Swift and .NET
+localization trees. Generated localization is not committed; pull it before building or testing:
 
 ```sh
-stage_root="$(mktemp -d)"
-node scripts/stage-native-contract.mjs \
-  --filaments-root /path/to/vouchington \
-  --output-root "$stage_root" \
-  --consumer-root "$PWD"
-VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:sync
-VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check
+pnpm install --frozen-lockfile
+export VOUCHA_CONTRACT_ROOT="$(pnpm run --silent contracts:pull)"
+pnpm run contracts:check   # optional, non-mutating parity gate
 ```
 
-Do not point `contracts:sync` directly at Vouchington after extraction: its checked-in generated
-trees can predate the client-owned product sources. `contracts:check` never writes; it validates
-the explicit staged root and checks that both generated outputs are exact byte-for-byte matches.
-CI obtains a normal full Vouchington checkout and runs that assertion; there is no duplicated
-localization bundle or sparse-checkout path.
+`contracts:pull` shallow-fetches exactly the pinned commit into the gitignored
+`.cache/vouchington/<sha>`, runs the producer exporter against this checkout, writes the
+localization, and prints the resolved root. To develop against an unmerged Vouchington pull
+request, set `VOUCHA_CONTRACT_ROOT` to a checkout of that branch before running it; the explicit
+root is used as-is and nothing is fetched. To adopt a merged producer change, bump `commit` to the
+new Vouchington `main` SHA. See [`docs/contracts.md`](docs/contracts.md) for the full rules, the
+pin-bump workflow, and CI behavior.
 
 ## Native quality
 

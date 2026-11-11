@@ -10,14 +10,14 @@ import { writeTree } from './fixture-files.mjs'
 
 async function fixture(t, { legacy = true } = {}) {
   const parent = await mkdtemp(join(tmpdir(), 'voucha-contract-stage-'))
-  const filamentsRoot = join(parent, 'filaments')
+  const vouchingtonRoot = join(parent, 'vouchington')
   const consumerRoot = join(parent, 'candidate-clients')
   const outputRoot = join(parent, 'stage')
   await Promise.all([
     mkdir(consumerRoot, { recursive: true }),
     mkdir(outputRoot, { recursive: true }),
   ])
-  await writeTree(filamentsRoot, {
+  await writeTree(vouchingtonRoot, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
     'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     ...(legacy
@@ -30,12 +30,12 @@ async function fixture(t, { legacy = true } = {}) {
       : {}),
   })
   t.after(() => rm(parent, { recursive: true, force: true }))
-  return { consumerRoot, filamentsRoot, outputRoot }
+  return { consumerRoot, vouchingtonRoot, outputRoot }
 }
 
-test('falls back to legacy localization trees when the Filaments script lacks the isolated exporter interface', async t => {
+test('falls back to legacy localization trees when the Vouchington script lacks the isolated exporter interface', async t => {
   const options = await fixture(t)
-  await writeTree(options.filamentsRoot, {
+  await writeTree(options.vouchingtonRoot, {
     'dev/native-localization.mts': 'await writeNativeResourceFiles({ root: process.cwd() });\n',
   })
   assert.equal(await stageNativeContract(options), 'legacy')
@@ -74,7 +74,7 @@ test('stages every declared legacy contract directory into an isolated root', as
   )
 })
 
-test('prefers the Filaments-owned exporter over legacy localization trees when available', async t => {
+test('prefers the Vouchington-owned exporter over legacy localization trees when available', async t => {
   const options = await fixture(t)
   const calls = []
   await stageNativeContract({
@@ -92,7 +92,7 @@ test('prefers the Filaments-owned exporter over legacy localization trees when a
   assert.deepEqual(calls, [
     {
       consumerRoot: options.consumerRoot,
-      filamentsRoot: options.filamentsRoot,
+      vouchingtonRoot: options.vouchingtonRoot,
       outputRoot: options.outputRoot,
     },
   ])
@@ -116,15 +116,15 @@ test('prefers the Filaments-owned exporter over legacy localization trees when a
   )
 })
 
-test('runs the Filaments-owned exporter from the producer root', async t => {
+test('runs the Vouchington-owned exporter from the producer root', async t => {
   const options = await fixture(t, { legacy: false })
-  const realFilamentsRoot = await realpath(options.filamentsRoot)
-  await writeTree(options.filamentsRoot, {
+  const realVouchingtonRoot = await realpath(options.vouchingtonRoot)
+  await writeTree(options.vouchingtonRoot, {
     'dev/native-localization.mts': `
       import { mkdir, writeFile } from "node:fs/promises";
       import { join } from "node:path";
-      if (process.cwd() !== ${JSON.stringify(realFilamentsRoot)})
-        throw new Error("exporter must run from the Filaments root");
+      if (process.cwd() !== ${JSON.stringify(realVouchingtonRoot)})
+        throw new Error("exporter must run from the Vouchington root");
       const outputRoot = process.argv[process.argv.indexOf("--output-root") + 1];
       await mkdir(join(outputRoot, "swift-clients/ui/Sources/VouchaLocalization/Generated"), { recursive: true });
       await mkdir(join(outputRoot, "dotnet-clients/src/Voucha.Client.Core/Localization/Generated"), { recursive: true });
@@ -138,16 +138,16 @@ test('runs the Filaments-owned exporter from the producer root', async t => {
 
 test('stages an isolated exporter output tree as data without executing producer code', async t => {
   const options = await fixture(t, { legacy: false })
-  const exporterOutputRoot = join(options.filamentsRoot, '..', 'isolated-exporter-output')
+  const exporterOutputRoot = join(options.vouchingtonRoot, '..', 'isolated-exporter-output')
   await mkdir(exporterOutputRoot)
-  await mkdir(join(options.filamentsRoot, 'dev'), { recursive: true })
+  await mkdir(join(options.vouchingtonRoot, 'dev'), { recursive: true })
   await writeTree(exporterOutputRoot, {
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift': 'isolated swift\n',
     'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
       'isolated dotnet\n',
   })
   await writeFile(
-    join(options.filamentsRoot, 'dev/native-localization.mts'),
+    join(options.vouchingtonRoot, 'dev/native-localization.mts'),
     'throw new Error("candidate exporter must not run on the trusted host");\n',
   )
   assert.equal(
@@ -169,9 +169,9 @@ test('stages an isolated exporter output tree as data without executing producer
     'isolated swift\n',
   )
 
-  const unexpected = join(options.filamentsRoot, '..', 'isolated-exporter-unexpected')
+  const unexpected = join(options.vouchingtonRoot, '..', 'isolated-exporter-unexpected')
   await mkdir(unexpected)
-  const secondOutputRoot = join(options.filamentsRoot, '..', 'stage-two')
+  const secondOutputRoot = join(options.vouchingtonRoot, '..', 'stage-two')
   await mkdir(secondOutputRoot)
   await writeTree(unexpected, {
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift': 'swift\n',
@@ -215,27 +215,30 @@ test('asserts extracted representatives from the staged client contract', async 
   )
 })
 
-test('rejects a symbolic link in place of the Filaments exporter script', async t => {
+test('rejects a symbolic link in place of the Vouchington exporter script', async t => {
   const options = await fixture(t)
-  await mkdir(join(options.filamentsRoot, 'dev'))
+  await mkdir(join(options.vouchingtonRoot, 'dev'))
   await symlink(
     'native-localization.mts',
-    join(options.filamentsRoot, 'dev/native-localization.mts'),
+    join(options.vouchingtonRoot, 'dev/native-localization.mts'),
   )
   await assert.rejects(
     stageNativeContract(options),
-    /Native contract staging failed: symbolic link found at Filaments exporter dev\/native-localization\.mts/,
+    /Native contract staging failed: symbolic link found at Vouchington exporter dev\/native-localization\.mts/,
   )
 })
 
 test('fails closed for partial legacy trees, symlinks, a nonempty output, and invalid exporter output', async t => {
   const missingFixture = await fixture(t)
-  await rm(join(missingFixture.filamentsRoot, 'api-fixtures'), { recursive: true })
+  await rm(join(missingFixture.vouchingtonRoot, 'api-fixtures'), { recursive: true })
   await assert.rejects(stageNativeContract(missingFixture), /missing directory.*api-fixtures\/v1/)
 
   const nestedOutput = await fixture(t)
   await assert.rejects(
-    stageNativeContract({ ...nestedOutput, outputRoot: join(nestedOutput.filamentsRoot, 'stage') }),
+    stageNativeContract({
+      ...nestedOutput,
+      outputRoot: join(nestedOutput.vouchingtonRoot, 'stage'),
+    }),
     /stage output root must be isolated/,
   )
 
@@ -247,7 +250,7 @@ test('fails closed for partial legacy trees, symlinks, a nonempty output, and in
 
   const partial = await fixture(t, { legacy: false })
   await mkdir(
-    join(partial.filamentsRoot, 'swift-clients/ui/Sources/VouchaLocalization/Generated'),
+    join(partial.vouchingtonRoot, 'swift-clients/ui/Sources/VouchaLocalization/Generated'),
     { recursive: true },
   )
   await assert.rejects(stageNativeContract(partial), /partial legacy localization directories/)
@@ -255,7 +258,10 @@ test('fails closed for partial legacy trees, symlinks, a nonempty output, and in
   const linked = await fixture(t)
   await symlink(
     'UiMessageKey.swift',
-    join(linked.filamentsRoot, 'swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift'),
+    join(
+      linked.vouchingtonRoot,
+      'swift-clients/ui/Sources/VouchaLocalization/Generated/alias.swift',
+    ),
   )
   await assert.rejects(stageNativeContract(linked), /symbolic link/)
 
@@ -278,7 +284,7 @@ test('fails closed for partial legacy trees, symlinks, a nonempty output, and in
         throw new Error('exit 1')
       },
     }),
-    /Filaments exporter failed: exit 1/,
+    /Vouchington exporter failed: exit 1/,
   )
 
   const unexpectedExporterOutput = await fixture(t, { legacy: false })
@@ -323,7 +329,7 @@ for (const mode of ['legacy', 'exporter']) {
   test(`rejects missing and symlinked request contracts in ${mode} staging`, async t => {
     for (const symlinked of [false, true]) {
       const options = await fixture(t)
-      const source = join(options.filamentsRoot, 'api-contracts/v1')
+      const source = join(options.vouchingtonRoot, 'api-contracts/v1')
       await rm(source, { recursive: true })
       if (symlinked) await symlink('../../api-fixtures/v1', source)
       await assert.rejects(

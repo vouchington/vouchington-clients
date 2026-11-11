@@ -16,7 +16,7 @@ public sealed class MemberMcpFinancialProfileTests
   public async Task CallsFinancialToolAndDecodesCanonicalStructuredResult(string caseId)
   {
     using var fixture = JsonDocument.Parse(await File.ReadAllTextAsync(
-        FilamentsContractPaths.ApiFixture("mcp-results.json"), TestContext.Current.CancellationToken));
+        ContractPaths.ApiFixture("mcp-results.json"), TestContext.Current.CancellationToken));
     Assert.Equal(1, fixture.RootElement.GetProperty("version").GetInt32());
     var selected = fixture.RootElement.GetProperty("cases").EnumerateArray()
         .Single(value => value.GetProperty("id").GetString() == caseId);
@@ -59,7 +59,7 @@ public sealed class MemberMcpFinancialProfileTests
   public async Task DecodesFractionalYearButRejectsInvalidRequiredFields(string variant)
   {
     using var fixture = JsonDocument.Parse(await File.ReadAllTextAsync(
-        FilamentsContractPaths.ApiFixture("mcp-results.json"), TestContext.Current.CancellationToken));
+        ContractPaths.ApiFixture("mcp-results.json"), TestContext.Current.CancellationToken));
     var populated = fixture.RootElement.GetProperty("cases").EnumerateArray()
         .Single(value => value.GetProperty("id").GetString() ==
             "native.mcp.get-my-financial-profile.populated");

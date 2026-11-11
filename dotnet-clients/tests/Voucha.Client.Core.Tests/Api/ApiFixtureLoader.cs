@@ -11,7 +11,7 @@ internal static class ApiFixtureLoader
 
   private static readonly Lazy<ApiFixtureManifest> Manifest = new(() =>
   {
-    var manifestPath = FilamentsContractPaths.ApiFixture("manifest.json");
+    var manifestPath = ContractPaths.ApiFixture("manifest.json");
     return JsonSerializer.Deserialize<ApiFixtureManifest>(
         File.ReadAllText(manifestPath),
         JsonOptions) ?? throw new InvalidOperationException("api-fixtures/v1/manifest.json is empty.");
@@ -27,7 +27,7 @@ internal static class ApiFixtureLoader
       throw new InvalidOperationException($"{fixtureId} is not marked as a dotnet-core fixture consumer.");
     }
 
-    return File.ReadAllText(FilamentsContractPaths.ApiFixture(fixture.BodyFile));
+    return File.ReadAllText(ContractPaths.ApiFixture(fixture.BodyFile));
   }
 
   public static string QueryValue(string fixtureId, string name) =>

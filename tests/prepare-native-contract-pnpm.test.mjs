@@ -66,7 +66,7 @@ test('shared pnpm stores restore always and save only a trusted main miss', asyn
       restore: 'Restore Vouchington pnpm store',
       save: 'Save Vouchington pnpm store from main',
       stepId: 'vouchington-pnpm-store',
-      key: "${{ runner.os }}-pnpm-vouchington-${{ hashFiles('filaments/pnpm-lock.yaml') }}",
+      key: "${{ runner.os }}-pnpm-vouchington-${{ hashFiles('vouchington/pnpm-lock.yaml') }}",
       restoreKey: '${{ runner.os }}-pnpm-vouchington-',
     },
   ]

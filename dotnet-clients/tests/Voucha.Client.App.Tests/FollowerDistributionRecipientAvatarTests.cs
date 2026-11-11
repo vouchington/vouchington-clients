@@ -20,7 +20,7 @@ public sealed class FollowerDistributionRecipientAvatarTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var fixture = JsonSerializer.Deserialize<UserFollowersResponse>(
-        File.ReadAllText(FilamentsContractPaths.ApiFixture("responses/swift.users.followers.default.json")),
+        File.ReadAllText(ContractPaths.ApiFixture("responses/swift.users.followers.default.json")),
         VouchaApiJson.Options)!;
     // The claimed follower fixture currently has no placement. Add the optional API field
     // locally to one fixture-derived user to exercise the rendered placement path.

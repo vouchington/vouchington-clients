@@ -5,14 +5,24 @@ Work from this repository root. Native client source has its own scoped instruct
 
 ## Cross-repository contracts
 
-Only `contracts/filaments.json` may describe inputs from `vouchington/vouchington`. Keep
-the allowlist narrow, use `pnpm run contracts:sync` to update tracked native-localization outputs,
-and use `pnpm run contracts:check` as the non-mutating parity gate.
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` is required and must explicitly name a complete Vouchington
-checkout; do not discover a sibling checkout, fetch independently, or add a fallback source.
+Only `contracts/vouchington.json` may describe inputs from `vouchington/vouchington`: a full
+40-character `commit` pin plus a narrow path allowlist. Never track a branch.
 
-Changes that affect shared API fixtures or native-localization must land with the corresponding
-Vouchington contract change, or remain draft and explicitly dependency-blocked until it does.
+- `pnpm run contracts:pull` is the only way to obtain the contract. Without
+  `VOUCHA_CONTRACT_ROOT` it shallow-fetches exactly the pinned commit into the gitignored,
+  SHA-keyed `.cache/vouchington/<sha>`, runs the producer exporter, writes the generated native
+  localization, and prints the resolved root. With `VOUCHA_CONTRACT_ROOT` set it uses that explicit
+  checkout (or staged root) as-is, to develop against an unmerged producer pull request.
+- Generated native localization is never committed. Run `contracts:pull` before any Swift, Xcode,
+  or .NET build or test, and export the printed root as `VOUCHA_CONTRACT_ROOT` for fixture tests.
+- `pnpm run contracts:check` is the non-mutating parity gate (pinned producer versus this checkout).
+- Do not discover sibling checkouts, fetch from any other source, or add fallbacks; fail closed on
+  a wrong SHA or missing path.
+
+A producer change that affects shared API fixtures or native localization lands in Vouchington
+first; the paired client change is a one-line `commit` bump to that merged main commit. Until it
+merges, keep the client pull request draft and dependency-blocked (CI rejects a pin that is not
+reachable from producer `main`).
 
 ## Quality and changed-file tests
 
