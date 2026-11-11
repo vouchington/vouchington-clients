@@ -191,12 +191,12 @@ contains() {
 }
 
 if contains build || contains test; then
+  SWIFT_BIN="$(bash "$SWIFT_DIR/tooling/resolve-mise-swift.sh")" || exit 1
+  SWIFT_COMMAND=(env MISE_EXEC_AUTO_INSTALL=false mise exec -- "$SWIFT_BIN")
   if [[ ! -f "$SWIFT_DIR/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift" ]]; then
     echo "Error: generated native localization is missing. Run 'pnpm run contracts:pull' from the repository root." >&2
     exit 1
   fi
-  SWIFT_BIN="$(bash "$SWIFT_DIR/tooling/resolve-mise-swift.sh")" || exit 1
-  SWIFT_COMMAND=(env MISE_EXEC_AUTO_INSTALL=false mise exec -- "$SWIFT_BIN")
 fi
 
 missing_periphery() {
