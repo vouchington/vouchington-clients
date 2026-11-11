@@ -226,6 +226,18 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public async Task FetchPostsFeedAsyncForwardsTheSelectedTimeRange()
+  {
+    var (client, handler) = CreateClient("swift.posts.feed.default");
+
+    await client.FetchPostsFeedAsync(
+        new FetchPostsFeedRequest(TimeRange: Voucha.Client.Core.Posts.PostTimeRanges.Last30Days),
+        TestContext.Current.CancellationToken);
+
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/feeds/posts/any?limit=20&sort=hot&time_range=1m");
+  }
+
+  [Fact]
   public async Task FetchPostThreadAsyncUsesSharedFixtures()
   {
     const string rootId = "70000000-0000-7000-8000-000000005400";
