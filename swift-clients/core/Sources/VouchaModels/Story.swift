@@ -30,21 +30,7 @@ public struct Story: Codable, Identifiable, Sendable {
     }
 }
 
-public struct PostStory: Codable, Sendable {
-    public let postId: String
-    public let storyId: String
-    public let initiatedById: String
-    public let createdAt: Date
-}
-
+/// `POST /api/v1/posts` response for a story post: the created post only.
 public struct StoryPostResult: Codable, Sendable {
-    private enum CodingKeys: String, CodingKey {
-        case post
-        case story
-        case postStory
-    }
-
     public let post: Post
-    public let story: Story
-    public let postStory: PostStory
 }

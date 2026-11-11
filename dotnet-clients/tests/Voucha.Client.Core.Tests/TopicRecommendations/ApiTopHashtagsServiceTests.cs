@@ -23,7 +23,7 @@ public sealed class ApiTopHashtagsServiceTests
     Assert.Equal("Rust", response.Topics["topic-1"].Name);
     Assert.Equal(
         [
-          (HttpMethod.Get, "/api/v1/topic-recommendations/top-hashtags?after=cursor-1&limit=5&mapping=linked&q=rust"),
+          (HttpMethod.Get, "/api/v1/topics/top-hashtags?after=cursor-1&limit=5&mapping=linked&q=rust"),
           (HttpMethod.Post, "/api/v1/topics/topic%201/aliases/alias%201"),
           (HttpMethod.Delete, "/api/v1/topics/topic%201/aliases/alias%201"),
           (HttpMethod.Post, "/api/v1/topics"),

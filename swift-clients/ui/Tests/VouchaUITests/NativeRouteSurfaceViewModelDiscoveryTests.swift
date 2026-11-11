@@ -347,7 +347,7 @@ final class NativeRouteSurfaceViewModelDiscoveryTests: NativeRouteSurfaceViewMod
     }
 
     func testTopicRecommendationsLoadsNativeEndpoint() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/topic-recommendations"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
             Data("""
             {
               "results": [{ "id": "topic-rec-1", "entity_id": "post-1" }],
@@ -379,7 +379,7 @@ final class NativeRouteSurfaceViewModelDiscoveryTests: NativeRouteSurfaceViewMod
 
         await viewModel.load()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/topic-recommendations")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/posts")
         XCTAssertEqual(
             viewModel.rows.first,
             verbatimRow(icon: "lightbulb", title: "Native recommendation", detail: "Create this topic.")
@@ -387,7 +387,7 @@ final class NativeRouteSurfaceViewModelDiscoveryTests: NativeRouteSurfaceViewMod
     }
 
     func testTopicRecommendationEditLoadsMatchedRecommendation() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/topic-recommendations/topic-rec-1"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts/topic-rec-1"] = (
             Data("""
             {
               "post": {
@@ -412,7 +412,7 @@ final class NativeRouteSurfaceViewModelDiscoveryTests: NativeRouteSurfaceViewMod
 
         await viewModel.load()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/topic-recommendations/topic-rec-1")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/posts/topic-rec-1")
         XCTAssertEqual(viewModel.rows.first?.detail, "Update this topic.")
     }
 

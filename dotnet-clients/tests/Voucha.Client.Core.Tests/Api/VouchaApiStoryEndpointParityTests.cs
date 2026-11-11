@@ -24,7 +24,7 @@ public sealed class VouchaApiStoryEndpointParityTests
         "createStoryPostFromStory",
         VouchaApiEndpoints.CreateStoryPostFromStory("story 1", "00000000-0000-4000-8000-000000000054"),
         HttpMethod.Post,
-        "/api/v1/stories/story%201/discussions",
+        "/api/v1/posts",
         Query(),
         true);
 
@@ -34,7 +34,7 @@ public sealed class VouchaApiStoryEndpointParityTests
             "item 1",
             "00000000-0000-4000-8000-000000000055"),
         HttpMethod.Post,
-        "/api/v1/rss-feed-items/item%201/discussions",
+        "/api/v1/posts",
         Query(),
         true);
   }

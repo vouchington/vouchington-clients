@@ -15,15 +15,7 @@ public sealed record Story(
     [property: JsonPropertyName("updated_at")] DateTimeOffset UpdatedAt,
     [property: JsonPropertyName("deleted_at")] DateTimeOffset? DeletedAt);
 
-public sealed record PostStory(
-    [property: JsonPropertyName("post_id")] string PostId,
-    [property: JsonPropertyName("story_id")] string StoryId,
-    [property: JsonPropertyName("initiated_by_id")] string InitiatedById,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
-
 public sealed record StoryPostFromStoryResponse(
-    [property: JsonPropertyName("post")] Post Post,
-    [property: JsonPropertyName("story")] Story Story,
-    [property: JsonPropertyName("postStory")] PostStory PostStory);
+    [property: JsonPropertyName("post")] Post Post);
 
 #pragma warning restore CA1054, CA1056, CA1720

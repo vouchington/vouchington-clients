@@ -46,10 +46,7 @@ public static partial class VouchaApiEndpoints
               ("rss_feed", Bool(rssFeed))));
 
   public static ApiRequest TopicRecommendations(string? after = null, int limit = 25) =>
-      Get("/api/v1/topic-recommendations", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest TopicRecommendation(string recommendationId) =>
-      Get($"/api/v1/topic-recommendations/{Path(recommendationId)}");
+      Get("/api/v1/posts", Query(("limit", limit), ("after", after), ("post_types", "topic_recommendation")));
 
   public static ApiRequest TopHashtags(
       string? query = null,
@@ -57,7 +54,7 @@ public static partial class VouchaApiEndpoints
       string? after = null,
       int limit = 25) =>
       Get(
-          "/api/v1/topic-recommendations/top-hashtags",
+          "/api/v1/topics/top-hashtags",
           Query(("limit", limit), ("mapping", MappingValue(mapping)), ("q", query), ("after", after)));
 
   private static string MappingValue(TopHashtagMapping mapping) => mapping switch

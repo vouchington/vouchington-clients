@@ -61,8 +61,8 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
-            makeStoryPostResult(postId: "post-story", storyId: "story-1"),
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
+            makeStoryPostResult(postId: "post-story"),
             201
         )
         let vm = makeViewModel()
@@ -71,8 +71,10 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
         let destination = await vm.startStoryDiscussion(rssFeedItemId: "story-primary")
 
         XCTAssertEqual(destination?.postId, "post-story")
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.last?.path, "/api/v1/stories/story-1/discussions")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.last?.path, "/api/v1/posts")
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.last, "POST")
+        let storyBody = jsonObject(CannedFeedURLProtocol.capturedBodies.last ?? nil)
+        XCTAssertEqual(storyBody as? [String: String], ["post_type": "story", "story_id": "story-1"])
         XCTAssertEqual(vm.storyDiscussionDestination(rssFeedItemId: "story-primary")?.postId, "post-story")
         XCTAssertFalse(vm.canStartStoryDiscussion(rssFeedItemId: "story-primary"))
     }
@@ -86,14 +88,10 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
-            Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8),
-            403
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/story-primary/discussions"] = (
-            makePostEnvelope(id: "post-link"),
-            201
-        )
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
+            (Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8), 403, 0),
+            (makePostEnvelope(id: "post-link"), 201, 0)
+        ]
         let vm = makeViewModel()
         await vm.load()
 
@@ -102,8 +100,12 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
         XCTAssertEqual(destination?.postId, "post-link")
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedURLs.suffix(2).map(\.path),
-            ["/api/v1/stories/story-1/discussions", "/api/v1/rss-feed-items/story-primary/discussions"]
+            ["/api/v1/posts", "/api/v1/posts"]
         )
+        let linkBody = jsonObject(CannedFeedURLProtocol.capturedBodies.last ?? nil)
+        XCTAssertEqual(linkBody as? [String: String], [
+            "post_type": "link", "rss_feed_item_id": "story-primary"
+        ])
         XCTAssertEqual(vm.storyPostIdsByStoryId["story-1"], "post-link")
         XCTAssertEqual(vm.storyDiscussionDestination(rssFeedItemId: "story-primary")?.postId, "post-link")
         XCTAssertFalse(vm.canStartStoryDiscussion(rssFeedItemId: "story-primary"))
@@ -118,12 +120,10 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
-            Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8),
-            403
-        )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/rss-feed-items/story-primary/discussions"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
+            (Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8), 403, 0),
             (Data(#"{"code":"EMAIL_VERIFICATION_REQUIRED"}"#.utf8), 403, 0),
+            (Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8), 403, 0),
             (makePostEnvelope(id: "post-link"), 201, 0)
         ]
         let vm = makeViewModel()
@@ -137,7 +137,7 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
         XCTAssertTrue(vm.canStartStoryDiscussion(rssFeedItemId: "story-primary"))
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedURLs.map(\.path),
-            ["/api/v1/stories/story-1/discussions", "/api/v1/rss-feed-items/story-primary/discussions"]
+            ["/api/v1/posts", "/api/v1/posts"]
         )
 
         vm.emailVerificationGate.dismissRecovery()
@@ -162,6 +162,10 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
         await vm.load()
 
         XCTAssertFalse(vm.canStartStoryDiscussion(rssFeedItemId: "story-primary"))
+    }
+
+    private func jsonObject(_ body: String?) -> Any? {
+        body.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) }
     }
 
     private func makeFeedPage(
@@ -201,27 +205,10 @@ final class RSSFeedListViewModelStoryDiscussionTests: XCTestCase {
         """.utf8)
     }
 
-    private func makeStoryPostResult(postId: String, storyId: String) -> Data {
+    private func makeStoryPostResult(postId: String) -> Data {
         Data("""
         {
-          "post":{\(postJSON(id: postId, postType: "story"))},
-          "story":{
-            "id":"\(storyId)",
-            "title":"Story",
-            "cluster_reason":null,
-            "published_at":null,
-            "official_rss_feed_item_id":null,
-            "official_locked_at":null,
-            "created_at":"2026-01-01T00:00:00Z",
-            "updated_at":"2026-01-01T00:00:00Z",
-            "deleted_at":null
-          },
-          "postStory":{
-            "post_id":"\(postId)",
-            "story_id":"\(storyId)",
-            "initiated_by_id":"user-1",
-            "created_at":"2026-01-01T00:00:00Z"
-          }
+          "post":{\(postJSON(id: postId, postType: "story"))}
         }
         """.utf8)
     }

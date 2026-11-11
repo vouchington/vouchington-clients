@@ -19,7 +19,7 @@ public sealed class TopicRecommendationsListViewModelTests
 
     Assert.Equal(["post-1", "post-2"], model.Items.Select(post => post.Id));
     Assert.False(model.HasMore);
-    Assert.Equal(["/api/v1/topic-recommendations?limit=25", "/api/v1/topic-recommendations?after=cursor-1&limit=25"], handler.Paths);
+    Assert.Equal(["/api/v1/posts?limit=25&post_types=topic_recommendation", "/api/v1/posts?after=cursor-1&limit=25&post_types=topic_recommendation"], handler.Paths);
   }
 
   [Fact]

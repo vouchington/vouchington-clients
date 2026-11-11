@@ -92,7 +92,7 @@ final class EmailVerificationGatedMutationTests: NativeRouteSurfaceViewModelTest
     }
 
     func testStoryDiscussionVerificationFailurePreservesRetryState() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (verificationError, 403)
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (verificationError, 403)
         let viewModel = try RSSFeedListViewModel(client: makeClient(), contentType: .news)
         viewModel.storyIdsByItemId["item-1"] = "story-1"
         viewModel.storyRelatedArticlesByStoryId["story-1"] = StoryRelatedArticles(

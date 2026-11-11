@@ -56,12 +56,14 @@ public sealed class ApiNewsFeedServiceStoryDiscussionTests
         request =>
         {
           Assert.Equal(HttpMethod.Post, request.Method);
-          Assert.Equal("/api/v1/stories/story%201/discussions", request.PathAndQuery);
+          Assert.Equal("/api/v1/posts", request.PathAndQuery);
+          Assert.Equal("""{"story_id":"story 1","post_type":"story"}""", request.Body);
         },
         request =>
         {
           Assert.Equal(HttpMethod.Post, request.Method);
-          Assert.Equal("/api/v1/rss-feed-items/item%201/discussions", request.PathAndQuery);
+          Assert.Equal("/api/v1/posts", request.PathAndQuery);
+          Assert.Equal("""{"rss_feed_item_id":"item 1","post_type":"link"}""", request.Body);
         });
   }
 
