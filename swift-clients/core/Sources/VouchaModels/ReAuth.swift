@@ -46,7 +46,7 @@ public struct NativeRefreshedSessionClaims: Codable, Equatable, Sendable {
     public let rol: [String]
     public let sca: Int
     public let sid: String
-    public let uid: String
+    public let uid: String?
 }
 
 public struct NativeRefreshedSession: Codable, Equatable, Sendable {
@@ -58,7 +58,7 @@ public struct NativeRefreshedSession: Codable, Equatable, Sendable {
     public let sid: String
     public let sessionToken: String
     public let sessionExpiration: Int
-    public let uid: String
+    public let uid: String?
 
     private enum CodingKeys: String, CodingKey {
         case did, secure, session, sid, uid

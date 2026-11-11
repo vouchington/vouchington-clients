@@ -42,7 +42,7 @@ public sealed record NativeRefreshedSessionClaims(
     [property: JsonPropertyName("rol")] IReadOnlyList<string> Rol,
     [property: JsonPropertyName("sca")] long Sca,
     [property: JsonPropertyName("sid")] string Sid,
-    [property: JsonPropertyName("uid")] string Uid);
+    [property: JsonPropertyName("uid")] string? Uid);
 
 public sealed record NativeRefreshedSession(
     [property: JsonPropertyName("did")] string Did,
@@ -53,7 +53,7 @@ public sealed record NativeRefreshedSession(
     [property: JsonPropertyName("sid")] string Sid,
     [property: JsonPropertyName("st")] string St,
     [property: JsonPropertyName("ste")] int Ste,
-    [property: JsonPropertyName("uid")] string Uid);
+    [property: JsonPropertyName("uid")] string? Uid);
 
 /// <summary>Result of rotating `PATCH /api/v1/session`: both replacement tokens and their lifetimes.</summary>
 public sealed record NativeSessionRefreshResponse(

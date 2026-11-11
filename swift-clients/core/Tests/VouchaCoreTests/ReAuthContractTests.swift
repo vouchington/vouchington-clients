@@ -52,6 +52,16 @@ final class ReAuthContractTests: XCTestCase {
         XCTAssertEqual(session.session.client, "native")
     }
 
+    func testAnonymousRotatedSessionDecodesWithoutAUser() throws {
+        let json = Data("""
+        {"session":{"did":"d","dt":"dt","dte":1,"secure":true,"sid":"s","st":"st","ste":1,"uid":null,
+        "session":{"client":"native","did":"d","rca":0,"rol":[],"sca":0,"sid":"s","uid":null}}}
+        """.utf8)
+        let session = try makeVouchaDecoder().decode(NativeSessionRefreshResponse.self, from: json).session
+        XCTAssertNil(session.uid)
+        XCTAssertNil(session.session.uid)
+    }
+
     func testBotChallengeFixtureIsTheTypedRequiredBody() throws {
         let body: BotChallengeRequiredResponse = try decode("native.bot-challenge.required")
         XCTAssertEqual(body.code, BotChallengeRequiredResponse.requiredCode)

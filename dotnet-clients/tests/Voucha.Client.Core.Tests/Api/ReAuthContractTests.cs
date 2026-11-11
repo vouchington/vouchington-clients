@@ -103,6 +103,18 @@ public sealed class ReAuthContractTests
     Assert.Equal(("device", "session"), (body.Dt, body.St));
   }
 
+  [Fact]
+  public void AnonymousRotatedSessionDecodesWithoutAUser()
+  {
+    const string json = """
+        {"session":{"did":"d","dt":"dt","dte":1,"secure":true,"sid":"s","st":"st","ste":1,"uid":null,
+        "session":{"client":"native","did":"d","rca":0,"rol":[],"sca":0,"sid":"s","uid":null}}}
+        """;
+    var session = JsonSerializer.Deserialize<NativeSessionRefreshResponse>(json, VouchaApiJson.Options)!.Session;
+    Assert.Null(session.Uid);
+    Assert.Null(session.Session.Uid);
+  }
+
   private static T Decode<T>(string fixtureId) =>
       JsonSerializer.Deserialize<T>(ApiFixtureLoader.LoadResponse(fixtureId), VouchaApiJson.Options)!;
 }
