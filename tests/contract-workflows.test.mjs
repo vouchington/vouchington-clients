@@ -335,7 +335,7 @@ describe('native contract workflow boundary', () => {
     assert.match(producer, /name: Install trusted Vouchington exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: vouchington\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile/u,
+      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: vouchington\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile --ignore-scripts/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)
@@ -360,9 +360,42 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       producer.indexOf('name: Assert extracted localization representatives') <
-        producer.indexOf('name: Assert candidate generated localization parity'),
+        producer.indexOf('name: Verify the staged contract layout'),
       true,
     )
+  })
+
+  it('executes only a producer commit that is pinned and merged to producer main', async () => {
+    const producer = jobBlock(await readWorkflow('native-contract-tests.yml'), 'produce')
+
+    assert.match(producer, /id: pin\n\s+env:\n\s+GH_TOKEN: \$\{\{ github\.token \}\}/u)
+    assert.match(producer, /scripts\/assert-pinned-commit-on-main\.mjs --config/u)
+    assert.match(producer, /ref: \$\{\{ steps\.pin\.outputs\.commit \}\}/u)
+    assert.doesNotMatch(producer, /ref: main/u)
+    assert.match(producer, /rev-parse HEAD\)" = "\$PINNED_COMMIT"/u)
+    assert.ok(
+      producer.indexOf('assert-pinned-commit-on-main') <
+        producer.indexOf('name: Check out the pinned Vouchington commit'),
+      'the reachability check must precede the producer checkout and install',
+    )
+  })
+
+  it('materializes generated localization from the verified artifact in every candidate job', async () => {
+    const [action, workflow] = await Promise.all([
+      readAction('prepare-native-contract'),
+      readWorkflow('native-contract-tests.yml'),
+    ])
+
+    assert.match(
+      action,
+      /name: Pull generated localization from the verified contract\n\s+if: \$\{\{ inputs\.skip-candidate-checkout != 'true' \}\}\n\s+shell: bash\n\s+working-directory: candidate-clients\n\s+run: node scripts\/contracts-pull\.mjs/u,
+    )
+    assert.match(action, /VOUCHA_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
+    assert.ok(
+      action.indexOf('Check out exact candidate revision') <
+        action.indexOf('Pull generated localization'),
+    )
+    assert.match(workflow, /'\.vouchington\.sha == \$sha'/u)
   })
 
   it('restores a hash-keyed pnpm store for Vouchington and candidate installs', async () => {

@@ -89,6 +89,11 @@ runs:
         ref: ${{ inputs.candidate-revision-sha }}
         path: candidate-clients
         persist-credentials: false
+    - name: Pull generated localization from the verified contract
+      if: ${{ inputs.skip-candidate-checkout != 'true' }}
+      shell: bash
+      working-directory: candidate-clients
+      run: node scripts/contracts-pull.mjs
     - name: Restore candidate pnpm store
       if: ${{ inputs.skip-candidate-install != 'true' }}
       id: pnpm-store

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install checkout-local dependencies and stage explicitly supplied producer contracts.
+# Install checkout-local dependencies, stage explicitly supplied producer contracts, and pull the generated localization from that stage.
 set -euo pipefail
 
 root="$(CDPATH='' cd -P -- "$(dirname -- "$0")/.." && pwd -P)"
@@ -63,6 +63,6 @@ if ! node scripts/stage-native-contract.mjs \
   echo 'Contract exporter failed. If it reported a missing module, run the producer checkout frozen install explicitly, then retry with a new empty stage.' >&2
   exit 1
 fi
-VOUCHA_CONTRACT_ROOT="$stage_root" pnpm run contracts:check
+VOUCHA_CONTRACT_ROOT="$stage_root" pnpm run contracts:pull >/dev/null
 bash dev/linux-doctor --stage-root "$stage_root"
 printf 'Ready. Set VOUCHA_CONTRACT_ROOT=%q for portable tests.\n' "$stage_root"

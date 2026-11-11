@@ -1,3 +1,4 @@
+import { sameDeclarationIgnoringPin } from './contract-config.mjs'
 import { createManifestCommand } from './paired-contract-finalize.mjs'
 import { join, resolve } from 'node:path'
 import { writeFile } from 'node:fs/promises'
@@ -49,7 +50,7 @@ async function trustedConfiguration(trustedRoot, candidateRoot) {
     join(candidateRoot, 'contracts/vouchington.json'),
     'candidate contract configuration',
   )
-  if (JSON.stringify(candidateConfig) !== JSON.stringify(trustedConfig))
+  if (!sameDeclarationIgnoringPin(candidateConfig, trustedConfig))
     fail('candidate contract configuration differs from the trusted main declaration')
   return { trustedConfig, candidateConfig }
 }

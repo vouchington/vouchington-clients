@@ -48,11 +48,12 @@ export async function configuredPaths(configPath) {
   } catch (error) {
     fail(`cannot read ${configPath}: ${error.message}`)
   }
-  exactKeys(config, ['schemaVersion', 'repository', 'ref', 'paths'], 'contract configuration')
+  exactKeys(config, ['schemaVersion', 'repository', 'commit', 'paths'], 'contract configuration')
   if (config.schemaVersion !== 1) fail('unsupported contract configuration schema')
   if (!repositoryPattern.test(requiredString(config.repository, 'contract repository')))
     fail('contract repository must be owner/name')
-  requiredString(config.ref, 'contract ref')
+  if (!/^[0-9a-f]{40}$/u.test(requiredString(config.commit, 'contract commit')))
+    fail('contract commit must be a full 40-character SHA')
   if (!Array.isArray(config.paths) || config.paths.length === 0)
     fail('contract paths must be a nonempty array')
   const seen = new Set()
@@ -85,7 +86,7 @@ export function createMetadata(options, config) {
   if (candidateEvent === 'push' && options.candidateNumber !== undefined)
     fail('push candidates must not have a PR number')
   return {
-    schema: 2,
+    schema: 3,
     clientsRepository,
     vouchington: { repository: contractRepository, sha: sha(options.vouchingtonSha, 'Vouchington SHA') },
     candidate: {
@@ -115,7 +116,7 @@ export function validateManifest(value, config, expectedContractRepository = con
     ],
     'manifest',
   )
-  if (value.schema !== 2) fail('unsupported manifest schema')
+  if (value.schema !== 3) fail('unsupported manifest schema')
   if (
     !repositoryPattern.test(requiredString(value.clientsRepository, 'manifest clients repository'))
   )

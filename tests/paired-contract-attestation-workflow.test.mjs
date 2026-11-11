@@ -71,7 +71,7 @@ it('isolates candidate code from every authenticated identity-resolution step', 
     'Run the producer exporter in the isolated pinned runtime',
     'Stage the explicitly declared contract paths',
     'Assert extracted localization representatives',
-    'Check paired candidate generated localization against staged contract',
+    'Verify the staged contract layout',
   ])
     assert.match(candidate, new RegExp(`- name: ${step}`, 'u'))
   assert.doesNotMatch(candidate, /pnpm install|pnpm\/action-setup|npm install/u)
@@ -237,7 +237,7 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
   for (const step of [
     'Verify immutable merge snapshots and trusted contract declaration',
     'Assert extracted localization representatives from untrusted data',
-    'Check exact candidate generated localization against untrusted data',
+    'Verify the staged contract layout',
   ])
     assert.match(finalize, new RegExp(`- name: ${step}`, 'u'))
   assert.match(
@@ -245,7 +245,7 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
     /PRODUCER_CANDIDATE_ROOT: \$\{\{ github\.workspace \}\}\/producer-candidate/u,
   )
   assert.ok(
-    finalize.indexOf('Check exact candidate generated localization against untrusted data') <
+    finalize.indexOf('Verify the staged contract layout') <
       finalize.indexOf('Recheck live identities and write exact informational evidence'),
     'trusted candidate-data checks must precede the authenticated live recheck',
   )

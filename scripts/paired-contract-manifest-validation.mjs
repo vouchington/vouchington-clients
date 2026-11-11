@@ -105,15 +105,15 @@ export function validatePairManifest(value) {
   )
   exactKeys(
     value.contract,
-    ['outputOrigin', 'repository', 'ref', 'declaredPaths', 'files'],
+    ['outputOrigin', 'repository', 'trustedPinnedCommit', 'declaredPaths', 'files'],
     'contract',
   )
   if (
     value.contract.outputOrigin !== 'untrusted-candidate-exporter' ||
     value.contract.repository !== pairedRepositories.producer ||
-    value.contract.ref !== 'main'
+    !/^[0-9a-f]{40}$/u.test(value.contract.trustedPinnedCommit)
   )
-    fail('manifest contract source is not the fixed producer main contract')
+    fail('manifest contract source is not the fixed producer contract')
   if (
     JSON.stringify(value.contract.declaredPaths) !== JSON.stringify(declaredContractPaths)
   )

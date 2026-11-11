@@ -63,6 +63,7 @@ jobs:
           set -euo pipefail
           [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           git diff --check "$BASE_SHA...HEAD"
+      - uses: ./.github/actions/pull-vouchington-contract
       - name: Restore locked dependencies
         working-directory: dotnet-clients
         run: dotnet restore Voucha.DotNet.sln --locked-mode

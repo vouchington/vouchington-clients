@@ -49,7 +49,7 @@ describe('paired contract exact file evidence', () => {
       contractConfig: {
         schemaVersion: 1,
         repository: pairedRepositories.producer,
-        ref: 'main',
+        commit: 'a'.repeat(40),
         paths: declaredContractPaths,
       },
       stageRoot,
@@ -115,7 +115,7 @@ describe('paired contract exact file evidence', () => {
         contractConfig: {
           schemaVersion: 1,
           repository: pairedRepositories.producer,
-          ref: 'main',
+          commit: 'a'.repeat(40),
           paths: declaredContractPaths,
         },
         stageRoot,

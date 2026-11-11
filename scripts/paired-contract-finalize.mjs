@@ -1,3 +1,4 @@
+import { sameDeclarationIgnoringPin } from './contract-config.mjs'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { lstat, readFile, readdir, writeFile } from 'node:fs/promises'
 import { decodeSnapshot, git, readJson } from './paired-contract-command-support.mjs'
@@ -89,7 +90,7 @@ export async function createManifestCommand() {
     join(trustedRoot, 'contracts/vouchington.json'),
     'trusted contract configuration',
   )
-  if (JSON.stringify(candidateEvidence.candidateConfig) !== JSON.stringify(contractConfig))
+  if (!sameDeclarationIgnoringPin(candidateEvidence.candidateConfig, contractConfig))
     fail('candidate contract configuration differs from the trusted main declaration')
   assertCheckoutMatchesSnapshot(captured.pair.producer, candidateEvidence.producer)
   assertCheckoutMatchesSnapshot(captured.pair.clients, candidateEvidence.clients)

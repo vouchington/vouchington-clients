@@ -55,7 +55,7 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
       JSON.stringify({
         schemaVersion: 1,
         repository: 'vouchington/vouchington',
-        ref: 'main',
+        commit: 'a'.repeat(40),
         paths: declaredContractPaths,
       }),
     )
@@ -72,7 +72,7 @@ it('wires capture and create-manifest CLIs through live identity checks', async 
     const config = {
       schemaVersion: 1,
       repository: 'vouchington/vouchington',
-      ref: 'main',
+      commit: 'a'.repeat(40),
       paths: declaredContractPaths,
     }
     await writeFile(

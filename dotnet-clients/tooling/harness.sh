@@ -327,6 +327,10 @@ if contains resx-path; then
 fi
 
 if contains build; then
+  if [[ ! -f "$ROOT_DIR/dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs" ]]; then
+    echo "Error: generated native localization is missing. Run 'pnpm run contracts:pull' from the repository root." >&2
+    exit 1
+  fi
   run_check "build" "$SCRIPT_DIR/with-build-lock.sh" "$VOUCHA_DOTNET_HOST" build "$SOLUTION" --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 fi
 

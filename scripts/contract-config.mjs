@@ -40,3 +40,12 @@ export async function readContractConfig(config = contractConfigPath) {
     fail('contract configuration does not match the client contract (commit must be a full SHA)')
   return parsed
 }
+
+/**
+ * A paired change may pin a different producer revision than trusted main (it is evaluated
+ * against an open producer pull request), so declarations match when everything except the
+ * pin is identical.
+ */
+export function sameDeclarationIgnoringPin(left, right) {
+  return JSON.stringify({ ...left, commit: null }) === JSON.stringify({ ...right, commit: null })
+}

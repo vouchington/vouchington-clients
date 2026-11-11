@@ -82,7 +82,7 @@ it('finalizes the CLI path from exact artifact API records, captured snapshots, 
     contract: {
       outputOrigin: 'untrusted-candidate-exporter',
       repository: pairedRepositories.producer,
-      ref: 'main',
+      trustedPinnedCommit: 'a'.repeat(40),
       declaredPaths: declaredContractPaths,
       files,
     },

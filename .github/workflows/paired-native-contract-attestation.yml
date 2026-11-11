@@ -215,12 +215,10 @@ jobs:
           node trusted-clients/scripts/assert-extracted-localization.mjs
           --contract-root "$CONTRACT_STAGE_ROOT"
 
-      - name: Check paired candidate generated localization against staged contract
+      - name: Verify the staged contract layout
         env:
           VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
-        run: >-
-          node trusted-clients/scripts/contracts.mjs check
-          --destination-root "$GITHUB_WORKSPACE/clients-candidate"
+        run: node trusted-clients/scripts/contracts.mjs verify
 
       - name: Record candidate checkout identities for final trusted validation
         env:
@@ -319,12 +317,10 @@ jobs:
           node trusted-clients/scripts/assert-extracted-localization.mjs
           --contract-root "$CONTRACT_STAGE_ROOT"
 
-      - name: Check exact candidate generated localization against untrusted data
+      - name: Verify the staged contract layout
         env:
           VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}/contracts
-        run: >-
-          node trusted-clients/scripts/contracts.mjs check
-          --destination-root "$GITHUB_WORKSPACE/clients-candidate"
+        run: node trusted-clients/scripts/contracts.mjs verify
 
       - name: Recheck live identities and write exact informational evidence
         env:
