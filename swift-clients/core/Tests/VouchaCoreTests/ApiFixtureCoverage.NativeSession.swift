@@ -1,6 +1,8 @@
 import VouchaModels
 
-let nativeSessionFixtureCoverage: [RegisteredFixture] = [
+let nativeSessionFixtureCoverage: [RegisteredFixture] = nativeSessionBaseFixtureCoverage + nativeReAuthFixtureCoverage
+
+private let nativeSessionBaseFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "native.auth.email-address.tokens") {
         try assertFixtureCoversDTO($0, as: NativeEmailTokenResponse.self)
     },

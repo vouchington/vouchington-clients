@@ -18,9 +18,9 @@ internal static partial class ApiFixtureCoverage
   {
     registry["native.auth.email-address.tokens"] = VouchaApiEndpoints.RequestNativeEmailOtp("fixture@example.test");
     registry["native.auth.email-address.login.authenticated"] =
-        VouchaApiEndpoints.VerifyNativeEmailOtp("fixture@example.test", "123456");
+        VouchaApiEndpoints.VerifyNativeEmailOtp("fixture@example.test", "ABCDEFGHJK");
     registry["native.auth.email-address.login.mfa"] =
-        VouchaApiEndpoints.VerifyNativeEmailOtp("fixture@example.test", "123456");
+        VouchaApiEndpoints.VerifyNativeEmailOtp("fixture@example.test", "ABCDEFGHJK");
     registry["native.oauth.session-mcp-token.ios"] = VouchaApiEndpoints.MintNativeSessionMcpToken("ios");
     return registry;
   }

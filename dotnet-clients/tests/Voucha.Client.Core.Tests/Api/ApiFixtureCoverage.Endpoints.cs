@@ -312,7 +312,7 @@ internal static partial class ApiFixtureCoverage
         ["native.my.api-keys.paginated"] = VouchaApiEndpoints.ApiKeys("fixture-owner-scoped-api-key-cursor", 1),
         ["native.my.push-subscriptions.paginated"] = VouchaApiEndpoints.PushSubscriptions("fixture-owner-scoped-push-cursor", 1),
         ["native.my.email-addresses.request.default"] = VouchaApiEndpoints.RequestEmailAddressVerification(" Tests+Native-User@Voucha.ai ", "fresh-auth-fixture"),
-        ["native.my.email-addresses.verify.default"] = VouchaApiEndpoints.VerifyEmailAddress("tests+native-user@voucha.ai", "ABCD1234", "fresh-auth-fixture"),
+        ["native.my.email-addresses.verify.default"] = VouchaApiEndpoints.VerifyEmailAddress("tests+native-user@voucha.ai", "ABCDEFGHJK", "fresh-auth-fixture"),
         ["native.auth.sessions.default"] = VouchaApiEndpoints.AuthSessions("fixture-owner-scoped-session-cursor", 1),
         ["native.auth.bluesky.link.default"] = VouchaApiEndpoints.BeginBlueskyAccountLink("alice.bsky.social"),
         ["native.auth.bluesky.link.native"] = VouchaApiEndpoints.BeginNativeBlueskyAccountLink(
@@ -474,5 +474,5 @@ internal static partial class ApiFixtureCoverage
         ["web.paid.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["web.admin.rss-feed-crawl.default"] = VouchaApiEndpoints.RssFeedCrawl("rss-feed-1", "crawl-1"),
         ["native.url-crawl-trigger.default"] = VouchaApiEndpoints.TriggerUrlCrawl("url-1"),
-      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints().WithNativeContentEndpoints()))).WithCurrentFixtureRequests().WithContractDriftEndpoints();
+      }.WithStoryEndpoints().WithModerationParityEndpoints().WithFollowerDistributionEndpoints().WithMembershipGrantAndAncestorEndpoints().WithMembershipStoreEndpoints().WithCopyrightMediaEndpoints().WithTopicClaimEndpoints().WithNativeSessionEndpoints().WithNativeReAuthEndpoints().WithNativeContentEndpoints()))).WithCurrentFixtureRequests().WithContractDriftEndpoints();
 }
