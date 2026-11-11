@@ -2299,6 +2299,11 @@
 "settings.language.interfaceLabel" = "Interface language";
 "settings.language.noCountryPreference" = "No country preference";
 "settings.language.useSiteDefault" = "Use site default";
+"settings.topics.merge.checkStatus" = "Check status";
+"settings.topics.merge.completed" = "Topic merge completed.";
+"settings.topics.merge.failed" = "The topics could not be merged. Review their settings before trying again.";
+"settings.topics.merge.queued" = "Merge queued. Check its status for completion.";
+"settings.topics.merge.statusFailed" = "Could not load merge status.";
 "shared.accountType.aiAgent" = "AI Agent";
 "shared.accountType.official" = "Official";
 "shared.accountType.system" = "System";

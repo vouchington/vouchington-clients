@@ -114,6 +114,12 @@ public sealed class ApiTopicsService : ITopicsService
       CancellationToken cancellationToken = default) =>
       client.MergeTopicAliasesAsync(sourceTopicId, destinationIdOrSlug, cancellationToken);
 
+  public Task<TopicMergeResponse> FetchTopicMergeStatusAsync(
+      string sourceTopicId,
+      string operationId,
+      CancellationToken cancellationToken = default) =>
+      client.FetchTopicMergeStatusAsync(sourceTopicId, operationId, cancellationToken);
+
   public Task VoteTopicAsync(
       string topicId,
       ElectionVoteChoice choice,

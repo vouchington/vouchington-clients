@@ -715,7 +715,6 @@
   <data name="native.dotnet.csharpEditor.selectImage" xml:space="preserve"><value>Selecionar imagem</value></data>
   <data name="native.dotnet.csharpEditor.suggestionWithDetail" xml:space="preserve"><value>{label}  {detail}</value></data>
   <data name="native.dotnet.csharpEditor.write" xml:space="preserve"><value>Escrever</value></data>
-  <data name="native.dotnet.csharpStatus.mergedInto" xml:space="preserve"><value>Combinado em {id}</value></data>
   <data name="native.dotnet.csharpStatus.saveTopicFirst" xml:space="preserve"><value>Guarde o tópico antes de gerir as definições.</value></data>
   <data name="native.dotnet.csharpStatus.savedItem" xml:space="preserve"><value>Guardado {id}</value></data>
   <data name="native.dotnet.csharpStatus.speed" xml:space="preserve"><value>{value}×</value></data>
@@ -2020,6 +2019,11 @@
   <data name="settings.language.supportedCount.__plural.one" xml:space="preserve"><value>{count} idioma</value></data>
   <data name="settings.language.supportedCount.__plural.other" xml:space="preserve"><value>{count} idiomas</value></data>
   <data name="settings.language.useSiteDefault" xml:space="preserve"><value>Usar idioma padrão do site</value></data>
+  <data name="settings.topics.merge.checkStatus" xml:space="preserve"><value>Consultar status</value></data>
+  <data name="settings.topics.merge.completed" xml:space="preserve"><value>Mesclagem de tópicos concluída.</value></data>
+  <data name="settings.topics.merge.failed" xml:space="preserve"><value>Não foi possível mesclar os tópicos. Revise as configurações antes de tentar novamente.</value></data>
+  <data name="settings.topics.merge.queued" xml:space="preserve"><value>Mesclagem na fila. Consulte o status para saber quando terminar.</value></data>
+  <data name="settings.topics.merge.statusFailed" xml:space="preserve"><value>Não foi possível carregar o status da mesclagem.</value></data>
   <data name="shared.accountType.aiAgent" xml:space="preserve"><value>Agente de IA</value></data>
   <data name="shared.accountType.official" xml:space="preserve"><value>Oficial</value></data>
   <data name="shared.accountType.system" xml:space="preserve"><value>Sistema</value></data>
