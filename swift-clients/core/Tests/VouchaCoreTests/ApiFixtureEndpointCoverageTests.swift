@@ -447,4 +447,5 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(membershipStoreFixtureEndpoints) { _, replacement in replacement }
         .merging(topicClaimFixtureEndpoints) { _, replacement in replacement }
         .merging(nativeSessionFixtureEndpoints) { _, replacement in replacement }
+        .merging(topicRecommendationCreateFixtureEndpoints) { _, replacement in replacement }
 }

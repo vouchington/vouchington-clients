@@ -39,6 +39,7 @@ enum EndpointManifestCoverage {
         topicClaimFixtureEndpoints,
         nativeSessionFixtureEndpoints,
         nativeContentFixtureEndpoints,
+        topicRecommendationCreateFixtureEndpoints,
         contractDriftFixtureEndpoints,
         ApiFixtureEndpointCoverageTests.communityBanFixtureEndpoints,
         ApiFixtureEndpointCoverageTests.moderationEndpointRegistry.filter { id, _ in
