@@ -54,7 +54,13 @@ public sealed record TopicResponse(
     [property: JsonPropertyName("topic_children")] IReadOnlyList<JsonElement>? TopicChildren = null,
     [property: JsonPropertyName("topic_parents")] IReadOnlyList<JsonElement>? TopicParents = null,
     [property: JsonPropertyName("topic_content_update"),
-        JsonIgnore(Condition = JsonIgnoreCondition.Never)] JsonElement? TopicContentUpdate = null);
+        JsonIgnore(Condition = JsonIgnoreCondition.Never)] JsonElement? TopicContentUpdate = null,
+    [property: JsonPropertyName("referral_program_attributes")] ReferralProgramAttributes? ReferralProgramAttributes = null);
+
+public sealed record ReferralProgramAttributes(
+    [property: JsonPropertyName("company_topic_id")] string? CompanyTopicId = null,
+    [property: JsonPropertyName("enabled_at")] DateTimeOffset? EnabledAt = null,
+    [property: JsonPropertyName("disabled_at")] DateTimeOffset? DisabledAt = null);
 
 public sealed record TopicMetrics(
     [property: JsonPropertyName("count")] IReadOnlyDictionary<string, int>? Count = null,

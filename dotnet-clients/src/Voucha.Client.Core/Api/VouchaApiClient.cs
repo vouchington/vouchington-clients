@@ -105,13 +105,13 @@ public sealed partial class VouchaApiClient
         cancellationToken);
   }
 
-  public Task<TopicSearchResponse> FetchTrendingReferralProgramsAsync(
-      FetchTrendingReferralProgramsRequest request,
+  public Task<TopicSearchResponse> FetchReferralProgramsByLinkCountAsync(
+      FetchReferralProgramsByLinkCountRequest request,
       CancellationToken cancellationToken = default)
   {
     var requiredRequest = Require(request);
     return SendAsync<TopicSearchResponse>(
-        VouchaApiEndpoints.TrendingReferralPrograms(requiredRequest.Limit),
+        VouchaApiEndpoints.ReferralProgramsByLinkCount(requiredRequest.Limit),
         cancellationToken);
   }
 

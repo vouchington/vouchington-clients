@@ -10,4 +10,12 @@ public struct TopicDetailResponse: Codable, Sendable {
     public let topicChildren: DecodedJSONValue
     public let topicParents: DecodedJSONValue
     public let topicContentUpdate: DecodedJSONValue
+    /// Present only when `topic.topicType == "referral_program"`; `nil` for other types or a missing extension row.
+    public let referralProgramAttributes: ReferralProgramAttributes?
+}
+
+public struct ReferralProgramAttributes: Codable, Equatable, Sendable {
+    public let companyTopicId: String?
+    public let enabledAt: Date?
+    public let disabledAt: Date?
 }
