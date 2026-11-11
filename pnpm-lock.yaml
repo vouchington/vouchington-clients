@@ -11,9 +11,6 @@ importers:
       '@ast-grep/cli':
         specifier: 0.45.2
         version: 0.45.2
-      auto-harness-client:
-        specifier: 0.8.1
-        version: 0.8.1
       coverage-check:
         specifier: 0.17.0
         version: 0.17.0
@@ -1040,11 +1037,6 @@ packages:
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
-
-  auto-harness-client@0.8.1:
-    resolution: {integrity: sha512-XOvROoriZjI/55LoVilr1YbneQEY46aBu7n7w6VqRL/J1BCWTWrD3T1JH+R5dR6YiNn9gJ4SZml7jnGIs+5IaQ==}
-    engines: {node: '>=20'}
-    hasBin: true
 
   bail@2.0.2:
     resolution: {integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==}
@@ -2977,8 +2969,6 @@ snapshots:
       color-convert: 2.0.1
 
   argparse@2.0.1: {}
-
-  auto-harness-client@0.8.1: {}
 
   bail@2.0.2: {}
 
