@@ -16,7 +16,7 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "VouchaTestSupport", path: "../test-support"),
-        .package(url: "https://github.com/apple/swift-crypto.git", exact: "5.0.3")
+        .package(url: "https://github.com/apple/swift-crypto.git", exact: "5.1.1")
     ],
     targets: [
         .target(
