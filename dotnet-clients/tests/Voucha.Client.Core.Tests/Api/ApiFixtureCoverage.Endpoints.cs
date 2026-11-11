@@ -242,7 +242,7 @@ internal static partial class ApiFixtureCoverage
         ["native.referral-links.mine.default"] = VouchaApiEndpoints.ReferralLinks(),
         ["web.referral-clicks.mine.default"] = VouchaApiEndpoints.MyReferralClicks(),
         ["native.referral-clicks.mine.default"] = VouchaApiEndpoints.MyReferralClicks(),
-        ["web.topics.link-count.default"] = VouchaApiEndpoints.TrendingReferralPrograms(),
+        ["web.topics.link-count.default"] = VouchaApiEndpoints.ReferralProgramsByLinkCount(5),
         ["web.referral-links.prioritized.default"] = VouchaApiEndpoints.PrioritizedReferralLinks("referral-program-1", true),
         ["web.admin.article-syncs.trigger.default"] = VouchaApiEndpoints.TriggerArticleSync(),
         ["web.admin.article-syncs.status.active"] = VouchaApiEndpoints.FetchArticleSyncStatus("job-1"),

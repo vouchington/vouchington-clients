@@ -110,16 +110,16 @@ public sealed partial class ReferralLinksViewModelTests
   }
 
   [Fact]
-  public async Task LoadTrendingProgramsAsyncUsesPublicReferralPrograms()
+  public async Task LoadProgramsAsyncUsesPublicReferralPrograms()
   {
     var service = new RecordingReferralLinksService
     {
-      TrendingResponse = JsonSerializer.Deserialize<TopicSearchResponse>(
+      ProgramsResponse = JsonSerializer.Deserialize<TopicSearchResponse>(
           ApiFixtureLoader.LoadResponse("web.topics.link-count.default"), VouchaApiJson.Options),
     };
     var viewModel = new ReferralLinksViewModel(service);
 
-    await viewModel.LoadTrendingProgramsAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadProgramsAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal(LoadState.Loaded, viewModel.State);
     Assert.Collection(viewModel.Items, item =>
@@ -276,7 +276,7 @@ public sealed partial class ReferralLinksViewModelTests
 
     public IReadOnlyList<ReferralClickLogResponse>? ClickResponses { get; init; }
 
-    public TopicSearchResponse? TrendingResponse { get; init; }
+    public TopicSearchResponse? ProgramsResponse { get; init; }
 
     public TopicSearchResponse? TopicSearchResponse { get; init; }
 
@@ -370,10 +370,10 @@ public sealed partial class ReferralLinksViewModelTests
       return Task.FromResult(PrioritizedResponse ?? throw new InvalidOperationException("Missing response."));
     }
 
-    public Task<TopicSearchResponse> FetchTrendingProgramsAsync(
-        FetchTrendingReferralProgramsRequest request,
+    public Task<TopicSearchResponse> FetchProgramsByLinkCountAsync(
+        FetchReferralProgramsByLinkCountRequest request,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(TrendingResponse ?? throw new InvalidOperationException("Missing response."));
+        Task.FromResult(ProgramsResponse ?? throw new InvalidOperationException("Missing response."));
 
     public Task CreateAsync(CreateReferralLinkBody body, CancellationToken cancellationToken = default) =>
         RunMutation(() => CreatedBody = body);

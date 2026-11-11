@@ -66,12 +66,12 @@ public partial class ReferralLinksPage : ContentPage
     if (!sessionStore.Current.IsAuthenticated)
     {
       mode = ReferralLinksMode.Programs;
-      return viewModel.LoadTrendingProgramsAsync();
+      return viewModel.LoadProgramsAsync();
     }
 
     return mode switch
     {
-      ReferralLinksMode.Programs => viewModel.LoadTrendingProgramsAsync(),
+      ReferralLinksMode.Programs => viewModel.LoadProgramsAsync(),
       ReferralLinksMode.Analytics => viewModel.LoadAnalyticsAsync(),
       ReferralLinksMode.Mutual => viewModel.LoadFeedAsync(mutual: true),
       ReferralLinksMode.Mine => viewModel.LoadMineAsync(),

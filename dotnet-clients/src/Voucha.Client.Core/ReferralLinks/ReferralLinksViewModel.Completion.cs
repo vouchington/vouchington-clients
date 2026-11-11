@@ -131,7 +131,7 @@ public sealed partial class ReferralLinksViewModel
               ("group", item.PriorityGroup)),
           Localization: localization);
 
-  private ReferralLinkRow RowFromTrendingProgram(string id, string? name) =>
+  private ReferralLinkRow RowFromProgram(string id, string? name) =>
       new(
           id,
           UiText.Verbatim(name ?? id),

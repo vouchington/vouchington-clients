@@ -23,6 +23,12 @@ private struct EntityRelationCreateBody: Encodable {
 }
 
 public extension Endpoint {
+    /// Lists enabled referral programs by all-time active link count. The server rejects `sort=link_count`
+    /// combined with text search or other topic filters, so none are exposed here.
+    static func referralProgramsByLinkCount(limit: Int = 25, after: String? = nil) -> Endpoint {
+        topics(limit: limit, sort: "link_count", after: after)
+    }
+
     static func topics(
         query: String? = nil,
         limit: Int = 25,

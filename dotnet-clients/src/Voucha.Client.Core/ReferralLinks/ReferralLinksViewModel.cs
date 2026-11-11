@@ -126,20 +126,20 @@ public sealed partial class ReferralLinksViewModel : ObservableObject, IDisposab
         message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
-  public async Task LoadTrendingProgramsAsync(CancellationToken cancellationToken = default)
+  public async Task LoadProgramsAsync(CancellationToken cancellationToken = default)
   {
     var currentRequest = BeginLoad();
     await ClientLoadAttempt.RunAsync(
         async () =>
         {
           var response = await referralLinksService
-              .FetchTrendingProgramsAsync(new FetchTrendingReferralProgramsRequest(), cancellationToken)
+              .FetchProgramsByLinkCountAsync(new FetchReferralProgramsByLinkCountRequest(), cancellationToken)
               .ConfigureAwait(true);
           CompleteReferralRows(
               currentRequest,
               response.Results
                   .Where(result => result.Id is not null)
-                  .Select(result => RowFromTrendingProgram(result.Id!, result.Name))
+                  .Select(result => RowFromProgram(result.Id!, result.Name))
                   .ToArray());
         },
         () => CompleteCanceled(currentRequest),

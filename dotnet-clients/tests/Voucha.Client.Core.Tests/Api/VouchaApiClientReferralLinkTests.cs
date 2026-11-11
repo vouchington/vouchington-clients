@@ -115,12 +115,12 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
-  public async Task FetchTrendingReferralProgramsAsyncUsesSharedFixture()
+  public async Task FetchReferralProgramsByLinkCountAsyncUsesSharedFixture()
   {
     var (client, handler) = CreateClient("web.topics.link-count.default");
 
-    var response = await client.FetchTrendingReferralProgramsAsync(
-        new FetchTrendingReferralProgramsRequest(),
+    var response = await client.FetchReferralProgramsByLinkCountAsync(
+        new FetchReferralProgramsByLinkCountRequest(5),
         TestContext.Current.CancellationToken);
 
     AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?limit=5&sort=link_count");
@@ -153,5 +153,32 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal(4.5, response.Links[0].ReviewAvgRating);
     Assert.Equal("user-1", response.Users["user-1"].Id);
     Assert.Equal("testuser", response.Users["user-1"].Username);
+  }
+
+  [Fact]
+  public async Task FetchReferralProgramsByLinkCountAsyncForwardsCursorAndLimit()
+  {
+    var (client, handler) = CreateClient("web.topics.link-count.default");
+
+    await client.FetchReferralProgramsByLinkCountAsync(
+        new FetchReferralProgramsByLinkCountRequest(Limit: 50, After: "cursor-2"),
+        TestContext.Current.CancellationToken);
+
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?after=cursor-2&limit=50&sort=link_count");
+  }
+
+  [Theory]
+  [InlineData("\"referral_program_attributes\":{\"company_topic_id\":\"company-1\",\"enabled_at\":\"2026-01-02T03:04:05Z\",\"disabled_at\":null},", "company-1", true)]
+  [InlineData("\"referral_program_attributes\":null,", null, false)]
+  [InlineData("", null, false)]
+  public void TopicResponseDecodesReferralProgramAttributes(string field, string? companyTopicId, bool enabled)
+  {
+    var json = "{" + field + "\"topic\":{\"id\":\"t1\",\"name\":\"P\",\"slug\":\"p\",\"topic_type\":\"referral_program\"}}";
+
+    var response = JsonSerializer.Deserialize<TopicResponse>(json, VouchaApiJson.Options)!;
+
+    Assert.Equal(companyTopicId, response.ReferralProgramAttributes?.CompanyTopicId);
+    Assert.Equal(enabled, response.ReferralProgramAttributes?.EnabledAt is not null);
+    Assert.Null(response.ReferralProgramAttributes?.DisabledAt);
   }
 }
