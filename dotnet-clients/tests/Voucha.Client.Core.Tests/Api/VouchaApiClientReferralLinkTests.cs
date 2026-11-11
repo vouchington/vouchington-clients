@@ -161,10 +161,10 @@ public sealed partial class VouchaApiClientTests
     var (client, handler) = CreateClient("web.topics.link-count.default");
 
     await client.FetchReferralProgramsByLinkCountAsync(
-        new FetchReferralProgramsByLinkCountRequest(),
+        new FetchReferralProgramsByLinkCountRequest(Limit: 50, After: "cursor-2"),
         TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?limit=25&sort=link_count");
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?after=cursor-2&limit=50&sort=link_count");
   }
 
   [Theory]

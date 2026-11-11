@@ -111,7 +111,7 @@ public sealed partial class VouchaApiClient
   {
     var requiredRequest = Require(request);
     return SendAsync<TopicSearchResponse>(
-        VouchaApiEndpoints.ReferralProgramsByLinkCount(requiredRequest.Limit),
+        VouchaApiEndpoints.ReferralProgramsByLinkCount(requiredRequest.Limit, requiredRequest.After),
         cancellationToken);
   }
 

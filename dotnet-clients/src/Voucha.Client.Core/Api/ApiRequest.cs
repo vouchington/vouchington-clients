@@ -44,7 +44,7 @@ public sealed record FetchReferralLinksRequest(string? After = null, int Limit =
 
 public sealed record FetchReferralClickLogsRequest(string? After = null, int Limit = 25);
 
-public sealed record FetchReferralProgramsByLinkCountRequest(int Limit = 25);
+public sealed record FetchReferralProgramsByLinkCountRequest(int Limit = 25, string? After = null);
 
 public sealed record FetchPrioritizedReferralLinksRequest(string ReferralProgramId, bool All = false);
 
