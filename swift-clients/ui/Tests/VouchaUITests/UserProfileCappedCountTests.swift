@@ -128,7 +128,8 @@ final class UserProfileCappedCountTests: NativeRouteSurfaceViewModelTestCase {
         let surface = try makeSurface(currentUserId: "user-abc")
         let rows = surface.privateCollectionCounts(profile)
         XCTAssertEqual(rows.map(\.id), ["posts_hidden", "topics_muted"])
-        let rendered = try surface.privateCollectionCountsView(profile).inspect()
+        surface.viewModel.userProfile.header = profile
+        let rendered = try surface.environment(\.locale, Locale(identifier: "en")).inspect()
         let hidden = try rendered.find(ViewType.HStack.self, where: {
             try $0.accessibilityIdentifier() == "private-collection-count-posts_hidden"
         })
