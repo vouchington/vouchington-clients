@@ -6,7 +6,7 @@ using Voucha.Client.Core.Support;
 namespace Voucha.Client.Core.Topics;
 
 /// <summary>Retains one accepted merge and retries only its source-scoped status read.</summary>
-public sealed class TopicMergeViewModel(ITopicsService service) : ObservableObject
+public sealed class TopicMergeViewModel(ITopicsService service, Func<string?>? accountReader = null) : ObservableObject
 {
   private string? accountId;
   private long generation;
@@ -30,6 +30,7 @@ public sealed class TopicMergeViewModel(ITopicsService service) : ObservableObje
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Merge failures are presented inline.")]
   public async Task SubmitAsync(string source, string destination, CancellationToken cancellationToken = default)
   {
+    RefreshAccount();
     if (!CanSubmit) return;
     var request = ++generation;
     IsBusy = true;
@@ -37,16 +38,16 @@ public sealed class TopicMergeViewModel(ITopicsService service) : ObservableObje
     try
     {
       var response = await service.MergeTopicAliasesAsync(source, destination, cancellationToken).ConfigureAwait(true);
-      if (request != generation) return;
+      if (!IsCurrent(request)) return;
       Apply(response.TopicMerge);
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      if (request == generation) Message = UiText.Verbatim(ex.Message);
+      if (IsCurrent(request)) Message = UiText.Verbatim(ex.Message);
     }
     finally
     {
-      if (request == generation)
+      if (IsCurrent(request))
       {
         IsBusy = false;
         OnPropertyChanged(string.Empty);
@@ -57,6 +58,7 @@ public sealed class TopicMergeViewModel(ITopicsService service) : ObservableObje
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Status failures remain retryable inline.")]
   public async Task CheckAsync(CancellationToken cancellationToken = default)
   {
+    RefreshAccount();
     if (!CanCheck || Operation is not { } operation) return;
     var request = generation;
     IsBusy = true;
@@ -64,22 +66,33 @@ public sealed class TopicMergeViewModel(ITopicsService service) : ObservableObje
     try
     {
       var response = await service.FetchTopicMergeStatusAsync(operation.SourceTopicId, operation.Id, cancellationToken).ConfigureAwait(true);
-      if (request != generation || Operation?.Id != operation.Id ||
+      if (!IsCurrent(request) || Operation?.Id != operation.Id ||
           response.TopicMerge.Id != operation.Id || response.TopicMerge.SourceTopicId != operation.SourceTopicId) return;
       Apply(response.TopicMerge);
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      if (request == generation) Message = UiText.Localized(UiMessageKey.SettingsTopicsMergeStatusFailed);
+      if (IsCurrent(request)) Message = UiText.Localized(UiMessageKey.SettingsTopicsMergeStatusFailed);
     }
     finally
     {
-      if (request == generation)
+      if (IsCurrent(request))
       {
         IsBusy = false;
         OnPropertyChanged(string.Empty);
       }
     }
+  }
+
+  private void RefreshAccount()
+  {
+    if (accountReader is not null) SetAccount(accountReader());
+  }
+
+  private bool IsCurrent(long request)
+  {
+    RefreshAccount();
+    return request == generation;
   }
 
   private void Apply(TopicMergeDetails operation)

@@ -12,7 +12,8 @@ public partial class TopicManagementPage
   private void InitializeMerge(ISessionStore? sessionStore)
   {
     mergeSessionStore = sessionStore;
-    mergeViewModel = new TopicMergeViewModel(topicsService);
+    mergeViewModel = new TopicMergeViewModel(topicsService,
+        sessionStore is null ? null : () => sessionStore.Current.Identity?.Id);
     mergeViewModel.SetAccount(sessionStore?.Current.Identity?.Id);
     MergeCompletedLabel.BindingContext = mergeViewModel;
     mergeViewModel.PropertyChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RenderMerge);

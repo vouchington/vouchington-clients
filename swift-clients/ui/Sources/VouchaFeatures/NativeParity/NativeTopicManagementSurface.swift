@@ -141,6 +141,9 @@ struct NativeTopicManagementSurface: View {
         }
     }
 
+}
+
+extension NativeTopicManagementSurface {
     private func primaryActionTitle(for section: NativeTopicManagementSection) -> UiMessageKey? {
         switch section {
         case .create:

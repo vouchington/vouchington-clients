@@ -75,6 +75,24 @@ public sealed class TopicMergeViewModelTests
     Assert.False(model.IsBusy);
   }
 
+  [Fact]
+  public async Task CurrentAccountFencesResponseEvenWithoutSessionNotification()
+  {
+    var proxy = DispatchProxy.Create<ITopicsService, ServiceProxy>();
+    var service = (ServiceProxy)(object)proxy;
+    string? account = "first";
+    var model = new TopicMergeViewModel(proxy, () => account);
+    var pending = new TaskCompletionSource<TopicMergeResponse>();
+    service.Submit = () => pending.Task;
+    var submit = model.SubmitAsync("source", "destination");
+    account = "second";
+    pending.SetResult(Fixture("accepted"));
+    await submit;
+    Assert.Null(model.Operation);
+    Assert.Null(model.Message);
+    Assert.False(model.IsBusy);
+  }
+
   [Theory]
   [InlineData("queued", true)]
   [InlineData("running", true)]
