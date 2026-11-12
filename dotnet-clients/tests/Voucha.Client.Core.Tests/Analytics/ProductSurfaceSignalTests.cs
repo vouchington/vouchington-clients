@@ -139,6 +139,31 @@ public sealed class ProductSurfaceSignalTests
     Assert.Null(model.SourceRssFeedId);
   }
 
+  [Theory]
+  [InlineData(true)]
+  [InlineData(false)]
+  public async Task ReplacementActivationFinishesWhileOldTopicOrSourceLoadCannotRecord(bool pendingTopic)
+  {
+    var signals = new RecordingSignals();
+    var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    using var model = new TopicDetailViewModel(
+        new TopicService("rss_feed", new Dictionary<string, string> { ["rewards"] = "feed-1" },
+            feedGate: pendingTopic ? null : gate.Task, topicGate: pendingTopic ? gate.Task : null),
+        productSignals: signals);
+    var staleLoad = model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    Assert.Equal(LoadState.Loading, model.State);
+    model.Deactivate();
+    Assert.Equal(LoadState.Idle, model.State);
+    model.Activate();
+    await model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    Assert.Equal(LoadState.Loaded, model.State);
+    Assert.Single(signals.FeedViews);
+    gate.SetResult();
+    await staleLoad;
+    Assert.Equal(LoadState.Loaded, model.State);
+    Assert.Single(signals.FeedViews);
+  }
+
   private sealed class RecordingSignals : IProductSurfaceAnalytics
   {
     public List<string> FeedViews { get; } = [];
@@ -170,17 +195,23 @@ public sealed class ProductSurfaceSignalTests
     }
   }
 
-  private sealed class TopicService(string topicType, Dictionary<string, string> feeds, Task? feedGate = null) : ITopicsService
+  private sealed class TopicService(string topicType, Dictionary<string, string> feeds, Task? feedGate = null, Task? topicGate = null) : ITopicsService
   {
-    public Task<TopicResponse> FetchTopicAsync(string topicIdOrSlug, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new TopicResponse(new Topic(topicIdOrSlug, topicIdOrSlug, topicIdOrSlug, topicType)));
+    private int topicCalls;
+    private int feedCalls;
+
+    public async Task<TopicResponse> FetchTopicAsync(string topicIdOrSlug, CancellationToken cancellationToken = default)
+    {
+      if (++topicCalls == 1 && topicGate is not null) await topicGate;
+      return new TopicResponse(new Topic(topicIdOrSlug, topicIdOrSlug, topicIdOrSlug, topicType));
+    }
 
     public async Task<RssFeedsResponse> FetchRssFeedsForTopicAsync(
         string topicId,
         RssFeedEnabledFilter? enabled = null,
         CancellationToken cancellationToken = default)
     {
-      if (feedGate is not null) await feedGate;
+      if (++feedCalls == 1 && feedGate is not null) await feedGate;
       IReadOnlyList<RssFeedSource> results = feeds.TryGetValue(topicId, out var feedId)
           ? [Feed(feedId)]
           : [];

@@ -93,7 +93,8 @@ public partial class TopicDetailPage : ContentPage
   internal async Task RefreshAfterSessionChangedAsync()
   {
     var viewerId = sessionStore.Current.Identity?.Id;
-    if (viewerId != lastViewerId)
+    var viewerChanged = viewerId != lastViewerId;
+    if (viewerChanged)
     {
       viewModel.Deactivate();
       if (isVisible) viewModel.Activate();
@@ -103,7 +104,7 @@ public partial class TopicDetailPage : ContentPage
     var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
     lastStaffViewer = isStaffViewer;
     RefreshViewerState();
-    if (!isVisible || !gainedStaffAccess) return;
+    if (!isVisible || (!viewerChanged && !gainedStaffAccess)) return;
     try
     {
       await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);

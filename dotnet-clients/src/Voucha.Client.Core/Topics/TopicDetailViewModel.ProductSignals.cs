@@ -19,6 +19,7 @@ public sealed partial class TopicDetailViewModel
   public void Deactivate()
   {
     isActive = false;
+    if (State == LoadState.Loading) State = LoadState.Idle;
     activationVersion++;
     recordedRssFeedId = null;
   }
