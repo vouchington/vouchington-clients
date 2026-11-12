@@ -28,7 +28,8 @@ public sealed partial class NotificationPreferencesViewTests
     var sessionBody = ApiFixtureLoader.LoadResponse("native.auth.session.refresh.rotated");
     var canonical = JsonSerializer.Deserialize<NativeSessionRefreshResponse>(sessionBody, VouchaApiJson.Options)!.Session;
     var preferences = JsonNode.Parse(ApiFixtureLoader.LoadResponse("native.my.email-preferences.default"))!.AsObject();
-    var persistence = new GuiFixtureCookiePersistence();
+    var persistence = CatalystGuiSessionCookiePersistence.Select(true,
+        () => throw new InvalidOperationException("The GUI fixture must not create platform persistence."));
     if (restoredSession)
     {
       using var previous = new SessionCookieJar(new CookieContainer(), origin, persistence);
@@ -50,7 +51,7 @@ public sealed partial class NotificationPreferencesViewTests
     Assert.True(jar.CanRecoverAuthentication);
     Assert.Equal(canonical.Dt, jar.CookieContainer.GetCookies(origin)["dt"]!.Value);
     Assert.Equal(canonical.St, jar.CookieContainer.GetCookies(origin)["st"]!.Value);
-    Assert.Contains(canonical.St, persistence.Value!);
+    Assert.Contains(canonical.St, (await persistence.ReadAsync(TestContext.Current.CancellationToken))!);
     // A subsequent refresh must take the authenticated renewal path too.
     await ((ISessionStore)store).RefreshAsync(TestContext.Current.CancellationToken);
     Assert.True(store.Current.IsAuthenticated);
@@ -81,20 +82,5 @@ public sealed partial class NotificationPreferencesViewTests
         throw new InvalidOperationException("A GUI fixture request must not reach the network.");
   }
 
-  private sealed class GuiFixtureCookiePersistence : ISessionCookiePersistence
-  {
-    public string? Value { get; private set; }
-    public Task<string?> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult(Value);
-    public Task WriteAsync(string serializedCookies, CancellationToken cancellationToken = default)
-    {
-      Value = serializedCookies;
-      return Task.CompletedTask;
-    }
-    public Task ClearAsync(CancellationToken cancellationToken = default)
-    {
-      Value = null;
-      return Task.CompletedTask;
-    }
-  }
 }
 #endif

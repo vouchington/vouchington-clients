@@ -114,6 +114,10 @@ describe('Mac Catalyst GUI preflight', () => {
       authSource,
       /#if DEBUG\n\s+transport = CatalystGuiFixtureHandler\.Wrap\(transport\);/u,
     )
+    assert.match(
+      authSource,
+      /#if DEBUG\n\s+return CatalystGuiSessionCookiePersistence\.Select\(CatalystGuiPreflight\.IsActive\(\), Production\);\n#else\n\s+return Production\(\);/u,
+    )
     assert.match(sessionScript, /native\.my\.email-preferences\.default/u)
     assert.match(sessionScript, /notificationEvidence\(checks, nativeRevision, commit\)/u)
     assert.match(

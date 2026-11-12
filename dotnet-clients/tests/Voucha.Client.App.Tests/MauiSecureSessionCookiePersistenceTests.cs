@@ -94,6 +94,50 @@ public sealed class MauiSecureSessionCookiePersistenceTests
     Assert.Empty(restarted.GetCookieHeader(Origin));
   }
 
+#if DEBUG
+  [Fact]
+  public async Task CatalystFixturePersistenceNeverCreatesOrAccessesThePlatformProvider()
+  {
+    var factoryCalls = 0;
+    ISessionCookiePersistence Platform()
+    {
+      factoryCalls++;
+      throw new InvalidOperationException("The platform store is unavailable.");
+    }
+    var selected = CatalystGuiSessionCookiePersistence.Select(true, Platform);
+
+    await selected.WriteAsync("fixture-snapshot", TestContext.Current.CancellationToken);
+    Assert.Equal("fixture-snapshot", await selected.ReadAsync(TestContext.Current.CancellationToken));
+    var separateLaunch = CatalystGuiSessionCookiePersistence.Select(true, Platform);
+    Assert.Null(await separateLaunch.ReadAsync(TestContext.Current.CancellationToken));
+    await selected.ClearAsync(TestContext.Current.CancellationToken);
+    Assert.Null(await selected.ReadAsync(TestContext.Current.CancellationToken));
+    Assert.Equal(0, factoryCalls);
+  }
+
+  [Fact]
+  public async Task CatalystFixtureInactiveUsesTheCheckedPlatformProvider()
+  {
+    var storage = new ControlledSecureStorage();
+    var platform = Adapter(storage);
+    var factoryCalls = 0;
+    var selected = CatalystGuiSessionCookiePersistence.Select(false, () =>
+    {
+      factoryCalls++;
+      return platform;
+    });
+
+    Assert.Same(platform, selected);
+    await selected.WriteAsync("platform-snapshot", TestContext.Current.CancellationToken);
+    Assert.Equal("platform-snapshot", Assert.Single(storage.StoredValues));
+    Assert.Equal("platform-snapshot", await selected.ReadAsync(TestContext.Current.CancellationToken));
+    storage.WriteFailure = new InvalidOperationException("The platform store is unavailable.");
+    Assert.Same(storage.WriteFailure, await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        selected.WriteAsync("replacement", TestContext.Current.CancellationToken)));
+    Assert.Equal(1, factoryCalls);
+  }
+#endif
+
   private static MauiSecureSessionCookiePersistence Adapter(ISecureStorage storage) =>
       new(Origin, NullLogger<MauiSecureSessionCookiePersistence>.Instance, storage);
 
