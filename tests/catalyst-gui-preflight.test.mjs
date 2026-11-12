@@ -47,14 +47,14 @@ const notificationScript = readFileSync(
 )
 
 describe('Mac Catalyst GUI preflight', () => {
-  it('requires root-shell and notification Debug Mac2 sessions inside a 10-minute job', () => {
+  it('requires root-shell and notification Debug Mac2 sessions inside a 15-minute job', () => {
     const job = jobBlock(workflow, 'dotnet-catalyst-gui')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const needs = jobBlock(workflow, 'tests')
 
     assert.match(job, /name: Mac Catalyst GUI preflight/u)
     assert.match(job, /runs-on: macos-latest/u)
-    assert.match(job, /timeout-minutes: 10/u)
+    assert.match(job, /timeout-minutes: 15/u)
     assert.match(job, /--configuration Debug --framework net10\.0-maccatalyst/u)
     assert.match(job, /name 'Voucha\.app'/u)
     assert.match(job, /name 'Voucha\.app' \| wc -l \| tr -d ' '\)" -eq 1/u)
@@ -116,7 +116,7 @@ describe('Mac Catalyst GUI preflight', () => {
     )
     assert.match(
       authSource,
-      /#if DEBUG\n\s+return CatalystGuiSessionCookiePersistence\.Select\(CatalystGuiPreflight\.IsActive\(\), Production\);\n#else\n\s+return Production\(\);/u,
+      /#if DEBUG\n(?:\s+if \(CatalystAuthNewsLaunch\.IsRequested\) return new CatalystAuthNewsSessionPersistence\(\);\n)?\s+return CatalystGuiSessionCookiePersistence\.Select\(CatalystGuiPreflight\.IsActive\(\), Production\);\n#else\n\s+return Production\(\);/u,
     )
     assert.match(sessionScript, /native\.my\.email-preferences\.default/u)
     assert.match(sessionScript, /notificationEvidence\(checks, nativeRevision, commit\)/u)
@@ -133,8 +133,7 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(preflightSource, /CatalystGuiLaunchOptions/u)
     assert.match(notificationScript, /toggle\('engagement'\)/u)
     assert.match(notificationScript, /toggle\('moderation'\)/u)
-
-    assert.equal(job.match(/timeout-minutes:/gu)?.length, 8)
+    assert.equal(job.match(/timeout-minutes:/gu)?.length, 10)
     assert.match(job, /timeout-minutes: 6\n/u)
     assert.match(job, /timeout-minutes: 3\n/u)
     assert.match(job, /timeout-minutes: 2\n/u)

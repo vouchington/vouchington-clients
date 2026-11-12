@@ -4,11 +4,6 @@ using Voucha.Client.Core;
 
 namespace Voucha.Client.App;
 
-public interface ITurnstileTokenProvider
-{
-  Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default);
-}
-
 public sealed class MauiTurnstileTokenProvider : ITurnstileTokenProvider, IDisposable
 {
   private readonly AppConfig appConfig;

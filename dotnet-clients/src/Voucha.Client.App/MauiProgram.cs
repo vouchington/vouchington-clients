@@ -61,7 +61,11 @@ public static partial class MauiProgram
         sp.GetRequiredService<NativeOAuthAuthorizationCoordinator>());
     builder.Services.AddSingleton<ReferralLinksRouteContextStore>();
     AddAuthFeatureServices(builder.Services);
-    builder.Services.AddSingleton<ITurnstileTokenProvider, MauiTurnstileTokenProvider>();
+    builder.Services.AddSingleton<ITurnstileTokenProvider>(sp =>
+#if DEBUG
+        CatalystAuthNewsLaunch.IsRequested ? new CatalystAuthNewsTurnstile(CatalystAuthNewsLaunch.IsRequested) :
+#endif
+        new MauiTurnstileTokenProvider(sp.GetRequiredService<AppConfig>()));
     builder.Services.AddSingleton(CreateNavigationViewerProvider);
     builder.Services.AddSingleton<INavigationViewerProvider>(
         sp => sp.GetRequiredService<MutableNavigationViewerProvider>());

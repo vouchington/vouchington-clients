@@ -103,18 +103,16 @@ extension MutationChallengePresentationTests {
             }
         }
         window.makeKeyAndVisible()
-        // Attachment/key status alone does not establish completed root appearance.
-        try await waitUntil {
-            root.hasAppeared && root.view.window === window && window.isKeyWindow
-                && scene.activationState == .foregroundActive && root.transitionCoordinator == nil
+        // Wait on UIKit's own signals, not a deadline: the first presentation in a cold host process
+        // loads SwiftUI, localization and the navigation stack and can take far longer than any fixed budget.
+        await root.appearance()
+        await awaitKeyAndActive(window, scene: scene)
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            root.present(sheet, animated: false) { done.resume() }
         }
-        XCTAssertTrue(root.hasAppeared)
-        root.present(sheet, animated: false)
-        try await waitUntil {
-            root.presentedViewController === sheet && sheet.presentingViewController === root
-                && sheet.viewIfLoaded?.window === window && !sheet.isBeingPresented && !sheet.isBeingDismissed
-                && sheet.transitionCoordinator == nil && root.transitionCoordinator == nil
-        }
+        XCTAssertTrue(root.presentedViewController === sheet)
+        XCTAssertTrue(sheet.presentingViewController === root)
+        XCTAssertTrue(sheet.viewIfLoaded?.window === window)
         presented = true
         return (window, root)
     }
@@ -173,10 +171,20 @@ final class MutationChallengeProviderStub {
 @MainActor
 final class MutationChallengeRootController: UIHostingController<MutationChallengeTestRoot> {
     private(set) var hasAppeared = false
+    private var appearanceWaiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Returns once UIKit has delivered `viewDidAppear`; resumes immediately if it already has.
+    func appearance() async {
+        if hasAppeared { return }
+        await withCheckedContinuation { appearanceWaiters.append($0) }
+    }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         hasAppeared = true
+        let waiters = appearanceWaiters
+        appearanceWaiters = []
+        waiters.forEach { $0.resume() }
     }
 
     override func viewWillDisappear(_ animated: Bool) {

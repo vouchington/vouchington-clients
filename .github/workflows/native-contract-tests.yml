@@ -1857,16 +1857,18 @@ jobs:
           destination="platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
           test ! -e "$GITHUB_WORKSPACE/Voucha.xctestproducts"
           test ! -L "$GITHUB_WORKSPACE/Voucha.xctestproducts"
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaPresentationTests -testProductsPath "$GITHUB_WORKSPACE/Voucha.xctestproducts" build-for-testing VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse -only-testing:VouchaFlowTransportTests/NewsFlowTransportTests -only-testing:VouchaPresentationTests -testProductsPath "$GITHUB_WORKSPACE/Voucha.xctestproducts" build-for-testing VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
           test -f "$bundle/Info.plist"
           app="$(find "$bundle" -type d -name Voucha.app -print -quit)"
           runner="$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)"
           test_bundle="$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)"
+          flow_test_bundle="$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)"
           test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
-          jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg bundle "$bundle" --arg app "$app" --arg runner "$runner" --arg testBundle "$test_bundle" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,bundle:$bundle,app:$app,runner:$runner,testBundle:$testBundle}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
+          jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg bundle "$bundle" --arg app "$app" --arg runner "$runner" --arg testBundle "$test_bundle" --arg flowTestBundle "$flow_test_bundle" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,bundle:$bundle,app:$app,runner:$runner,testBundle:$testBundle,flowTestBundle:$flowTestBundle}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
       - name: Package iOS test products
         timeout-minutes: 3
         run: |
@@ -1960,6 +1962,12 @@ jobs:
           - shard: sign-in
             only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
             expected_count: 1
+          - shard: news
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
+            expected_count: 1
+          - shard: news-transport
+            only_testing: '-only-testing:VouchaFlowTransportTests/NewsFlowTransportTests'
+            expected_count: 3
     permissions:
       actions: read
       contents: read
@@ -2032,7 +2040,7 @@ jobs:
           test "$(jq -r '.bundle' "$manifest")" = "$bundle"
           test ! -e "$bundle"
           test ! -L "$bundle"
-          for product in app runner testBundle; do
+          for product in app runner testBundle flowTestBundle; do
             path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
             case "$path" in
               "$bundle"/*) ;;
@@ -2060,16 +2068,18 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
           tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
           test -f "$bundle/Info.plist"
-          for product in app runner testBundle; do
+          for product in app runner testBundle flowTestBundle; do
             path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
             test -d "$path"
           done
           test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
       - name: Launch iOS app on Simulator
         timeout-minutes: 7
         run: |
@@ -2082,7 +2092,9 @@ jobs:
             *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
           esac
           test -d "$app"
+          if [[ "${{ matrix.shard }}" != news-transport ]]; then
           python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
+          fi
           xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
           xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
@@ -2116,10 +2128,26 @@ jobs:
           if-no-files-found: warn
 
   build-ios-ipad:
-    name: Swift iPad Simulator root-shell launch
+    name: ${{ matrix.name }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
     timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: root-shell
+            name: Swift iPad Simulator root-shell launch
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell'
+            expected_count: 1
+          - shard: sign-in
+            name: Swift iPad Simulator sign-in flow
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
+            expected_count: 1
+          - shard: news
+            name: Swift iPad Simulator News flow
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
+            expected_count: 1
     permissions:
       actions: read
       contents: read
@@ -2193,7 +2221,7 @@ jobs:
           test "$(jq -r '.bundle' "$manifest")" = "$bundle"
           test ! -e "$bundle"
           test ! -L "$bundle"
-          for product in app runner testBundle; do
+          for product in app runner testBundle flowTestBundle; do
             path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
             case "$path" in
               "$bundle"/*) ;;
@@ -2226,16 +2254,18 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
           tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
           test -f "$bundle/Info.plist"
-          for product in app runner testBundle; do
+          for product in app runner testBundle flowTestBundle; do
             path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
             test -d "$path"
           done
           test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
           test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
       - name: Launch iPad root shell on Simulator
         timeout-minutes: 9
         run: |
@@ -2249,12 +2279,12 @@ jobs:
           esac
           test -d "$app"
           python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
-          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
           xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true
           if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
             {
-              echo "### iPad root-shell launch"
+              echo "### iPad ${{ matrix.shard }}"
               echo
               echo "Simulator: $(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
               echo
@@ -2283,7 +2313,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
-          name: ipad-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ipad-launch-diagnostics-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/ipad-launch-smoke.xcresult
             ${{ runner.temp }}/ipad-launch-diagnostics
@@ -2400,6 +2430,12 @@ jobs:
           expected = {"total": "4", "executed": "4", "passed": "4", "failed": "0", "notExecuted": "0"}
           assert all(counters.get(key) == value for key, value in expected.items()), counters.attrib
           PYTHON
+      - name: Test Debug auth and News fixture backend
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: >-
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          --configuration Debug --no-restore --filter FullyQualifiedName~CatalystAuthNews
       - name: Upload failed MAUI test diagnostics
         if: ${{ failure() || cancelled() }}
         timeout-minutes: 2
@@ -2573,7 +2609,7 @@ jobs:
     name: Mac Catalyst GUI preflight
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -2732,6 +2768,25 @@ jobs:
           export CATALYST_NATIVE_REVISION="${{ needs.verify.outputs.revision-sha }}"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
           node scripts/catalyst-notification-evidence.mjs "$CATALYST_GUI_RESULT" "$CATALYST_NATIVE_REVISION"
+      - name: Exercise Catalyst email sign-in and News controls
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+          CATALYST_FLOWS_RESULT: ${{ runner.temp }}/catalyst-gui-diagnostics/auth-news-result.json
+          CATALYST_NATIVE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' -print -quit)"
+          test -n "$app" && test -d "$app"
+          test "$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' | wc -l | tr -d ' ')" -eq 1
+          staged="$PWD/$app/Contents/Resources/auth-news-contract"
+          node dotnet-clients/tooling/catalyst-gui-auth-news.mjs --stage-fixture "$staged"
+          codesign --force --sign - "$PWD/$app"
+          export CATALYST_APP_PATH="$PWD/$app"
+          export VOUCHA_CONTRACT_ROOT="$staged"
+          node dotnet-clients/tooling/catalyst-gui-auth-news.mjs --session
+          node scripts/catalyst-auth-news-evidence.mjs "$CATALYST_FLOWS_RESULT" "$CATALYST_NATIVE_REVISION"
       - name: Save Appium Mac2 from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
@@ -2748,6 +2803,15 @@ jobs:
           path: |
             ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
             ${{ runner.temp }}/catalyst-gui-diagnostics/result.json.app.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload Catalyst auth and News evidence
+        if: ${{ success() }}
+        timeout-minutes: 1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-auth-news-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics/auth-news-result.json
           retention-days: 7
           if-no-files-found: error
       - name: Upload failed Catalyst GUI diagnostics
