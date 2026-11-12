@@ -18,7 +18,16 @@ public sealed class ReferralLinksFeedPaginationTests
   public async Task RenderedFeedPaginationAppendsRetriesAndHidesAtExhaustion()
   {
     DispatcherProvider.SetCurrent(new ImmediateTimerDispatcherProvider(ImmediateTimerStart.StopAfterTick));
-    _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
+    _ = new Application
+    {
+      Resources =
+      {
+        ["UiLocaleVersion"] = 0,
+        ["Headline"] = new Style(typeof(Label)),
+        ["Body"] = new Style(typeof(Label)),
+        ["Metadata"] = new Style(typeof(Label)),
+      },
+    };
     var handler = new FeedHandler();
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
     using var model = new ReferralLinksViewModel(new ApiReferralLinksService(new VouchaApiClient(http)));
