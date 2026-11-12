@@ -108,6 +108,17 @@ test('revision-chain keys seed each successful main source revision with a compa
 
 test('task-cache key selection fails closed for malformed events and zero predecessor', () => {
   const path = '/Users/runner/.cache/voucha/gradle-build-cache'
+  for (const invalid of [
+    { RUNNER_OS: 'macOS/other' },
+    { RUNNER_ARCH: '' },
+    { TASK_CACHE_CONFIG_HASH: '' },
+    { TASK_CACHE_CONFIG_HASH: 'short' },
+    { CANDIDATE_REVISION: 'main' },
+    { CANDIDATE_REVISION: '' },
+  ]) {
+    assert.throws(() => selectGradleTaskCache({ ...baseCacheEvent, ...invalid }, path))
+  }
+  assert.throws(() => selectGradleTaskCache(baseCacheEvent, 'relative/cache'), /absolute path/u)
   for (const kind of [undefined, '', 'native', 'app\n']) {
     assert.throws(
       () => selectGradleTaskCache({ ...baseCacheEvent, TASK_CACHE_KIND: kind }, path),
