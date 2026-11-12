@@ -156,7 +156,8 @@ extension NativeRouteSurfaceViewModel {
                 id: result.id,
                 icon: "bell",
                 title: .verbatim(notification.title),
-                detail: .verbatim(notification.body)
+                detail: .verbatim(notification.body),
+                targetPath: notification.targetEntity?.entityType == "household" ? "/my/household" : nil
             )
         }
         return NativeForwardPage(rows: rows, pageInfo: response.pageInfo)

@@ -30,6 +30,11 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
 
 ## Shared native behavior
 
+- Household invitations have native owner and invitee controls in Swift and .NET: invite by
+  username with an optional relationship, browse and revoke sent invitations, and accept or
+  decline received invitations. Notification activation reaches the received invitation list.
+  Rows use the embedded usernames with a translated member fallback, never an identity UUID.
+  Both lists forward opaque cursors and retain loaded rows on continuation failures.
 - Both clients forward opaque `after` cursors, append pages by stable entity id, preserve rows on
   continuation failure, and reset traversal when filters change. The API and parity requirements
   are defined by Vouchington's [pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
