@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import VouchaDesignSystem
 import VouchaLocalization
@@ -20,6 +21,10 @@ public struct SourcesListView: View {
     public let canVote: Bool
     public let isStaffViewer: Bool
     public let showSignIn: (() -> Void)?
+    let creationIdentity: @MainActor () -> String?
+    let navigateToSource: (String) -> Void
+    @State var creationModel: SourceCreationViewModel
+    @State var showCreation = false
 
     public init(
         viewModel: SourcesListViewModel,
@@ -28,7 +33,9 @@ public struct SourcesListView: View {
         isSignedIn: Bool = true,
         canVote: Bool? = nil,
         isStaffViewer: Bool = false,
-        showSignIn: (() -> Void)? = nil
+        showSignIn: (() -> Void)? = nil,
+        creationIdentity: (@MainActor () -> String?)? = nil,
+        navigateToSource: @escaping (String) -> Void = { _ in }
     ) {
         self.viewModel = viewModel
         self.scope = scope
@@ -37,6 +44,12 @@ public struct SourcesListView: View {
         self.canVote = canVote ?? isSignedIn
         self.isStaffViewer = isStaffViewer
         self.showSignIn = showSignIn
+        let identity = creationIdentity ?? { viewModel.userId }
+        self.creationIdentity = identity
+        self.navigateToSource = navigateToSource
+        _creationModel = State(initialValue: SourceCreationViewModel(
+            service: .live(client: viewModel.client), baseURL: viewModel.client.baseURL, identity: identity
+        ))
     }
 
     public var body: some View {
@@ -55,6 +68,18 @@ public struct SourcesListView: View {
             }
         }
         .navigationTitle(navigationTitle)
+        .toolbar {
+            if isSignedIn {
+                Button(UiMessages.string(.nativeSwiftCommonCreate, locale: nativeUiLocale)) { showCreation = true }
+            }
+        }
+        .sheet(isPresented: $showCreation) {
+            SourceCreationView(model: creationModel, navigate: navigateToSource)
+        }
+        .onChange(of: creationIdentity()) { _, _ in
+            creationModel.cancel()
+            showCreation = false
+        }
         .task(id: "\(scope.rawValue)|\(isStaffViewer)") {
             viewModel.scope = scope
             await viewModel.reload()
