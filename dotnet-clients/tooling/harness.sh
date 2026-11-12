@@ -300,12 +300,19 @@ print_failure_summary() {
 echo "dotnet-clients harness"
 echo "----------------------"
 
-if contains restore; then
+restore_succeeded=true
+if contains restore || contains fmt; then
   run_check "restore" pnpm exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$VOUCHA_DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
+  [[ "${CHECK_STATUSES[0]}" -eq 0 ]] || restore_succeeded=false
 fi
 
 if contains fmt; then
-  run_check "fmt" "$VOUCHA_DOTNET_HOST" format "$SOLUTION" --verify-no-changes --no-restore
+  if [[ "$restore_succeeded" == true ]]; then
+    run_check "fmt" "$VOUCHA_DOTNET_HOST" format "$SOLUTION" --verify-no-changes --no-restore
+  else
+    echo "  fmt          - (skipped: restore failed; resolve the restore diagnostics and rerun)"
+    SKIPPED=$((SKIPPED + 1))
+  fi
 fi
 
 if contains ast-grep; then

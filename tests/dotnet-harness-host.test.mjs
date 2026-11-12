@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, realpath, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -12,7 +12,20 @@ import { writeExecutable } from './fixture-files.mjs'
 const execFileAsync = promisify(execFile)
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const harnessPath = join(repositoryRoot, 'dotnet-clients/tooling/harness.sh')
-const harnessTools = ['cat', 'dirname', 'env', 'mktemp', 'node', 'realpath', 'rm', 'tr', 'whoami']
+const harnessTools = [
+  'cat',
+  'dirname',
+  'env',
+  'mktemp',
+  'node',
+  'od',
+  'grep',
+  'tail',
+  'realpath',
+  'rm',
+  'tr',
+  'whoami',
+]
 
 async function isolatedPath(t, leadingDirectories) {
   const tools = await mkdtemp(join(tmpdir(), 'voucha-dotnet-tools-'))
@@ -169,4 +182,102 @@ test('--exec dotnet runs the mise-selected host directly', async t => {
 
   assert.equal(result.stdout.trim(), '10.0.401')
   assert.equal(result.stderr, '')
+})
+
+async function setupCheckHarness(t, { restoreStatus = 0, formatStatus = 0 } = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'voucha-dotnet-checks-'))
+  const environment = await setupMiseHarness(t, root)
+  const tooling = join(root, 'dotnet-clients/tooling')
+  await mkdir(tooling, { recursive: true })
+  const entrypoint = join(tooling, 'harness.sh')
+  await writeFile(entrypoint, await readFile(harnessPath))
+  await writeFile(join(root, 'global.json'), await readFile(join(repositoryRoot, 'global.json')))
+  const generated = join(root, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
+  await mkdir(generated, { recursive: true })
+  await writeFile(join(generated, 'UiMessageKey.g.cs'), '')
+  for (const name of ['resx-apostrophe-path.sh', 'with-build-lock.sh']) {
+    await writeExecutable(join(tooling, name), '#!/bin/bash\nexit 0\n')
+  }
+  await writeExecutable(
+    join(root, 'mise-bin/pnpm'),
+    `#!/bin/bash
+while [[ "$1" != -- ]]; do shift; done
+shift
+exec "$@"
+`,
+  )
+  await writeExecutable(
+    environment.MISE_TEST_DOTNET_HOST,
+    `#!/bin/bash
+case "$1" in
+  --version) echo 10.0.401 ;;
+  restore)
+    echo restore >> "$HARNESS_TEST_LOG"
+    if [[ "$HARNESS_RESTORE_STATUS" != 0 ]]; then echo 'restore dependency unavailable' >&2; exit "$HARNESS_RESTORE_STATUS"; fi
+    touch "$HARNESS_TEST_ASSETS"
+    ;;
+  format)
+    echo format >> "$HARNESS_TEST_LOG"
+    [[ -f "$HARNESS_TEST_ASSETS" ]] || { echo 'missing restore assets' >&2; exit 42; }
+    [[ " $* " == *' --verify-no-changes '* && " $* " == *' --no-restore '* ]] || exit 43
+    exit "$HARNESS_FORMAT_STATUS"
+    ;;
+  *) exit 44 ;;
+esac
+`,
+  )
+  // The fake SDK models an empty worktree without invoking a native compiler.
+  environment.PATH = await isolatedPath(t, [join(root, 'mise-bin')])
+  const touch = ['/usr/bin/touch', '/bin/touch'].find(existsSync)
+  await symlink(touch, join(root, 'mise-bin/touch'))
+  Object.assign(environment, {
+    HARNESS_TEST_LOG: join(root, 'commands.log'),
+    HARNESS_TEST_ASSETS: join(root, 'project.assets.json'),
+    HARNESS_RESTORE_STATUS: String(restoreStatus),
+    HARNESS_FORMAT_STATUS: String(formatStatus),
+  })
+  return {
+    run: args => execFileAsync('/bin/bash', [entrypoint, ...args], { cwd: root, env: environment }),
+    commands: async () => (await readFile(environment.HARNESS_TEST_LOG, 'utf8')).trim().split('\n'),
+  }
+}
+
+for (const args of [[], ['--checks', 'fmt'], ['--checks', 'fmt,restore']]) {
+  test(`restores fresh assets once before formatting for ${args.join(' ') || 'default checks'}`, async t => {
+    const fixture = await setupCheckHarness(t)
+    const result = await fixture.run(args)
+    assert.deepEqual(await fixture.commands(), ['restore', 'format'])
+    assert.match(result.stdout, /failed: 0/u)
+  })
+}
+
+for (const args of [[], ['--checks', 'fmt']]) {
+  test(`failed restore preserves diagnostics and skips formatting for ${args.join(' ') || 'default checks'}`, async t => {
+    const fixture = await setupCheckHarness(t, { restoreStatus: 17 })
+    await assert.rejects(
+      () => fixture.run(args),
+      error => {
+        assert.equal(error.code, 1)
+        assert.match(error.stdout, /restore \| check-failure \| 17 \|/u)
+        assert.match(error.stdout, /restore dependency unavailable/u)
+        assert.match(error.stdout, /fmt.*skipped.*restore/u)
+        assert.doesNotMatch(error.stdout, /missing restore assets/u)
+        return true
+      },
+    )
+    assert.deepEqual(await fixture.commands(), ['restore'])
+  })
+}
+
+test('formatting failure remains fatal after successful restore', async t => {
+  const fixture = await setupCheckHarness(t, { formatStatus: 19 })
+  await assert.rejects(
+    () => fixture.run(['--checks', 'fmt']),
+    error => {
+      assert.equal(error.code, 1)
+      assert.match(error.stdout, /fmt \| check-failure \| 19 \|/u)
+      return true
+    },
+  )
+  assert.deepEqual(await fixture.commands(), ['restore', 'format'])
 })
