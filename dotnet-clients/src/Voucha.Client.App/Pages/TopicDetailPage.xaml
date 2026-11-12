@@ -18,6 +18,9 @@
             <Label Text="{Binding StaffClientLabel}" IsVisible="{Binding HasStaffClient}" Style="{StaticResource Metadata}" />
             <Label Text="{Binding StaffVerificationLabel}" IsVisible="{Binding HasStaffVerification}" Style="{StaticResource Metadata}" />
             <Label Text="{Binding LocalizedTopicType}" Style="{StaticResource Eyebrow}" />
+            <Label AutomationId="topic-posts-count" Text="{Binding PostsCountLabel}" />
+            <Label AutomationId="topic-reviews-count" Text="{Binding ReviewsCountLabel}" />
+            <Label AutomationId="topic-data-points-count" Text="{Binding DataPointsCountLabel}" />
             <controls:NativeHtmlContentView Html="{Binding Topic.Html}" Fallback="{Binding Topic.Markdown}" />
             <HorizontalStackLayout Spacing="10">
                 <Button Text="{DynamicResource extracted.votes.semanticVote.vote}" Clicked="OnChooseVoteClicked" MinimumHeightRequest="44" />

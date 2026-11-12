@@ -51,6 +51,14 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   local generation is text-only and never silently falls back to another provider.
 - Session cookies are stored through platform-secure stores and keyed by API origin. Native OAuth,
   passkey, and deep-link callbacks remain inside their platform app boundaries.
+- An explicit HTTP 403 `BOT_CHALLENGE_REQUIRED` response with action `bot-challenge.mutation`
+  can open the existing provider-controlled Turnstile challenge. After a fresh proof, the native
+  transports replay the captured mutation method, URL, and body bytes once with
+  `x-voucha-bot-challenge-token`. Cancellation, session changes, unrelated failures, and another
+  challenge do not trigger another attempt. Analytics delivery does not open an interactive
+  challenge. This implements the Turnstile proof slice of
+  [#486](https://github.com/vouchington/vouchington-clients/issues/486); dedicated generic App Attest
+  proof and its assertion-order acceptance remain separate from existing route-specific attestation.
 - Public landing pages render native item actions in Swift and .NET. Signed-in viewers send one
   visit per activation and click requests at item activation, including the outer item and member
   identifiers for topic-group entries. Existing RSS source and focused-item view requests use the

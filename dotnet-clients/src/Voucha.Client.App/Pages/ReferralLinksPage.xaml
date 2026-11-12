@@ -54,9 +54,15 @@
                                 <RoundRectangle CornerRadius="8" />
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="6">
+                                <Border AutomationId="referral-official-badge-container"
+                                        IsVisible="{Binding HasOfficialBadge}" HorizontalOptions="Start"
+                                        BackgroundColor="#E0F2FE" StrokeThickness="0" Padding="6,2">
+                                    <Label AutomationId="referral-official-badge"
+                                           Text="{Binding LocalizedOfficialBadge}" Style="{StaticResource Metadata}" />
+                                </Border>
                                 <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
                                 <Label Text="{Binding Url}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding Detail}" Style="{StaticResource Metadata}" />
+                                <Label AutomationId="referral-link-detail" Text="{Binding Detail}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding LocalizedSignupStatus}" Style="{StaticResource Metadata}" />
                                 <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanManage}">
                                     <Button Text="{DynamicResource native.swift.chat.rename}" Clicked="OnRenameClicked" />

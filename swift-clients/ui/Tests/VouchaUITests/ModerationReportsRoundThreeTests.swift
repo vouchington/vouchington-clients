@@ -73,6 +73,27 @@ final class ModerationReportsRoundThreeTests: NativeRouteSurfaceViewModelTestCas
         )
     }
 
+    func testDuplicatePresentationCountsRemoveEvictedReportsAndEmptyClusters() throws {
+        let response = try JSONDecoder.vouchaFixtureDecoder.decode(
+            StaffClusteredModerationReportsResponse.self,
+            from: ModerationReportsTestFixtures.nestedDuplicate(reportIds: ["removed", "retained"])
+        )
+        let duplicate = try XCTUnwrap(response.duplicateClusters.first)
+        let viewModel = ModerationReportsViewModel(client: nil, viewerTier: .administrator)
+        viewModel.duplicateClusters = [duplicate]
+        XCTAssertEqual(viewModel.presentationCounts(for: duplicate).reports, 2)
+
+        viewModel.evict(["removed"])
+        let reduced = viewModel.presentationCounts(for: duplicate)
+        XCTAssertEqual(reduced.posts, 1)
+        XCTAssertEqual(reduced.reports, 1)
+
+        viewModel.evict(["retained"])
+        let empty = viewModel.presentationCounts(for: duplicate)
+        XCTAssertEqual(empty.posts, 0)
+        XCTAssertEqual(empty.reports, 0)
+    }
+
     func testDuplicateWaveSelectionReplacesUnrelatedSelectionWithEligibleReports() async throws {
         let response = try JSONDecoder.vouchaFixtureDecoder.decode(
             StaffClusteredModerationReportsResponse.self,

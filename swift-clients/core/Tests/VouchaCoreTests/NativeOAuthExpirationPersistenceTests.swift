@@ -113,7 +113,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
         )
         let coordinator = NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
+            sessionManager: SessionManager(client: client),
             store: store,
             now: { clock.now() }
         )
@@ -147,7 +147,7 @@ final class NativeOAuthExpirationPersistenceTests: XCTestCase {
         return ExpirationFixture(
             coordinator: NativeOAuthAuthorizationCoordinator(
                 client: client,
-                sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
+                sessionManager: SessionManager(client: client),
                 store: store,
                 now: { clock.now }
             ),

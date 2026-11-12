@@ -32,18 +32,20 @@ extension SourcesListViewModel {
         return true
     }
 
-    func fetchAndStore(requestedScope: SourceScope) async {
+    func fetchAndStore(requestedScope: SourceScope, shouldApply: () -> Bool = { true }) async {
         do {
             let response = try await fetchSources(scope: requestedScope)
+            guard shouldApply() else { return }
             storeSources(response, requestedScope: requestedScope)
         } catch is CancellationError {
             return
         } catch let error as VouchaError {
-            guard !Self.isURLCancellation(error) else { return }
+            guard shouldApply(), !Self.isURLCancellation(error) else { return }
             if requestedScope == scope {
                 state = .error(error)
             }
         } catch {
+            guard shouldApply() else { return }
             if requestedScope == scope {
                 state = .error(.api(statusCode: 0, preconditionCode: nil))
             }

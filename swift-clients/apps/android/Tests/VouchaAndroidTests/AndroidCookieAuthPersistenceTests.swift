@@ -9,7 +9,7 @@ import XCTest
 
 @MainActor
 final class AndroidCookieAuthPersistenceTests: XCTestCase {
-    func testIdentityDoesNotBecomeSignedInBeforeEncryptedCookieWriteSucceeds() async throws {
+    func testFailedRenewalCookieWriteRequiresFreshAuthenticationBeforeIdentityPublication() async throws {
         AndroidAuthURLProtocol.resetRequests()
         defer { AndroidAuthURLProtocol.resetRequests() }
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
@@ -31,19 +31,29 @@ final class AndroidCookieAuthPersistenceTests: XCTestCase {
         XCTAssertNotNil(storage.persistenceStatus.errorMessage)
         let key = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
         XCTAssertNil(secrets.snapshot()[key])
+        XCTAssertTrue(
+            storage.cookies?.isEmpty == true,
+            "Consumed credentials cannot remain live after failed persistence"
+        )
         secrets.setWriteFailure(false)
-
         await account.restore()
+        XCTAssertFalse(account.session.isSignedIn, "Retry must not mint an authenticated session without credentials")
+        XCTAssertNil(account.sessionRestoreError)
+        XCTAssertNil(secrets.snapshot()[key])
+
+        await account.retryCookiePersistence()
+        try await signInAgain(account)
 
         XCTAssertTrue(account.session.isSignedIn)
-        XCTAssertNil(account.sessionRestoreError)
         XCTAssertNil(storage.persistenceStatus.errorMessage)
-        XCTAssertEqual(AndroidSessionCookieStorage(secrets: secrets).cookies?.map(\.value).sorted(), [
-            "device-session", "member-session"
-        ])
+        XCTAssertEqual(
+            AndroidSessionCookieStorage(secrets: secrets).cookies?.map(\.value).sorted(),
+            try androidRotatedCookieValues()
+        )
+
     }
 
-    func testMFACompletionKeepsRecoveryVisibleUntilEncryptedCookiesAreStored() async throws {
+    func testMFACompletionCannotPublishIdentityWhenItsCredentialCookieWriteFails() async throws {
         AndroidAuthURLProtocol.resetRequests()
         defer { AndroidAuthURLProtocol.resetRequests() }
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
@@ -68,20 +78,34 @@ final class AndroidCookieAuthPersistenceTests: XCTestCase {
         await account.verifyMFA()
 
         XCTAssertFalse(account.session.isSignedIn)
-        XCTAssertNotNil(account.sessionRestoreError)
+        XCTAssertNotNil(account.authError)
         XCTAssertNotNil(account.cookieStorage.persistenceStatus.errorMessage)
+        XCTAssertTrue(account.cookieStorage.cookies?.isEmpty == true)
         secrets.setWriteFailure(false)
-
         await account.restore()
+        XCTAssertFalse(account.session.isSignedIn)
+        XCTAssertTrue(account.restartSignIn())
+
+        await account.retryCookiePersistence()
+        try await signInAgain(account)
 
         XCTAssertTrue(account.session.isSignedIn)
         XCTAssertNil(account.sessionRestoreError)
         XCTAssertNil(account.cookieStorage.persistenceStatus.errorMessage)
+
     }
 
     func testOTPAndMFAChallengeDoNotAdvanceAfterCookieWriteFailure() async {
         AndroidAuthURLProtocol.resetRequests()
         defer { AndroidAuthURLProtocol.resetRequests() }
+        AndroidAuthURLProtocol.setResponseCookie(
+            "challenge=otp; Path=/; Secure",
+            path: "/api/v1/auth/native/email-address/tokens"
+        )
+        AndroidAuthURLProtocol.setResponseCookie(
+            "challenge=mfa; Path=/; Secure",
+            path: "/api/v1/auth/native/email-address/login"
+        )
         let secrets = FailingCookieWriteSecrets()
         let account = AndroidAccount(
             cookieStorage: AndroidSessionCookieStorage(secrets: secrets),
@@ -106,6 +130,19 @@ final class AndroidCookieAuthPersistenceTests: XCTestCase {
 
         XCTAssertNil(account.loginAttemptID)
         XCTAssertNotNil(account.authError)
+    }
+
+    private func signInAgain(_ account: AndroidAccount) async throws {
+        account.email = "person@example.com"
+        account.turnstileToken = "fresh-challenge"
+        await account.requestOTP()
+        XCTAssertTrue(account.otpRequested)
+        account.otp = "abcdefgh23"
+        await account.verifyOTP()
+        XCTAssertNotNil(account.loginAttemptID)
+        account.totp = "654321"
+        await account.verifyMFA()
+        XCTAssertNil(account.authError)
     }
 
     private func cookie(_ value: String, name: String = "st") throws -> HTTPCookie {

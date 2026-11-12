@@ -32,7 +32,7 @@ final class RSSFeedListViewPlaybackAccessoryGateTests: XCTestCase {
         let client = makeClient()
         return PodcastPlaybackController(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: client)
         )
     }
 

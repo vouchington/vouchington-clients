@@ -9,6 +9,7 @@ public sealed partial class VouchaApiClient
     ArgumentNullException.ThrowIfNull(request);
     using var message = new HttpRequestMessage(request.Method, BuildUri(request));
     ApplyHeaders(message, request);
+    message.Options.Set(ClientMetadataHandler.RepeatableJson, request.Method == HttpMethod.Get && request.Body is null);
     using var response = await httpClient.SendAsync(
         message,
         HttpCompletionOption.ResponseHeadersRead,

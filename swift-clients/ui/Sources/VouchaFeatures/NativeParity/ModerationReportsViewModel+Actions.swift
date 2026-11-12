@@ -30,6 +30,10 @@ extension ModerationReportsViewModel {
             actionErrors[reportId] = .message(.nativeSwiftModerationReportsActionUnavailable)
             return
         }
+        if case .rerunJudgement = action, judgementOwner == nil {
+            actionErrors[reportId] = .message(.nativeSwiftModerationReportsActionUnavailable)
+            return
+        }
         guard beginQueueMutation() else { return }
         defer { isMutatingQueue = false }
         inFlightReportIds.insert(reportId)
@@ -76,7 +80,7 @@ extension ModerationReportsViewModel {
             return false
         }
         if case .rerunJudgement = action {
-            return true
+            return !isJudgementPending(report.id)
         }
         guard report.status == .pending else {
             return false

@@ -49,7 +49,10 @@ extension SectionDetailView {
                 canVote: canCastPublicVotes,
                 isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
                     factory.sessionManager.currentUserRoles.contains("moderator"),
-                showSignIn: showSignIn
+                showSignIn: showSignIn,
+                creationClient: factory.apiClient,
+                creationIdentity: sourceCreationIdentity,
+                navigateToSource: { onNavigateToTargetPath($0) }
             )
         }
     }
@@ -85,7 +88,10 @@ extension SectionDetailView {
                 canVote: canCastPublicVotes,
                 isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
                     factory.sessionManager.currentUserRoles.contains("moderator"),
-                showSignIn: showSignIn
+                showSignIn: showSignIn,
+                creationClient: factory.apiClient,
+                creationIdentity: sourceCreationIdentity,
+                navigateToSource: { onNavigateToTargetPath($0) }
             )
         }
     }
@@ -121,7 +127,10 @@ extension SectionDetailView {
                 canVote: canCastPublicVotes,
                 isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
                     factory.sessionManager.currentUserRoles.contains("moderator"),
-                showSignIn: showSignIn
+                showSignIn: showSignIn,
+                creationClient: factory.apiClient,
+                creationIdentity: sourceCreationIdentity,
+                navigateToSource: { onNavigateToTargetPath($0) }
             )
         }
     }

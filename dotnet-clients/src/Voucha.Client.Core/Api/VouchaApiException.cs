@@ -57,6 +57,7 @@ public sealed class VouchaApiException : HttpRequestException
     {
       using var document = JsonDocument.Parse(responseBody);
       var payload = document.RootElement;
+      if (payload.ValueKind != JsonValueKind.Object) return (null, null);
       if (payload.TryGetProperty("error", out var nested) && nested.ValueKind == JsonValueKind.Object)
       {
         payload = nested;

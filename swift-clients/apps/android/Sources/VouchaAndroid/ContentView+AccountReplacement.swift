@@ -11,6 +11,7 @@ extension ContentView {
             account === capturedAccount
         }, replace: {
             account = AndroidAccount(config: capturedAccount.config)
+            await account.installMutationChallengeHandler()
             await account.restore()
         })
     }
@@ -28,6 +29,7 @@ extension ContentView {
             account === capturedAccount
         }, replace: {
             account = AndroidAccount(config: capturedAccount.config)
+            await account.installMutationChallengeHandler()
             await account.restore()
         })
     }

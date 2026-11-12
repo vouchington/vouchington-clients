@@ -50,6 +50,7 @@ extension NativeRouteDestinationSurface {
                     client: moderationReportsClient,
                     isSignedIn: isSignedIn,
                     viewerTier: moderationReportsViewerTier,
+                    currentUserId: currentUserId,
                     onNavigate: onNavigateToTargetPath,
                     showSignIn: showSignIn
                 )

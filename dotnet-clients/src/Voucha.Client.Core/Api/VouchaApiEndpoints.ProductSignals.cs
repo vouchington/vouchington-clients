@@ -16,14 +16,14 @@ public sealed record LandingPageClickSignal(
 public static partial class VouchaApiEndpoints
 {
   public static ApiRequest LandingPageVisit(string landingPageId, LandingPageVisitSignal signal) =>
-      new(HttpMethod.Post, $"/api/v1/landing-pages/{Path(landingPageId)}/visits") { Body = signal };
+      new(HttpMethod.Post, $"/api/v1/landing-pages/{Path(landingPageId)}/visits") { Body = signal, AllowsBotChallenge = false };
 
   public static ApiRequest LandingPageClick(string landingPageId, LandingPageClickSignal signal) =>
-      new(HttpMethod.Post, $"/api/v1/landing-pages/{Path(landingPageId)}/clicks") { Body = signal };
+      new(HttpMethod.Post, $"/api/v1/landing-pages/{Path(landingPageId)}/clicks") { Body = signal, AllowsBotChallenge = false };
 
   public static ApiRequest RssFeedView(string rssFeedId) =>
-      new(HttpMethod.Post, $"/api/v1/rss-feeds/{Path(rssFeedId)}/views");
+      new(HttpMethod.Post, $"/api/v1/rss-feeds/{Path(rssFeedId)}/views") { AllowsBotChallenge = false };
 
   public static ApiRequest RssFeedItemView(string itemId) =>
-      new(HttpMethod.Post, $"/api/v1/rss-feed-items/{Path(itemId)}/views");
+      new(HttpMethod.Post, $"/api/v1/rss-feed-items/{Path(itemId)}/views") { AllowsBotChallenge = false };
 }

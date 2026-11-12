@@ -76,7 +76,7 @@ public sealed class SessionCookieJarTests
     await jar.PersistAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal(
-        """{"Cookies":[{"Name":"dt","Value":"device"},{"Name":"st","Value":"session"}]}""",
+        """{"Cookies":[{"Name":"dt","Value":"device","Secure":false},{"Name":"st","Value":"session","Secure":false}]}""",
         persistence.Value);
   }
 

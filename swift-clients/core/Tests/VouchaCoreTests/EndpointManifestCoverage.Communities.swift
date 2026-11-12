@@ -174,6 +174,12 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "web.topics.search.default") {
             Endpoint.topics(query: "tech")
         },
+        ManifestRegisteredEndpoint(id: "web.topics.show.viewer-lower-bound") {
+            Endpoint.topic(id: "test-topic")
+        },
+        ManifestRegisteredEndpoint(id: "web.topics.show.viewer-review-data-lower-bound") {
+            Endpoint.topic(id: "test-topic")
+        },
         ManifestRegisteredEndpoint(id: "web.topics.show.default") {
             Endpoint.topic(id: "test-topic")
         },
