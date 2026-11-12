@@ -31,7 +31,7 @@ public final class SessionManager {
     let clearPersistedCookies: (@Sendable () -> Void)?
     let logger = VouchaLogger(category: "SessionManager")
     var signingOut = false
-    var refreshTask: Task<Bool, Never>?
+    var refreshTask: (epoch: UInt64, task: Task<Bool, Never>)?
     var generation: UInt64 = 0
     var invalidationObservation: SessionInvalidationObservation?
     var publishedSession: (epoch: UInt64, revision: UInt64)?
@@ -106,20 +106,27 @@ public final class SessionManager {
     @discardableResult
     public func refresh() async -> Bool {
         guard !signingOut else { return false }
-        if let refreshTask { return await refreshTask.value }
+        let epoch = client.sessionEpoch
+        if let refreshTask, refreshTask.epoch == epoch { return await refreshTask.task.value }
+        generation &+= 1
         let generation = generation
-        let task = Task { await self.performRefresh(generation: generation) }
-        refreshTask = task
+        if let publishedSession, publishedSession.epoch != epoch {
+            state = .anonymous
+            uiLocale = nil
+            self.publishedSession = nil
+        }
+        let task = Task { await self.performRefresh(generation: generation, epoch: epoch) }
+        refreshTask = (epoch, task)
         let result = await task.value
         if self.generation == generation { refreshTask = nil }
         return result
     }
 
-    private func performRefresh(generation: UInt64) async -> Bool {
+    private func performRefresh(generation: UInt64, epoch: UInt64) async -> Bool {
+        guard generation == self.generation, epoch == client.sessionEpoch else { return false }
         lastRefreshErrorMessage = nil
         isRefreshing = true
         defer { if generation == self.generation { isRefreshing = false } }
-        let epoch = client.sessionEpoch
         do {
             try await client.refreshSession()
             struct IdentityResponse: Decodable { let identity: PrivateUser }
