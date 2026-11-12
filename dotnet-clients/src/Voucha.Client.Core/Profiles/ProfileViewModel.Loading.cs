@@ -11,6 +11,7 @@ public sealed partial class ProfileViewModel
 
   public async Task LoadOwnAsync(CancellationToken cancellationToken = default)
   {
+    userMetrics = null;
     ResetUserTags();
     CanEdit = true;
     State = LoadState.Loading;
@@ -51,6 +52,7 @@ public sealed partial class ProfileViewModel
       ProfileHistoryTab initialTab = ProfileHistoryTab.All,
       CancellationToken cancellationToken = default)
   {
+    userMetrics = null;
     CanEdit = false;
     Identity = null;
     ResetUserTags();
@@ -110,6 +112,7 @@ public sealed partial class ProfileViewModel
   {
     User = response.User;
     userMetrics = response.UserMetrics;
+    NotifyPrivateMetrics();
     BioMarkdown = response.User.Markdown ?? string.Empty;
     BioHtml = response.UserBioHtml;
     ProfileLinks = response.ProfileLinks ?? [];

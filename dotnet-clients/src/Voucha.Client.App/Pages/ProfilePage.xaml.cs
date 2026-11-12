@@ -100,17 +100,6 @@ public partial class ProfilePage : ContentPage
     base.OnDisappearing();
   }
 
-  private void RefreshViewerState()
-  {
-    viewModel.SetCurrentViewer(
-        sessionStore.Current.Identity?.Id,
-        sessionStore.Current.Identity?.Username,
-        sessionStore.Current.CanCastPublicVotes(),
-        sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true),
-        isStaffViewer: sessionStore.Current.Identity?.Roles?.Any(role =>
-            role is "administrator" or "moderator") == true);
-  }
-
   private void AttachSessionChanged() =>
       sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 

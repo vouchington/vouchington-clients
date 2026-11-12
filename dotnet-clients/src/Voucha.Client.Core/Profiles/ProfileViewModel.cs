@@ -122,7 +122,11 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   public bool CanEdit
   {
     get => canEdit;
-    private set => SetPropertyAndNotify(ref canEdit, value, nameof(CanMutateAvatar));
+    private set
+    {
+      SetPropertyAndNotify(ref canEdit, value, nameof(CanMutateAvatar));
+      NotifyPrivateMetrics();
+    }
   }
 
   public bool IsUploadingAvatar

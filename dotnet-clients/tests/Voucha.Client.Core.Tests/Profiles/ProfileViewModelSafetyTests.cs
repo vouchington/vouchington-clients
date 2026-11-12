@@ -409,7 +409,8 @@ public sealed partial class ProfileViewModelSafetyTests
                 new UserMetricsCount(Reviews: 1, Discussions: 1, Comments: 1),
                 new UserMetricsViewerCount(Reviews: 1, Discussions: 1, Comments: 1))));
 
-    public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new MyIdentityResponse(user));
     public Task<MyIdentityResponse> UpdateMyIdentityAsync(UpdateMyIdentityBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<MyProfileResponse> UpdateMyProfileAsync(string markdown, CancellationToken cancellationToken = default) => throw new NotSupportedException();

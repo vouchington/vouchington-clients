@@ -48,6 +48,7 @@ struct NativeUserProfileSurface: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             if let profile = viewModel.userProfile.header {
                 profileHeader(profile)
+                privateCollectionCountsView(profile)
                 primaryTabs(profile)
                 contextualTabs
             }

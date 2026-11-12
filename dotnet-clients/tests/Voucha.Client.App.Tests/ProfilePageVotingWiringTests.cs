@@ -54,7 +54,7 @@ public sealed class ProfilePageVotingWiringTests
   [Fact]
   public void ProfileUserTagControlsUseRelationPolicyAndOnlyEnableClearForRowsWithVotes()
   {
-    var page = AppSource.Read("Pages", "ProfilePage.xaml.cs");
+    var page = AppSource.Read("Pages", "ProfilePage.StaffProvenance.cs");
     var markup = AppSource.Read("Pages", "ProfilePage.xaml");
 
     Assert.Contains("CanCreateEntityRelationVote(isUserTag: true)", page, StringComparison.Ordinal);
