@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
 import ViewInspector
+import VouchaAPI
+import VouchaCore
 import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaModels
@@ -88,6 +90,38 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
         XCTAssertNoThrow(try inspection.find(text: "Exposure status needs an update."))
         XCTAssertNoThrow(try inspection.find(button: "Check exposure"))
         XCTAssertFalse(try inspection.find(button: "Approve").isDisabled())
+    }
+
+    func testCanonicalRevealedMediaUsesTheActiveClientsImageHost() throws {
+        let response = try JSONDecoder.vouchaFixtureDecoder.decode(
+            AdminReviewQueueResponse.self,
+            from: ApiFixtureLoader.data("native.moderation.review-queue.default")
+        )
+        let post = try XCTUnwrap(response.results.first { !$0.mediaReveal.images.isEmpty })
+        let config = try AppConfig(
+            baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
+            imageBaseURL: XCTUnwrap(URL(string: "https://review.images.test"))
+        )
+        let client = APIClient(
+            config: config,
+            cookieStorage: HTTPCookieStorage(),
+            protocolClasses: [CannedFeedURLProtocol.self]
+        )
+        let viewModel = NativeReviewQueueViewModel(client: client, isSignedIn: true, isAdministrator: true)
+        viewModel.items = [NativeReviewQueueItem(post: post, clearanceStatus: post.clearanceStatus)]
+        viewModel.state = .loaded
+        var rendered = try NativeReviewQueueSurface(viewModel: viewModel).inspect()
+        XCTAssertTrue(rendered.findAll(ViewType.View<AsyncImageView>.self).isEmpty)
+        XCTAssertNoThrow(try rendered.find(text: "Sensitive media is hidden."))
+
+        viewModel.revealedPostIds.insert(post.id)
+        rendered = try NativeReviewQueueSurface(viewModel: viewModel).inspect()
+        let image = try rendered.find(ViewType.View<AsyncImageView>.self).actualView()
+        XCTAssertEqual(
+            image.resolvedURLString,
+            "https://review.images.test/images/placements/019e82f2-a2c0-7000-8000-000000000002/1/019e82f2-a2c0-7000-8000-000000000001?w=960"
+        )
+        XCTAssertNoThrow(try rendered.find(text: "Flagged attachment"))
     }
 
     private func makeViewModel(posts: [AdminReviewQueuePost]) throws -> NativeReviewQueueViewModel {

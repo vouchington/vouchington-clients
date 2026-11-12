@@ -11,6 +11,11 @@ struct NativeReviewQueueMediaGroup: View {
     @Bindable
     var viewModel: NativeReviewQueueViewModel
 
+    private var imageConfig: AppConfig {
+        guard let client = viewModel.client else { return .shared }
+        return AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
+    }
+
     var body: some View {
         let media = post.mediaReveal
         if !media.images.isEmpty {
@@ -45,13 +50,13 @@ struct NativeReviewQueueMediaGroup: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ForEach(values.sorted(by: { $0.orderIndex < $1.orderIndex }), id: \.placementId) { image in
                 AsyncImageView(
-                    urlString: AppConfig.shared.imageURL(
+                    urlString: imageConfig.imageURL(
                         forPlacementId: image.placementId,
                         revision: image.placementRevision,
                         imageId: image.imageId,
                         width: 960
                     ),
-                    baseURL: AppConfig.shared.imageBaseURL,
+                    baseURL: imageConfig.imageBaseURL,
                     contentMode: .fit
                 )
                 .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 360)

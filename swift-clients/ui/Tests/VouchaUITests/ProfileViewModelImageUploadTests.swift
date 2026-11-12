@@ -49,6 +49,14 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertTrue(vm.avatarPreviewDecodeFailed)
         XCTAssertNil(vm.avatarUploadErrorMessage)
         XCTAssertTrue(vm.isUploadingAvatar)
+        vm.identity = try makeIdentity(profileImageId: nil)
+        let rendered = try ProfileView(viewModel: vm).inspect()
+        let fallback = try rendered.find(LocalImagePreview.self).actualView()
+        XCTAssertNil(fallback.data)
+        XCTAssertFalse(fallback.uploadComplete)
+        XCTAssertNoThrow(try rendered.find(text: "Preview unavailable."))
+        XCTAssertThrowsError(try rendered.find(text: "Image uploaded. Preview unavailable."))
+        XCTAssertTrue(rendered.findAll(Avatar.self).isEmpty)
 
         CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url")
         await upload.value
@@ -206,6 +214,12 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         CannedFeedURLProtocol.releaseResponse(path: uploadURL.path)
         await upload.value
         XCTAssertNil(vm.avatarPreviewData)
+        let completed = try ProfileView(viewModel: vm).inspect()
+        XCTAssertTrue(completed.findAll(LocalImagePreview.self).isEmpty)
+        XCTAssertEqual(
+            try completed.find(Avatar.self).actualView().imageURL,
+            "https://images.voucha.ai/images/placements/placement-selected-avatar/2/selected-avatar?w=144"
+        )
     }
 
     func testNavigationKeepsAvatarUploadBusyUntilIdentityPatchFinishes() async throws {
@@ -250,7 +264,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             await mutation.value
             throw error
         }
-        vm.clearAvatarPreviewForNavigation()
+        try ProfileView(viewModel: vm).inspect().group().callOnDisappear()
         guard vm.isUploadingAvatar else {
             CannedFeedURLProtocol.releaseResponse(path: identityPath)
             await mutation.value
