@@ -8,6 +8,8 @@ import VouchaTestSupport
 import XCTest
 
 final class APIClientMutationChallengeTests: XCTestCase {
+    private struct EmptyResponse: Decodable {}
+
     override func tearDown() {
         InvitationURLProtocol.reset()
         super.tearDown()
