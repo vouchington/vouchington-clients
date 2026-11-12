@@ -25,6 +25,7 @@ public sealed partial class CookieSessionStore :
   private Task? refreshTask;
   private long refreshGeneration;
   private long refreshCookieGeneration;
+  private long identityRequestGeneration;
   private bool signingOut;
   private long? signOutGeneration;
 
@@ -91,31 +92,39 @@ public sealed partial class CookieSessionStore :
     {
       if (signingOut && (signOutGeneration is null || signOutGeneration == cookieJar.Generation))
         return Task.CompletedTask.WaitAsync(cancellationToken);
-      if (refreshTask is not null && !refreshTask.IsCompleted && refreshCookieGeneration == cookieJar.Generation)
+      var active = refreshTask is not null && !refreshTask.IsCompleted && refreshCookieGeneration == cookieJar.Generation;
+      var identityStarted = identityRequestGeneration == refreshGeneration;
+      if (active && (!force || !identityStarted))
       {
-        return ObserveRefreshAsync(refreshTask, reportTransientFailure, cancellationToken);
+        return ObserveRefreshAsync(refreshTask!, reportTransientFailure, cancellationToken);
       }
 
+      var rotate = !(active && identityStarted);
       refreshCookieGeneration = cookieJar.Generation;
-      var generation = refreshGeneration;
-      refreshTask = RefreshInternalAsync(generation, CancellationToken.None);
+      var generation = ++refreshGeneration;
+      refreshTask = RefreshInternalAsync(generation, rotate, CancellationToken.None);
       return ObserveRefreshAsync(refreshTask, reportTransientFailure, cancellationToken);
     }
   }
 
   private async Task RefreshInternalAsync(
       long generation,
+      bool rotate,
       CancellationToken cancellationToken)
   {
     var cookieGeneration = cookieJar.Generation;
     try
     {
       await cookieJar.RestoreAsync(cancellationToken).ConfigureAwait(false);
-      if (cookieJar.CanRecoverAuthentication)
+      if (rotate && cookieJar.CanRecoverAuthentication)
         await cookieJar.RenewAsync((dt, st, renewalToken) => client.SendAsync<NativeSessionRefreshResponse>(
             VouchaApiEndpoints.RefreshSession(dt!, st) with { IsCoordinatedSessionRotation = true }, renewalToken),
             cancellationToken: cancellationToken).ConfigureAwait(false);
-      if (cookieGeneration != cookieJar.Generation) return;
+      lock (syncLock)
+      {
+        if (generation != refreshGeneration || cookieGeneration != cookieJar.Generation) return;
+        identityRequestGeneration = generation;
+      }
       var response = await client
           .FetchMyIdentityAsync(cancellationToken)
           .ConfigureAwait(false);

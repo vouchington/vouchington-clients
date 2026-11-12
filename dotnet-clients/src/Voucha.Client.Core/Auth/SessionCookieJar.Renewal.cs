@@ -18,9 +18,11 @@ public sealed partial class SessionCookieJar
 
   public event EventHandler? SessionInvalidated;
 
+  internal long AdvanceGeneration() => Interlocked.Increment(ref generation);
+
   public long Invalidate()
   {
-    var epoch = Interlocked.Increment(ref generation);
+    var epoch = AdvanceGeneration();
     SessionInvalidated?.Invoke(this, EventArgs.Empty);
     return epoch;
   }

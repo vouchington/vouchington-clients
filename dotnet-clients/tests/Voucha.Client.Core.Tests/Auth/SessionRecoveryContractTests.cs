@@ -73,19 +73,19 @@ public sealed partial class SessionRecoveryTests
   [InlineData("/api/v1/auth/passkeys/authentication/verify")]
   [InlineData("/api/v1/auth/oauth/apple/continue")]
   [InlineData("/api/v1/auth/oauth/authorizations/flow/complete")]
-  public async Task LoginTransitionsFenceIdentityBeforeNetwork(string path)
+  public async Task LoginTransitionsFenceDispatchWithoutPublishingPrematureSignOut(string path)
   {
     using var fixture = new RecoveryFixture();
     await fixture.SeedAsync();
     await ((ISessionStore)fixture.Store).RefreshAsync(TestContext.Current.CancellationToken);
     fixture.Terminal.Other = _ =>
     {
-      Assert.False(fixture.Store.Current.IsAuthenticated);
+      Assert.Equal("user-1", fixture.Store.Current.Identity?.Id);
       return Task.FromResult(Json(HttpStatusCode.Unauthorized, new { code = "AUTH_REQUIRED" }));
     };
     await Assert.ThrowsAsync<VouchaApiException>(() => fixture.Client.SendAsync(
         new ApiRequest(HttpMethod.Post, path), TestContext.Current.CancellationToken));
-    Assert.False(fixture.Store.Current.IsAuthenticated);
+    Assert.Equal("user-1", fixture.Store.Current.Identity?.Id);
     Assert.Equal(1, fixture.Terminal.RenewCount);
   }
 

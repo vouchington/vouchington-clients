@@ -173,7 +173,7 @@ public sealed class AuthCoverageTests
   }
 
   [Fact]
-  public async Task CookieSessionStoreForceRefreshJoinsStartupRefresh()
+  public async Task CookieSessionStoreForceRefreshReplacesAlreadyStartedStartupIdentity()
   {
     var handler = new DelayedIdentityHandler();
     var store = NewStore(CreateClient(handler), new CookieContainer());
@@ -183,11 +183,12 @@ public sealed class AuthCoverageTests
 
     var forcedRefresh = ((IForcedSessionRefreshStore)store)
         .RefreshAsync(force: true, TestContext.Current.CancellationToken);
-    Assert.Equal(1, handler.RequestCount);
+    await forcedRefresh;
+    Assert.Equal("fresh", store.Current.Identity!.Username);
     handler.CompleteFirstRequestAsIdentity();
-    await Task.WhenAll(staleRefresh, forcedRefresh);
-    Assert.True(store.Current.IsAuthenticated);
-    Assert.Equal(1, handler.RequestCount);
+    await staleRefresh;
+    Assert.Equal("fresh", store.Current.Identity!.Username);
+    Assert.Equal(2, handler.RequestCount);
   }
 
   [Fact]
