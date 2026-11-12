@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import VouchaAPI
+import VouchaAuth
 
 extension AndroidAccount {
     func installMutationChallengeHandler() async {

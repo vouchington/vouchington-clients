@@ -1,4 +1,6 @@
 import Foundation
+import VouchaAPI
+import VouchaAuth
 
 extension ViewModelFactory {
     func installMutationChallengeHandler() async {
