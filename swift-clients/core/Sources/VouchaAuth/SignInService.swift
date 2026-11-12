@@ -12,8 +12,14 @@ private struct AuthResponse: Decodable {
     let mfaRequired: Bool?
     let loginAttemptId: String?
     /// Body credentials the native email login returns beside `Set-Cookie`.
-    let dt: NativeSessionToken?
-    let st: NativeSessionToken?
+    let deviceToken: NativeSessionToken?
+    let sessionToken: NativeSessionToken?
+
+    private enum CodingKeys: String, CodingKey {
+        case mfaRequired, loginAttemptId
+        case deviceToken = "dt"
+        case sessionToken = "st"
+    }
 }
 
 /// Service for all authentication flows: email OTP, Apple Sign In, and MFA TOTP.
@@ -136,7 +142,7 @@ public struct SignInService: Sendable {
             }
             return MFAChallenge(loginAttemptId: attemptId)
         }
-        if let device = response.dt?.token, let session = response.st?.token {
+        if let device = response.deviceToken?.token, let session = response.sessionToken?.token {
             try await client.installNativeLoginTokens(deviceToken: device, sessionToken: session)
         }
         await sessionManager.refresh()
