@@ -34,6 +34,10 @@ struct NativeDetailSurface: View {
                 topicVoteControls
                 hostnameVoteControls
                 relationControls
+                if let message = viewModel.detailRelationErrorMessage {
+                    Text(UiMessages.string(message, locale: nativeUiLocale))
+                        .foregroundStyle(.secondary)
+                }
                 reportingControls
                 userTagControls
                 destinationRows

@@ -136,7 +136,7 @@ private extension ImportResultStatus {
         switch self {
         case .followed, .imported, .sourceCreated, .recommendationCreated, .alreadyFollowing:
             true
-        case .pending, .error:
+        case .pending, .error, .skipped:
             false
         }
     }

@@ -88,6 +88,7 @@ public extension NativeRouteSurfaceViewModel {
             detailRelationEntityType = nil
             detailRelationEntityId = nil
             detailRelationBookmarks = [:]
+            detailRelationErrorMessage = nil
             detailRelationIsSelfProfile = false
             detailUserTags = []
             detailUserTagVotes = [:]
