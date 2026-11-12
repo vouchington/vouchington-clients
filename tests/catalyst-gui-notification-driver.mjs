@@ -89,6 +89,12 @@ export function nativeSession(fault = {}, fixture = {}) {
       const id = decodeURIComponent(match[1])
       const field = id.replace('notification-', '')
       const command = match[2]
+      if (command === 'elements' && id === 'notification-time') {
+        assert.equal(body.using, 'xpath')
+        assert.equal(body.value, './/XCUIElementTypeTextField')
+        if (fault.timeComponentsError) return { value: { error: 'unknown command', message: 'component query unavailable' } }
+        return { value: (fault.noTimeComponents ? [] : ['time-hour', 'time-minute', ...(fault.ambiguousHour ? ['time-hour-copy'] : [])]).map(ELEMENT => ({ ELEMENT })) }
+      }
       if (command === 'displayed') {
         if (field === 'preferences-heading') return { value: notificationRouteVisible }
         if (field.startsWith('day-'))
@@ -106,10 +112,13 @@ export function nativeSession(fault = {}, fixture = {}) {
         }
       }
       if (command === 'attribute/enabled') return { value: true }
-      if (command === 'attribute/label') return { value: 'Notifications' }
+      if (command === 'attribute/label') return { value: id.startsWith('time-hour') ? 'Hour' : id === 'time-minute' ? 'Minute' : 'Notifications' }
       if (command === 'attribute/amType')
-        return { value: fault.timeType ?? 'XCUIElementTypeTextField' }
-      if (command === 'attribute/value') return { value: state[keys[field]] }
+        return { value: id === 'notification-time' ? fault.timeType ?? 'XCUIElementTypeDatePicker' : fault.hourType ?? 'XCUIElementTypeTextField' }
+      if (command === 'attribute/value') {
+        const [hour, minute] = state.moderation_email_time_of_day.split(':')
+        return { value: id.startsWith('time-hour') ? String(Number(hour) % 12 || 12) : id === 'time-minute' ? minute : id === 'notification-time' ? `${Number(hour) % 12 || 12}:${minute} ${Number(hour) < 12 ? 'AM' : 'PM'}` : state[keys[field]] }
+      }
       if (command === 'click') {
         if (id === 'timezone-option') {
           persist(
@@ -139,14 +148,13 @@ export function nativeSession(fault = {}, fixture = {}) {
       const args = body.args[0]
       if (body.script === 'macos: keys') {
         assert.equal(args.keys.at(-1), 'XCUIKeyboardKeyReturn')
-        if (focused === 'time') {
-          assert.deepEqual(args.keys[0], { key: 'a', modifierFlags: 16 })
-          assert.equal(args.elementId, 'notification-time')
-          assert.ok(
-            args.keys.slice(1, -1).every(key => typeof key === 'string' && key.length === 1),
-            'Mac2 expects each text character as a key',
-          )
-          persist('moderation_email_time_of_day', args.keys.slice(1, -1).join(''))
+        if (focused === 'time-hour') {
+          assert.equal(args.elementId, 'time-hour')
+          assert.equal(args.keys.length, 2)
+          assert.ok(['XCUIKeyboardKeyUpArrow', 'XCUIKeyboardKeyDownArrow'].includes(args.keys[0]))
+          if (fault.timeKeysError) return { value: { error: 'invalid element state', message: 'hour is not editable' } }
+          const [hour, minute] = state.moderation_email_time_of_day.split(':')
+          if (!fault.noTimePatch) persist('moderation_email_time_of_day', `${String(Number(hour) + (args.keys[0] === 'XCUIKeyboardKeyUpArrow' ? 1 : -1)).padStart(2, '0')}:${minute}`)
         } else {
           const values = options[focused]
           let index = values.indexOf(state[keys[focused]])

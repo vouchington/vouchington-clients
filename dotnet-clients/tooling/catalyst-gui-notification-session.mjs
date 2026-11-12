@@ -173,14 +173,40 @@ export async function assertNotificationControls(request, sessionId, options = {
   await mutate('days', changedDays, async () => click(await ready(`notification-day-${day}`)))
   passed('days-mutation-persisted')
   const time = await ready('notification-time')
-  // Do not send text into a date-picker container and mistake a successful HTTP
-  // response for editing. Require an actual editable native control.
+  // MAUI's Mac Catalyst handler creates a UIDatePicker in Time mode. Inspect
+  // its native editable descendants; never type a complete string into the picker.
+  // Mac2 supports scoped XPath and macos: keys (XCTest typeKey:modifierFlags:):
+  // https://appium.github.io/appium-mac2-driver/latest/reference/locator-strategies/
+  // https://appium.github.io/appium-mac2-driver/latest/reference/execute-methods/#macos-keys
   const type = await attr(time, 'amType')
-  assert.ok(['XCUIElementTypeTextField', 'XCUIElementTypeTimeField'].includes(type), `unsupported native time control ${String(type)}; inspect the Mac2 tree before adding a control adapter`)
-  const targetTime = state.moderation_email_time_of_day === '09:30' ? '10:30' : '09:30'
+  assert.equal(type, 'XCUIElementTypeDatePicker', `unsupported native time control ${String(type)}`)
+  const components = await command('POST', path(time, 'elements'), {
+    using: 'xpath', value: './/XCUIElementTypeTextField',
+  })
+  assert.ok(Array.isArray(components), 'Mac2 time components response must be an array')
+  const hours = []
+  for (const component of components) {
+    const element = component['element-6066-11e4-a52e-4f735466cecf'] ?? component.ELEMENT
+    assert.ok(typeof element === 'string' && element.length > 0, 'invalid native time component reference')
+    if (!truth(await visible(element))) continue
+    if (!/^hours?$/iu.test(String(await attr(element, 'label')))) continue
+    assert.equal(await attr(element, 'amType'), 'XCUIElementTypeTextField', 'unsupported native hour component')
+    assert.equal(truth(await attr(element, 'enabled')), true, 'native hour component was disabled')
+    hours.push(element)
+  }
+  assert.equal(hours.length, 1, 'time picker must expose exactly one visible editable hour component')
+  const [hourText, minuteText] = state.moderation_email_time_of_day.split(':')
+  const hour = Number(hourText)
+  assert.ok(/^\d{2}:\d{2}$/u.test(state.moderation_email_time_of_day) && hour < 24 && Number(minuteText) < 60, 'unsupported saved time')
+  const displayedHour = String(await attr(hours[0], 'value')).trim()
+  assert.ok(/^\d{1,2}$/u.test(displayedHour) && [hour, hour % 12 || 12].includes(Number(displayedHour)), 'native hour differs from saved time')
+  // Stay within the current half-day: changing meridiem or minutes would add a
+  // second UI edit/PATCH. One arrow adjusts one native segment exactly once.
+  const delta = hour % 12 === 11 ? -1 : 1
+  const targetTime = `${String(hour + delta).padStart(2, '0')}:${minuteText}`
   await mutate('time', targetTime, async () => {
-    await click(time)
-    await execute('keys', { elementId: time, keys: [{ key: 'a', modifierFlags: 16 }, ...targetTime, 'XCUIKeyboardKeyReturn'] })
+    await click(hours[0])
+    await execute('keys', { elementId: hours[0], keys: [delta > 0 ? 'XCUIKeyboardKeyUpArrow' : 'XCUIKeyboardKeyDownArrow', 'XCUIKeyboardKeyReturn'] })
   })
   passed('time-mutation-persisted')
   const zone = state.moderation_email_timezone === 'UTC' ? 'America/Los_Angeles' : 'UTC'

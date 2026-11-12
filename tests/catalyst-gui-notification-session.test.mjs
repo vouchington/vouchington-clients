@@ -38,7 +38,13 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
     [{ noDeparture: true }, /departure from notification settings did not settle/u],
     [{ duplicate: true }, /multiple PATCH requests/u],
     [{ noPatch: true }, /engagement persisted PATCH did not settle/u],
-    [{ timeType: 'XCUIElementTypeDatePicker' }, /unsupported native time control/u],
+    [{ timeType: 'XCUIElementTypeTextField' }, /unsupported native time control/u],
+    [{ hourType: 'XCUIElementTypeStaticText' }, /unsupported native hour component/u],
+    [{ noTimeComponents: true }, /exactly one visible editable hour/u],
+    [{ ambiguousHour: true }, /exactly one visible editable hour/u],
+    [{ timeComponentsError: true }, /Mac2 unknown command/u],
+    [{ timeKeysError: true }, /Mac2 invalid element state/u],
+    [{ noTimePatch: true }, /time persisted PATCH did not settle/u],
     [{ focusFailure: true }, /Expected values to be strictly equal/u],
     [{ wrongAnnouncement: true }, /generated localization/u],
     [{ duplicateAnnouncement: true }, /exactly one announcement/u],
@@ -47,6 +53,26 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
       await assert.rejects(nativeSession(fault).run(), message)
     })
   }
+  for (const saved of ['00:37', '11:37', '12:37', '23:37']) {
+    it(`edits one hour component and preserves minutes for ${saved}`, async () => {
+      const fixture = nativeSession().evidence.initialPreferences
+      fixture.moderation_email_time_of_day = saved
+      const session = nativeSession({}, { preferences: fixture })
+      await session.run()
+      const patches = session.evidence.patches.filter(patch => patch.fields.includes('moderation_email_time_of_day'))
+      assert.equal(patches.length, 1)
+      const hour = Number(saved.slice(0, 2))
+      assert.equal(patches[0].after.moderation_email_time_of_day, `${String(hour + (hour % 12 === 11 ? -1 : 1)).padStart(2, '0')}:37`)
+      assert.equal(session.calls.some(call => call.url.endsWith('/notification-time/click')), false)
+      assert.equal(session.calls.filter(call => call.body?.args?.[0]?.elementId === 'time-hour').length, 1)
+    })
+  }
+  it('does not proceed to timezone when time editing produces no persisted PATCH', async () => {
+    const session = nativeSession({ noTimePatch: true })
+    await assert.rejects(session.run(), /time persisted PATCH did not settle/u)
+    assert.equal(session.calls.some(call => call.url.endsWith('/notification-timezone/click')), false)
+    assert.equal(session.evidence.patches.some(patch => patch.fields.includes('moderation_email_time_of_day')), false)
+  })
   it('retries only a transient missing native element during initial load', async () => {
     const session = nativeSession({ missingOnce: true })
     assert.equal((await session.run()).length, 10)
