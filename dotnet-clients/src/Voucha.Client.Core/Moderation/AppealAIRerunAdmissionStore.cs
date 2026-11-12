@@ -7,12 +7,11 @@ public sealed class AppealAIRerunAdmissionStore
   internal readonly record struct OwnerKey(
       string IdentityId, string Scheme, string Host, int Port, string BasePath);
 
-  internal sealed record Admission(Guid Token, DateTimeOffset? AiDraftedAt, string? LifecycleChangeId)
+  internal sealed record Admission(Guid Token, string? RunId)
   {
     internal bool IsReconciled(ModerationAppeal appeal) =>
-        appeal.AiDraftedAt is not null &&
-        appeal.AiDraftedAt != AiDraftedAt &&
-        !string.Equals(appeal.LatestLifecycleChangeId, LifecycleChangeId, StringComparison.Ordinal) ||
+        RunId is not null &&
+        string.Equals(appeal.AiDraftRunId, RunId, StringComparison.Ordinal) ||
         appeal.ApprovedAt is not null || appeal.SentAt is not null ||
         appeal.Status != ModerationAppealStatus.Pending;
   }
@@ -53,10 +52,23 @@ public sealed class AppealAIRerunAdmissionStore
     lock (pending)
     {
       if (pending.ContainsKey((owner.Value, appeal.Id))) return false;
-      admission = new Admission(Guid.NewGuid(), appeal.AiDraftedAt, appeal.LatestLifecycleChangeId);
+      admission = new Admission(Guid.NewGuid(), null);
       pending[(owner.Value, appeal.Id)] = admission;
     }
     Changed?.Invoke(owner.Value, appeal.Id);
+    return true;
+  }
+
+  internal bool SetRunId(OwnerKey? owner, string appealId, Guid token, string runId)
+  {
+    if (owner is null || string.IsNullOrWhiteSpace(runId)) return false;
+    lock (pending)
+    {
+      if (!pending.TryGetValue((owner.Value, appealId), out var current) || current.Token != token)
+        return false;
+      pending[(owner.Value, appealId)] = current with { RunId = runId };
+    }
+    Changed?.Invoke(owner.Value, appealId);
     return true;
   }
 

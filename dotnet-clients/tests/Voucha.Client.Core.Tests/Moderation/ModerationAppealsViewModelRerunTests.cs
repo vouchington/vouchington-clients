@@ -14,10 +14,12 @@ public sealed partial class ModerationAppealsViewModelTests
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service);
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
-    service.Details.Enqueue(service.Current);
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Succeeded));
     service.Details.Enqueue(service.Current with
     {
       AiPublicResponse = "New AI draft",
+      AiDraftRunId = service.RunId,
+      AiDraftRequestedRunId = "newer-run",
       AiDraftedAt = service.Current.AiDraftedAt?.AddMinutes(1),
       LatestLifecycleChangeId = "new-change",
     });
@@ -26,7 +28,28 @@ public sealed partial class ModerationAppealsViewModelTests
 
     Assert.Equal("New AI draft", viewModel.Appeals.Single().AiPublicResponse);
     var id = service.Current.Id;
-    Assert.Equal([$"rerun:{id}", $"detail:{id}", $"detail:{id}"], service.Calls.Skip(2));
+    Assert.Equal([$"rerun:{id}", $"run:{id}:{service.RunId}", $"detail:{id}"], service.Calls.Skip(2));
+  }
+
+  [Fact]
+  public async Task IdenticalTextStillConfirmsTheExactNewRun()
+  {
+    var service = new ModerationAppealsTestService();
+    var viewModel = PollingStaffViewModel(service, attempts: 1);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Succeeded));
+    service.Details.Enqueue(appeal with
+    {
+      AiDraftRequestedRunId = service.RunId,
+      AiDraftRunId = service.RunId,
+    });
+
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsAIRerunPending(appeal));
+    Assert.Equal(appeal.AiPublicResponse, viewModel.Appeals.Single().AiPublicResponse);
+    Assert.Equal(service.RunId, viewModel.Appeals.Single().AiDraftRunId);
   }
 
   [Fact]
@@ -143,20 +166,17 @@ public sealed partial class ModerationAppealsViewModelTests
 
     await viewModel.RefreshPendingAIRerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.True(viewModel.IsAIRerunPending(appeal));
-    service.Details.Enqueue(appeal with
-    {
-      AiPublicResponse = "Finished",
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-      LatestLifecycleChangeId = appeal.LatestLifecycleChangeId,
-    });
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Succeeded));
+    service.Details.Enqueue(appeal with { AiPublicResponse = "Finished", AiDraftRunId = "different-run" });
     await viewModel.RefreshPendingAIRerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.True(viewModel.IsAIRerunPending(appeal));
 
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Succeeded));
     service.Details.Enqueue(appeal with
     {
       AiPublicResponse = "Finished",
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-      LatestLifecycleChangeId = "new-change",
+      AiDraftRunId = service.RunId,
+      AiDraftRequestedRunId = service.RunId
     });
     await viewModel.RefreshPendingAIRerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.False(viewModel.IsAIRerunPending(appeal));
@@ -166,7 +186,7 @@ public sealed partial class ModerationAppealsViewModelTests
   }
 
   [Fact]
-  public async Task ListReloadKeepsPendingUntilBothResultMarkersAdvance()
+  public async Task ListReloadKeepsPendingUntilTheExactRunIsSaved()
   {
     var service = new ModerationAppealsTestService();
     var viewModel = PollingStaffViewModel(service, attempts: 1);
@@ -174,15 +194,12 @@ public sealed partial class ModerationAppealsViewModelTests
     var appeal = viewModel.Appeals.Single();
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
 
-    service.Current = appeal with
-    {
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-    };
+    service.Current = appeal with { AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1) };
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.True(viewModel.IsAIRerunPending(appeal));
     Assert.False(viewModel.CanRerun(viewModel.Appeals.Single()));
 
-    service.Current = service.Current with { LatestLifecycleChangeId = "new-change" };
+    service.Current = service.Current with { AiDraftRunId = service.RunId, AiDraftRequestedRunId = service.RunId };
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.False(viewModel.IsAIRerunPending(appeal));
     Assert.True(viewModel.CanRerun(viewModel.Appeals.Single()));
@@ -210,6 +227,8 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.False(ambiguousViewModel.CanRerun(appeal));
     await ambiguousViewModel.RefreshPendingAIRerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.Single(ambiguous.Calls, call => call == $"rerun:{appeal.Id}");
+    Assert.Equal(2, ambiguous.Calls.Count(call => call == $"detail:{appeal.Id}"));
+    Assert.DoesNotContain(ambiguous.Calls, call => call.StartsWith("run:", StringComparison.Ordinal));
   }
 
   [Fact]
@@ -273,11 +292,8 @@ public sealed partial class ModerationAppealsViewModelTests
     await otherApi.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     Assert.True(otherApi.CanRerun(otherApi.Appeals.Single()));
 
-    service.Details.Enqueue(appeal with
-    {
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-      LatestLifecycleChangeId = "new-change",
-    });
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Succeeded));
+    service.Details.Enqueue(appeal with { AiDraftRunId = service.RunId, AiDraftRequestedRunId = service.RunId });
     await reopened.RefreshPendingAIRerunAsync(reopenedAppeal, TestContext.Current.CancellationToken);
     Assert.True(reopened.CanRerun(reopened.Appeals.Single()));
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
@@ -297,18 +313,14 @@ public sealed partial class ModerationAppealsViewModelTests
         admissionStore: store, apiBaseUrl: apiBaseUrl);
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
-    var held = new TaskCompletionSource<ModerationAppealResponse>(
+    service.PendingRun = new TaskCompletionSource<ModerationAppealResolutionDraftRunResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
-    service.PendingDetail = held;
+    var heldRun = service.PendingRun;
     var rerun = viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.True(viewModel.IsAIRerunPending(appeal));
 
     provider.SetViewer(new NavigationViewer(true, ["administrator"], IdentityId: "owner-b"));
-    held.SetResult(new ModerationAppealResponse(appeal with
-    {
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-      LatestLifecycleChangeId = "new-change",
-    }));
+    heldRun!.SetResult(Run(service.RunId, ModerationRunStatus.Succeeded));
     await rerun;
 
     Assert.False(viewModel.CanAccess);
@@ -316,6 +328,14 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.False(viewModel.IsAIRerunPending(appeal));
     Assert.True(store.Contains(
         AppealAIRerunAdmissionStore.ForOwner(owner.IdentityId, apiBaseUrl), appeal.Id));
+    Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
+
+    provider.SetViewer(owner);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Succeeded));
+    service.Details.Enqueue(appeal with { AiDraftRunId = service.RunId, AiDraftRequestedRunId = service.RunId });
+    await viewModel.RefreshPendingAIRerunAsync(viewModel.Appeals.Single(), TestContext.Current.CancellationToken);
+    Assert.False(viewModel.IsAIRerunPending(viewModel.Appeals.Single()));
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
   }
 
@@ -350,17 +370,13 @@ public sealed partial class ModerationAppealsViewModelTests
     await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = viewModel.Appeals.Single();
     await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
-    var held = new TaskCompletionSource<ModerationAppealResponse>(
+    service.PendingRun = new TaskCompletionSource<ModerationAppealResolutionDraftRunResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
-    service.PendingDetail = held;
+    var heldRun = service.PendingRun;
     var refresh = viewModel.RefreshPendingAIRerunAsync(appeal, TestContext.Current.CancellationToken);
     service.Current = service.Appeal("other", ModerationAppealStatus.Resolved);
     await viewModel.SelectStatusAsync(ModerationAppealStatus.Resolved, TestContext.Current.CancellationToken);
-    held.SetResult(new ModerationAppealResponse(appeal with
-    {
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-      LatestLifecycleChangeId = "new-change",
-    }));
+    heldRun!.SetResult(Run(service.RunId, ModerationRunStatus.Succeeded));
     await refresh;
 
     Assert.Equal("other", viewModel.Summaries.Single().Id);
@@ -392,7 +408,7 @@ public sealed partial class ModerationAppealsViewModelTests
 
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => rerun);
     Assert.Equal(original.AiPublicResponse, viewModel.Appeals.Single().AiPublicResponse);
-    Assert.Equal(2, service.Calls.Count(call => call == $"detail:{original.Id}"));
+    Assert.Equal(1, service.Calls.Count(call => call == $"run:{original.Id}:{service.RunId}"));
     Assert.False(viewModel.IsMutating);
   }
 
@@ -421,4 +437,9 @@ public sealed partial class ModerationAppealsViewModelTests
       ModerationAppealsTestService service,
       int attempts = 20) =>
       new(service, new NavigationViewer(true, ["administrator"]), attempts, _ => Task.CompletedTask);
+
+  private static ModerationAppealResolutionDraftRunResponse Run(
+      string runId, ModerationRunStatus status) =>
+      new(status == ModerationRunStatus.Succeeded ? DateTimeOffset.UtcNow : null,
+          status == ModerationRunStatus.Succeeded ? "change-1" : null, runId, status);
 }

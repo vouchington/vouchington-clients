@@ -33,6 +33,26 @@ public sealed class ApiModerationExposureServiceTests
     Assert.Equal("""{"postId":"post-1","surface":"review_queue"}""", request.Body);
   }
 
+  [Fact]
+  public async Task ReadsTheExactAppealAIRerunThroughItsServiceBoundary()
+  {
+    var (service, handler) = Create("native.moderation.appeals.resolution-draft-run.active");
+    var appeals = Assert.IsAssignableFrom<IModerationAppealsService>(service);
+
+    var run = await appeals.FetchAIRerunAsync(
+        "appeal-1", "appeal_resolution_00000000-0000-7000-8000-000000000303",
+        TestContext.Current.CancellationToken);
+
+    Assert.Equal(ModerationRunStatus.Active, run.Status);
+    Assert.Equal("appeal_resolution_00000000-0000-7000-8000-000000000303", run.RunId);
+    var request = Assert.Single(handler.Requests);
+    Assert.Equal(HttpMethod.Get, request.Method);
+    Assert.Equal(
+        "/api/v1/appeals/appeal-1/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000303",
+        request.PathAndQuery);
+    Assert.Null(request.Body);
+  }
+
   [Theory]
   [InlineData(ModerationDisputeStatus.Pending, "pending")]
   [InlineData(ModerationDisputeStatus.Resolved, "resolved")]

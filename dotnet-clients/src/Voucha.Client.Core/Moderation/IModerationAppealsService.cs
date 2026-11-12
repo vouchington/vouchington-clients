@@ -12,6 +12,11 @@ public interface IModerationAppealsService
 
   Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default);
 
+  Task<ModerationAppealResolutionDraftRunResponse> FetchAIRerunAsync(
+      string appealId,
+      string runId,
+      CancellationToken cancellationToken = default);
+
   Task<ModerationAppealResponse> UpdatePublicResponseAsync(string id, string publicResponse, CancellationToken cancellationToken = default);
 
   Task<ModerationAppealResponse> ApproveAsync(string id, CancellationToken cancellationToken = default);

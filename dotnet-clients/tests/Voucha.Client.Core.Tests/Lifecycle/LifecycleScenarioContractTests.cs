@@ -192,9 +192,11 @@ public sealed class LifecycleScenarioContractTests
     switch (action)
     {
       case "rerun":
+        service.Runs.Enqueue(new ModerationAppealResolutionDraftRunResponse(
+            DateTimeOffset.UtcNow, "change-2", service.RunId, ModerationRunStatus.Succeeded));
         service.Details.Enqueue(service.Current with
         {
-          AiDraftedAt = before.AiDraftedAt!.Value.AddMinutes(1),
+          AiDraftRunId = service.RunId,
         });
         await viewModel.RerunAsync(before, cancellationToken);
         break;

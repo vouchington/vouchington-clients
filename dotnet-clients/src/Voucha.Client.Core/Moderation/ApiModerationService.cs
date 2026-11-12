@@ -100,6 +100,10 @@ public sealed class ApiModerationService(VouchaApiClient client)
   public Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default) =>
       client.FetchAppealAsync(id, cancellationToken);
 
+  public Task<ModerationAppealResolutionDraftRunResponse> FetchAIRerunAsync(
+      string appealId, string runId, CancellationToken cancellationToken = default) =>
+      client.GetAppealResolutionDraftRunAsync(appealId, runId, cancellationToken);
+
   public Task<ModerationAppealResponse> UpdatePublicResponseAsync(string id, string publicResponse, CancellationToken cancellationToken = default) =>
       client.UpdateAppealPublicResponseAsync(id, publicResponse, cancellationToken);
 

@@ -17,13 +17,16 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
   public Queue<StaffModerationAppealListResponse> SummaryPages { get; } = new();
   public Queue<StaffModerationAppealListResponse> Pages { get; } = [];
   public Queue<ModerationAppeal> Details { get; } = [];
+  public Queue<ModerationAppealResolutionDraftRunResponse> Runs { get; } = [];
   public Exception? NextError { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingDelivery { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingApproval { get; set; }
   public TaskCompletionSource<ModerationAppealResponse>? PendingDetail { get; set; }
+  public TaskCompletionSource<ModerationAppealResolutionDraftRunResponse>? PendingRun { get; set; }
   public TaskCompletionSource<StaffModerationAppealListResponse>? PendingFetch { get; set; }
   public ModerationAppeal Current { get; set; }
   public bool QueueAccepted { get; set; } = true;
+  public string RunId { get; set; } = "appeal_resolution_00000000-0000-7000-8000-000000000305";
 
   public ModerationAppealsTestService() => Current = fixtureAppeal;
 
@@ -83,6 +86,21 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
         Details.TryDequeue(out var detail) ? detail : Current));
   }
 
+  public Task<ModerationAppealResolutionDraftRunResponse> FetchAIRerunAsync(
+      string appealId, string runId, CancellationToken cancellationToken = default)
+  {
+    Calls.Add($"run:{appealId}:{runId}");
+    ThrowIfNeeded();
+    if (PendingRun is { } pending)
+    {
+      PendingRun = null;
+      return pending.Task;
+    }
+    return Task.FromResult(Runs.TryDequeue(out var run)
+        ? run
+        : new ModerationAppealResolutionDraftRunResponse(null, null, RunId, ModerationRunStatus.Active));
+  }
+
   public Task<ModerationAppealResponse> UpdatePublicResponseAsync(string id, string publicResponse, CancellationToken cancellationToken = default)
   {
     Calls.Add($"update:{id}:{publicResponse}");
@@ -127,6 +145,7 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
     ThrowIfNeeded();
     var admission = JsonSerializer.Deserialize<ModerationAppealQueueResponse>(
         ApiFixtureLoader.LoadResponse("native.moderation.appeals.resolution-drafts.default"), VouchaApiJson.Options)!;
+    admission = admission with { RunId = RunId };
     return Task.FromResult(admission with { Queued = QueueAccepted, RerunById = "staff-1" });
   }
 

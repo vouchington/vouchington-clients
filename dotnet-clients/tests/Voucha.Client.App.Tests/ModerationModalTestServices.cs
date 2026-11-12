@@ -54,6 +54,14 @@ internal sealed class ModerationModalAppealsService : ModerationModalActionServi
         : RespondAsync(new ModerationAppealResponse(Current), cancellationToken);
   }
 
+  public Task<ModerationAppealResolutionDraftRunResponse> FetchAIRerunAsync(
+      string appealId, string runId, CancellationToken cancellationToken = default) =>
+      Mode == "seed-ai"
+          ? Task.FromException<ModerationAppealResolutionDraftRunResponse>(
+              new HttpRequestException("Run refresh is temporarily unavailable."))
+          : RespondAsync(new ModerationAppealResolutionDraftRunResponse(
+              null, null, runId, ModerationRunStatus.Active), cancellationToken);
+
   public Task<ModerationAppealResponse> UpdatePublicResponseAsync(string id, string response, CancellationToken cancellationToken = default) =>
       RespondAsync(new ModerationAppealResponse(Current with { PublicResponse = response }), cancellationToken);
 
