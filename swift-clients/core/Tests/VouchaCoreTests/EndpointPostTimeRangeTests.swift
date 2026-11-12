@@ -7,8 +7,9 @@ final class EndpointPostTimeRangeTests: XCTestCase {
         endpoint.queryItems.first { $0.name == "time_range" }?.value
     }
 
-    func testGenericFeedEndpointAllowsOmissionWhileNativeCallersSupplyTheirWindow() {
-        XCTAssertFalse(Endpoint.posts(feedType: "any").queryItems.contains { $0.name == "time_range" })
+    func testGenericFeedEndpointDefaultsToExplicitWeekButAllowsDeliberateOmission() {
+        XCTAssertEqual(timeRange(.posts(feedType: "any")), "1w")
+        XCTAssertFalse(Endpoint.posts(feedType: "any", timeRange: nil).queryItems.contains { $0.name == "time_range" })
     }
 
     func testPostsSendsSelectedTimeRangeExactly() {

@@ -97,6 +97,54 @@ final class PostTimeRangePickerTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(try sut.inspect().find(ViewType.Picker.self).selectedValue(PostTimeRange.self), .lastYear)
     }
 
+    func testReusableFeedViewHidesDropdownWithoutCallerConfiguration() throws {
+        let client = try makeClient()
+        for feedType in ["any", "follow_users", "follow_topics"] {
+            let model = PostsListViewModel(client: client, feedType: feedType)
+            XCTAssertEqual(model.timeRange, .lastWeek)
+            XCTAssertThrowsError(try PostsListView(viewModel: model).inspect().find(PostTimeRangePicker.self))
+        }
+        let ordinary = PostsListViewModel(client: client, feedType: "all")
+        XCTAssertNoThrow(try PostsListView(viewModel: ordinary).inspect().find(PostTimeRangePicker.self))
+    }
+
+    func testFeedDefaultAndContinuationAreFixedToWeek() async throws {
+        let path = "/api/v1/feeds/posts/any"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (
+                Data(
+                    #"{"results":[],"posts":{},"posts_metrics":{},"post_elections":{},"page_info":{"has_next_page":true,"end_cursor":"older=="}}"#
+                        .utf8
+                ),
+                200,
+                0
+            ),
+            (
+                Data(
+                    #"{"results":[],"posts":{},"posts_metrics":{},"post_elections":{},"page_info":{"has_next_page":false,"end_cursor":null}}"#
+                        .utf8
+                ),
+                200,
+                0
+            )
+        ]
+        let model = try PostsListViewModel(client: makeClient())
+        await model.load()
+        await model.selectTimeRange(.allTime)
+        await model.loadNextPage()
+        let urls = CannedFeedURLProtocol.capturedURLs
+        XCTAssertEqual(urls.count, 2)
+        XCTAssertEqual(urls.map {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems?
+                .first { $0.name == "time_range" }?.value
+        }, ["1w", "1w"])
+        XCTAssertEqual(
+            try URLComponents(url: XCTUnwrap(urls.last), resolvingAgainstBaseURL: false)?
+                .queryItems?.first { $0.name == "after" }?.value,
+            "older=="
+        )
+    }
+
     func testFeedHasNoTimeRangeDropdown() throws {
         let model = NativeRouteSurfaceViewModel(entry: entry(for: .feedPosts), client: nil)
         XCTAssertThrowsError(try NativeListSurface(viewModel: model).inspect().find(ViewType.Picker.self))

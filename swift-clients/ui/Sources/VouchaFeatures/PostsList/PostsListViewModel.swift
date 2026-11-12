@@ -51,7 +51,12 @@ public final class PostsListViewModel {
         }
     }
 
-    /// Selected finite window. `nil` selects the native 30-day default.
+    /// Feed has a fixed week; ordinary search (`all`) defaults to 30 days.
+    var isFeed: Bool {
+        feedType != "all"
+    }
+
+    /// Selected finite window. `nil` selects the ordinary-search 30-day default.
     public private(set) var timeRange: PostTimeRange?
 
     var inFlightVotePostIds: Set<String> = []
@@ -64,11 +69,12 @@ public final class PostsListViewModel {
     public init(client: APIClient, feedType: String = "any", timeRange: PostTimeRange? = nil) {
         self.client = client
         self.feedType = feedType
-        self.timeRange = timeRange == .last30Days ? nil : timeRange
+        self.timeRange = feedType == "all" ? (timeRange == .last30Days ? nil : timeRange) : .lastWeek
     }
 
     /// Select a finite range (or `nil` for the default). A change drops the cursor and reloads.
     public func selectTimeRange(_ range: PostTimeRange?) async {
+        guard !isFeed else { return }
         let range = range == .last30Days ? nil : range
         guard range != timeRange else { return }
         timeRange = range

@@ -143,7 +143,7 @@ public struct PostsListView: View {
     private var postFilters: some View {
         VStack {
             filterPicker
-            if !timeRangeOptions.isEmpty {
+            if !viewModel.isFeed, !timeRangeOptions.isEmpty {
                 PostTimeRangePicker(
                     range: viewModel.timeRange ?? .last30Days,
                     options: timeRangeOptions

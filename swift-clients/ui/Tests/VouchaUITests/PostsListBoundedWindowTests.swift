@@ -8,7 +8,7 @@ import XCTest
 
 @MainActor
 final class PostsListBoundedWindowTests: XCTestCase {
-    private let path = "/api/v1/feeds/posts/any"
+    private let path = "/api/v1/feeds/posts/all"
 
     override func setUp() {
         super.setUp()
@@ -27,7 +27,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
             cookieStorage: HTTPCookieStorage(),
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        return PostsListViewModel(client: client)
+        return PostsListViewModel(client: client, feedType: "all")
     }
 
     private func page(_ ids: [String], hasNext: Bool, cursor: String?) -> Data {

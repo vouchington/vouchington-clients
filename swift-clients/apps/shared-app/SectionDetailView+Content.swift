@@ -131,7 +131,6 @@ extension SectionDetailView {
         switch subsection {
         case .feed(.your): PostsListView(
                 viewModel: postsYourVM,
-                timeRangeOptions: [],
                 isSignedIn: factory.sessionManager.isSignedIn,
                 canVote: canCastPublicVotes,
                 currentUserId: factory.sessionManager.currentUserId,
@@ -143,7 +142,6 @@ extension SectionDetailView {
             )
         case .feed(.all): PostsListView(
                 viewModel: postsAllVM,
-                timeRangeOptions: [],
                 isSignedIn: factory.sessionManager.isSignedIn,
                 canVote: canCastPublicVotes,
                 currentUserId: factory.sessionManager.currentUserId,
