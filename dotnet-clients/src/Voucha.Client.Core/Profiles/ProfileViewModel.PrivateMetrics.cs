@@ -32,7 +32,7 @@ public sealed partial class ProfileViewModel
     get
     {
       var metrics = userMetrics;
-      if (!CanEdit || Identity is null || User?.Id != Identity.Id || !IsOverviewScope ||
+      if (!CanEdit || Identity is null || currentViewerUserId != Identity.Id || User?.Id != Identity.Id || !IsOverviewScope ||
           metrics?.PrivateCount is not { } counts) return [];
       return PrivateMetricRoutes.Where(entry => counts.ContainsKey(entry.Key)).Select(entry =>
       {

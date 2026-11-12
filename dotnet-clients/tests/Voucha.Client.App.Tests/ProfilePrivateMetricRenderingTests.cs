@@ -5,6 +5,7 @@ using Voucha.Client.App.Pages;
 using Voucha.Client.App.Support;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.LandingPages;
 using Voucha.Client.Core.Localization;
@@ -43,10 +44,11 @@ public sealed class ProfilePrivateMetricRenderingTests
         DispatchProxy.Create<IPostsService, ProfilePageLocalAvatarPreviewTests.PostsProxy>(),
         DispatchProxy.Create<IImageUploadService, ProfilePageLocalAvatarPreviewTests.UnusedService>(),
         new AppConfig(new Uri("https://api.test")), localization, controller);
-    var page = new ProfilePage { BindingContext = model };
+    var page = new ProfilePage(model);
     var rows = page.FindByName<VerticalStackLayout>("PrivateMetrics");
     Assert.False(rows.IsVisible);
 
+    model.SetCurrentViewer("user-1", "alice");
     await model.LoadOwnAsync(TestContext.Current.CancellationToken);
 
     Assert.True(rows.IsVisible);
@@ -61,6 +63,56 @@ public sealed class ProfilePrivateMetricRenderingTests
 
     Assert.False(rows.IsVisible);
     Assert.Empty(rows.Children);
+  }
+
+  [Theory]
+  [InlineData(null)]
+  [InlineData("user-2")]
+  public async Task SessionCallbackRemovesCachedPrivateRowsOnLogoutOrAccountSwitch(string? nextUserId)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    var app = new Application();
+    foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
+      app.Resources[key] = new Style(typeof(Label));
+    app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
+    app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
+    app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
+    var settings = DispatchProxy.Create<ISettingsService, MetricSettingsProxy>();
+    ((MetricSettingsProxy)(object)settings).Metrics = new UserMetrics("user_metrics", "user-1", new UserMetricsCount(),
+        PrivateCount: new Dictionary<string, int> { ["posts_saved"] = 1000 });
+    using var model = new ProfileViewModel(settings,
+        DispatchProxy.Create<ILandingPagesService, ProfilePageLocalAvatarPreviewTests.UnusedService>(),
+        DispatchProxy.Create<IPostsService, ProfilePageLocalAvatarPreviewTests.PostsProxy>(),
+        DispatchProxy.Create<IImageUploadService, ProfilePageLocalAvatarPreviewTests.UnusedService>(),
+        new AppConfig(new Uri("https://api.test")));
+    var session = new MetricSessionStore();
+    var page = new ProfilePage(model);
+    page.AttachMetricSession(session);
+    await model.LoadOwnAsync(TestContext.Current.CancellationToken);
+    var rows = page.FindByName<VerticalStackLayout>("PrivateMetrics");
+    Assert.True(rows.IsVisible);
+    Assert.Single(rows.Children);
+
+    session.ChangeIdentity(nextUserId);
+    await page.SessionRefreshTask;
+
+    Assert.False(rows.IsVisible);
+    Assert.Empty(rows.Children);
+    Assert.Empty(model.PrivateMetricRows);
+  }
+
+  private sealed class MetricSessionStore : ISessionStore
+  {
+    public event EventHandler<SessionChangedEventArgs>? SessionChanged;
+    public SessionSnapshot Current { get; private set; } = new(new User("user-1", "alice"));
+    public void ChangeIdentity(string? userId)
+    {
+      Current = new SessionSnapshot(userId is null ? null : new User(userId, "next"));
+      SessionChanged?.Invoke(this, new SessionChangedEventArgs(Current));
+    }
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
   public class MetricSettingsProxy : DispatchProxy

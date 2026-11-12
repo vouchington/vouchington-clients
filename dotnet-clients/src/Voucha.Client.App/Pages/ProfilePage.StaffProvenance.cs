@@ -1,9 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 
+using Voucha.Client.Core.Auth;
+
 namespace Voucha.Client.App.Pages;
 
 public partial class ProfilePage
 {
+  private string? lastSessionUserId;
+
   private bool IsStaffViewer => sessionStore.Current.Identity?.Roles?.Any(role =>
       role is "administrator" or "moderator") == true;
 
@@ -14,8 +18,10 @@ public partial class ProfilePage
     var isStaffViewer = IsStaffViewer;
     var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
     lastStaffViewer = isStaffViewer;
-    RefreshViewerState();
-    if (!gainedStaffAccess || !hasLoaded) return;
+    var identityChanged = RefreshViewerState();
+    var reloadOwnIdentity = identityChanged && string.IsNullOrWhiteSpace(idOrUsername) &&
+        sessionStore.Current.Identity is not null;
+    if ((!gainedStaffAccess && !reloadOwnIdentity) || !hasLoaded) return;
     try
     {
       if (string.IsNullOrWhiteSpace(idOrUsername)) await viewModel.LoadOwnAsync().ConfigureAwait(true);
@@ -26,4 +32,19 @@ public partial class ProfilePage
       System.Diagnostics.Debug.WriteLine(ex);
     }
   }
+  private bool RefreshViewerState()
+  {
+    var userId = sessionStore.Current.Identity?.Id;
+    var changed = !string.Equals(lastSessionUserId, userId, StringComparison.Ordinal);
+    lastSessionUserId = userId;
+    viewModel.SetCurrentViewer(
+        sessionStore.Current.Identity?.Id,
+        sessionStore.Current.Identity?.Username,
+        sessionStore.Current.CanCastPublicVotes(),
+        sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true),
+        isStaffViewer: sessionStore.Current.Identity?.Roles?.Any(role =>
+            role is "administrator" or "moderator") == true);
+    return changed;
+  }
+
 }

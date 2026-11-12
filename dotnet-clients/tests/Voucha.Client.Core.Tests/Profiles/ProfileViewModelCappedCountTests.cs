@@ -49,12 +49,16 @@ public sealed partial class ProfileViewModelSafetyTests
     var metrics = new UserMetrics("user_metrics", "user-2", new UserMetricsCount(),
         PrivateCount: new Dictionary<string, int>
         {
-          ["posts_saved"] = 1000, ["users_muted"] = 0, ["topics_blocked"] = 2, ["unsupported"] = 99,
+          ["posts_saved"] = 1000,
+          ["users_muted"] = 0,
+          ["topics_blocked"] = 2,
+          ["unsupported"] = 99,
         },
         PrivateCountCapped: new Dictionary<string, bool> { ["posts_saved"] = true, ["users_muted"] = false });
     using var viewModel = NewViewModel(new User("user-2", "bob"), metrics: metrics,
         localization: new UiLocalization(controller), localeController: controller);
 
+    viewModel.SetCurrentViewer("user-2", "bob");
     await viewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
 
     Assert.True(viewModel.HasPrivateMetrics);
@@ -77,6 +81,7 @@ public sealed partial class ProfileViewModelSafetyTests
     var metrics = new UserMetrics("user_metrics", "user-2", new UserMetricsCount(),
         PrivateCount: new Dictionary<string, int> { ["posts_saved"] = 1000 });
     using var viewModel = NewViewModel(new User("user-2", "bob"), metrics: metrics);
+    viewModel.SetCurrentViewer("user-2", "bob");
     await viewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
     Assert.Single(viewModel.PrivateMetricRows);
     var observedClearedRows = false;
@@ -86,9 +91,29 @@ public sealed partial class ProfileViewModelSafetyTests
         observedClearedRows = true;
     };
 
+    viewModel.SetCurrentViewer("user-2", "bob");
     await viewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
 
     Assert.True(observedClearedRows);
     Assert.Single(viewModel.PrivateMetricRows);
+  }
+  [Theory]
+  [InlineData(null)]
+  [InlineData("user-3")]
+  public async Task AuthoritativeViewerChangeClearsLoadedPrivateCounts(string? viewerId)
+  {
+    var metrics = new UserMetrics("user_metrics", "user-2", new UserMetricsCount(),
+        PrivateCount: new Dictionary<string, int> { ["posts_saved"] = 1000 });
+    using var viewModel = NewViewModel(new User("user-2", "bob"), metrics: metrics);
+    viewModel.SetCurrentViewer("user-2", "bob");
+    await viewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
+    Assert.Single(viewModel.PrivateMetricRows);
+
+    viewModel.SetCurrentViewer(viewerId, "next");
+
+    Assert.False(viewModel.HasPrivateMetrics);
+    Assert.Empty(viewModel.PrivateMetricRows);
+    viewModel.SetCurrentViewer("user-2", "bob");
+    Assert.Empty(viewModel.PrivateMetricRows);
   }
 }
