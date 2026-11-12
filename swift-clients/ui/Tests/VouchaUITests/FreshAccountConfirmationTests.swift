@@ -162,7 +162,7 @@ final class FreshAccountConfirmationTests: XCTestCase {
             cookies: HTTPCookieStorage,
             broker: NativeOAuthAuthorizationCoordinator?
         ) {
-        let cookies = HTTPCookieStorage()
+        let cookies = try XCTUnwrap(URLSessionConfiguration.ephemeral.httpCookieStorage)
         try setCookie("dt", value: "initiating-device", storage: cookies)
         try setCookie("st", value: "initiating-session", storage: cookies)
         let client = APIClient(

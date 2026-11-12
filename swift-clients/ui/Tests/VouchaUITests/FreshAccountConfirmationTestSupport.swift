@@ -7,7 +7,7 @@ import XCTest
 
 @MainActor
 func makeFreshAccountSettingsTestClient() throws -> APIClient {
-    let cookies = HTTPCookieStorage()
+    let cookies = try XCTUnwrap(URLSessionConfiguration.ephemeral.httpCookieStorage)
     for name in ["dt", "st"] {
         try cookies.setCookie(XCTUnwrap(HTTPCookie(properties: [
             .name: name, .value: "settings-\(name)", .domain: "localhost", .path: "/"
