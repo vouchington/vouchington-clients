@@ -7,6 +7,7 @@ import Observation
 public final class MutationChallengeBroker {
     public private(set) var pendingID: UUID?
     private var continuation: CheckedContinuation<String?, Never>?
+    private var presentationOwner: UUID?
 
     public init() {}
 
@@ -28,8 +29,21 @@ public final class MutationChallengeBroker {
         guard pendingID == id else { return }
         let waiting = continuation
         continuation = nil
+        presentationOwner = nil
         pendingID = nil
         waiting?.resume(returning: token)
+    }
+
+    /// All windows share this broker; only one presenter may own the current prompt.
+    public func claimPresentation(id: UUID, owner: UUID) -> Bool {
+        guard pendingID == id, presentationOwner == nil || presentationOwner == owner else { return false }
+        presentationOwner = owner
+        return true
+    }
+
+    public func finishPresentation(id: UUID, owner: UUID, token: String?) {
+        guard presentationOwner == owner else { return }
+        finish(id: id, token: token)
     }
 
     public func cancel() {

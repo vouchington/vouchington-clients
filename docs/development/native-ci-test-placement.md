@@ -35,6 +35,13 @@ above observed successful hosted durations while retaining explicit deadlines.
 The UI Periphery scan has a 20-minute job cap for the same measured-headroom reason; the core
 scan retains its 15-minute cap.
 
+The iOS root-shell shard also executes the hosted UIKit mutation-challenge presentation tests.
+They keep an existing list editor modal open during challenge/replay, cover cancellation and
+full-screen presentation, and fence shared-broker ownership across windows. These platform tests
+use an inert provider boundary instead of loading the external Turnstile SDK. The existing iPhone
+test-products build includes their unit-test target; the shard requires all seven selected tests
+(root launch plus six presentation cases) to pass without skips.
+
 The Android host-test shard installs only the matching Swift 6.3.3 host compiler after verifying
 Xcode 26.6. Its archive preparation verifies and seeds the pinned Skip binary for SwiftPM; it
 never installs the Android SDK, NDK, or Swift 6.4 cross-compiler. Frozen package resolution uses

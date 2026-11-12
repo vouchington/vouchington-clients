@@ -98,7 +98,6 @@ public struct RootView: View {
             .task {
                 await viewModelFactory.installMutationChallengeHandler()
             }
-            .onDisappear { viewModelFactory.mutationChallengeBroker.cancel() }
             .environment(viewModelFactory.uiLocaleController)
             .environment(\.locale, viewModelFactory.uiLocaleController.locale.foundationLocale)
             .safeAreaInset(edge: .bottom, spacing: 0) {

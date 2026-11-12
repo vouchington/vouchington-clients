@@ -4,7 +4,6 @@ import Foundation
 #endif
 @testable import VouchaAPI
 import VouchaCore
-import VouchaTestSupport
 import XCTest
 
 final class APIClientMutationChallengeTests: XCTestCase {
