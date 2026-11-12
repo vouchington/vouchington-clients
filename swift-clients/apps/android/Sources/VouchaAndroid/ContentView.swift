@@ -25,10 +25,14 @@ struct ContentView: View {
             }
             accountContent
         }
+        .androidMutationChallengeSheet(account: account)
+        .onDisappear { account.mutationChallengeBroker.cancel() }
         .onChange(of: account.session.currentUserId) { _, _ in
+            account.mutationChallengeBroker.cancel()
             Task { await bindAccountSession() }
         }
         .task {
+            await account.installMutationChallengeHandler()
             await account.restore()
             await viewModel.refreshStatus()
             await bindAccountSession()

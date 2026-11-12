@@ -11,6 +11,7 @@ import VouchaLocalization
 @Observable @MainActor
 final class AndroidAccount {
     let cookiePersistenceNotice = AndroidCookiePersistenceNotice()
+    let mutationChallengeBroker = MutationChallengeBroker()
     let config: AppConfig
     let cookieStorage: AndroidSessionCookieStorage
     let apiClient: APIClient
@@ -70,6 +71,7 @@ final class AndroidAccount {
 
     @discardableResult
     func signOut() async -> Bool {
+        mutationChallengeBroker.cancel()
         await session.signOut()
         return !session.isSignedIn && session.lastSignOutErrorMessage == nil
     }
