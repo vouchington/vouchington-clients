@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Posts;
@@ -56,6 +57,22 @@ public sealed class HackerNewsReferenceMappingTests
     await model.LoadAsync(TestContext.Current.CancellationToken);
     Assert.NotNull(model.RootHackerNewsReferences);
     Assert.Equal(2, model.RootHackerNewsReferences.Comments!.Count);
+  }
+
+  [Fact]
+  public async Task PostPaginationRetainsEachPagesReferenceCounts()
+  {
+    var first = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture("responses/native.posts.hacker-news.filtered.json")))!;
+    first["page_info"]!["has_next_page"] = true;
+    first["page_info"]!["end_cursor"] = "next";
+    var second = first.ToJsonString().Replace("profile-review-1", "second-post", StringComparison.Ordinal);
+    var client = new VouchaApiClient(new HttpClient(new Handler(request =>
+        request.RequestUri!.Query.Contains("after=next", StringComparison.Ordinal) ? second : first.ToJsonString())) { BaseAddress = new Uri("https://example.com") });
+    using var model = new PostsListViewModel(new ApiPostsService(client));
+    await model.LoadBrowseAsync(cancellationToken: TestContext.Current.CancellationToken);
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(["profile-review-1", "second-post"], model.Items.Select(row => row.Id));
+    Assert.All(model.Items, row => Assert.Equal("Seen on Hacker News · 1 · Mentioned · 2", row.HackerNews.Summary));
   }
 
   private static VouchaApiClient Client(string json) => new(new HttpClient(new Handler(_ => json)) { BaseAddress = new Uri("https://example.com") });

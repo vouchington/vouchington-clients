@@ -23,6 +23,7 @@ namespace Voucha.Client.App.Pages
 
   internal static class FollowerDistributionActions
   {
+    public static bool CanSendPost(ISessionStore sessionStore, string? createdById, string postType, string? parentId, string? privacy, string? broadcast) => false;
     public static bool CanSendRssItem(ISessionStore sessionStore) => false;
     public static Task ShowAsync(Microsoft.Maui.Controls.Page page, IServiceProvider services,
         ISessionStore sessionStore, FollowerDistributionTargetKind kind, string id) => Task.CompletedTask;

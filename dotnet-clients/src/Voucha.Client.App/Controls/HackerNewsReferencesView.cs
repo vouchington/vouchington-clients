@@ -6,7 +6,11 @@ public sealed class HackerNewsReferencesView : VerticalStackLayout
 {
   private readonly ILauncher launcher;
   public HackerNewsReferencesView() : this(Launcher.Default) { }
-  public HackerNewsReferencesView(ILauncher launcher) => this.launcher = launcher;
+  public HackerNewsReferencesView(ILauncher launcher)
+  {
+    this.launcher = launcher;
+    IsVisible = false;
+  }
   public static readonly BindableProperty PresentationProperty = BindableProperty.Create(
       nameof(Presentation), typeof(HackerNewsPresentation), typeof(HackerNewsReferencesView),
       propertyChanged: (view, _, _) => ((HackerNewsReferencesView)view).Refresh());

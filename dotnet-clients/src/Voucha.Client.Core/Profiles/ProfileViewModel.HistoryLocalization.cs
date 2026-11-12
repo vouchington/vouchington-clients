@@ -18,7 +18,7 @@ public sealed partial class ProfileViewModel
     HistoryTabs = BuildTabs(userMetrics, SelectedHistoryTab);
     NotifyPrivateMetrics();
     BuildScopeTabs();
-    HistoryItems = HistoryItems.ToArray();
+    HistoryItems = HistoryItems.Select(row => row with { }).ToArray();
     TopicItems = TopicItems.Select(row => row.WithLocalization(localization)).ToArray();
     SourceItems = SourceItems.Select(row => row with { Localization = localization }).ToArray();
     CommunityItems = CommunityItems.Select(row => row with { Localization = localization }).ToArray();

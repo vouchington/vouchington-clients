@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Analytics;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
@@ -36,6 +37,8 @@ public sealed class RssFeedItemDetailViewModel :
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
+
+  public HackerNewsPresentation HackerNews => new(Detail?.Item.HackerNewsReferences, localization);
 
   public RssFeedItemDetail? Detail
   {
@@ -130,6 +133,7 @@ public sealed class RssFeedItemDetailViewModel :
 
   private void RaisePresentationChanged()
   {
+    OnPropertyChanged(nameof(HackerNews));
     OnPropertyChanged(nameof(UserContentSource));
     OnPropertyChanged(nameof(UserContentTitle));
     OnPropertyChanged(nameof(ExternalContentSummary));

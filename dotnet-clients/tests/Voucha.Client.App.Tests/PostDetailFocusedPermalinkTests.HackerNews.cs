@@ -13,8 +13,10 @@ namespace Voucha.Client.App.Tests;
 
 public sealed partial class PostDetailFocusedPermalinkTests
 {
-  [Fact]
-  public async Task RootStoredHackerNewsReferencesRenderFullLinksAndClearOnReload()
+  [Theory]
+  [InlineData("root")]
+  [InlineData("root-slug")]
+  public async Task RootStoredHackerNewsReferencesRenderFullLinksAndClearOnReload(string identifier)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
@@ -30,7 +32,7 @@ public sealed partial class PostDetailFocusedPermalinkTests
     {
       NextRoot = new PostResponse(root),
     };
-    var binding = new PostDetailPageBinding(new CommentThreadViewModel(service, root.Id), new SessionStore(SessionSnapshot.Anonymous));
+    var binding = new PostDetailPageBinding(new CommentThreadViewModel(service, identifier), new SessionStore(SessionSnapshot.Anonymous));
     var page = new PostDetailPage { BindingContext = binding };
     await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
     var control = Assert.Single(page.GetVisualTreeDescendants().OfType<HackerNewsReferencesView>());

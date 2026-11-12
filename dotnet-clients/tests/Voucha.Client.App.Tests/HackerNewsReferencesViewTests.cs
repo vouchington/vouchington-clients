@@ -15,6 +15,9 @@ public sealed class HackerNewsReferencesViewTests
   public async Task CompactAndDetailControlsRenderStoredReferencesAndOpenCanonicalLinks()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    var empty = new HackerNewsReferencesView();
+    Assert.False(empty.IsVisible);
+    Assert.Null(empty.Presentation);
     var launcher = new RecordingLauncher();
     var presentation = new HackerNewsPresentation(new(1, 1,
         [new(303, 301, DateTimeOffset.UnixEpoch)], [new(301, 42, DateTimeOffset.UnixEpoch, 7)]));

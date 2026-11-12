@@ -21,8 +21,8 @@ public sealed partial class VouchaApiClient
       string? after = null,
       int limit = 20,
       string? mediaType = null,
-      CancellationToken cancellationToken = default,
-      bool? hasHackerNewsReferences = null) =>
+      bool? hasHackerNewsReferences = null,
+      CancellationToken cancellationToken = default) =>
       SendAsync<RssFeedItemsFeedResponse>(
           VouchaApiEndpoints.AllRssFeedItems(after, limit, mediaType, hasHackerNewsReferences),
           cancellationToken);

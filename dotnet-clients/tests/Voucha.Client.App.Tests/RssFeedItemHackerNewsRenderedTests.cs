@@ -33,13 +33,17 @@ public sealed class RssFeedItemHackerNewsRenderedTests
         [new(303, 301, DateTimeOffset.UnixEpoch)], [new(301, 42, DateTimeOffset.UnixEpoch, 7)]);
     var service = new DetailService(new("item", "Title", "Source", "Summary", null, DateTimeOffset.UnixEpoch,
         kind, HackerNewsReferences: references));
-    var page = new RssFeedItemDetailPage(service, services, "item", kind, UiLocalization.English, locale);
+    var localization = new UiLocalization(locale);
+    var page = new RssFeedItemDetailPage(service, services, "item", kind, localization, locale);
     var model = Assert.IsType<RssFeedItemDetailViewModel>(page.BindingContext);
     await model.LoadAsync(TestContext.Current.CancellationToken);
     var control = Assert.Single(page.GetVisualTreeDescendants().OfType<HackerNewsReferencesView>());
     Assert.True(control.ShowDetails);
     Assert.True(control.IsVisible);
     Assert.Equal(2, control.Children.OfType<Button>().Count());
+    var english = Assert.IsType<Label>(control.Children[0]).Text;
+    locale.ApplySavedLocale("es");
+    Assert.NotEqual(english, Assert.IsType<Label>(control.Children[0]).Text);
     service.Item = service.Item with { HackerNewsReferences = null };
     await model.LoadAsync(TestContext.Current.CancellationToken);
     Assert.False(control.IsVisible);

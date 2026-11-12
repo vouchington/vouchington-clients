@@ -52,6 +52,25 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     AssertCompactTemplate(page, item);
   }
 
+  [Fact]
+  public void RelatedArticleCardsRenderCompactStoredReferences()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    InstallPageStyles();
+    var peer = new NewsFeedItem("peer", "Title", "Source", "Summary", null, DateTimeOffset.UnixEpoch,
+        HackerNewsReferences: new(2, 1));
+    var related = new StoryRelatedArticles("story", "primary", [peer], new PageInfo(null, false, null), UiLocalization.English)
+    {
+      IsExpanded = true,
+    };
+    var primary = peer with { Id = "primary", StoryArticles = related };
+    var view = new StoryRelatedArticlesView { PrimaryItem = primary };
+    var control = Assert.Single(VisualTreeElements.Descendants<HackerNewsReferencesView>(view));
+    Assert.True(control.IsVisible);
+    Assert.False(control.ShowDetails);
+    Assert.Equal("Seen on Hacker News · 1 · Mentioned · 2", Assert.IsType<Label>(Assert.Single(control.Children)).Text);
+  }
+
   private static void AssertCompactTemplate<T>(Page page, T row)
   {
     var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page), view => view.ItemsSource is IReadOnlyList<T>);

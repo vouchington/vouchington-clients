@@ -67,10 +67,11 @@ public partial class PostsPage : ContentPage
   private Task LoadCurrentAsync() =>
       mode == "browse" || !sessionStore.Current.IsAuthenticated
           ? viewModel.LoadBrowseAsync(postTypes, hasHackerNewsReferences: hasHackerNewsReferences)
-          : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek, hasHackerNewsReferences: hasHackerNewsReferences);
+          : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek);
 
   private async void OnHackerNewsClicked(object? sender, EventArgs e)
   {
+    mode = "browse";
     hasHackerNewsReferences = hasHackerNewsReferences == true ? null : true;
     await LoadCurrentAsync();
   }
@@ -79,6 +80,7 @@ public partial class PostsPage : ContentPage
   {
     mode = "feed";
     postTypes = null;
+    hasHackerNewsReferences = null;
     await LoadCurrentAsync();
   }
 

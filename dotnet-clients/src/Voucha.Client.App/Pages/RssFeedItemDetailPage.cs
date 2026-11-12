@@ -43,7 +43,7 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
     image.SetBinding(Image.SourceProperty, "Detail.Item.ThumbnailUrl");
     var embedPreview = CreateEmbedPreview();
     var hackerNews = new HackerNewsReferencesView { ShowDetails = true };
-    hackerNews.SetBinding(HackerNewsReferencesView.PresentationProperty, "Detail.Item.HackerNews");
+    hackerNews.SetBinding(HackerNewsReferencesView.PresentationProperty, nameof(RssFeedItemDetailViewModel.HackerNews));
     var source = BoundLabel(nameof(RssFeedItemDetailViewModel.UserContentSource), 13, FontAttributes.Bold);
     var title = BoundLabel(nameof(RssFeedItemDetailViewModel.UserContentTitle), 24, FontAttributes.Bold);
     var summary = new NativeHtmlContentView();

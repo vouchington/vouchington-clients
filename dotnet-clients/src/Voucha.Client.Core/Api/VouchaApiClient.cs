@@ -131,8 +131,7 @@ public sealed partial class VouchaApiClient
               request.After,
               request.Limit,
               request.PostTypes,
-              request.TimeRange,
-              request.HasHackerNewsReferences),
+              request.TimeRange),
           cancellationToken);
 
   public Task<NotificationsResponse> FetchNotificationsAsync(CancellationToken cancellationToken = default) =>

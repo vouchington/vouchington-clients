@@ -91,13 +91,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
       string feedType = "any",
       string? postTypes = null,
       string? timeRange = null,
-      bool? hasHackerNewsReferences = null,
       CancellationToken cancellationToken = default)
   {
     activeFeedType = feedType;
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
-    HackerNewsFilter = hasHackerNewsReferences;
+    HackerNewsFilter = null;
     browsing = false;
     endCursor = null;
     HasMore = true;
@@ -107,8 +106,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         {
           var response = await postsService
               .FetchFeedAsync(
-                  new FetchPostsFeedRequest(Feed: feedType, PostTypes: postTypes, TimeRange: timeRange,
-                      HasHackerNewsReferences: hasHackerNewsReferences),
+                  new FetchPostsFeedRequest(Feed: feedType, PostTypes: postTypes, TimeRange: timeRange),
                   cancellationToken)
               .ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);

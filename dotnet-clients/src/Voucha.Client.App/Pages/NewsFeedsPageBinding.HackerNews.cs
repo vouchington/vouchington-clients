@@ -10,8 +10,6 @@ public sealed partial class NewsFeedsPageBinding
 
   public bool IsHackerNewsFilterVisible => viewModel.IsHackerNewsFilterVisible;
 
-  public Task ToggleHackerNewsFilterAsync() => viewModel.ToggleHackerNewsFilterAsync();
-
   private void ForwardHackerNewsProperties(string? propertyName)
   {
     if (string.IsNullOrEmpty(propertyName) || propertyName == nameof(NewsFeedsViewModel.HackerNewsFilterLabel))

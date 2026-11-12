@@ -26,8 +26,7 @@ public sealed partial class PostsListViewModel
                   new FetchPostsRequest(PostTypes: activePostTypes, After: after, TimeRange: activeTimeRange,
                       HasHackerNewsReferences: activeHackerNewsFilter), cancellationToken).ConfigureAwait(true)
               : await postsService.FetchFeedAsync(
-                  new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes, TimeRange: activeTimeRange,
-                      HasHackerNewsReferences: activeHackerNewsFilter), cancellationToken).ConfigureAwait(true);
+                  new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes, TimeRange: activeTimeRange), cancellationToken).ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: true);
         },
         () => CompleteCanceled(currentRequest),
