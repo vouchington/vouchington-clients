@@ -175,7 +175,7 @@ public sealed class SourceCreationTests
     using var model = Model(service, session);
     model.Input = "https://example.test/feed.xml";
     var operation = model.CreateAsync();
-    await session.RefreshAsync();
+    await session.RefreshAsync(TestContext.Current.CancellationToken);
     Assert.True(model.IsBusy);
     accepted.SetResult(Submission());
     await operation;
