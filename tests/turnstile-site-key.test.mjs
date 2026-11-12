@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
+import { stepBlock } from './workflow-job-block.mjs'
 
 const read = relative => readFileSync(new URL(relative, import.meta.url), 'utf8')
 
@@ -76,8 +77,6 @@ test('Release archives and MAUI builds pass an explicit non-test site key', () =
     assert.match(workflow, /Print :VOUCHA_TURNSTILE_SITE_KEY/u)
   }
   assert.equal(contracts.split('-p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample').length - 1, 2)
-  const debugStart = contracts.indexOf('name: Build the Debug app and the Mac2 host')
-  const debugEnd = contracts.indexOf('name: Open the Mac2 notification settings session')
-  const debugBuild = contracts.slice(debugStart, debugEnd)
+  const debugBuild = stepBlock(contracts, 'Build the Debug app and the Mac2 host')
   assert.equal(debugBuild.includes('-p:VouchaTurnstileSiteKey='), false)
 })

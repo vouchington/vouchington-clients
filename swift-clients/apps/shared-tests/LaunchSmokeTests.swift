@@ -25,6 +25,9 @@ final class LaunchSmokeTests: XCTestCase {
 
         let rootShell = app.descendants(matching: .any)[Self.rootShellAccessibilityIdentifier]
         XCTAssertTrue(rootShell.waitForExistence(timeout: 20))
+        let signIn = app.buttons.matching(identifier: "signed-out-sign-in").firstMatch
+        XCTAssertTrue(signIn.waitForExistence(timeout: 20))
+        XCTAssertTrue(signIn.isHittable)
     }
 
     #if os(macOS)

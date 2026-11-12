@@ -10,7 +10,6 @@ namespace Voucha.Client.App;
 
 internal static class CatalystGuiPreflight
 {
-  internal const string LaunchArgument = "--ui-testing-launch-smoke";
   internal const string SharedIdentityFixtureId = "swift.my.identity.default";
   internal const string EmailPreferencesFixtureId = "native.my.email-preferences.default";
   private const string NotificationSettingsPath = "/my/notification-settings";
@@ -21,7 +20,7 @@ internal static class CatalystGuiPreflight
   {
     identityBody = string.Empty;
     emailPreferencesBody = string.Empty;
-    if (!Environment.GetCommandLineArgs().Contains(LaunchArgument)) return false;
+    if (!CatalystGuiLaunchOptions.FromArguments(Environment.GetCommandLineArgs()).IsActive) return false;
     var root = Environment.GetEnvironmentVariable("VOUCHA_CONTRACT_ROOT");
     if (!IsAbsoluteFixtureRoot(root)) return false;
     var fixtureRoot = Path.Combine(root!, "api-fixtures", "v1");
@@ -46,6 +45,7 @@ internal static class CatalystGuiPreflight
     DisablePreflightAnimations();
     var shell = services.GetRequiredService<AppShell>();
     var window = new Window(shell);
+    if (!CatalystGuiLaunchOptions.FromArguments(Environment.GetCommandLineArgs()).OpenNotifications) return window;
     EventHandler markReady = (_, _) =>
     {
       Interlocked.Exchange(ref windowReady, 1);
