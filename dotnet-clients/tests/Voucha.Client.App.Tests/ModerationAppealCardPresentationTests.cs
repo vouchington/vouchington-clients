@@ -160,6 +160,39 @@ public sealed class ModerationAppealCardPresentationTests
   }
 
   [Fact]
+  public async Task TerminalAIRerunFailureRendersRetryAfterReleasingAdmission()
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    _ = new Application { Resources =
+    {
+      [UiMessageKey.NativeSwiftModerationAppealsRerunAi.Value] = UiCopy.Localize(
+          UiMessageKey.NativeSwiftModerationAppealsRerunAi),
+      [UiMessageKey.NativeSwiftReviewDisputesRefreshStatus.Value] = UiCopy.Localize(
+          UiMessageKey.NativeSwiftReviewDisputesRefreshStatus),
+    } };
+    var appeal = Appeal(null) with
+    {
+      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
+    };
+    using var viewModel = new ModerationAppealsViewModel(
+        new PendingAIRerunService(appeal, runStatus: ModerationRunStatus.Failed),
+        new NavigationViewer(true, ["administrator"]));
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.FetchDetailAsync(appeal.Id, TestContext.Current.CancellationToken);
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+    var card = new ModerationAppealCardView(viewModel) { BindingContext = viewModel.Appeals.Single() };
+    var buttons = card.Children.OfType<HorizontalStackLayout>()
+        .SelectMany(layout => layout.Children.OfType<Button>()).ToArray();
+
+    Assert.False(viewModel.IsAIRerunPending(appeal));
+    Assert.True(buttons.Single(button => button.Text == UiCopy.Localize(
+        UiMessageKey.NativeSwiftModerationAppealsRerunAi)).IsEnabled);
+    Assert.False(card.Children.OfType<Button>().Single(button => button.Text == UiCopy.Localize(
+        UiMessageKey.NativeSwiftReviewDisputesRefreshStatus)).IsVisible);
+  }
+
+  [Fact]
   public async Task AmbiguousDeliveryRetainsItsLocalizedRefreshAction()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
@@ -232,7 +265,10 @@ public sealed class ModerationAppealCardPresentationTests
     Assert.Empty(card.Children);
   }
 
-  private sealed class PendingAIRerunService(ModerationAppeal appeal, bool ambiguousDelivery = false) : IModerationAppealsService
+  private sealed class PendingAIRerunService(
+      ModerationAppeal appeal,
+      bool ambiguousDelivery = false,
+      ModerationRunStatus? runStatus = null) : IModerationAppealsService
   {
     private bool detailOpened;
     public Task<StaffModerationAppealListResponse> FetchAppealsAsync(
@@ -245,6 +281,13 @@ public sealed class ModerationAppealCardPresentationTests
         !detailOpened && (detailOpened = true)
             ? Task.FromResult(new ModerationAppealResponse(appeal))
             : throw new HttpRequestException("status unavailable");
+
+    public Task<ModerationAppealResolutionDraftRunResponse> FetchAIRerunAsync(
+        string appealId, string runId, CancellationToken cancellationToken = default) =>
+        runStatus is { } status
+            ? Task.FromResult(new ModerationAppealResolutionDraftRunResponse(
+                null, null, runId, status))
+            : throw new HttpRequestException("run status unavailable");
 
     public Task<ModerationAppealQueueResponse> RerunResolutionDraftAsync(
         string id, CancellationToken cancellationToken = default) =>

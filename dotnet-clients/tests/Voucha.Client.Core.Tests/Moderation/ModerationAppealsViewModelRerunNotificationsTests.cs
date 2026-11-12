@@ -56,9 +56,9 @@ public sealed partial class ModerationAppealsViewModelTests
         admissionStore: store, apiBaseUrl: new Uri("https://example.test/api"));
     await first.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var appeal = first.Appeals.Single();
-    var held = new TaskCompletionSource<ModerationAppealResponse>(
+    var held = new TaskCompletionSource<ModerationAppealResolutionDraftRunResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
-    service.PendingDetail = held;
+    service.PendingRun = held;
     var rerun = first.RerunAsync(appeal, TestContext.Current.CancellationToken);
     Assert.True(first.IsAIRerunPending(appeal));
     first.Dispose();
@@ -84,11 +84,8 @@ public sealed partial class ModerationAppealsViewModelTests
       if (args.PropertyName == nameof(ModerationAppealsViewModel.Appeals)) otherOwnerNotifications++;
     };
 
-    held.SetResult(new ModerationAppealResponse(appeal with
-    {
-      AiDraftedAt = appeal.AiDraftedAt?.AddMinutes(1),
-      LatestLifecycleChangeId = "new-change",
-    }));
+    service.Current = appeal with { AiDraftRunId = service.RunId, AiDraftRequestedRunId = service.RunId };
+    held.SetResult(Run(service.RunId, ModerationRunStatus.Succeeded));
     await rerun;
     await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
