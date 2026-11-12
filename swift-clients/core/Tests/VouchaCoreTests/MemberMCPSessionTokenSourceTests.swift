@@ -135,6 +135,12 @@ final class MemberMCPSessionTokenSourceTests: XCTestCase {
         try await waitForRequests(1)
 
         await source.clear()
+        // Release only after the transport has seen the cancellation; answering a request URLSession
+        // already completed as cancelled resumes its continuation twice on newer Linux toolchains.
+        for _ in 0 ..< 500 where SessionMCPMintProtocol.stopCount(host: host) < 1 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertGreaterThanOrEqual(SessionMCPMintProtocol.stopCount(host: host), 1)
         SessionMCPMintProtocol.releaseHeld(host: host)
 
         await assertNotAuthorized { _ = try await pending.value }

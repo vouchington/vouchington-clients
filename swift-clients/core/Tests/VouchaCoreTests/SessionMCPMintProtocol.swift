@@ -22,6 +22,7 @@ final class SessionMCPMintProtocol: URLProtocol, @unchecked Sendable {
         var expiresIn = 3_600
         var holding = false
         var held: [SessionMCPMintProtocol] = []
+        var stopCount = 0
     }
 
     private nonisolated(unsafe) static var states: [String: State] = [:]
@@ -49,6 +50,11 @@ final class SessionMCPMintProtocol: URLProtocol, @unchecked Sendable {
 
     static func seen(host: String) -> [Seen] {
         withState(host) { $0.seen }
+    }
+
+    /// Number of loads the transport has stopped, which is how a cancelled request is observed.
+    static func stopCount(host: String) -> Int {
+        withState(host) { $0.stopCount }
     }
 
     /// Completes every held mint with the configured response.
@@ -100,6 +106,7 @@ final class SessionMCPMintProtocol: URLProtocol, @unchecked Sendable {
         let host = request.url?.host ?? ""
         Self.withState(host) { state in
             stopped = true
+            state.stopCount += 1
             state.held.removeAll { $0 === self }
         }
     }

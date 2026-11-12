@@ -11,7 +11,6 @@ public final class NativeChatMCPSessionBoundService: NativeChatMCPServicing {
 
     private struct Context {
         let accountId: String
-        let tokens: MemberMCPSessionTokenSource
         let authorized: MemberMCPSessionAuthorizedClient
     }
 
@@ -99,7 +98,7 @@ public final class NativeChatMCPSessionBoundService: NativeChatMCPServicing {
         )
         let client = try MemberMCPClient(siteOrigin: siteOrigin, protocolClasses: protocolClasses)
         let made = Context(
-            accountId: accountId, tokens: tokens,
+            accountId: accountId,
             authorized: MemberMCPSessionAuthorizedClient(client: client, tokens: tokens)
         )
         context = made
