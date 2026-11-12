@@ -7,6 +7,37 @@ namespace Voucha.Client.Core.Tests.Posts;
 
 public sealed class PostsListViewModelBoundedWindowTests
 {
+  [Theory]
+  [InlineData("hot")]
+  [InlineData("new")]
+  [InlineData("best")]
+  [InlineData("trending")]
+  public void BrowseDefaultsToServerWindowForEverySortAndScope(string sort)
+  {
+    var request = VouchaApiEndpoints.AllPosts(new FetchPostsRequest(
+        PostTypes: "review,data_point", Topics: "topic-1", ReviewTopic: "topic-2",
+        Creator: "user-1", DataPointVertical: "travel", Sort: sort));
+
+    Assert.False(request.Query.ContainsKey("time_range"));
+    Assert.Equal(sort, request.Query["sort"]);
+    Assert.Equal("review,data_point", request.Query["post_types"]);
+    Assert.Equal("topic-1", request.Query["topics"]);
+    Assert.Equal("topic-2", request.Query["review_topic"]);
+    Assert.Equal("user-1", request.Query["creator"]);
+    Assert.Equal("travel", request.Query["data_point_vertical"]);
+  }
+
+  [Fact]
+  public void PostPickerSearchIncludesOlderPosts()
+  {
+    Assert.False(VouchaApiEndpoints.SearchPosts("ordinary search").Query.ContainsKey("time_range"));
+    var request = VouchaApiEndpoints.SearchPosts("older discussion", 8, PostTimeRanges.AllTime);
+
+    Assert.Equal("all", request.Query["time_range"]);
+    Assert.Equal("older discussion", request.Query["q"]);
+    Assert.Equal("8", request.Query["limit"]);
+  }
+
   [Fact]
   public void FeedAndBrowseEndpointsOmitTimeRangeByDefaultAndSendFiniteRangesExactly()
   {

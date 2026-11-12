@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Posts;
 using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
@@ -75,7 +76,7 @@ public sealed partial class TagManagementViewModel
       {
         "topic" => (await client.SearchTopicsAsync(new SearchTopicsRequest(query), cancellationToken).ConfigureAwait(true)).Topics
             .Values.Select(topic => new TagSearchResultRow(topic.Id, topic.Name, topic.Slug)).ToArray(),
-        "post" => (await client.SearchPostsAsync(query, 10, cancellationToken).ConfigureAwait(true)).Posts
+        "post" => (await client.SearchPostsAsync(query, 10, PostTimeRanges.AllTime, cancellationToken).ConfigureAwait(true)).Posts
             .Values.Select(post => new TagSearchResultRow(post.Id, post.Title ?? post.Slug ?? post.Id, post.PostType)).ToArray(),
         "url" => (await client.SearchUrlsAsync(query: query, limit: 10, cancellationToken: cancellationToken).ConfigureAwait(true)).Results
             .Select(url => new TagSearchResultRow(url.Id, url.UrlValue, url.Hostname?.HostnameValue)).ToArray(),

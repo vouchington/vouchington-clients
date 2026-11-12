@@ -60,13 +60,21 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/topics", queryItems: items)
     }
 
-    static func posts(query: String? = nil, limit: Int = 25, after: String? = nil) -> Endpoint {
+    static func posts(
+        query: String? = nil,
+        limit: Int = 25,
+        after: String? = nil,
+        timeRange: String? = nil
+    ) -> Endpoint {
         var items: [URLQueryItem] = [
             .init(name: "limit", value: "\(limit)"),
             .init(name: "sort", value: "relevance")
         ]
         if let query {
             items.append(.init(name: "q", value: query))
+        }
+        if let timeRange {
+            items.append(.init(name: "time_range", value: timeRange))
         }
         if let after {
             items.append(.init(name: "after", value: after))

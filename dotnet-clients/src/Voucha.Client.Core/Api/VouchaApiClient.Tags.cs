@@ -5,9 +5,10 @@ public sealed partial class VouchaApiClient
   public Task<PostsFeedResponse> SearchPostsAsync(
       string query,
       int limit = 10,
+      string? timeRange = null,
       CancellationToken cancellationToken = default) =>
       SendAsync<PostsFeedResponse>(
-          VouchaApiEndpoints.SearchPosts(query, limit),
+          VouchaApiEndpoints.SearchPosts(query, limit, timeRange),
           cancellationToken);
 
   public Task VoteEntityRelationAsync(

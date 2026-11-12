@@ -71,6 +71,12 @@ final class NativeTagManagementViewModelTests: NativeRouteSurfaceViewModelTestCa
         await viewModel.search()
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/posts" }, true)
+        let searchURL = try XCTUnwrap(CannedFeedURLProtocol.capturedURLs.first { $0.path == "/api/v1/posts" })
+        XCTAssertEqual(
+            URLComponents(url: searchURL, resolvingAgainstBaseURL: false)?.queryItems?
+                .first { $0.name == "time_range" }?.value,
+            "all"
+        )
         if case let .error(error) = viewModel.searchState {
             XCTFail("Expected post search to load, got \(error)")
         }

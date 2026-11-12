@@ -161,7 +161,7 @@ public final class ViewModelFactory {
     ///
     /// - Parameter feedType: Feed path segment (e.g. `"any"`, `"follow_users"`). Defaults to `"any"`.
     public func makePostsListViewModel(feedType: String = "any") -> PostsListViewModel {
-        PostsListViewModel(client: apiClient, feedType: feedType)
+        PostsListViewModel(client: apiClient, feedType: feedType, timeRange: .lastWeek)
     }
 
     /// Creates a view model for the notifications feed.

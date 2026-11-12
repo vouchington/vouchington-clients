@@ -19,7 +19,10 @@ extension NativeRouteSurfaceViewModel {
             }
             endpoint = Endpoint(.GET, path: "/api/v1/posts", queryItems: query)
         } else {
-            endpoint = .posts(feedType: postFeedType, after: after, limit: 10, postTypes: postTypes)
+            endpoint = .posts(
+                feedType: postFeedType, after: after, limit: 10, postTypes: postTypes,
+                timeRange: PostTimeRange.lastWeek.rawValue
+            )
         }
         let response: NativePostFeedResponse = try await client.send(endpoint)
         let rows = response.results.compactMap { result -> NativeForwardRow? in
