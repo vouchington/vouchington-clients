@@ -1,6 +1,4 @@
 import SwiftUI
-import VouchaAuth
-import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 

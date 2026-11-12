@@ -1,4 +1,6 @@
 import SwiftUI
+import VouchaAuth
+import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -20,6 +22,16 @@ let nativeProfileReportReasons = [
 ]
 
 extension NativeDetailSurface {
+    var turnstileChallenge: NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: .reportsCreate,
+            baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            handleReportTurnstileToken(token)
+        }
+    }
+
     @ViewBuilder
     var reportingControls: some View {
         if isSignedIn, viewModel.detailReportTarget != nil {
