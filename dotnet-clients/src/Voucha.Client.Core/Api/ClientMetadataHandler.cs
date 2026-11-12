@@ -33,7 +33,7 @@ public sealed partial class ClientMetadataHandler(
           request.Options.TryGetValue(CoordinatedSignOut, out var locallyCleared) && locallyCleared))
     {
       if (request.RequestUri.AbsolutePath == "/api/v1/auth/logout") cookieJar.Invalidate();
-      else cookieJar.AdvanceGeneration();
+      else request.Options.Set(AuthenticationDispatch, cookieJar.AdvanceGeneration());
     }
     ApplyMetadata(request);
     if (!IsSessionEndpoint(request.RequestUri) && request.RequestUri.AbsolutePath != "/api/v1/auth/logout")

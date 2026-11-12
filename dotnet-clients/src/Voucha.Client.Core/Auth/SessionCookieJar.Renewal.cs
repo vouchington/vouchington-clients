@@ -6,7 +6,9 @@ public sealed partial class SessionCookieJar
 {
   private readonly object renewalLock = new();
   private Task? renewalTask;
-  private long renewalGeneration;
+  private long renewalTaskEpoch;
+  // Authentication dispatch fences older responses without abandoning consumed renewal credentials.
+  private long renewalEpoch;
   private long generation;
   private long credentialRevision;
 
@@ -16,12 +18,15 @@ public sealed partial class SessionCookieJar
 
   public long Generation => Interlocked.Read(ref generation);
 
+  private long RenewalEpoch => Interlocked.Read(ref renewalEpoch);
+
   public event EventHandler? SessionInvalidated;
 
   internal long AdvanceGeneration() => Interlocked.Increment(ref generation);
 
   public long Invalidate()
   {
+    Interlocked.Increment(ref renewalEpoch);
     var epoch = AdvanceGeneration();
     SessionInvalidated?.Invoke(this, EventArgs.Empty);
     return epoch;
@@ -36,10 +41,10 @@ public sealed partial class SessionCookieJar
     Task shared;
     lock (renewalLock)
     {
-      var epoch = Generation;
-      if (renewalTask is null || renewalTask.IsCompleted || renewalGeneration != epoch)
+      var epoch = RenewalEpoch;
+      if (renewalTask is null || renewalTask.IsCompleted || renewalTaskEpoch != epoch)
       {
-        renewalGeneration = epoch;
+        renewalTaskEpoch = epoch;
         renewalTask = RenewInternalAsync(renew, bootstrap, epoch);
       }
       shared = renewalTask;
@@ -69,7 +74,7 @@ public sealed partial class SessionCookieJar
       await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
       try
       {
-        if (epoch != Generation) throw new UnauthorizedAccessException("Session changed during renewal.");
+        if (epoch != RenewalEpoch) throw new UnauthorizedAccessException("Session changed during renewal.");
         if (revision != CredentialRevision) return;
         var now = DateTimeOffset.UtcNow;
         SetCookie("dt", replacement.Dt, now.AddSeconds(replacement.Dte), replacement.Secure);
@@ -94,7 +99,7 @@ public sealed partial class SessionCookieJar
     }
     catch (Exception ex) when (IsUnusableRenewal(ex))
     {
-      await ClearIfCurrentAsync(epoch, revision).ConfigureAwait(false);
+      await ClearRenewalIfCurrentAsync(epoch, revision).ConfigureAwait(false);
       throw;
     }
   }
@@ -108,8 +113,23 @@ public sealed partial class SessionCookieJar
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
-      if (epoch != Generation) throw new UnauthorizedAccessException("Session changed before renewal.");
+      if (epoch != RenewalEpoch) throw new UnauthorizedAccessException("Session changed before renewal.");
       return (ReadCookie("dt")?.Value, ReadCookie("st")?.Value, CredentialRevision);
+    }
+    finally
+    {
+      sync.Release();
+    }
+  }
+
+  private async Task ClearRenewalIfCurrentAsync(long epoch, long revision)
+  {
+    await sync.WaitAsync().ConfigureAwait(false);
+    try
+    {
+      if (epoch != RenewalEpoch || revision != CredentialRevision) return;
+      Invalidate();
+      await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
     }
     finally
     {

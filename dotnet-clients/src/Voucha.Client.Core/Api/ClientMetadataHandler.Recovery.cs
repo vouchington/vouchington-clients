@@ -4,6 +4,7 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class ClientMetadataHandler
 {
+  internal static readonly HttpRequestOptionsKey<long> AuthenticationDispatch = new("Voucha.AuthenticationDispatch");
   internal static readonly HttpRequestOptionsKey<bool> AuthenticationTransition = new("Voucha.AuthenticationTransition");
   internal static readonly HttpRequestOptionsKey<(long Generation, long Revision)> SessionDispatch = new("Voucha.SessionDispatch");
 

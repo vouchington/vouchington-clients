@@ -5,7 +5,7 @@ public sealed partial class SessionCookieJar
   public Task WaitForRenewalAsync(CancellationToken cancellationToken = default)
   {
     lock (renewalLock)
-      return (renewalGeneration == Generation && renewalTask is { IsCompleted: false } pending ? pending : Task.CompletedTask)
+      return (renewalTaskEpoch == RenewalEpoch && renewalTask is { IsCompleted: false } pending ? pending : Task.CompletedTask)
           .WaitAsync(cancellationToken);
   }
 
@@ -21,7 +21,7 @@ public sealed partial class SessionCookieJar
       {
         lock (renewalLock)
         {
-          pending = !sessionRequest && renewalGeneration == Generation && renewalTask is { IsCompleted: false } ? renewalTask : null;
+          pending = !sessionRequest && renewalTaskEpoch == RenewalEpoch && renewalTask is { IsCompleted: false } ? renewalTask : null;
           if (pending is null) return (Generation, CredentialRevision, GetCookieHeader(uri));
         }
       }

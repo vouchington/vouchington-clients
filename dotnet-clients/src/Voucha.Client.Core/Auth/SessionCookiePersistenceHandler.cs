@@ -50,8 +50,11 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
             request.Options.TryGetValue(Voucha.Client.Core.Api.ClientMetadataHandler.AuthenticationTransition, out var transition) &&
             transition && setCookieHeaders.Any(header =>
                 header.TrimStart().StartsWith("dt=", StringComparison.Ordinal) || header.TrimStart().StartsWith("st=", StringComparison.Ordinal));
+        var responseGeneration = request.Options.TryGetValue(
+            Voucha.Client.Core.Api.ClientMetadataHandler.AuthenticationDispatch, out var authenticationGeneration)
+            ? authenticationGeneration : snapshot.Generation;
         await cookieJar.ApplyResponseCookiesAsync(
-            request.RequestUri, setCookieHeaders, snapshot.Generation, snapshot.Revision, authenticationCommit, persistTimeout.Token).ConfigureAwait(false);
+            request.RequestUri, setCookieHeaders, responseGeneration, snapshot.Revision, authenticationCommit, persistTimeout.Token).ConfigureAwait(false);
       }
       catch (TaskCanceledException)
       {
