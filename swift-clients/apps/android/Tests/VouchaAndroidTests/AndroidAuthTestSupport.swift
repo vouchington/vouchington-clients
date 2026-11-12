@@ -166,3 +166,12 @@ func androidRotatedCookieValues() throws -> [String] {
     let tokens = try XCTUnwrap(response?["session"] as? [String: Any])
     return try [XCTUnwrap(tokens["dt"] as? String), XCTUnwrap(tokens["st"] as? String)].sorted()
 }
+
+func seedAndroidSessionCredentials(_ storage: AndroidSessionCookieStorage, origin: URL) throws {
+    let host = try XCTUnwrap(origin.host)
+    for (name, value) in [("dt", "existing-device-session"), ("st", "existing-member-session")] {
+        try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
+            .domain: host, .path: "/", .name: name, .value: value, .secure: "TRUE"
+        ])))
+    }
+}

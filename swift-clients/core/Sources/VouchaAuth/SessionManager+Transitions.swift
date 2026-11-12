@@ -68,7 +68,7 @@ public extension SessionManager {
         generation &+= 1
         refreshTask = nil
         isRefreshing = false
-        client.invalidateSessionRequests()
+        // The identity generation fences publication without discarding a pending credential rotation.
         state = .signedIn(
             userId: user.id,
             username: user.username,
