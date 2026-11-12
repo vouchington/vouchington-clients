@@ -49,7 +49,9 @@ public extension APIClient {
         guard status == 202 else { throw VouchaError.api(statusCode: status, preconditionCode: nil) }
         do {
             let accepted = try decoder.decode(RssFeedDeletionAcceptance.self, from: data)
-            return .accepted(rssFeedId: accepted.rssFeedId)
+            switch accepted.status {
+            case .deleting: return .accepted(rssFeedId: accepted.rssFeedId)
+            }
         } catch let error as DecodingError {
             throw VouchaError.decodingFailed(error)
         }
