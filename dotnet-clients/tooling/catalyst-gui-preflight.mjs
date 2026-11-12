@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { assertNotificationControls } from './catalyst-gui-notification-session.mjs'
+
+import { notificationEvidence } from '../../scripts/catalyst-notification-evidence.mjs'
 
 const launchArgument = '--ui-testing-launch-smoke'
 const bundleId = 'ai.voucha.dotnet'
@@ -165,6 +167,11 @@ async function writePageSource(request, sessionId) {
 }
 
 async function session() {
+  const resultPath = process.env.CATALYST_GUI_RESULT
+  if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
+  rmSync(resultPath, { force: true })
+  const { commit } = JSON.parse(readFileSync('contracts/vouchington.json', 'utf8'))
+  const nativeRevision = process.env.CATALYST_NATIVE_REVISION
   const appPath = process.env.CATALYST_APP_PATH
   if (!appPath || !existsSync(appPath))
     throw new Error('CATALYST_APP_PATH must be the Debug Mac Catalyst app')
@@ -197,15 +204,14 @@ async function session() {
     })
     sessionId = created.value?.sessionId ?? created.sessionId
     if (!sessionId) throw new Error('Mac2 did not return a session id')
+    let checks
     try {
-      await assertNotificationControls(request, sessionId)
+      checks = await assertNotificationControls(request, sessionId)
     } catch (error) {
       await writePageSource(request, sessionId)
       throw error
     }
-    const resultPath = process.env.CATALYST_GUI_RESULT
-    if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
-    writeFileSync(resultPath, JSON.stringify({ total: 3, passed: 3, failed: 0, skipped: 0 }))
+    writeFileSync(resultPath, JSON.stringify(notificationEvidence(checks, nativeRevision, commit)))
   } finally {
     if (sessionId) {
       await request('DELETE', `/session/${sessionId}`).catch(() => undefined)

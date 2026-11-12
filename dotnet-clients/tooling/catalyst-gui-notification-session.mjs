@@ -4,13 +4,20 @@ const newsDigestId = 'notification-news-digest'
 const headingId = 'notification-preferences-heading'
 
 export async function assertNotificationControls(request, sessionId) {
+  const checks = []
+  function passed(name) {
+    const check = { name, status: 'passed' }
+    checks.push(check)
+  }
   await findElement(request, sessionId, headingId, 75_000)
+  passed('heading-exposed')
   const moderation = await findElement(request, sessionId, moderationId, 10_000)
   await waitUntil(request, sessionId, moderation, 'enabled', isEnabled, 10_000)
   const moderationValue = switchState(await attribute(request, sessionId, moderation, 'value'))
   if (moderationValue !== true) {
     throw new Error(`moderation switch was ${String(moderationValue)}, expected on`)
   }
+  passed('moderation-on-and-enabled')
   const engagement = await findElement(request, sessionId, engagementId, 15_000)
   await waitUntil(request, sessionId, engagement, 'enabled', isEnabled, 15_000)
   const before = switchState(await attribute(request, sessionId, engagement, 'value'))
@@ -18,8 +25,11 @@ export async function assertNotificationControls(request, sessionId) {
   await request('POST', elementPath(sessionId, engagement, 'click'), {})
   const after = await waitForSettledSwitch(request, sessionId, engagement, !before, 15_000)
   if (after === before) throw new Error(`engagement switch stayed ${before}`)
+  passed('engagement-mutation-settled')
   const news = await findElement(request, sessionId, newsDigestId, 10_000)
   await waitUntil(request, sessionId, news, 'enabled', isEnabled, 10_000)
+  passed('news-digest-enabled')
+  return checks
 }
 
 function elementPath(sessionId, element, command) {

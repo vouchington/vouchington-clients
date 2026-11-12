@@ -161,7 +161,9 @@ argument, the canonical `swift.my.identity.default` fixture, and
 `native.my.email-preferences.default`. The session opens the production app shell, routes to
 `/my/notification-settings`, requires the moderation switch to be enabled and on, toggles the
 engagement switch, and requires the news-digest picker to be enabled. It counts only when all three
-checks pass and nothing was skipped. The other five notification controls, route focus, and the
+control assertions pass and nothing was skipped. Named assertion evidence is checked against the
+verified native revision and producer pin; see [the evidence contract](native-shell-notification-evidence.md).
+The other five notification controls, route focus, and the
 one-announcement proof remain open. #60 stays open for those checks. The Debug fixture transport is
 compiled out of Release. The existing MAUI job still builds Release and runs linked page tests;
 those are not this session.
