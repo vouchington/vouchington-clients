@@ -18,9 +18,9 @@ extension NativeRouteSurfaceViewModel {
         return requested.flatMap { PostTimeRange.listOptions.contains($0) ? $0 : nil } ?? .last30Days
     }
 
-    /// The ordinary 30-day default is represented by an omitted parameter.
-    var postTimeRangeQueryValue: String? {
-        postTimeRange == .last30Days ? nil : postTimeRange.rawValue
+    /// Explicitly bound the request: omission disables the producer age filter.
+    var postTimeRangeQueryValue: String {
+        postTimeRange.rawValue
     }
 
     func postTimeRangePath(_ range: PostTimeRange) -> String {

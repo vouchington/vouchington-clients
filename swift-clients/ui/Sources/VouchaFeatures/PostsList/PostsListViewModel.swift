@@ -51,7 +51,7 @@ public final class PostsListViewModel {
         }
     }
 
-    /// Selected finite window. `nil` selects the server default of 30 days and omits `time_range`.
+    /// Selected finite window. `nil` selects the native 30-day default.
     public private(set) var timeRange: PostTimeRange?
 
     var inFlightVotePostIds: Set<String> = []
@@ -167,7 +167,7 @@ public final class PostsListViewModel {
         hasHackerNewsReferences && supportsHackerNewsFilter
             ? Endpoint.postsFeed(
                 postTypes: filter.postTypes,
-                timeRange: timeRange?.rawValue,
+                timeRange: (timeRange ?? .last30Days).rawValue,
                 hasHackerNewsReferences: true,
                 sort: "hot",
                 after: cursor
@@ -176,7 +176,7 @@ public final class PostsListViewModel {
                 feedType: feedType,
                 after: cursor,
                 postTypes: filter.postTypes,
-                timeRange: timeRange?.rawValue
+                timeRange: (timeRange ?? .last30Days).rawValue
             )
     }
 

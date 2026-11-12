@@ -47,7 +47,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
             .queryItems?.first { $0.name == name }?.value
     }
 
-    func testDefaultOmitsTimeRangeAndSelecting30DaysKeepsDefault() async {
+    func testDefaultSendsExplicitMonthAndSelecting30DaysKeepsDefault() async {
         CannedFeedURLProtocol.handlers[path] = (page(["a"], hasNext: false, cursor: nil), 200)
         let vm = makeViewModel()
         await vm.load()
@@ -56,7 +56,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
 
         let urls = CannedFeedURLProtocol.capturedURLs
         XCTAssertEqual(urls.count, 1)
-        XCTAssertNil(queryItem("time_range", in: urls[0]))
+        XCTAssertEqual(queryItem("time_range", in: urls[0]), "1m")
         XCTAssertNil(vm.timeRange)
     }
 
@@ -79,7 +79,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
         XCTAssertEqual(vm.items.map(\.id), ["a", "b", "c"])
     }
 
-    func testChangingRangeDiscardsRowsCursorAndBookmarksThenDefaultOmitsParameter() async {
+    func testChangingRangeDiscardsRowsCursorAndBookmarksThenDefaultSendsMonth() async {
         CannedFeedURLProtocol.queuedHandlers[path] = [
             (page(["old"], hasNext: true, cursor: "old-cursor"), 200, 0),
             (page(["year"], hasNext: true, cursor: "year-cursor"), 200, 0),
@@ -98,7 +98,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
         XCTAssertFalse(vm.hasMore)
         let urls = CannedFeedURLProtocol.capturedURLs
         XCTAssertEqual(urls.map { queryItem("after", in: $0) }, [nil, nil, nil])
-        XCTAssertEqual(urls.map { queryItem("time_range", in: $0) }, [nil, "1y", nil])
+        XCTAssertEqual(urls.map { queryItem("time_range", in: $0) }, ["1m", "1y", "1m"])
     }
 
     func testHasNextPageWithoutCursorIsTerminal() async {

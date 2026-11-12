@@ -19,7 +19,7 @@ public extension Endpoint {
         postTypes: String? = nil,
         after: String? = nil,
         limit: Int = 25,
-        timeRange: String? = nil
+        timeRange: String? = "1m"
     ) -> Endpoint {
         var items = [
             URLQueryItem(name: "creator", value: userId),

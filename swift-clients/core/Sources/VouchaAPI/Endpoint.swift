@@ -104,7 +104,7 @@ public extension Endpoint {
         if let postTypes {
             items.append(.init(name: "post_types", value: postTypes))
         }
-        // Omitted by default: the server applies its 30-day window for every sort.
+        // Feed callers supply their explicit window; omission leaves the producer age filter disabled.
         if let timeRange {
             items.append(.init(name: "time_range", value: timeRange))
         }

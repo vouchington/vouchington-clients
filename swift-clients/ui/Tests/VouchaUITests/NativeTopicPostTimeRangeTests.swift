@@ -20,7 +20,7 @@ final class NativeTopicPostTimeRangeTests: NativeRouteSurfaceViewModelTestCase {
             ("data-points", "data_point_topic", "data_point")
         ] {
             let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/\(suffix)"))
-            for (range, expected) in [("1w", "1w"), ("1m", nil), ("1y", "1y"), ("all", "all")] {
+            for (range, expected) in [("1w", "1w"), ("1m", "1m"), ("1y", "1y"), ("all", "all")] {
                 let model = NativeRouteSurfaceViewModel(
                     entry: route.entry, client: client, routeMatch: route.match,
                     routeQuery: "time_range=\(range)"

@@ -12,9 +12,7 @@ extension NativeRouteSurfaceViewModel {
                 URLQueryItem(name: "sort", value: topicPostSort)
             ]
             try await query.append(contentsOf: topicPostQueryItems(client: client))
-            if let range = postTimeRangeQueryValue {
-                query.append(.init(name: "time_range", value: range))
-            }
+            query.append(.init(name: "time_range", value: postTimeRangeQueryValue))
             if hasHackerNewsReferences {
                 query.append(.init(name: "has_hacker_news_references", value: "true"))
             }

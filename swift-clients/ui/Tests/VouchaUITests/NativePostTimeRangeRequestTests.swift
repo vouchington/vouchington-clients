@@ -20,7 +20,7 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
         XCTAssertEqual(query("after", url: urls.last), "older==")
     }
 
-    func testOrdinaryBrowseRetainsOmittedDefaultWithCursor() async throws {
+    func testOrdinaryBrowseSendsExplicitMonthlyDefaultWithCursor() async throws {
         let path = "/api/v1/posts"
         registerEmptyPage(path: path)
         let client = try makeClient()
@@ -29,7 +29,7 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
         _ = try await viewModel.loadPostPage(client: client, after: "older==")
 
         let url = try XCTUnwrap(CannedFeedURLProtocol.capturedURLs.last)
-        XCTAssertNil(query("time_range", url: url))
+        XCTAssertEqual(query("time_range", url: url), "1m")
         XCTAssertEqual(query("sort", url: url), "hot")
         XCTAssertEqual(query("after", url: url), "older==")
     }
@@ -40,7 +40,7 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
         let client = try makeClient()
         for routePath in ["/posts", "/reviews", "/discussions", "/data-points"] {
             let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: routePath))
-            for (value, expected) in [("1w", "1w"), ("1m", nil), ("1y", "1y"), ("all", "all")] {
+            for (value, expected) in [("1w", "1w"), ("1m", "1m"), ("1y", "1y"), ("all", "all")] {
                 let model = NativeRouteSurfaceViewModel(
                     entry: route.entry, client: client, routeMatch: route.match,
                     routeQuery: "time_range=\(value)"
@@ -70,7 +70,7 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
                 _ = try await model.userPostPage(userId: "alice", filter: .all, after: nil, client: client)
                 _ = try await model.userPostPage(userId: "alice", filter: .all, after: "profile==", client: client)
                 let urls = Array(CannedFeedURLProtocol.capturedURLs.suffix(2))
-                let expected: String? = range == "1m" ? nil : range
+                let expected: String? = range
                 XCTAssertEqual(urls.map { query("time_range", url: $0) }, [expected, expected])
                 XCTAssertEqual(query("creator", url: urls.last), "alice")
                 XCTAssertEqual(query("after", url: urls.last), "profile==")
@@ -85,7 +85,7 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
                 entry: route.entry, client: nil, routeMatch: route.match, routeQuery: query
             )
             XCTAssertEqual(model.postTimeRange, .last30Days)
-            XCTAssertNil(model.postTimeRangeQueryValue)
+            XCTAssertEqual(model.postTimeRangeQueryValue, "1m")
         }
     }
 
