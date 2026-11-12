@@ -22,9 +22,13 @@ public partial class ReferralLinksPage
 
   private void ConfigurePagination()
   {
+    FeedPaginationControl.LoadNextPageRequested += OnLoadMoreFeedRequested;
     LinksPaginationControl.LoadNextPageRequested += OnLoadMoreMineRequested;
     AnalyticsPaginationControl.LoadNextPageRequested += OnLoadMoreAnalyticsRequested;
   }
+
+  private async void OnLoadMoreFeedRequested(object? sender, EventArgs e) =>
+      await RunPageActionAsync(() => viewModel.LoadMoreFeedAsync());
 
   private async void OnLoadMoreMineRequested(object? sender, EventArgs e) =>
       await RunPageActionAsync(() => viewModel.LoadMoreMineAsync());

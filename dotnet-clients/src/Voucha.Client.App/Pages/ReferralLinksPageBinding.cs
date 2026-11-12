@@ -24,6 +24,7 @@ public sealed class ReferralLinksPageBinding : LoadablePageBinding<ReferralLinkR
     viewModel.PropertyChanged += (_, _) =>
     {
       NotifyLoadStateChanged();
+      OnPropertyChanged(nameof(HasMoreFeed));
       OnPropertyChanged(nameof(HasMoreAnalytics));
       OnPropertyChanged(nameof(HasMoreLinks));
       OnPropertyChanged(nameof(PaginationIsLoading));
@@ -35,6 +36,8 @@ public sealed class ReferralLinksPageBinding : LoadablePageBinding<ReferralLinkR
   public override bool HasError => viewModel.HasError;
 
   public override string? ErrorMessage => viewModel.ErrorMessage;
+
+  public bool HasMoreFeed => viewModel.HasMoreFeed;
 
   public bool HasMoreAnalytics => viewModel.HasMoreAnalytics;
 

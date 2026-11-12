@@ -178,6 +178,10 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/MembershipGrantPage.cs" Link="Pages/MembershipGrantPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/IdentityVerificationAttemptGrantPage.cs" Link="Pages/IdentityVerificationAttemptGrantPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/UsersBrowsePage.cs" Link="Pages/UsersBrowsePage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/ReferralLinksPage.xaml" Link="Pages/ReferralLinksPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReferralLinksPage.xaml.cs" Link="Pages/ReferralLinksPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReferralLinksPage.Delete.cs" Link="Pages/ReferralLinksPage.Delete.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ReferralLinksPageBinding.cs" Link="Pages/ReferralLinksPageBinding.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/LandingPagesPage.xaml" Link="Pages/LandingPagesPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/LandingPagesPage.xaml.cs" Link="Pages/LandingPagesPage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/InvertedBooleanConverter.cs" Link="Pages/InvertedBooleanConverter.cs" />

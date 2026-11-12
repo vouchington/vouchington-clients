@@ -15,11 +15,27 @@ final class HybridPaginationControlTests: XCTestCase {
         XCTAssertTrue(state.shouldLoad(isVisible: true, hasMore: true, isLoading: false, hasError: false))
     }
 
-    func testAutomaticLoadDoesNotStartAfterLoadingCompletesWithoutANewVisibleEdge() {
+    func testAutomaticLoadContinuesAfterLoadingCompletesWithoutANewVisibleEdge() {
         var state = AutomaticPaginationVisibilityState()
 
         XCTAssertFalse(state.shouldLoad(isVisible: true, hasMore: true, isLoading: true, hasError: false))
-        XCTAssertFalse(state.shouldLoad(isVisible: true, hasMore: true, isLoading: false, hasError: false))
+        XCTAssertTrue(state.shouldLoad(hasMore: true, isLoading: false, hasError: false))
+        XCTAssertFalse(state.shouldLoad(hasMore: true, isLoading: false, hasError: false))
+    }
+
+    func testCompletionDoesNotRetryErrorsOrLoadHiddenTerminalOrDisabledPages() {
+        for (visible, hasMore, hasError, disabled) in [
+            (true, true, true, false),
+            (false, true, false, false),
+            (true, false, false, false),
+            (true, true, false, true)
+        ] {
+            var state = AutomaticPaginationVisibilityState()
+            XCTAssertFalse(state.shouldLoad(isVisible: visible, hasMore: true, isLoading: true, hasError: false))
+            XCTAssertFalse(state.shouldLoad(
+                hasMore: hasMore, isLoading: false, hasError: hasError, isDisabled: disabled
+            ))
+        }
     }
 
     func testAutomaticLoadDoesNotStartWhenDisabled() {

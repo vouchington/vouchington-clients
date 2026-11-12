@@ -1,7 +1,7 @@
 import SwiftUI
 import VouchaLocalization
 
-/// A visible pagination fallback that also continues automatically when it enters the viewport.
+/// A visible pagination fallback that continues automatically while it remains in the viewport.
 public struct HybridPaginationControl: View {
     @Environment(\.locale)
     private var locale
@@ -62,6 +62,15 @@ public struct HybridPaginationControl: View {
                 ) else { return }
                 Task { await loadNextPage() }
             }
+            .onChange(of: isLoading) { _, _ in
+                guard automaticVisibility.shouldLoad(
+                    hasMore: hasMore,
+                    isLoading: isLoading,
+                    hasError: hasError,
+                    isDisabled: isDisabled
+                ) else { return }
+                Task { await loadNextPage() }
+            }
             .accessibilityIdentifier(accessibilityIdentifier)
         }
     }
@@ -77,16 +86,21 @@ public struct HybridPaginationControl: View {
 
 struct AutomaticPaginationVisibilityState {
     private var isVisible = false
+    private var wasLoading = false
 
     mutating func shouldLoad(
-        isVisible nextIsVisible: Bool,
+        isVisible nextIsVisible: Bool? = nil,
         hasMore: Bool,
         isLoading: Bool,
         hasError: Bool,
         isDisabled: Bool = false
     ) -> Bool {
+        let nextIsVisible = nextIsVisible ?? isVisible
         let enteredViewport = nextIsVisible && !isVisible
+        let finishedLoading = wasLoading && !isLoading
         isVisible = nextIsVisible
-        return enteredViewport && hasMore && !isLoading && !hasError && !isDisabled
+        wasLoading = isLoading
+        return isVisible && (enteredViewport || finishedLoading)
+            && hasMore && !isLoading && !hasError && !isDisabled
     }
 }

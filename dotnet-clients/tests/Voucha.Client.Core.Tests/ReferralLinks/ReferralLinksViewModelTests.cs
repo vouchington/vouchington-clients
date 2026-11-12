@@ -262,6 +262,8 @@ public sealed partial class ReferralLinksViewModelTests
 
     public ReferralLinkFeedResponse? FeedResponse { get; init; }
 
+    public Func<FetchReferralLinksFeedRequest, Task<ReferralLinkFeedResponse>>? FetchFeed { get; set; }
+
     public PrioritizedReferralLinksResponse? PrioritizedResponse { get; init; }
 
     public ReferralLinksResponse? MineResponse { get; init; }
@@ -311,7 +313,8 @@ public sealed partial class ReferralLinksViewModelTests
         CancellationToken cancellationToken = default)
     {
       LastFeedRequest = request;
-      return Task.FromResult(FeedResponse ?? throw new InvalidOperationException("Missing response."));
+      return FetchFeed?.Invoke(request) ??
+          Task.FromResult(FeedResponse ?? throw new InvalidOperationException("Missing response."));
     }
 
     public Task<ReferralLinksResponse> FetchMineAsync(
