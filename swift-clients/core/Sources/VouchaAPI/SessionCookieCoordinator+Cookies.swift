@@ -85,7 +85,7 @@ extension SessionCookieCoordinator {
             // String keys avoid platform-specific bridging of HTTPCookiePropertyKey.
             let firstValues = Dictionary(uniqueKeysWithValues: firstProperties.map { ($0.key.rawValue, $0.value) })
             let secondValues = Dictionary(uniqueKeysWithValues: secondProperties.map { ($0.key.rawValue, $0.value) })
-            return NSDictionary(dictionary: firstValues).isEqual(to: secondValues)
+            return NSDictionary(dictionary: firstValues).isEqual(NSDictionary(dictionary: secondValues))
         }
     }
 
