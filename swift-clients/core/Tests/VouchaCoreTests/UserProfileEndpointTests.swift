@@ -79,6 +79,19 @@ final class UserProfileEndpointTests: XCTestCase {
         XCTAssertFalse(metrics.isVisibleCountCapped("posts_saved"))
     }
 
+    func testExactViewerCountsOverridePublicCapsIncludingZero() throws {
+        let metrics = try makeVouchaDecoder().decode(UserProfileMetrics.self, from: Data(#"""
+        {"id":"user-1","count":{"reviews":1000,"comments":1000,"discussions":1000},
+        "viewer_count":{"reviews":7,"comments":0},
+        "count_capped":{"reviews":true,"comments":true,"discussions":true}}
+        """#.utf8))
+        XCTAssertEqual(metrics.visibleCount("reviews"), 7)
+        XCTAssertFalse(metrics.isVisibleCountCapped("reviews"))
+        XCTAssertEqual(metrics.visibleCount("comments"), 0)
+        XCTAssertFalse(metrics.isVisibleCountCapped("comments"))
+        XCTAssertTrue(metrics.isVisibleCountCapped("discussions"))
+    }
+
     private func query(_ endpoint: Endpoint) -> [String: String] {
         Dictionary(uniqueKeysWithValues: endpoint.queryItems.compactMap { item in
             item.value.map { (item.name, $0) }

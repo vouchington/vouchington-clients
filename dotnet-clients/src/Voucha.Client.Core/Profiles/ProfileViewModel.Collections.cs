@@ -30,6 +30,7 @@ public sealed partial class ProfileViewModel
       if (SetProperty(ref profileScope, value))
       {
         OnPropertyChanged(nameof(IsOverviewScope));
+        NotifyPrivateMetrics();
         OnPropertyChanged(nameof(IsPostsScope));
         OnPropertyChanged(nameof(IsFriendsScope));
         OnPropertyChanged(nameof(IsTopicsScope));

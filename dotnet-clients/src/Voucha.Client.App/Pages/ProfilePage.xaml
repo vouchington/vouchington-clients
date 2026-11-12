@@ -73,6 +73,19 @@
                 </BindableLayout.ItemTemplate>
             </FlexLayout>
 
+            <VerticalStackLayout x:Name="PrivateMetrics" Spacing="6"
+                                 IsVisible="{Binding HasPrivateMetrics}"
+                                 BindableLayout.ItemsSource="{Binding PrivateMetricRows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="profiles:ProfilePrivateMetricRow">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                            <Label Grid.Column="1" Text="{Binding CountLabel}" Style="{StaticResource Body}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
             <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOverviewScope}">
                 <Label Text="{DynamicResource native.swift.profile.bio}" Style="{StaticResource Headline}" />
                 <controls:NativeHtmlContentView

@@ -53,7 +53,9 @@ public sealed record UserMetrics(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("count")] UserMetricsCount Count,
     [property: JsonPropertyName("viewer_count")] UserMetricsViewerCount? ViewerCount = null,
-    [property: JsonPropertyName("count_capped")] UserMetricsCountCapped? CountCapped = null);
+    [property: JsonPropertyName("count_capped")] UserMetricsCountCapped? CountCapped = null,
+    [property: JsonPropertyName("private_count")] IReadOnlyDictionary<string, int>? PrivateCount = null,
+    [property: JsonPropertyName("private_count_capped")] IReadOnlyDictionary<string, bool>? PrivateCountCapped = null);
 
 public sealed record UserDataRequestResponse(
     [property: JsonPropertyName("id")] string Id,
