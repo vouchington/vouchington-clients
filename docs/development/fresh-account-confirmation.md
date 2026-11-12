@@ -55,6 +55,12 @@ they do not exchange that result for a new authenticated session.
 Apple's SDK request uses SHA-256 of the server challenge nonce; Google SDK assertions use the
 raw challenge nonce. Keep these provider-specific rules separate.
 
+The .NET Windows passkey assertion provider remains unavailable, tracked separately by
+[#81](https://github.com/vouchington/vouchington-clients/issues/81). Confirmation fails closed
+when that host cannot produce an assertion. Mac Catalyst and Apple clients retain the owned
+credential allowlist for both platform passkeys and external security keys; this does not claim
+execution with physical authenticators.
+
 The supplied fifteen keys do not include specific last-sign-in-method or final-administrator-MFA
 recovery messages. Those producer failures also lack stable machine-readable codes. Clients must
 not classify English response text. They use canonical generic failure/retry presentation until
@@ -69,3 +75,16 @@ context changes, unavailable adapters and producer failures. Rendered view tests
 method controls and explicit submission states. These tests do not establish native OS prompts,
 broker execution with real provider accounts, physical-device behavior or a signed release.
 Keep those evidence classes separate in the client parity record.
+
+The client-owned evidence is recorded at these observable boundaries:
+
+| Evidence                                            | Swift                                                                                                                                                                                                                       | .NET                                                                                                                                                                                                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Purpose-specific requests and proof-only completion | [Core transport tests](../../swift-clients/core/Tests/VouchaCoreTests/FreshAccountConfirmationTransportTests.swift), [broker tests](../../swift-clients/core/Tests/VouchaCoreTests/NativeOAuthFreshConfirmationTests.swift) | [Transport tests](../../dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/Confirmation/AccountChangeTransportTests.cs), [broker tests](../../dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/Confirmation/FreshAccountBrokerTests.cs)                 |
+| Cancellation, context changes and failed proofs     | [Confirmation tests](../../swift-clients/ui/Tests/VouchaUITests/FreshAccountConfirmationTests.swift), [delayed discovery tests](../../swift-clients/ui/Tests/VouchaUITests/FreshAccountConfirmationDiscoveryTests.swift)    | [View-model tests](../../dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/Confirmation/FreshAccountConfirmationViewModelTests.cs), [boundary tests](../../dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/Confirmation/ConfirmationBoundaryTests.cs) |
+| Method controls and explicit submission             | [Rendered view tests](../../swift-clients/ui/Tests/VouchaUITests/FreshAccountConfirmationViewTests.swift), [provider tests](../../swift-clients/ui/Tests/VouchaUITests/FreshAccountConfirmationProviderTests.swift)         | [Rendered page tests](../../dotnet-clients/tests/Voucha.Client.App.Tests/FreshAccountConfirmationPageTests.cs)                                                                                                                                            |
+| Owned passkey request and assertion encoding        | [Injected assertion tests](../../swift-clients/core/Tests/VouchaCoreTests/FreshPasskeyConfirmationTests.swift), [SDK request tests](../../swift-clients/ui/Tests/VouchaUITests/PasskeyAssertionRequestTests.swift)          | [Proof-service tests](../../dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/Confirmation/FreshAccountProofServiceTests.cs), [encoding tests](../../dotnet-clients/tests/Voucha.Client.Core.Tests/Auth/PasskeyAssertionEncodingTests.cs)                |
+
+These are fixture-backed transport, state and rendered-view results. Real provider accounts,
+OS authorization dialogs, physical security keys and signed installations require separate
+native acceptance evidence.
