@@ -94,6 +94,20 @@ and complete child-name/type graphs, including canonical tracked Android source 
 It validates exact candidate/run/attempt identity, hashes, tracked bytes and directory membership
 before replaying genuine producer metadata; incompatible formats and drift fail closed.
 
+Source timestamp replay uses one Python process for the complete inventory, rather than a process
+per file. It reuses only the current parent directory descriptor while hashing, then reopens every
+distinct parent from the checkout root without following links and checks every basename against
+its retained file descriptor before any timestamp writes. The 60-second deadline, input caps,
+nanosecond verification and rollback remain in force. Bounded phase/count/elapsed diagnostics are
+retained in a timeout error so startup, validation and replay failures can be distinguished.
+
+For #644, a local macOS arm64 measurement used 2,213 tracked files, 10,317,758 logical bytes, five
+Android source directories and 80 distinct immediate file parents. Directory reuse reduced total `os.open`
+calls from 11,928 to 3,048. Seven alternating runs on the same warm payload, including Python
+startup, reduced median replay time from 188.4 ms to 125.0 ms (34%). These are local measurements;
+the old hosted logs establish a hard timeout but contain no phase timings. They do not justify a
+higher deadline or identify the stalled hosted phase. See [issue #644](https://github.com/vouchington/vouchington-clients/issues/644).
+
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 
