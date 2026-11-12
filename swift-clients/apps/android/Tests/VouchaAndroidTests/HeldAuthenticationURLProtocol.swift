@@ -91,7 +91,7 @@ final class HeldAuthenticationURLProtocol: URLProtocol {
 
     private func deliver(statusCode: Int, body: Data) -> Bool {
         var headers = ["Content-Type": "application/json"]
-        let isAuthentication = ["/api/v1/auth/email-address/login", "/api/v1/auth/mfa/totp/verification"]
+        let isAuthentication = ["/api/v1/auth/native/email-address/login", "/api/v1/auth/mfa/totp/verification"]
             .contains(request.url?.path ?? "")
         let authBody = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
         if isAuthentication, (200 ... 299).contains(statusCode),

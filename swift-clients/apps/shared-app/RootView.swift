@@ -110,6 +110,7 @@ public struct RootView: View {
                 await viewModelFactory.nativeChatMCPSession?.useAccount(
                     viewModelFactory.sessionManager.currentUserId
                 )
+                try? await viewModelFactory.nativeChatMCPSession?.connect()
                 await refreshLocalization()
                 await refreshFeatureFlags()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
@@ -124,6 +125,7 @@ public struct RootView: View {
                 Task {
                     guard accountId == viewModelFactory.sessionManager.currentUserId else { return }
                     await viewModelFactory.nativeChatMCPSession?.useAccount(accountId)
+                    try? await viewModelFactory.nativeChatMCPSession?.connect()
                 }
             }
             .onChange(of: scenePhase) { _, phase in

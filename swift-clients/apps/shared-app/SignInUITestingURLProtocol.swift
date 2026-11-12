@@ -104,9 +104,9 @@ enum SignInUITestingLaunch {
                 return Self.base64EnvironmentValue("VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64")
             case ("GET", "/api/v1/auth/oauth/providers"):
                 return Self.base64EnvironmentValue("VOUCHA_UI_TESTING_OAUTH_PROVIDERS_RESPONSE_BASE64")
-            case ("POST", "/api/v1/auth/email-address/tokens"):
+            case ("POST", "/api/v1/auth/native/email-address/tokens"):
                 return acceptedTokenRequest()
-            case ("POST", "/api/v1/auth/email-address/login"):
+            case ("POST", "/api/v1/auth/native/email-address/login"):
                 return acceptedLogin()
             default:
                 return nil
@@ -115,12 +115,10 @@ enum SignInUITestingLaunch {
 
         private func acceptedTokenRequest() -> Data? {
             let body = jsonBody()
-            guard body["email_address"] == SignInUITestingLaunch.nonEmptyEnvironmentValue(
-                "VOUCHA_UI_TESTING_SIGN_IN_EMAIL"
-            ),
-                body["cf_turnstile_response"] == SignInUITestingLaunch.nonEmptyEnvironmentValue(
-                    "VOUCHA_UI_TESTING_TURNSTILE_TOKEN"
-                )
+            let email = body["emailAddress"] ?? body["email_address"]
+            let turnstile = body["cfTurnstileResponse"] ?? body["cf_turnstile_response"]
+            guard email == SignInUITestingLaunch.nonEmptyEnvironmentValue("VOUCHA_UI_TESTING_SIGN_IN_EMAIL"),
+                  turnstile == SignInUITestingLaunch.nonEmptyEnvironmentValue("VOUCHA_UI_TESTING_TURNSTILE_TOKEN")
             else { return nil }
             return Data("{}".utf8)
         }

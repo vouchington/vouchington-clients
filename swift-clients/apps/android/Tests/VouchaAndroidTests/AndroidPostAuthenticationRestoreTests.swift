@@ -17,7 +17,7 @@ final class AndroidPostAuthenticationRestoreTests: XCTestCase {
             let host = "post-auth-\(UUID().uuidString.lowercased()).example.com"
             defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
             let account = try makeAccount(host: host)
-            let endpoint = mfa ? "/api/v1/auth/mfa/totp/verification" : "/api/v1/auth/email-address/login"
+            let endpoint = mfa ? "/api/v1/auth/mfa/totp/verification" : "/api/v1/auth/native/email-address/login"
             let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: endpoint)
             let verification = Task { if mfa { await account.verifyMFA() } else { await account.verifyOTP() } }
             await fulfillment(of: [started], timeout: 3)
@@ -52,7 +52,7 @@ final class AndroidPostAuthenticationRestoreTests: XCTestCase {
             defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
             let account = try makeAccount(host: host)
             account.otpRequested = true
-            let endpoint = mfa ? "/api/v1/auth/mfa/totp/verification" : "/api/v1/auth/email-address/login"
+            let endpoint = mfa ? "/api/v1/auth/mfa/totp/verification" : "/api/v1/auth/native/email-address/login"
             let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: endpoint)
             let verification = Task { if mfa { await account.verifyMFA() } else { await account.verifyOTP() } }
             await fulfillment(of: [started], timeout: 3)
@@ -82,7 +82,10 @@ final class AndroidPostAuthenticationRestoreTests: XCTestCase {
         let host = "rejected-auth-\(UUID().uuidString.lowercased()).example.com"
         defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
         let account = try makeAccount(host: host)
-        let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: "/api/v1/auth/email-address/login")
+        let started = HeldAuthenticationURLProtocol.expectRequest(
+            host: host,
+            path: "/api/v1/auth/native/email-address/login"
+        )
         let verification = Task { await account.verifyOTP() }
         await fulfillment(of: [started], timeout: 3)
         XCTAssertTrue(HeldAuthenticationURLProtocol.respond(host: host, statusCode: 401, body: Data("{}".utf8)))
