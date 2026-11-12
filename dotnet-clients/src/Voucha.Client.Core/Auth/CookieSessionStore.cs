@@ -7,6 +7,7 @@ namespace Voucha.Client.Core.Auth;
 public sealed partial class CookieSessionStore :
     ISessionStore,
     IForcedSessionRefreshStore,
+    INativeLoginCredentialStore,
     IConfirmingSessionRefreshStore,
     ICommittedOAuthDisconnectSessionStore,
     IDevelopmentSessionStore
@@ -14,6 +15,7 @@ public sealed partial class CookieSessionStore :
 public sealed partial class CookieSessionStore :
     ISessionStore,
     IForcedSessionRefreshStore,
+    INativeLoginCredentialStore,
     IConfirmingSessionRefreshStore,
     ICommittedOAuthDisconnectSessionStore
 #endif
@@ -65,6 +67,10 @@ public sealed partial class CookieSessionStore :
 
   Task IConfirmingSessionRefreshStore.RefreshConfirmingAsync(CancellationToken cancellationToken) =>
       RefreshCoreAsync(force: true, reportTransientFailure: true, cancellationToken);
+
+  Task INativeLoginCredentialStore.InstallNativeLoginTokensAsync(
+      string deviceToken, string sessionToken, CancellationToken cancellationToken) =>
+      cookieJar.InstallNativeLoginTokensAsync(deviceToken, sessionToken, cancellationToken);
 
   public void ApplyCommittedOAuthDisconnect(OAuthBrokerProvider provider)
   {

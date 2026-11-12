@@ -139,6 +139,14 @@ public sealed class AuthenticationService
           : new MfaChallenge(response.LoginAttemptId);
     }
 
+    if (response.Dt?.Token is { } deviceToken && response.St?.Token is { } sessionToken &&
+        sessionStore is INativeLoginCredentialStore credentialStore)
+    {
+      await credentialStore
+          .InstallNativeLoginTokensAsync(deviceToken, sessionToken, cancellationToken)
+          .ConfigureAwait(false);
+    }
+
     await CompleteSuccessfulAuthenticationAsync(
         "Authentication did not create a session.",
         cancellationToken).ConfigureAwait(false);
