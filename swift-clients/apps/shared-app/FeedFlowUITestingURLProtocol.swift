@@ -4,6 +4,28 @@
     /// Immutable canonical response input; request/cancellation state belongs to this protocol instance.
     final class FeedFlowUITestingURLProtocol: URLProtocol {
         static let launchArgument = "--ui-testing-feed-flow"
+        /// One immutable response map and one synchronized fault budget per app launch.
+        final class Scenario {
+            static let process = Scenario(environment: ProcessInfo.processInfo.environment)
+            let environment: [String: String]
+            private let lock = NSLock()
+            private var videoFailurePending: Bool
+
+            init(environment: [String: String]) {
+                self.environment = environment
+                videoFailurePending = environment["VOUCHA_UI_TESTING_VIDEO_FAIL_ONCE"] == "1"
+            }
+
+            func consumeVideoFailure() -> Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                guard videoFailurePending else { return false }
+                videoFailurePending = false
+                return true
+            }
+        }
+
+        var scenario = Scenario.process
         private let deliveryLock = NSRecursiveLock()
         private var stopped = false
 
@@ -32,6 +54,11 @@
                 client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL))
                 return
             }
+            if responseEnvironmentKey() == "VOUCHA_UI_TESTING_FEED_RESPONSE_BASE64",
+               scenario.consumeVideoFailure() {
+                client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+                return
+            }
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             guard !stopped else { return }
             client?.urlProtocol(self, didLoad: data)
@@ -43,6 +70,11 @@
             if ProcessInfo.processInfo.environment["VOUCHA_UI_TESTING_SOURCE_CREATION_RESPONSES"] != nil {
                 return SourceCreationUITestingResponses.data(for: request)
             }
+            guard let key = responseEnvironmentKey(), let encoded = scenario.environment[key] else { return nil }
+            return Data(base64Encoded: encoded)
+        }
+
+        private func responseEnvironmentKey() -> String? {
             guard request.httpMethod == "GET",
                   let url = request.url,
                   url.host == "ui-testing.voucha.invalid",
@@ -66,8 +98,7 @@
             default:
                 return nil
             }
-            guard let encoded = ProcessInfo.processInfo.environment[key] else { return nil }
-            return Data(base64Encoded: encoded)
+            return key
         }
 
         private func feedResponseEnvironmentKey(_ components: URLComponents) -> String? {

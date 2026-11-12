@@ -105,13 +105,17 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly five passed tests with nothing skipped: the root shell, one sidebar
+requires exactly six passed tests with nothing skipped: the root shell, one sidebar
 navigation that opens Videos, leaves for News, and returns to the canonical video row from the
 shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
 News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, one
 sidebar navigation that opens Posts, leaves for News, and returns to the canonical post from
-`swift.posts.feed.default`, and one email OTP sign-in that removes the signed-out control. #80
-stays open for the news tab.
+`swift.posts.feed.default`, one email OTP sign-in that removes the signed-out control, and a Videos transport error followed
+by the real Retry action and the canonical video row. The recovery case uses a synchronized,
+one-shot local network failure; its successful response replays the unchanged canonical video
+fixture. #80 stays open for the News tab: the pin lacks a matching Swift article feed fixture.
+The web article fixture is not a substitute: its declared query and consumers differ, and its
+payload represents video content. See [macOS app-shell flows](macos-app-shell-flows.md).
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
 app slice in parallel on `macos-latest`. The arm64 build has a 13-minute job cap and a
