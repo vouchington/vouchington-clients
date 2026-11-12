@@ -41,7 +41,7 @@ public sealed class FreshAccountConfirmationPageTests
   public async Task PasskeyOnlyAccountHidesCodeControlsAndRendersOnlyOwnedPasskeys()
   {
     Prepare();
-    var service = new FreshAccountProofServiceStub { Methods = new(false, false, true, []) };
+    var service = new FreshAccountProofServiceStub { Methods = new(HasEmail: false, HasPasskey: true, HasTotp: false, Providers: []) };
     using var model = Model(service);
     var page = new FreshAccountConfirmationPage(model);
     await model.InitializeAsync();

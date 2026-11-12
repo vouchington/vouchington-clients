@@ -183,7 +183,7 @@ public sealed class FreshAccountConfirmationViewModelTests
   {
     var service = new FreshAccountProofServiceStub
     {
-      Methods = new(false, false, true, []),
+      Methods = new(HasEmail: false, HasPasskey: true, HasTotp: false, Providers: []),
       Page = after => after is null ? new([new("first", "First")], new("cursor-1", true, null))
           : new([new("first", "First"), new("second", "Second")], new(null, false, null)),
     };
@@ -202,6 +202,32 @@ public sealed class FreshAccountConfirmationViewModelTests
     await model.VerifyPasskeyAsync("second");
     Assert.Equal(["second"], service.PasskeyIds);
     Assert.Equal("proof-token", (await model.Completion).Consume());
+  }
+
+  [Theory]
+  [InlineData("apple")]
+  [InlineData("google")]
+  [InlineData("facebook")]
+  [InlineData("x")]
+  [InlineData("github")]
+  [InlineData("linkedin")]
+  [InlineData("microsoft")]
+  [InlineData("future-provider")]
+  public async Task AdvertisedProviderMethodsHaveLocalizedLabelsAndRefreshWithoutVerifying(string provider)
+  {
+    var service = new FreshAccountProofServiceStub { Methods = new(false, false, false, [provider]) };
+    using var model = New(service);
+    await model.InitializeAsync();
+    var row = Assert.Single(model.Providers);
+    Assert.Equal(provider, row.Provider);
+    Assert.False(string.IsNullOrWhiteSpace(row.Label));
+    var notifications = new List<string?>();
+    model.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+    model.OnUiLocaleChanged();
+    Assert.Contains(nameof(model.Providers), notifications);
+    Assert.Contains(nameof(model.VerifyLabel), notifications);
+    Assert.Empty(service.Providers);
+    Assert.False(model.Completion.IsCompleted);
   }
 
   [Fact]

@@ -77,6 +77,38 @@ public sealed class FreshAccountProofServiceTests
     Assert.Equal("credential-1", body.RootElement.GetProperty("response").GetProperty("id").GetString());
   }
 
+  [Fact]
+  public async Task DiscoveryEmailTotpAndOwnedPasskeyPagesUsePurposeScopedRequests()
+  {
+    var handler = new ProofHandler();
+    var client = NewClient(handler);
+    var service = new FreshAccountProofService(client, new PasskeyAdapter(), new AssertionAdapter(),
+        new FreshAccountBroker(client, new Browser()));
+    var cancellation = TestContext.Current.CancellationToken;
+    var methods = await service.DiscoverAsync(cancellation);
+    Assert.True(methods.HasEmail);
+    Assert.True(methods.HasPasskey);
+    Assert.False(methods.HasTotp);
+    await service.RequestEmailAsync(cancellation);
+    Assert.Equal("fresh-proof", await service.VerifyCodeAsync(true, "abcdefgh23", cancellation));
+    Assert.Equal("fresh-proof", await service.VerifyCodeAsync(false, "123456", cancellation));
+    var first = await service.FetchPasskeysAsync(null, cancellation);
+    var next = await service.FetchPasskeysAsync(first.PageInfo.EndCursor, cancellation);
+    Assert.Equal("owned", Assert.Single(first.Results).Id);
+    Assert.Equal("Device", Assert.Single(next.Results).Name);
+    Assert.Contains("limit=25", handler.Requests[4].Query, StringComparison.Ordinal);
+    Assert.DoesNotContain("after", handler.Requests[4].Query, StringComparison.Ordinal);
+    Assert.Contains("after=opaque-cursor", handler.Requests[5].Query, StringComparison.Ordinal);
+    Assert.EndsWith("/email/tokens", handler.Requests[1].Path, StringComparison.Ordinal);
+    using var email = JsonDocument.Parse(handler.Requests[2].Body!);
+    using var totp = JsonDocument.Parse(handler.Requests[3].Body!);
+    Assert.Equal("ABCDEFGH23", email.RootElement.GetProperty("code").GetString());
+    Assert.Equal("123456", totp.RootElement.GetProperty("code").GetString());
+    Assert.EndsWith("/email/verification", handler.Requests[2].Path, StringComparison.Ordinal);
+    Assert.EndsWith("/totp/verification", handler.Requests[3].Path, StringComparison.Ordinal);
+    Assert.DoesNotContain(handler.Requests, request => request.Path.EndsWith("/session", StringComparison.Ordinal));
+  }
+
   private static VouchaApiClient NewClient(ProofHandler handler) =>
       new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
 
@@ -109,12 +141,16 @@ public sealed class FreshAccountProofServiceTests
   private sealed class ProofHandler : HttpMessageHandler
   {
     public bool Expired { get; init; }
-    public List<(string Path, string? Body)> Requests { get; } = [];
+    public List<(string Path, string? Body, string Query)> Requests { get; } = [];
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
       var path = request.RequestUri!.AbsolutePath;
-      Requests.Add((path, request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken)));
-      object body = path.EndsWith("/challenges", StringComparison.Ordinal)
+      Requests.Add((path, request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken), request.RequestUri.Query));
+      object body = path.EndsWith("/methods", StringComparison.Ordinal)
+          ? (object)new { has_email = true, has_passkey = true, has_totp = false, providers = Array.Empty<string>() }
+          : path == "/api/v1/auth/passkeys"
+              ? new { results = new[] { new { id = "owned", name = "Device" } }, page_info = new { end_cursor = "opaque-cursor", has_next_page = true } }
+              : path.EndsWith("/challenges", StringComparison.Ordinal)
           ? new { flow_id = "flow-1", nonce = "server-nonce", expires_at = DateTimeOffset.UtcNow.AddMinutes(Expired ? -1 : 1) }
           : path.EndsWith("/options", StringComparison.Ordinal)
               ? new { flow_id = "flow-1", options = new { challenge = "server-challenge", rpId = "voucha.ai", userVerification = "required", allowCredentials = new[] { new { id = "credential-1", type = "public-key" } } } }
