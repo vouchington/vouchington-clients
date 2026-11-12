@@ -2,15 +2,14 @@
     import AuthenticationServices
     import Foundation
     @testable import VouchaAuth
-    import VouchaCore
     import XCTest
 
     @MainActor
     final class PasskeyAssertionRequestTests: XCTestCase {
         func testOwnedCredentialChallengeAndVerificationApplyToPlatformAndSecurityKey() throws {
             let options = PasskeyAuthenticationOptions(
-                challenge: Data([1, 2, 3]).base64URLEncodedString(), rpId: "voucha.ai", userVerification: "required",
-                allowCredentials: [.init(id: Data([4, 5, 6]).base64URLEncodedString())]
+                challenge: "AQID", rpId: "voucha.ai", userVerification: "required",
+                allowCredentials: [.init(id: "BAUG")]
             )
             let requests = try options.authorizationRequests()
             XCTAssertEqual(requests.count, 2)
