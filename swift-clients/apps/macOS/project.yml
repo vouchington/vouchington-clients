@@ -127,6 +127,9 @@ targets:
       - package: Sentry
         product: Sentry
     scheme:
+      gatherCoverageData: true
+      coverageTargets:
+        - Voucha
       testTargets:
         - VouchaLaunchSmokeTests
         - VouchaSentryBoundaryTests
