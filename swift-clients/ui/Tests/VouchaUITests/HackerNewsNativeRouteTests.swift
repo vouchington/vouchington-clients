@@ -78,4 +78,37 @@ final class HackerNewsNativeRouteTests: NativeRouteSurfaceViewModelTestCase {
         let other = try NativeRouteSurfaceViewModel(entry: entry(for: .userProfile), client: nil)
         XCTAssertFalse(other.supportsHackerNewsFilter)
     }
+
+    func testProjectedRssSourceCanOmitUrlAndTitleFallsBackToItemHost() async throws {
+        var body = try XCTUnwrap(JSONSerialization
+            .jsonObject(with: ApiFixtureLoader.data("native.rss-feed-items.hacker-news.list")) as? [String: Any])
+        var items = try XCTUnwrap(body["rss_feed_items"] as? [String: [String: Any]])
+        var item = try XCTUnwrap(items["item-1"])
+        item["title"] = NSNull()
+        item["data"] = ["title": NSNull(), "link": NSNull()]
+        item["link"] = "https://example.test/source"
+        item["rss_feed"] = ["title": NSNull(), "feed_type": "article"]
+        items["item-1"] = item
+        body["rss_feed_items"] = items
+        let data = try JSONSerialization.data(withJSONObject: body)
+        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items"] = (data, 200)
+        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/news"))
+        let model = try NativeRouteSurfaceViewModel(entry: route.entry, client: makeClient(), routeMatch: route.match)
+        let page = try await model.loadRssFeedItemPage(client: makeClient(), after: nil)
+        XCTAssertEqual(page.rows.first?.row.title, "example.test")
+        let rows = try await model.loadRows(for: .feedNews, client: makeClient())
+        XCTAssertEqual(rows.first?.title, "example.test")
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        let response = try decoder.decode(NativeRssFeedItemsResponse.self, from: data)
+        let summary = try XCTUnwrap(response.rssFeedItems["item-1"])
+        XCTAssertEqual(UiMessages.string(model.bookmarkedFeedItemTitle(summary), locale: .english), "example.test")
+        let generic = try decoder.decode(NativeGenericListResponse.self, from: data)
+        let result = try XCTUnwrap(generic.results.first)
+        XCTAssertEqual(generic.hydratedEntity(for: result).url, "https://example.test/source")
+        let feed = try NativeRouteSurfaceViewModel(entry: entry(for: .feedPosts), client: nil)
+        XCTAssertEqual(feed.hackerNewsPostFeedEndpoint(after: "cursor").path, "/api/v1/feeds/posts/any")
+    }
+
 }

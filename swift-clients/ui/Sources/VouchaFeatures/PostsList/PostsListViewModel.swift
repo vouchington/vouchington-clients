@@ -37,6 +37,14 @@ public final class PostsListViewModel {
     let emailVerificationGate = EmailVerificationGatedMutation()
 
     var filterReloadTask: Task<Void, Never>?
+    public var supportsHackerNewsFilter: Bool {
+        feedType == "all"
+    }
+
+    public var hasHackerNewsReferences = false {
+        didSet { filterReloadTask = Task { await reload() } }
+    }
+
     public var filter: PostFilter = .all {
         didSet {
             filterReloadTask = Task { await reload() }
@@ -80,17 +88,11 @@ public final class PostsListViewModel {
 
     private func loadPage(_ request: CursorPageRequest) async {
         do {
-            let endpoint = Endpoint.posts(
-                feedType: feedType,
-                after: request.cursor,
-                postTypes: filter.postTypes,
-                timeRange: timeRange?.rawValue,
-                hasHackerNewsReferences: filter == .hackerNews ? true : nil
-            )
+            let endpoint = feedEndpoint(after: request.cursor)
             let page: PostsPage = try await client.send(endpoint)
             guard pagination.isCurrent(request) else { return }
             let newItems = page.results.compactMap { result -> Post? in
-                guard let base = page.posts[result.entityId] else { return nil }
+                guard let id = result.entityId ?? result.id, let base = page.posts[id] else { return nil }
                 let post = base.hydrated(
                     renderedHtml: page.markdownToHtml?[base.id],
                     metrics: page.postsMetrics[base.id],
@@ -159,4 +161,22 @@ public final class PostsListViewModel {
             hiddenPostIds.insert(postId)
         }
     }
+
+    func feedEndpoint(after cursor: String?) -> Endpoint {
+        hasHackerNewsReferences && supportsHackerNewsFilter
+            ? Endpoint.postsFeed(
+                postTypes: filter.postTypes,
+                timeRange: timeRange?.rawValue,
+                hasHackerNewsReferences: true,
+                sort: "hot",
+                after: cursor
+            )
+            : Endpoint.posts(
+                feedType: feedType,
+                after: cursor,
+                postTypes: filter.postTypes,
+                timeRange: timeRange?.rawValue
+            )
+    }
+
 }

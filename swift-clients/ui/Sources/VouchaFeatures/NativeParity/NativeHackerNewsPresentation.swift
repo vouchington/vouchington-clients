@@ -6,7 +6,7 @@ import VouchaModels
 extension NativeRouteSurfaceViewModel {
     var supportsHackerNewsFilter: Bool {
         switch destination {
-        case .feedPosts, .postsBrowse, .storiesBrowse, .feedNews, .feedPodcasts, .feedVideos: true
+        case .postsBrowse, .storiesBrowse, .feedNews, .feedPodcasts, .feedVideos: true
         default: false
         }
     }
@@ -51,8 +51,7 @@ extension NativeRouteSurfaceViewModel {
                 after: after,
                 limit: 10,
                 postTypes: postTypes,
-                timeRange: PostTimeRange.lastWeek.rawValue,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                timeRange: PostTimeRange.lastWeek.rawValue
             )
         }
         return endpoint

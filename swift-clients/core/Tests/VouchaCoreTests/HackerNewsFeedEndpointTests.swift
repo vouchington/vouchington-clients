@@ -6,13 +6,12 @@ final class HackerNewsFeedEndpointTests: XCTestCase {
     func testReferenceFiltersPreserveScopeCursorMediaAndTime() {
         for enabled in [true, false] {
             let endpoints = [
-                Endpoint.posts(
-                    feedType: "follow_users",
-                    after: "opaque==",
-                    limit: 9,
+                Endpoint.postsFeed(
                     postTypes: "link",
                     timeRange: "1m",
-                    hasHackerNewsReferences: enabled
+                    hasHackerNewsReferences: enabled,
+                    after: "opaque==",
+                    limit: 9
                 ),
                 .rssFeedItems(
                     feedType: "audio",
@@ -24,7 +23,7 @@ final class HackerNewsFeedEndpointTests: XCTestCase {
                 .allRssFeedItems(after: "opaque==", limit: 9, mediaType: "audio", hasHackerNewsReferences: enabled)
             ]
             XCTAssertEqual(endpoints.map(\.path), [
-                "/api/v1/feeds/posts/follow_users",
+                "/api/v1/posts",
                 "/api/v1/feeds/rss_feed_items/audio",
                 "/api/v1/rss-feed-items"
             ])

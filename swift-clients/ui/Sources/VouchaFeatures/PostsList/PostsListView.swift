@@ -44,6 +44,14 @@ public struct PostsListView: View {
                 loadedListView
             }
         }
+        .toolbar {
+            if viewModel.supportsHackerNewsFilter {
+                Toggle(
+                    UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
+                    isOn: $viewModel.hasHackerNewsReferences
+                )
+            }
+        }
         .navigationTitle(UiMessages.string(.nativeSwiftPostsListPosts, locale: nativeUiLocale))
         .task(id: isStaffViewer) { await viewModel.reload() }
         .refreshable { await viewModel.reload() }

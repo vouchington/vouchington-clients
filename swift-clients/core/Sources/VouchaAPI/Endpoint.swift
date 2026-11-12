@@ -90,6 +90,27 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/search", queryItems: items)
     }
 
+    static func posts(
+        feedType: String = "any",
+        after: String? = nil,
+        limit: Int = 20,
+        postTypes: String? = nil,
+        timeRange: String? = nil
+    ) -> Endpoint {
+        var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)"), .init(name: "sort", value: "hot")]
+        if let after {
+            items.append(.init(name: "after", value: after))
+        }
+        if let postTypes {
+            items.append(.init(name: "post_types", value: postTypes))
+        }
+        // Omitted by default: the server applies its 30-day window for every sort.
+        if let timeRange {
+            items.append(.init(name: "time_range", value: timeRange))
+        }
+        return Endpoint(.GET, path: "/api/v1/feeds/posts/\(feedType)", queryItems: items)
+    }
+
     static func notifications(after: String? = nil, limit: Int = 20) -> Endpoint {
         pagedGet(path: "/api/v1/my/notifications", after: after, limit: limit)
     }

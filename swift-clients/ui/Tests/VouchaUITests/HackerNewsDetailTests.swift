@@ -30,7 +30,8 @@ final class HackerNewsDetailTests: NativeRouteSurfaceViewModelTestCase {
 
     func testThreadRootReceivesStoredReferencesAndResetClearsThem() throws {
         let client = try makeClient()
-        let model = NativeCommentThreadViewModel(client: client, rootPostId: "comment-root")
+        let surface = NativeCommentThreadSurface(client: client, routeMatch: nil, isSignedIn: true, showSignIn: {})
+        let model = surface.viewModel
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
@@ -40,6 +41,14 @@ final class HackerNewsDetailTests: NativeRouteSurfaceViewModelTestCase {
         )
         model.apply(detailResponse: envelope)
         XCTAssertFalse(model.hackerNewsReferencesByPostId.isEmpty)
+        XCTAssertFalse(try surface.inspect().findAll(HackerNewsReferencesView.self).isEmpty)
+        var thread = try XCTUnwrap(JSONSerialization
+            .jsonObject(with: ApiFixtureLoader.data("native.posts.hacker-news.filtered")) as? [String: Any])
+        thread["results"] = []
+        thread["post_hacker_news_references"] = [envelope.post.id: ["story_count": 7, "comment_count": 6]]
+        let response = try decoder.decode(PostThreadEnvelope.self, from: JSONSerialization.data(withJSONObject: thread))
+        model.mergeThreadMetadata(from: response)
+        XCTAssertEqual(model.hackerNewsReferencesByPostId[envelope.post.id]?.storyCount, 7)
         model.resetThreadMetadata()
         XCTAssertTrue(model.hackerNewsReferencesByPostId.isEmpty)
     }

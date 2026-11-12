@@ -2,7 +2,8 @@ import VouchaModels
 
 struct PostsPage: Decodable {
     struct ResultItem: Decodable {
-        let entityId: String
+        let id: String?
+        let entityId: String?
     }
 
     struct PageInfo: Decodable {
