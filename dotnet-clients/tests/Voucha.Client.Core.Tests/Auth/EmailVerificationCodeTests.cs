@@ -8,6 +8,14 @@ namespace Voucha.Client.Core.Tests.Auth;
 
 public sealed class EmailVerificationCodeTests
 {
+  [Fact]
+  public void NullCodeFailsClosed()
+  {
+    Assert.False(EmailVerificationCode.IsValid(null));
+    Assert.Throws<ArgumentNullException>(() => EmailVerificationCode.Normalize(null!));
+    Assert.Throws<ArgumentNullException>(() => EmailVerificationCode.RequireValid(null!));
+  }
+
   [Theory]
   [InlineData("")]
   [InlineData("ABCDEFGH2")]
@@ -88,7 +96,7 @@ public sealed class EmailVerificationCodeTests
       Bodies.Add(await request.Content!.ReadAsStringAsync(cancellationToken));
       return new HttpResponseMessage(status)
       {
-        Content = new StringContent(JsonSerializer.Serialize(new { error })),
+        Content = new StringContent(JsonSerializer.Serialize(new { error = new { message = error } })),
         RequestMessage = request,
       };
     }
