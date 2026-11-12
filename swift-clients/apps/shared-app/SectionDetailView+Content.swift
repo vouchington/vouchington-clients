@@ -51,9 +51,7 @@ extension SectionDetailView {
                     factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn,
                 creationClient: factory.apiClient,
-                creationIdentity: {
-                    factory.sessionManager.currentUserId.map { "\($0)|\(ObjectIdentifier(factory.apiClient))" }
-                },
+                creationIdentity: sourceCreationIdentity,
                 navigateToSource: { onNavigateToTargetPath($0) }
             )
         }
@@ -92,9 +90,7 @@ extension SectionDetailView {
                     factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn,
                 creationClient: factory.apiClient,
-                creationIdentity: {
-                    factory.sessionManager.currentUserId.map { "\($0)|\(ObjectIdentifier(factory.apiClient))" }
-                },
+                creationIdentity: sourceCreationIdentity,
                 navigateToSource: { onNavigateToTargetPath($0) }
             )
         }
@@ -133,9 +129,7 @@ extension SectionDetailView {
                     factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn,
                 creationClient: factory.apiClient,
-                creationIdentity: {
-                    factory.sessionManager.currentUserId.map { "\($0)|\(ObjectIdentifier(factory.apiClient))" }
-                },
+                creationIdentity: sourceCreationIdentity,
                 navigateToSource: { onNavigateToTargetPath($0) }
             )
         }

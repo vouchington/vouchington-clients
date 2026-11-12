@@ -16,7 +16,7 @@ final class SourceCreationIntegrationTests: NativeRouteSurfaceViewModelTestCase 
         view.navigateToSource("/source/topic")
         creation.url = "https://example.com/feed"
         try await ViewHosting.host(NavigationStack { view }.frame(width: 600, height: 500)) {
-            XCTAssertNoThrow(try view.inspect().group().toolbar().item().button().tap())
+            XCTAssertNoThrow(try view.inspect().group().toolbar().itemGroup().find(button: "Create").tap())
             XCTAssertNoThrow(try view.inspect().group().callOnChange(
                 oldValue: "account" as String?, newValue: nil as String?
             ))
@@ -58,6 +58,6 @@ final class SourceCreationIntegrationTests: NativeRouteSurfaceViewModelTestCase 
             isSignedIn: false,
             creationIdentity: { nil }
         )
-        XCTAssertThrowsError(try view.inspect().group().toolbar().item().button())
+        XCTAssertThrowsError(try view.inspect().group().toolbar().itemGroup().find(button: "Create"))
     }
 }
