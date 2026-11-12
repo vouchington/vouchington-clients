@@ -231,6 +231,61 @@ public sealed class FreshAccountConfirmationViewModelTests
   }
 
   [Fact]
+  public async Task CodeMethodSelectionAndPasskeyLabelsReflectDiscoveredMethodsWithoutVerification()
+  {
+    var service = new FreshAccountProofServiceStub();
+    var session = new ConfirmationSessionStore();
+    using var model = New(service, session);
+    await model.InitializeAsync();
+    Assert.True(model.IsEmailMode);
+    Assert.False(model.IsTotpMode);
+    Assert.True(model.CanSendEmail);
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.ExtractedMfaReauthDialogVerificationPanesVerifyEea2745e), model.VerifyLabel);
+    model.SelectTotp();
+    Assert.True(model.IsTotpMode);
+    Assert.False(model.CanSendEmail);
+    model.Code = "123456";
+    model.SelectEmail();
+    Assert.True(model.IsEmailMode);
+    Assert.Empty(model.Code);
+    await model.SendEmailAsync();
+    Assert.False(model.CanSendEmail);
+    await model.LoadPasskeysAsync();
+    Assert.Equal("Device", Assert.Single(model.Passkeys).Label);
+    session.Change("account-a");
+    Assert.False(model.Completion.IsCompleted);
+    Assert.Empty(service.Codes);
+  }
+
+  [Fact]
+  public async Task ChangedContextBeforeSubmitCancelsWithoutContactingVerificationService()
+  {
+    var binding = "original-session";
+    var service = new FreshAccountProofServiceStub();
+    using var model = new FreshAccountConfirmationViewModel(service, () => binding,
+        new ConfirmationSessionStore(), UiLocalization.English);
+    await model.InitializeAsync();
+    model.Code = "ABCDEFGH23";
+    binding = "other-session";
+    await model.VerifyCodeAsync();
+    Assert.Empty(service.Codes);
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => model.Completion);
+  }
+
+  [Fact]
+  public async Task EmptyProofIsRejectedWithCanonicalErrorAndCannotCompleteMutation()
+  {
+    var service = new FreshAccountProofServiceStub { Verification = () => Task.FromResult(string.Empty) };
+    using var model = New(service);
+    await model.InitializeAsync();
+    model.Code = "ABCDEFGH23";
+    await model.VerifyCodeAsync();
+    Assert.False(model.Completion.IsCompleted);
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.ExtractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96), model.ErrorMessage);
+    Assert.Single(service.Codes);
+  }
+
+  [Fact]
   public async Task ProviderOnlyAccountOffersOnlyAdvertisedProvidersAndFailsClosedOnMismatch()
   {
     var service = new FreshAccountProofServiceStub

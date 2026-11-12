@@ -3,6 +3,7 @@ using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Fediverse;
+using Voucha.Client.Core.Tests.Support;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Auth;
@@ -109,16 +110,60 @@ public sealed class FreshAccountProofServiceTests
     Assert.DoesNotContain(handler.Requests, request => request.Path.EndsWith("/session", StringComparison.Ordinal));
   }
 
+  [Theory]
+  [InlineData("{}")]
+  [InlineData("{\"flow_id\":\"flow\",\"options\":{\"challenge\":\"AQ\",\"rpId\":\"voucha.test\",\"allowCredentials\":[]}}")]
+  [InlineData("{\"flow_id\":\"flow\",\"options\":{\"challenge\":\"AQ\",\"rpId\":\"voucha.test\",\"allowCredentials\":[{\"id\":\"AQ\",\"type\":\"unexpected\"}]}}")]
+  [InlineData("{\"flow_id\":\"flow\",\"options\":{\"challenge\":\"AQ\",\"rpId\":\"voucha.test\",\"allowCredentials\":[{\"id\":\"\",\"type\":\"public-key\"}]}}")]
+  public async Task InvalidOwnedPasskeyOptionsNeverInvokeNativeAssertionOrVerify(string json)
+  {
+    var handler = new ProofHandler { OptionsJson = json };
+    var adapter = new PasskeyAdapter();
+    var client = NewClient(handler);
+    var service = new FreshAccountProofService(client, adapter, new AssertionAdapter(), new FreshAccountBroker(client, new Browser()));
+    await Assert.ThrowsAsync<InvalidOperationException>(() => service.VerifyPasskeyAsync("owned", TestContext.Current.CancellationToken));
+    Assert.Null(adapter.Options);
+    Assert.Single(handler.Requests);
+  }
+
+  [Fact]
+  public async Task ChallengeThatExpiresWhileSdkIsOpenCannotBeSubmitted()
+  {
+    var clock = new ConfirmationClock();
+    var handler = new ProofHandler();
+    var sdk = new AssertionAdapter { BeforeReturning = () => clock.Jump(TimeSpan.FromMinutes(2)) };
+    var client = NewClient(handler);
+    var service = new FreshAccountProofService(client, new PasskeyAdapter(), sdk,
+        new FreshAccountBroker(client, new Browser(), clock), clock);
+    await Assert.ThrowsAsync<InvalidOperationException>(() => service.VerifyProviderAsync("apple", TestContext.Current.CancellationToken));
+    Assert.Single(sdk.Calls);
+    Assert.Single(handler.Requests);
+  }
+
+  [Fact]
+  public async Task UnsupportedBrokerProviderCannotUseSdkOrStartAnAuthorization()
+  {
+    var handler = new ProofHandler();
+    var sdk = new AssertionAdapter();
+    var client = NewClient(handler);
+    var service = new FreshAccountProofService(client, new PasskeyAdapter(), sdk, new FreshAccountBroker(client, new Browser()));
+    await Assert.ThrowsAsync<NotSupportedException>(() => service.VerifyProviderAsync("unadvertised", TestContext.Current.CancellationToken));
+    Assert.Empty(handler.Requests);
+    Assert.Empty(sdk.Calls);
+  }
+
   private static VouchaApiClient NewClient(ProofHandler handler) =>
       new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
 
   private sealed class AssertionAdapter : IReAuthProviderAssertion
   {
     public bool Unavailable { get; init; }
+    public Action? BeforeReturning { get; init; }
     public List<(string Provider, string Nonce)> Calls { get; } = [];
     public Task<string> GetCredentialAsync(string provider, string nonce, CancellationToken cancellationToken)
     {
       Calls.Add((provider, nonce));
+      BeforeReturning?.Invoke();
       return Unavailable ? Task.FromException<string>(new NotSupportedException()) : Task.FromResult("fresh-sdk-assertion");
     }
   }
@@ -141,11 +186,14 @@ public sealed class FreshAccountProofServiceTests
   private sealed class ProofHandler : HttpMessageHandler
   {
     public bool Expired { get; init; }
+    public string? OptionsJson { get; init; }
     public List<(string Path, string? Body, string Query)> Requests { get; } = [];
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
       var path = request.RequestUri!.AbsolutePath;
       Requests.Add((path, request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken), request.RequestUri.Query));
+      if (path.EndsWith("/options", StringComparison.Ordinal) && OptionsJson is not null)
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(OptionsJson), RequestMessage = request };
       object body = path.EndsWith("/methods", StringComparison.Ordinal)
           ? (object)new { has_email = true, has_passkey = true, has_totp = false, providers = Array.Empty<string>() }
           : path == "/api/v1/auth/passkeys"
