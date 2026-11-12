@@ -246,7 +246,7 @@ public sealed partial class VouchaApiClientTests
         new FetchPostsRequest(HasHackerNewsReferences: true),
         TestContext.Current.CancellationToken);
     Assert.Equal(HttpMethod.Get, postHandler.Method);
-    ApiQueryAssertions.Equal("/api/v1/posts?sort=hot&limit=25&has_hacker_news_references=true", postHandler.PathAndQuery);
+    ApiQueryAssertions.Equal("/api/v1/posts?sort=hot&limit=25&has_hacker_news_references=true&time_range=1m", postHandler.PathAndQuery);
 
     var rssHandler = new RecordingHandler("{}");
     var rssClient = new VouchaApiClient(new HttpClient(rssHandler) { BaseAddress = new Uri("https://api.test") });
