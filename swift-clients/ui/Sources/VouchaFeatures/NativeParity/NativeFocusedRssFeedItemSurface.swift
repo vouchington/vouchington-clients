@@ -60,6 +60,7 @@ struct NativeFocusedRssFeedItemSurface: View {
             if let embed = viewModel.focusedRssFeedItemEmbed {
                 ProviderEmbedPreview(embed: embed)
             }
+            HackerNewsReferencesView(references: viewModel.focusedHackerNewsReferences, expanded: true)
             distributionActions(for: item)
 
             NativeHtmlContent(

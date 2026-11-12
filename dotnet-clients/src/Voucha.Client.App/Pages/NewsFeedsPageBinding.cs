@@ -5,7 +5,7 @@ using Voucha.Client.Core.NewsFeeds;
 
 namespace Voucha.Client.App.Pages;
 
-public sealed class NewsFeedsPageBinding : BindableObject
+public sealed partial class NewsFeedsPageBinding : BindableObject
 {
   private readonly NewsFeedsViewModel viewModel;
   private readonly ISessionStore sessionStore;
@@ -83,6 +83,8 @@ public sealed class NewsFeedsPageBinding : BindableObject
       {
         OnPropertyChanged(nameof(IsVideoSourceFeedTypeSelected));
       }
+
+      ForwardHackerNewsProperties(e.PropertyName);
     };
   }
 
@@ -110,6 +112,7 @@ public sealed class NewsFeedsPageBinding : BindableObject
   public string SourcesScopeLabel => viewModel.SourcesScopeLabel;
 
   public string AllSourcesScopeLabel => viewModel.AllSourcesScopeLabel;
+
 
   public bool IsRefreshing
   {

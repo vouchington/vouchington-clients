@@ -6,25 +6,17 @@ namespace Voucha.Client.App.Pages;
 
 // Test shell compiles the production XAML. Unrelated navigation and mutation handlers stay inert.
 
-public partial class PostsPage : ContentPage
+public partial class PostsPage
 {
-  public PostsPage() => InitializeComponent();
-  private void OnAllClicked(object? sender, EventArgs args) { }
-  private void OnAppealsClicked(object? sender, EventArgs args) { }
-  private void OnChooseVoteClicked(object? sender, EventArgs args) { }
-  private void OnClearVoteClicked(object? sender, EventArgs args) { }
-  private void OnComposeClicked(object? sender, EventArgs args) { }
-  private void OnDiscussionsClicked(object? sender, EventArgs args) { }
-  private void OnEmbedOpenClicked(object? sender, EventArgs args) { }
-  private void OnEmbedPlayClicked(object? sender, EventArgs args) { }
-  private void OnFeedClicked(object? sender, EventArgs args) { }
-  private void OnFollowerSendClicked(object? sender, EventArgs args) { }
-  private void OnHideClicked(object? sender, EventArgs args) { }
-  private void OnOpenClicked(object? sender, EventArgs args) { }
-  private void OnReviewsClicked(object? sender, EventArgs args) { }
-  private void OnSaveClicked(object? sender, EventArgs args) { }
-  private void OnRemainingItemsThresholdReached(object? sender, EventArgs args) { }
-  private void OnPostClicked(object? sender, EventArgs args) { }
+  public PostsPage()
+  {
+    InitializeComponent();
+    viewModel = null!;
+    sessionStore = null!;
+    serviceProvider = null!;
+    emailRecovery = null!;
+    mode = "browse";
+  }
 }
 
 public partial class PostDetailPage : ContentPage

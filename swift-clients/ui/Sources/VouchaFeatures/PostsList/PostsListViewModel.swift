@@ -33,11 +33,21 @@ public final class PostsListViewModel {
     public internal(set) var savedPostIds: Set<String> = []
     public internal(set) var hiddenPostIds: Set<String> = []
     public internal(set) var postEmbedsByPostId: [String: UrlEmbed] = [:]
+    public internal(set) var hackerNewsReferencesByPostId: [String: HackerNewsReferences] = [:]
     let emailVerificationGate = EmailVerificationGatedMutation()
+
+    var filterReloadTask: Task<Void, Never>?
+    public var supportsHackerNewsFilter: Bool {
+        feedType == "all"
+    }
+
+    public var hasHackerNewsReferences = false {
+        didSet { filterReloadTask = Task { await reload() } }
+    }
 
     public var filter: PostFilter = .all {
         didSet {
-            Task { await reload() }
+            filterReloadTask = Task { await reload() }
         }
     }
 
@@ -78,16 +88,11 @@ public final class PostsListViewModel {
 
     private func loadPage(_ request: CursorPageRequest) async {
         do {
-            let endpoint = Endpoint.posts(
-                feedType: feedType,
-                after: request.cursor,
-                postTypes: filter.postTypes,
-                timeRange: timeRange?.rawValue
-            )
+            let endpoint = feedEndpoint(after: request.cursor)
             let page: PostsPage = try await client.send(endpoint)
             guard pagination.isCurrent(request) else { return }
             let newItems = page.results.compactMap { result -> Post? in
-                guard let base = page.posts[result.entityId] else { return nil }
+                guard let id = result.entityId ?? result.id, let base = page.posts[id] else { return nil }
                 let post = base.hydrated(
                     renderedHtml: page.markdownToHtml?[base.id],
                     metrics: page.postsMetrics[base.id],
@@ -109,8 +114,10 @@ public final class PostsListViewModel {
             ) else { return }
             if request.cursor == nil {
                 postEmbedsByPostId = page.postLinkEmbeds ?? [:]
+                hackerNewsReferencesByPostId = page.postHackerNewsReferences ?? [:]
             } else {
                 postEmbedsByPostId.merge(page.postLinkEmbeds ?? [:]) { _, new in new }
+                hackerNewsReferencesByPostId.merge(page.postHackerNewsReferences ?? [:]) { _, new in new }
             }
         } catch let error as VouchaError {
             if Task.isCancelled {
@@ -134,6 +141,7 @@ public final class PostsListViewModel {
         savedPostIds = []
         hiddenPostIds = []
         postEmbedsByPostId = [:]
+        hackerNewsReferencesByPostId = [:]
         inFlightVotePostIds = []
         inFlightBookmarkKeys = []
     }
@@ -153,4 +161,22 @@ public final class PostsListViewModel {
             hiddenPostIds.insert(postId)
         }
     }
+
+    func feedEndpoint(after cursor: String?) -> Endpoint {
+        hasHackerNewsReferences && supportsHackerNewsFilter
+            ? Endpoint.postsFeed(
+                postTypes: filter.postTypes,
+                timeRange: timeRange?.rawValue,
+                hasHackerNewsReferences: true,
+                sort: "hot",
+                after: cursor
+            )
+            : Endpoint.posts(
+                feedType: feedType,
+                after: cursor,
+                postTypes: filter.postTypes,
+                timeRange: timeRange?.rawValue
+            )
+    }
+
 }

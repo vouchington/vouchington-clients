@@ -46,9 +46,15 @@ public final class RSSFeedListViewModel {
     }
 
     public let contentType: ContentType
+    var hackerNewsFilterTask: Task<Void, Never>?
+    public var hasHackerNewsReferences = false {
+        didSet { hackerNewsFilterTask = Task { await reload() } }
+    }
+
     public let feedSource: FeedSource
 
     var itemElectionsById: [String: RssFeedItemElection] = [:]
+    var hackerNewsReferencesByItemId: [String: HackerNewsReferences] = [:]
     var embedsByItemId: [String: UrlEmbed] = [:]
     private var votingItemIds: Set<String> = []
     var inFlightBookmarkKeys: Set<String> = []
@@ -88,6 +94,7 @@ public final class RSSFeedListViewModel {
         actionState = nil
         itemElectionsById = [:]
         embedsByItemId = [:]
+        hackerNewsReferencesByItemId = [:]
         serverVotesByItemId = [:]
         myVotesByItemId = [:]
         savedItemIds = []

@@ -18,7 +18,8 @@ public static partial class VouchaApiEndpoints
             ("limit", request.Limit),
             ("after", request.After),
             ("semantic_search_query", request.SemanticSearchQuery),
-            ("time_range", request.TimeRange)));
+            ("time_range", request.TimeRange),
+            ("has_hacker_news_references", Bool(request.HasHackerNewsReferences))));
   }
 
   public static ApiRequest Post(string postIdOrSlug) =>

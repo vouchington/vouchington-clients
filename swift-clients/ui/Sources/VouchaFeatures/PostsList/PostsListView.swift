@@ -44,6 +44,14 @@ public struct PostsListView: View {
                 loadedListView
             }
         }
+        .toolbar {
+            if viewModel.supportsHackerNewsFilter {
+                Toggle(
+                    UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
+                    isOn: $viewModel.hasHackerNewsReferences
+                )
+            }
+        }
         .navigationTitle(UiMessages.string(.nativeSwiftPostsListPosts, locale: nativeUiLocale))
         .task(id: isStaffViewer) { await viewModel.reload() }
         .refreshable { await viewModel.reload() }
@@ -101,6 +109,7 @@ public struct PostsListView: View {
                     isStaffViewer: isStaffViewer,
                     onViewAppeals: onNavigate.map { navigate in { navigate("/my/appeals") } }
                 )
+                HackerNewsReferencesView(references: viewModel.hackerNewsReferencesByPostId[post.id])
                 if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
                    let embed = viewModel.postEmbedsByPostId[post.id] {
                     ProviderEmbedPreview(embed: embed)

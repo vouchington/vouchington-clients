@@ -91,6 +91,7 @@ public sealed partial class PostDetailPageBinding
         sessionStore.Current.Identity?.Id,
         sessionStore.Current.Identity?.Roles?.Any(role => role is "administrator" or "moderator") == true)
     {
+      HackerNewsReferences = post.Id == viewModel.RootPost?.Id ? viewModel.RootHackerNewsReferences : null,
       DirectReplyCount = viewModel.DirectReplyCount(post.Id),
       CanToggleCollapse = !viewModel.IsCollapseBusy(post.Id),
       HasMoreSubtree = !isRoot && !collapsed && viewModel.HasMoreSubtree(post.Id),

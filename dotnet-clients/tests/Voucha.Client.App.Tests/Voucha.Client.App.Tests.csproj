@@ -17,6 +17,9 @@
   <ItemGroup>
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml" Link="Pages/TurnstileChallengePage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml.cs" Link="Pages/TurnstileChallengePage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.cs" Link="Pages/RssFeedItemDetailPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.EmbedPreview.cs" Link="Pages/RssFeedItemDetailPage.EmbedPreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/HackerNewsReferencesView.cs" Link="Controls/HackerNewsReferencesView.cs" />
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PublicLandingPagePage.cs" Link="Pages/PublicLandingPagePage.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/LandingPages/PublicLandingPageTestSupport.cs" Link="TestSupport/PublicLandingPageTestSupport.cs" />
@@ -50,6 +53,8 @@
     <Compile Include="../../src/Voucha.Client.App/Controls/SemanticVoteActionSheet.cs" Link="Controls/SemanticVoteActionSheet.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.xaml" Link="Pages/NewsFeedsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.xaml.cs" Link="Pages/NewsFeedsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.HackerNews.cs" Link="Pages/NewsFeedsPage.HackerNews.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPageBinding.HackerNews.cs" Link="Pages/NewsFeedsPageBinding.HackerNews.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPageBinding.cs" Link="Pages/NewsFeedsPageBinding.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.Pagination.cs" Link="Pages/NewsFeedsPage.Pagination.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NewsFeedsPage.StoryDiscussions.cs" Link="Pages/NewsFeedsPage.StoryDiscussions.cs" />
@@ -77,6 +82,8 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/EmailVerificationRecoveryPage.cs" Link="Pages/EmailVerificationRecoveryPage.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml" Link="Pages/EmailAddressManagerView.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml.cs" Link="Pages/EmailAddressManagerView.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml.cs" Link="Pages/PostsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.EmbedPreview.cs" Link="Pages/PostsPage.EmbedPreview.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml" Link="Pages/PostsPage.xaml" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostDetailPage.xaml" Link="Pages/PostDetailPage.xaml" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/ProfilePage.xaml" Link="Pages/ProfilePage.xaml" />

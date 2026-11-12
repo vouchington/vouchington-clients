@@ -259,6 +259,7 @@
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
                                     <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
+                                    <controls:HackerNewsReferencesView Presentation="{Binding HackerNews}" />
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>

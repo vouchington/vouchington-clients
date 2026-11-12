@@ -51,6 +51,33 @@ public sealed class PostsListViewModelBoundedWindowTests
   }
 
   [Fact]
+  public void PostAndRssEndpointsPreserveTrueFalseAndOmitUnsetHackerNewsFilter()
+  {
+    Assert.False(VouchaApiEndpoints.AllPosts(new FetchPostsRequest()).Query.ContainsKey("has_hacker_news_references"));
+    Assert.Equal("true", VouchaApiEndpoints.AllPosts(new FetchPostsRequest(HasHackerNewsReferences: true)).Query["has_hacker_news_references"]);
+    Assert.Equal("false", VouchaApiEndpoints.AllPosts(new FetchPostsRequest(HasHackerNewsReferences: false)).Query["has_hacker_news_references"]);
+    Assert.DoesNotContain("has_hacker_news_references", VouchaApiEndpoints.Posts().Query.Keys);
+    Assert.Equal("true", VouchaApiEndpoints.RssFeedItems(hasHackerNewsReferences: true).Query["has_hacker_news_references"]);
+    Assert.Equal("false", VouchaApiEndpoints.AllRssFeedItems(hasHackerNewsReferences: false).Query["has_hacker_news_references"]);
+  }
+
+  [Fact]
+  public async Task HackerNewsFilterReloadsFromFirstPageAndContinuesWithSameFilter()
+  {
+    var service = new ScriptedPostsService(Page(["old"], "old-cursor"), Page(["new"], "new-cursor"), Page(["next"], null));
+    var viewModel = new PostsListViewModel(service);
+
+    await viewModel.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
+    await viewModel.LoadBrowseAsync(hasHackerNewsReferences: true, cancellationToken: TestContext.Current.CancellationToken);
+    await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Single(service.FeedRequests);
+    Assert.Equal(new bool?[] { true, true }, service.BrowseRequests.Select(request => request.HasHackerNewsReferences));
+    Assert.Equal(new string?[] { null, "new-cursor" }, service.BrowseRequests.Select(request => request.After));
+    Assert.Equal(new[] { "new", "next" }, viewModel.Items.Select(row => row.Id));
+  }
+
+  [Fact]
   public async Task DefaultRequestOmitsTimeRangeAndLast30DaysSendsOneMonthFromTheFirstPage()
   {
     var service = new ScriptedPostsService(Page(["a"], null), Page(["b"], null));

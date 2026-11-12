@@ -32,6 +32,7 @@ struct NativeUserProfilePageInfo {
 struct NativeUserProfileCollectionPage {
     let collection: NativeUserProfileCollection
     let pageInfo: NativeUserProfilePageInfo
+    var hackerNewsReferences: [String: HackerNewsReferences] = [:]
 }
 
 enum NativeUserProfileCollection {

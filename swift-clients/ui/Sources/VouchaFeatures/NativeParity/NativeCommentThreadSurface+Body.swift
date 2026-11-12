@@ -42,6 +42,10 @@ extension NativeCommentThreadSurface {
                         isStaffViewer: isStaffViewer,
                         onViewAppeals: { onNavigate("/my/appeals") }
                     )
+                    HackerNewsReferencesView(
+                        references: viewModel.hackerNewsReferencesByPostId[rootPost.id],
+                        expanded: true
+                    )
                     NativePostAuthorBio(aside: viewModel.authorAside)
                     if let client, canDistribute(rootPost) {
                         HStack {

@@ -42,6 +42,7 @@ public sealed partial class NewsFeedsViewModel
           scope,
           sourceFeedType,
           request.Cursor,
+          hasHackerNewsReferences,
           cancellationToken).ConfigureAwait(true);
       if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) ||
           !feedPages.Complete(request, (replace ? page.Items : KeepDisplayedStoryPrimaries(page.Items)).Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;

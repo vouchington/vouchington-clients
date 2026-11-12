@@ -16,7 +16,8 @@ public sealed record FetchPostsRequest(
     string? After = null,
     int Limit = 25,
     string? SemanticSearchQuery = null,
-    string? TimeRange = null);
+    string? TimeRange = null,
+    bool? HasHackerNewsReferences = null);
 
 public sealed record PostResponse(
     [property: JsonPropertyName("post")] Post Post,

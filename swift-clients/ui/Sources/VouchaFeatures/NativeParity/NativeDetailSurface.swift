@@ -154,15 +154,3 @@ private extension NativeDetailSurface {
     }
 
 }
-
-extension NativeDetailSurface {
-    var turnstileChallenge: NativeTurnstileChallengeView {
-        NativeTurnstileChallengeView(
-            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-            action: .reportsCreate,
-            baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
-        ) { token in
-            handleReportTurnstileToken(token)
-        }
-    }
-}

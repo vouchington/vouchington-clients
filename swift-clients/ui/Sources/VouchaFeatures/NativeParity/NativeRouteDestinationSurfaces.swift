@@ -38,6 +38,12 @@ struct NativeListSurface: View {
                     onNavigateToTargetPath: onNavigateToTargetPath
                 )
             } else {
+                if viewModel.supportsHackerNewsFilter {
+                    Toggle(
+                        UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
+                        isOn: $viewModel.hasHackerNewsReferences
+                    )
+                }
                 NativeRowsSurface(
                     rows: viewModel.rows,
                     state: viewModel.state,

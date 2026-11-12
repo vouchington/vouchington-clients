@@ -62,6 +62,7 @@ public partial class NewsFeedsPage : ContentPage
     await viewModel.SelectScopeAsync(GetAllSourcesScope());
   }
 
+
   private async void OnArticleSourceFeedTypeClicked(object? sender, EventArgs e)
   {
     await viewModel.SelectSourceFeedTypeAsync(NewsFeedSourceType.Article);

@@ -39,22 +39,6 @@ extension RSSFeedListViewModel {
         }
     }
 
-    private func feedEndpoint(after cursor: String?) -> Endpoint {
-        switch feedSource {
-        case .your:
-            Endpoint.rssFeedItems(
-                feedType: contentType.feedType,
-                after: cursor,
-                mediaType: contentType.mediaType
-            )
-        case .all:
-            Endpoint.allRssFeedItems(
-                after: cursor,
-                mediaType: contentType.mediaType
-            )
-        }
-    }
-
     private func mergeSidecarsAndBuildItems(page: RssFeedPage) -> [RssFeedListRow] {
         var newItems: [RssFeedListRow] = []
         var skipped: [(index: Int, row: RssFeedListRow)] = []
@@ -168,6 +152,10 @@ extension RSSFeedListViewModel {
 
     private func applyPageSidecars(_ page: RssFeedPage) {
         itemElectionsById.merge(page.rssFeedItemElections ?? [:], uniquingKeysWith: { _, new in new })
+        hackerNewsReferencesByItemId.merge(
+            page.rssFeedItemHackerNewsReferences ?? [:],
+            uniquingKeysWith: { _, new in new }
+        )
         embedsByItemId.merge(page.rssFeedItemEmbeds ?? [:], uniquingKeysWith: { _, new in new })
         storyPostIdsByStoryId.merge(page.storyPostIds ?? [:], uniquingKeysWith: { _, new in new })
         applyBookmarkState(from: page.bookmarks)

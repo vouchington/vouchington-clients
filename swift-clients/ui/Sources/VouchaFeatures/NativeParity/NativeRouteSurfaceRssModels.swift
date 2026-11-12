@@ -6,6 +6,7 @@ struct NativeRssFeedItemsResponse: Decodable {
     let results: [NativeRssFeedItemResult]
     let pageInfo: Page<FixtureReference>.PageInfo?
     let rssFeedItems: [String: NativeRssFeedItemSummary]
+    let rssFeedItemHackerNewsReferences: [String: HackerNewsReferences]?
     let rssFeedItemEmbeds: [String: UrlEmbed]?
 }
 
@@ -47,7 +48,7 @@ struct NativeRssFeedItemSummary: Decodable, Identifiable {
     let link: String?
     let mediaType: String?
     let publishedAt: Date?
-    let rssFeed: NativeRssFeedSummary?
+    let rssFeed: NativeRssFeedItemSourceSummary?
     let data: NativeRssFeedItemData?
 
     private enum CodingKeys: String, CodingKey {
@@ -72,7 +73,7 @@ struct NativeRssFeedItemSummary: Decodable, Identifiable {
         title = try container.decodeIfPresent(String.self, forKey: .title)
         link = try container.decodeIfPresent(String.self, forKey: .link)
         publishedAt = try container.decodeIfPresent(Date.self, forKey: .publishedAt)
-        rssFeed = try container.decodeIfPresent(NativeRssFeedSummary.self, forKey: .rssFeed)
+        rssFeed = try container.decodeIfPresent(NativeRssFeedItemSourceSummary.self, forKey: .rssFeed)
         data = try container.decodeIfPresent(NativeRssFeedItemData.self, forKey: .data)
         if let directMediaType = try container.decodeIfPresent(String.self, forKey: .mediaType) {
             mediaType = directMediaType
@@ -126,4 +127,12 @@ struct NativeHostnameName: Decodable {
 
 struct NativeRssFeedUrl: Decodable {
     let url: String
+}
+
+/// Item responses project only part of the source; the source URL is optional in this projection.
+struct NativeRssFeedItemSourceSummary: Decodable {
+    let title: String?
+    let feedType: String?
+    let rssFeedUrl: NativeRssFeedUrl?
+    let hostname: NativeHostnameName?
 }

@@ -67,6 +67,7 @@ extension NativeUserProfileSurface {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("public-profile-post-row")
                 }
+                HackerNewsReferencesView(references: viewModel.profileHackerNewsReferences[row.post.id])
             }
         case let .users(users):
             ForEach(users) { user in

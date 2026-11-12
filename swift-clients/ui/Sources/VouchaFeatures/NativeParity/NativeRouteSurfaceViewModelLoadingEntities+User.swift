@@ -27,6 +27,7 @@ extension NativeRouteSurfaceViewModel {
             after: nil,
             client: client
         )
+        profileHackerNewsReferences = page.hackerNewsReferences
         userProfile.collection = page.collection
         userProfile.pagination.replaceItems(page.collection.paginationItems)
         userProfile.pagination.restoreContinuation(

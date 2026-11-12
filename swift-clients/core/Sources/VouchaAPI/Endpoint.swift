@@ -90,24 +90,6 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/search", queryItems: items)
     }
 
-    static func rssFeedItems(
-        feedType: String = "any",
-        after: String? = nil,
-        limit: Int = 20,
-        mediaType: String? = nil
-    ) -> Endpoint {
-        var additional: [URLQueryItem] = []
-        if let mediaType {
-            additional.append(.init(name: "media_type", value: mediaType))
-        }
-        return pagedGet(
-            path: "/api/v1/feeds/rss_feed_items/\(feedType)",
-            after: after,
-            limit: limit,
-            queryItems: additional
-        )
-    }
-
     static func posts(
         feedType: String = "any",
         after: String? = nil,
@@ -217,15 +199,6 @@ public extension Endpoint {
     /// Resolve the final navigation target for a notification redirect placeholder.
     static func notificationRedirectTarget(notificationId: String) -> Endpoint {
         Endpoint(.GET, path: "/api/v1/my/notifications/\(pathSegment(notificationId))/redirect-target")
-    }
-
-    /// All RSS feed items — global feed, no personalization scope required.
-    static func allRssFeedItems(after: String? = nil, limit: Int = 20, mediaType: String? = nil) -> Endpoint {
-        var additional: [URLQueryItem] = []
-        if let mediaType {
-            additional.append(.init(name: "media_type", value: mediaType))
-        }
-        return pagedGet(path: "/api/v1/rss-feed-items", after: after, limit: limit, queryItems: additional)
     }
 
     /// Public RSS feed sources, optionally filtered by feed_type and paginated with a cursor.
