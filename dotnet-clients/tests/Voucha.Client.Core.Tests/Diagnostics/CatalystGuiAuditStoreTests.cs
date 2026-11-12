@@ -29,6 +29,20 @@ public sealed class CatalystGuiAuditStoreTests : IDisposable
   }
 
   [Fact]
+  public void FailedControlSnapshotIsRolledBackBeforeAnotherReportWrite()
+  {
+    var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
+    store.RecordControls(true, false, false, true);
+    var prior = Report()["controls"]!.DeepClone();
+    Directory.Delete(directory, recursive: true);
+    Assert.Throws<DirectoryNotFoundException>(() => store.RecordControls(false, true, true, false));
+    Directory.CreateDirectory(directory);
+    store.Activate("/recovered");
+    Assert.True(JsonNode.DeepEquals(prior, Report()["controls"]));
+    Assert.False(File.Exists(AuditPath + ".tmp"));
+  }
+
+  [Fact]
   public void PersistsIndependentSnapshotsAndReplacesCompleteReport()
   {
     var before = new JsonObject { ["engagement"] = true, ["hidden"] = "preserve" };

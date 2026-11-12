@@ -34,6 +34,21 @@ const corruptions = {
   'noncanonical initial fixture': report => {
     report.initialPreferences = {}
   },
+  'missing applied controls': report => {
+    report.controls = null
+  },
+  'control events not released': report => {
+    report.controls.ready = false
+  },
+  'stale applied switch': report => {
+    report.controls.engagement = true
+  },
+  'wrong applied schedule': report => {
+    report.controls.scheduleVisible = false
+  },
+  'unknown applied-control claim': report => {
+    report.controls.nativePixelsVerified = true
+  },
   'missing patches': report => {
     report.patches = null
   },

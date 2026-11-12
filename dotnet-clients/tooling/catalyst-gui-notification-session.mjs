@@ -59,36 +59,25 @@ export async function assertNotificationControls(request, sessionId, options = {
       operationDeadline = previous
     }
   }
-  const find = async (id, budget = 10_000) => poll(id, async () => {
+  const sectionId = 'notification-preferences-section'
+  let section
+  const path = (element, suffix) => `/element/${encodeURIComponent(element)}/${suffix}`
+  const find = async (id, budget = 10_000, scope = section) => poll(id, async () => {
     try {
-      const value = await command('POST', '/element', { using: 'accessibility id', value: id })
+      const value = await command('POST', scope ? path(scope, 'element') : '/element', { using: 'accessibility id', value: id })
       return value?.['element-6066-11e4-a52e-4f735466cecf'] ?? value?.ELEMENT
     } catch (error) {
-      // Only absence is transient. Unsupported commands, stale references, and
-      // permissions must fail immediately instead of becoming a timeout/pass.
       if (/no such element/iu.test(error.message)) return undefined
       throw error
     }
   }, Boolean, budget)
-  const path = (element, suffix) => `/element/${encodeURIComponent(element)}/${suffix}`
-  const attr = async (element, name) => {
-    const value = await command('GET', path(element, `attribute/${name}`))
-    return value && typeof value === 'object' && 'value' in value ? value.value : value
-  }
-  const visible = element => command('GET', path(element, 'displayed'))
-  const ready = async id => {
-    const element = await find(id)
-    assert.equal(truth(await visible(element)), true, `${id} was not visible`)
-    await poll(`${id} enabled`, () => attr(element, 'enabled'), truth)
-    return element
-  }
   const click = element => command('POST', path(element, 'click'), {})
   const execute = (script, args) => command('POST', '/execute/sync', { script: `macos: ${script}`, args: [args] })
   const report = async () => {
     assertDeadline()
     const value = await options.readEvidence()
     assertDeadline()
-    assert.equal(value?.schemaVersion, 2, 'unsupported notification app report')
+    assert.equal(value?.schemaVersion, 3, 'unsupported notification app report')
     assert.ok(value.initialPreferences && Array.isArray(value.patches), 'missing notification app report data')
     return value
   }
@@ -109,31 +98,35 @@ export async function assertNotificationControls(request, sessionId, options = {
     state = patch.after
     patchCount += 1
   }
-  const toggle = async field => {
-    const id = `notification-${field}`
-    const element = await ready(id)
-    const before = switchState(await attr(element, 'value'))
-    assert.equal(before, state[fieldNames[field]], `${field} displayed state differs from persisted state`)
-    await mutate(field, !before, () => click(element))
-    await poll(`${field} native switch`, async () => ({
-      enabled: truth(await attr(element, 'enabled')), value: switchState(await attr(element, 'value')),
-    }), value => value.enabled && value.value === !before)
+  const controlsMatch = (value, expected) => value.notificationRouteActive === true &&
+      value.controls?.ready === true &&
+      value.controls.engagement === expected.is_engagement_emails_enabled &&
+      value.controls.moderation === expected.is_moderation_emails_enabled &&
+      value.controls.scheduleVisible === expected.is_moderation_emails_enabled
+  const waitControls = () => poll('applied notification controls', report, value => controlsMatch(value, state))
+  const exposeHeading = async () => {
+    // A fresh section after each route activation bounds every descendant lookup.
+    section = await find(sectionId, 10_000, null)
+    await find(headingId)
   }
-  const visibility = async (ids, expected) => {
-    for (const id of ids) {
-      // Hidden controls may remain in the tree or disappear entirely.
-      const values = await command('POST', '/elements', { using: 'accessibility id', value: id })
-      assert.ok(Array.isArray(values), 'Mac2 elements response must be an array')
-      const shown = await Promise.all(values.map(value => visible(value['element-6066-11e4-a52e-4f735466cecf'] ?? value.ELEMENT)))
-      assert.equal(shown.some(truth), expected, `${id} schedule visibility differs`)
+  const toggle = async field => {
+    await waitControls()
+    const element = await find(`notification-${field}`)
+    await mutate(field, !state[fieldNames[field]], () => click(element))
+    // Persistence precedes UI synchronization. The app records actual properties
+    // after event release; do not snapshot a transitioning control to poll it.
+    await waitControls()
+  }
+  let scheduleExposed = false
+  const schedule = async expected => {
+    const value = await waitControls()
+    assert.equal(value.controls.scheduleVisible, expected, 'applied schedule visibility differs')
+    if (expected && !scheduleExposed) {
+      await find('notification-moderation-schedule')
+      scheduleExposed = true
     }
   }
 
-  const schedule = expected => visibility(['notification-cadence', 'notification-time', 'notification-timezone'], expected)
-
-  const heading = await find(headingId, 75_000)
-  assert.equal(truth(await visible(heading)), true, 'notification heading was not visible')
-  passed('heading-exposed')
   const assertDispatches = value => {
     assert.ok(Array.isArray(value.activations) && value.activations.length > 0, 'missing canonical route activation')
     for (const activation of value.activations) {
@@ -145,13 +138,17 @@ export async function assertNotificationControls(request, sessionId, options = {
       assert.equal(announcements[0].text, options.expectedAnnouncement, 'announcement dispatch must match generated localization')
     }
   }
-  const initial = await poll('initial notification accessibility dispatch', report, value => value.accessibilityDispatches?.some(item => item.kind === 'announcement'))
+  const initial = await poll('initial applied notification controls and dispatch', async () => {
+    try { return await report() } catch (error) { if (error.code === 'ENOENT') return undefined; throw error }
+  }, value => value && controlsMatch(value, value.initialPreferences) && value.accessibilityDispatches?.some(item => item.kind === 'announcement'), 75_000)
   assertDispatches(initial)
   assert.equal(initial.notificationRouteActive, true, 'initial notification route must be active')
   assert.ok(typeof initial.initialPreferences.moderation_email_timezone === 'string' && initial.initialPreferences.moderation_email_timezone.length > 0, 'canonical fixture must provide a saved timezone')
   assert.equal(initial.patches.length, 0, 'notification load must not mutate saved preferences')
   state = initial.initialPreferences
   patchCount = 0
+  await exposeHeading()
+  passed('heading-exposed')
   beginPhase('mutations', 45_000)
   await toggle('engagement')
   passed('engagement-mutation-persisted')
@@ -172,9 +169,9 @@ export async function assertNotificationControls(request, sessionId, options = {
   await execute('deepLink', { url: 'voucha://my/notification-settings', ...(options.bundleId ? { bundleId: options.bundleId } : {}) })
   const activated = await poll('canonical notification route activation', report, value => {
     const latest = value.activations?.at(-1)
-    return value.notificationRouteActive === true && value.activations.length > initial.activations.length && value.accessibilityDispatches?.some(item => item.activationId === latest.activationId && item.kind === 'announcement')
+    return controlsMatch(value, state) && value.activations.length > initial.activations.length && value.accessibilityDispatches?.some(item => item.activationId === latest.activationId && item.kind === 'announcement')
   })
-  assert.equal(truth(await visible(await find(headingId))), true, 'notification heading was not visible after return')
+  await exposeHeading()
   assert.equal(activated.activations.length, initial.activations.length + 1, 'deep link must activate the canonical route exactly once')
   assertDispatches(activated)
   await sleep(250)
@@ -185,14 +182,4 @@ export async function assertNotificationControls(request, sessionId, options = {
   assertDeadline()
   passed('canonical-route-focus-and-announcement-dispatched')
   return checks
-}
-
-function truth(value) {
-  return value === true || value === 1 || ['true', '1', 'yes'].includes(String(value ?? '').toLowerCase())
-}
-
-function switchState(value) {
-  if (value === false || value === 0 || ['false', '0', 'off', 'no'].includes(String(value ?? '').toLowerCase())) return false
-  if (truth(value) || String(value).toLowerCase() === 'on') return true
-  throw new Error(`Mac2 did not expose a boolean switch value: ${String(value)}`)
 }

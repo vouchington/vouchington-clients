@@ -4,7 +4,7 @@
 
 The required Debug Mac2 session exercises the engagement and moderation switches with native clicks.
 Each click must persist exactly one PATCH containing its API field, with contiguous before/after
-snapshots of all eight preferences. The moderation schedule must appear, disappear, and reappear;
+snapshots of all eight preferences. Applied MAUI schedule visibility must show, hide, and show again;
 the six preferences not edited by the hosted session must remain unchanged, including hidden values.
 The session starts with the pinned identity and preference fixtures and never sends a fixture-only
 mutation command.
@@ -96,3 +96,31 @@ The App regression exercises the real MAUI template cache, production settings-r
 production notification focus method; it verifies that the ordinary Settings route hides the
 notification section and records audit departure. The GUI still sends the real outbound URL and
 requires the departure audit before returning; no synthetic route or audit mutation is substituted.
+
+## Scoped, audit-first lookups (#646)
+
+Runs [43203246324 attempt 2](https://github.com/vouchington/vouchington-clients/actions/runs/43203246324/attempts/2)
+and [43209098914](https://github.com/vouchington/vouchington-clients/actions/runs/43209098914)
+exhausted the unchanged 45-second mutation phase during the final schedule scan. WDA remained
+responsive: the final cadence/time lookups started with only about 487/187 ms remaining, then
+returned elements after the client cancelled. Repeated switch state reads and three whole-app
+schedule searches per scan consumed the budget. This was cumulative native query cost, not a
+hanging accessibility lookup.
+
+The app audit now uses schema 3 with `controls`: actual engagement/moderation toggle values,
+ancestor-aware schedule `IsVisible`, and readiness after synchronization/event release with both
+switches enabled. DEBUG instrumentation observes actual controls and ancestor visibility; it does
+not infer the snapshot from the fixture or expected PATCH. File readiness is required before the
+first native lookup, after each PATCH, and after route return.
+
+Only the notification-section lookup is app-wide. Heading, switch, and the initial visible schedule
+container are found relative to that section; descendant references are refreshed per gesture and
+the section is reacquired after route return. There are no `POST /elements`, post-action attribute
+or displayed reads, or repeated final visibility scans. The schedule container must be exposed
+natively once while stable; subsequent visibility assertions use the applied-control audit. This
+proves logical MAUI visibility, not pixel visibility or completion of #60's manual acceptance.
+
+The normal protocol case uses 13 native requests instead of 47. Tests model a PATCH arriving before
+UI readiness, delayed initial/return activation, stale descendants, and the observed 2.6-second
+per-call cost without changing any session, phase, or workflow limit. Hosted timing still requires
+CI confirmation.
