@@ -6,6 +6,7 @@ import { assertNotificationControls } from './catalyst-gui-notification-session.
 import { assertRootShellControls } from './catalyst-gui-root-session.mjs'
 
 import { notificationEvidence } from '../../scripts/catalyst-notification-evidence.mjs'
+import { notificationInputs, notificationLocalizationFile, validateNotificationAppEvidence } from '../../scripts/catalyst-notification-app-evidence.mjs'
 
 const launchArgument = '--ui-testing-launch-smoke'
 const bundleId = 'ai.voucha.dotnet'
@@ -73,6 +74,9 @@ function stageFixture(destination) {
     mkdirSync(dirname(targetBody), { recursive: true })
     copyFileSync(bodyPath, targetBody)
   }
+  const localized = join(destination, notificationLocalizationFile)
+  mkdirSync(dirname(localized), { recursive: true })
+  copyFileSync(new URL(`../../${notificationLocalizationFile}`, import.meta.url), localized)
 }
 
 function appiumPrefix() {
@@ -127,9 +131,10 @@ async function prebuildHost() {
   ])
 }
 
-async function request(method, path, body) {
+async function request(method, path, body, options = {}) {
   const response = await fetch(`http://127.0.0.1:${appiumPort}${path}`, {
     method,
+    signal: options.signal,
     ...(body
       ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
       : {}),
@@ -171,6 +176,8 @@ async function session(rootShell = false) {
   const resultPath = process.env.CATALYST_GUI_RESULT
   if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
   rmSync(resultPath, { force: true })
+  const appEvidencePath = `${resultPath}.app.json`
+  rmSync(appEvidencePath, { force: true })
   const { commit } = JSON.parse(readFileSync('contracts/vouchington.json', 'utf8'))
   const nativeRevision = process.env.CATALYST_NATIVE_REVISION
   const appPath = process.env.CATALYST_APP_PATH
@@ -210,9 +217,17 @@ async function session(rootShell = false) {
     let checks
     try {
       if (rootShell) await assertRootShellControls(request, sessionId)
-      else checks = await assertNotificationControls(request, sessionId)
+      else {
+        const inputs = notificationInputs(process.env.VOUCHA_CONTRACT_ROOT)
+        checks = await assertNotificationControls(request, sessionId, {
+          readEvidence: () => JSON.parse(readFileSync(appEvidencePath, 'utf8')),
+          expectedAnnouncement: inputs.announcement,
+          bundleId,
+        })
+        validateNotificationAppEvidence(JSON.parse(readFileSync(appEvidencePath, 'utf8')), inputs)
+      }
     } catch (error) {
-      await writePageSource(request, sessionId)
+      if (rootShell) await writePageSource(request, sessionId)
       throw error
     }
     const result = rootShell

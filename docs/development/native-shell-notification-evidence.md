@@ -24,9 +24,11 @@ signed production installation, store delivery, or notification permission/push 
 ## Catalyst partial-evidence gate
 
 The Catalyst GUI session records a named check only after its real Appium assertion succeeds:
-heading exposure, moderation enabled/on, a settled engagement toggle, and an enabled news-digest
-picker. The result identifies itself as partial hosted Mac Catalyst notification evidence. Totals
-are derived from the named checks rather than a handwritten success count.
+heading exposure, an engagement switch PATCH, moderation schedule visibility with hidden-value
+preservation, and canonical-route focus/announcement dispatch. Schema 3 identifies this as partial
+hosted switch evidence and requires `manualAcceptanceRequired: true`. Picker, time, weekday, and
+VoiceOver interaction acceptance remains a [#60 manual blocker](catalyst-notification-acceptance.md).
+Totals are derived from the named checks rather than a handwritten success count.
 
 CI validates the exact current check set, successful outcomes, evidence schema, platform and scope,
 and the verified native revision and pinned producer commit. Missing, duplicate, unexpected,
