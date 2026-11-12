@@ -64,11 +64,12 @@ public final class PostsListViewModel {
     public init(client: APIClient, feedType: String = "any", timeRange: PostTimeRange? = nil) {
         self.client = client
         self.feedType = feedType
-        self.timeRange = timeRange
+        self.timeRange = timeRange == .last30Days ? nil : timeRange
     }
 
     /// Select a finite range (or `nil` for the default). A change drops the cursor and reloads.
     public func selectTimeRange(_ range: PostTimeRange?) async {
+        let range = range == .last30Days ? nil : range
         guard range != timeRange else { return }
         timeRange = range
         await reload()

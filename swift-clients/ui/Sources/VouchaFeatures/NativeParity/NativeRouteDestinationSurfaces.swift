@@ -20,6 +20,11 @@ struct NativeListSurface: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
+            if viewModel.showsPostTimeRangePicker {
+                PostTimeRangePicker(range: viewModel.postTimeRange) { range in
+                    onNavigateToTargetPath(viewModel.postTimeRangePath(range))
+                }
+            }
             if viewModel.destination == .moderationTransparency {
                 ModerationTransparencyRangePicker(
                     range: viewModel.moderationTransparencyRange,

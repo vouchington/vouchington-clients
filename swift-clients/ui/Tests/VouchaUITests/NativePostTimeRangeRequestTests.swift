@@ -34,9 +34,67 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
         XCTAssertEqual(query("after", url: url), "older==")
     }
 
+    func testBrowseWindowsReachEveryPageForAllPostTypes() async throws {
+        let path = "/api/v1/posts"
+        registerEmptyPage(path: path)
+        let client = try makeClient()
+        for routePath in ["/posts", "/reviews", "/discussions", "/data-points"] {
+            let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: routePath))
+            for (value, expected) in [("1w", "1w"), ("1m", nil), ("1y", "1y"), ("all", "all")] {
+                let model = NativeRouteSurfaceViewModel(
+                    entry: route.entry, client: client, routeMatch: route.match,
+                    routeQuery: "time_range=\(value)"
+                )
+                XCTAssertTrue(model.showsPostTimeRangePicker)
+                _ = try await model.loadPostPage(client: client, after: nil)
+                _ = try await model.loadPostPage(client: client, after: "older==")
+                let urls = Array(CannedFeedURLProtocol.capturedURLs.suffix(2))
+                XCTAssertEqual(urls.map { query("time_range", url: $0) }, [expected, expected])
+                XCTAssertNil(query("after", url: urls.first))
+                XCTAssertEqual(query("after", url: urls.last), "older==")
+            }
+        }
+    }
+
+    func testProfilePostWindowsReachInitialAndContinuationRequests() async throws {
+        registerEmptyPage(path: "/api/v1/posts")
+        let client = try makeClient()
+        for suffix in ["posts", "reviews", "discussions", "comments"] {
+            let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/user/alice/\(suffix)"))
+            for range in ["1w", "1m", "1y", "all"] {
+                let model = NativeRouteSurfaceViewModel(
+                    entry: route.entry, client: client, routeMatch: route.match,
+                    routeQuery: "time_range=\(range)"
+                )
+                XCTAssertTrue(model.showsPostTimeRangePicker)
+                _ = try await model.userPostPage(userId: "alice", filter: .all, after: nil, client: client)
+                _ = try await model.userPostPage(userId: "alice", filter: .all, after: "profile==", client: client)
+                let urls = Array(CannedFeedURLProtocol.capturedURLs.suffix(2))
+                let expected: String? = range == "1m" ? nil : range
+                XCTAssertEqual(urls.map { query("time_range", url: $0) }, [expected, expected])
+                XCTAssertEqual(query("creator", url: urls.last), "alice")
+                XCTAssertEqual(query("after", url: urls.last), "profile==")
+            }
+        }
+    }
+
+    func testInvalidRangeUsesOrdinaryDefault() throws {
+        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/posts"))
+        for query in [nil, "time_range=invalid", "time_range=1d"] {
+            let model = NativeRouteSurfaceViewModel(
+                entry: route.entry, client: nil, routeMatch: route.match, routeQuery: query
+            )
+            XCTAssertEqual(model.postTimeRange, .last30Days)
+            XCTAssertNil(model.postTimeRangeQueryValue)
+        }
+    }
+
     private func registerEmptyPage(path: String) {
         CannedFeedURLProtocol.handlers[path] = (
-            Data(#"{"results":[],"posts":{},"page_info":{"has_next_page":false,"end_cursor":null}}"#.utf8),
+            Data(
+                #"{"results":[],"posts":{},"posts_metrics":{},"post_elections":{},"page_info":{"has_next_page":false,"end_cursor":null}}"#
+                    .utf8
+            ),
             200
         )
     }

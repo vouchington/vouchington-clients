@@ -11,7 +11,8 @@ extension NativeRouteSurfaceViewModel {
         let response: UserProfilePostFeedResponse = try await client.send(.userPosts(
             userId: userId,
             postTypes: filter.queryValue,
-            after: after
+            after: after,
+            timeRange: postTimeRangeQueryValue
         ))
         let hydratedPosts = response.posts.mapValues { post in
             post.hydrated(
