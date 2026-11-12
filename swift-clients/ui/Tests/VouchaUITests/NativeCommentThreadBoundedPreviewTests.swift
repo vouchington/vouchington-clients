@@ -1,6 +1,7 @@
 import Foundation
 import ViewInspector
 import VouchaAPI
+import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
@@ -65,7 +66,7 @@ final class NativeCommentThreadBoundedPreviewTests: NativeRouteSurfaceViewModelT
             XCTAssertEqual(id, self.child)
             requested.fulfill()
         }
-        try view.inspect().find(button: "Load more").tap()
+        try view.inspect().find(HybridPaginationControl.self).actualView().inspect().find(button: "Load more").tap()
         await fulfillment(of: [requested], timeout: 2)
 
         var pagination = CursorPaginationState<Post>()
