@@ -29,7 +29,7 @@
             // Fixture identity restoration precedes mounting RootView and loading its feed.
             // Keep launch readiness separate from the existing content assertion deadline.
             XCTAssertTrue(
-                app.otherElements["root-shell"].waitForExistence(timeout: 20),
+                app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20),
                 "News fixture did not finish identity restoration and mount the native root"
             )
             let primary = app.staticTexts[fixture.primaryTitle].firstMatch
