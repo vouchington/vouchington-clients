@@ -27,9 +27,13 @@ extension NativeUserProfileSurface {
         ) { await viewModel.loadMoreUserProfileRows() }
     }
 
-    func localizedCount(_ key: UiMessageKey, _ count: Int) -> Text {
+    func localizedCount(_ key: UiMessageKey, _ count: Int, capped: Bool = false) -> Text {
         Text(verbatim: UiMessages.string(
-            UiMessage(key, numberParameters: ["count": Double(count)]),
+            UiMessage(
+                key,
+                numberParameters: ["count": Double(count)],
+                cappedNumberParameters: capped ? ["count"] : []
+            ),
             locale: nativeUiLocale
         ))
     }

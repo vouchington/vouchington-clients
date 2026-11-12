@@ -112,7 +112,8 @@ public enum UiMessages {
             parameters[name] = string(value, locale: locale, timeZone: timeZone)
         }
         for (name, value) in message.numberParameters {
-            parameters[name] = number(value, locale: locale)
+            parameters[name] = number(value, locale: locale) +
+                (message.cappedNumberParameters.contains(name) ? "+" : "")
         }
         for (name, value) in message.percentParameters {
             parameters[name] = percent(value, locale: locale)

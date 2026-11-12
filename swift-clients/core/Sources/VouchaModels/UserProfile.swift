@@ -30,9 +30,15 @@ public struct UserProfileMetrics: Codable, Sendable {
     public let count: [String: Int]
     public let viewerCount: [String: Int]?
     public let countCapped: [String: Bool]?
+    public let privateCount: [String: Int]?
+    public let privateCountCapped: [String: Bool]?
 
     public func visibleCount(_ key: String) -> Int {
         viewerCount?[key] ?? count[key] ?? 0
+    }
+
+    public func isVisibleCountCapped(_ key: String) -> Bool {
+        countCapped?[key] == true
     }
 }
 
