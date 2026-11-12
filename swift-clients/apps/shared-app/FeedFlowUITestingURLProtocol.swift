@@ -24,7 +24,7 @@
                   let data = canonicalResponseData(),
                   let response = HTTPURLResponse(
                       url: url,
-                      statusCode: 200,
+                      statusCode: request.httpMethod == "POST" ? 201 : 200,
                       httpVersion: "HTTP/1.1",
                       headerFields: ["Content-Type": "application/json"]
                   )
@@ -40,6 +40,9 @@
         }
 
         private func canonicalResponseData() -> Data? {
+            if ProcessInfo.processInfo.environment["VOUCHA_UI_TESTING_SOURCE_CREATION_RESPONSES"] != nil {
+                return SourceCreationUITestingResponses.data(for: request)
+            }
             guard request.httpMethod == "GET",
                   let url = request.url,
                   url.host == "ui-testing.voucha.invalid",
