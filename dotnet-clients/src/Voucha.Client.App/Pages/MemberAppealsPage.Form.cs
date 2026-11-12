@@ -82,7 +82,7 @@ public sealed partial class MemberAppealsPage
     try
     {
       var token = await turnstileTokenProvider.GetTokenAsync(
-          cancellation.Token).ConfigureAwait(true);
+          "appeals.create", cancellation.Token).ConfigureAwait(true);
       cancellation.Token.ThrowIfCancellationRequested();
       await viewModel.SubmitAsync(
           token, cancellation.Token).ConfigureAwait(true);

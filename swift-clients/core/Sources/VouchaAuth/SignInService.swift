@@ -1,3 +1,4 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaModels
@@ -27,6 +28,10 @@ public struct SignInService: Sendable {
         self.client = client
         self.sessionManager = sessionManager
         self.appAttestationService = appAttestationService ?? AppAttestationService.makeDefault(client: client)
+    }
+
+    public var baseURL: URL {
+        client.baseURL
     }
 
     // MARK: - Email OTP

@@ -6,7 +6,7 @@ namespace Voucha.Client.App;
 
 public interface ITurnstileTokenProvider
 {
-  Task<string> GetTokenAsync(CancellationToken cancellationToken = default);
+  Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default);
 }
 
 public sealed class MauiTurnstileTokenProvider : ITurnstileTokenProvider
@@ -16,11 +16,11 @@ public sealed class MauiTurnstileTokenProvider : ITurnstileTokenProvider
   public MauiTurnstileTokenProvider(AppConfig appConfig) =>
       this.appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
 
-  public async Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
+  public async Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default)
   {
     cancellationToken.ThrowIfCancellationRequested();
 
-    var page = new TurnstileChallengePage(appConfig);
+    var page = new TurnstileChallengePage(appConfig, routeAction);
     var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
     void HandleTokenCaptured(object? sender, TurnstileTokenCapturedEventArgs args)

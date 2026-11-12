@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -35,6 +36,17 @@ struct NativePostComposeSurface: View {
                 isAdministrator: isAdministrator
             )
         )
+    }
+
+    func turnstileChallenge(viewModel: NativePostComposeViewModel) -> NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: viewModel.communityIdOrSlug == nil ? .postsCreate : .communitiesCreatePost,
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            viewModel.turnstileToken = token
+            showingTurnstile = false
+        }
     }
 
     var body: some View {
@@ -80,12 +92,7 @@ struct NativePostComposeSurface: View {
             drafts(viewModel: viewModel)
         }
         .sheet(isPresented: $showingTurnstile) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
-            ) { token in
-                viewModel.turnstileToken = token
-                showingTurnstile = false
-            }
+            turnstileChallenge(viewModel: viewModel)
         }
         .fileImporter(
             isPresented: $showingImageImporter,

@@ -26,7 +26,7 @@ public partial class PostDetailPage
     try
     {
       return await serviceProvider.GetRequiredService<ITurnstileTokenProvider>()
-          .GetTokenAsync()
+          .GetTokenAsync("posts.create")
           .ConfigureAwait(true);
     }
     catch (OperationCanceledException)

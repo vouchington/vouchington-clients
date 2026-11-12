@@ -1,5 +1,6 @@
 import SwiftUI
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -52,6 +53,22 @@ struct NativeCommentThreadComposerSheet: View {
         self.onSubmit = onSubmit
         self.onCancel = onCancel
         self.onCaptureTurnstile = onCaptureTurnstile
+    }
+
+    private func turnstileAction(for kind: NativeCommentThreadComposerState.Kind) -> AppAttestActionTag {
+        if case .report = kind { return .reportsCreate }
+        return .postsCreate
+    }
+
+    func turnstileChallenge(composer: Binding<NativeCommentThreadComposerState>) -> NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: turnstileAction(for: composer.wrappedValue.kind),
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            composer.wrappedValue.turnstileToken = token
+            onCaptureTurnstile(token)
+        }
     }
 
     var body: some View {
@@ -119,12 +136,7 @@ struct NativeCommentThreadComposerSheet: View {
         }
         .padding(Spacing.md)
         .sheet(isPresented: $showingTurnstile) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
-            ) { token in
-                composer.turnstileToken = token
-                onCaptureTurnstile(token)
-            }
+            turnstileChallenge(composer: $composer)
         }
     }
 

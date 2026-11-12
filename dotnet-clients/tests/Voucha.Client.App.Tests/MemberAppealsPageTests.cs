@@ -328,7 +328,7 @@ public sealed partial class MemberAppealsPageTests
 
   private sealed class TokenProvider : ITurnstileTokenProvider
   {
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default) =>
+    public Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default) =>
         Task.FromResult("token");
   }
 
@@ -340,8 +340,9 @@ public sealed partial class MemberAppealsPageTests
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     public int Calls { get; private set; }
 
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
+    public Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default)
     {
+      Assert.Equal("appeals.create", routeAction);
       Calls++;
       Started.TrySetResult();
       return completion.Task.WaitAsync(cancellationToken);
@@ -354,8 +355,9 @@ public sealed partial class MemberAppealsPageTests
   {
     public int Calls { get; private set; }
 
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
+    public Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default)
     {
+      Assert.Equal("appeals.create", routeAction);
       Calls++;
       return Calls == 1
           ? Task.FromException<string>(new HttpRequestException("challenge unavailable"))

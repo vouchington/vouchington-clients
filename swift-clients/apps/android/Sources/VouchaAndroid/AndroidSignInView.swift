@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaAuth
 import VouchaCore
 import VouchaLocalization
 
@@ -54,6 +55,7 @@ struct AndroidSignInView: View {
                         } else {
                             AndroidTurnstileChallenge(
                                 siteKey: account.config.turnstileSiteKey,
+                                actionTag: AppAttestActionTag.authEmailAddressTokens.rawValue,
                                 baseURL: account.config.baseURL
                             ) { [challengeID = account.turnstileChallengeID] token in
                                 account.turnstileTokenDidChange(token, challengeID: challengeID, locale: locale)
@@ -82,21 +84,24 @@ struct AndroidSignInView: View {
 
 struct AndroidTurnstileChallenge: View {
     let siteKey: String
+    let actionTag: String
     let baseURL: URL
     let onToken: (String?) -> Void
 
     // The Skip bridge needs the callback's escaping lifetime in the explicit initializer.
     // swiftformat:disable:next redundantMemberwiseInit
-    init(siteKey: String, baseURL: URL, onToken: @escaping (String?) -> Void) {
+    init(siteKey: String, actionTag: String, baseURL: URL, onToken: @escaping (String?) -> Void) {
         self.siteKey = siteKey
+        self.actionTag = actionTag
         self.baseURL = baseURL
         self.onToken = onToken
     }
 
     var body: some View {
         #if os(Android)
-            if let origin = androidTurnstileOrigin(baseURL) {
-                TurnstileWebChallenge(siteKey: siteKey, origin: origin) { token in
+            if let origin = androidTurnstileOrigin(baseURL),
+               let html = androidTurnstileHTML(siteKey, actionTag: actionTag, baseURL: baseURL) {
+                TurnstileWebChallenge(html: html, origin: origin) { token in
                     onToken(token)
                 }
             }
@@ -115,14 +120,14 @@ struct AndroidTurnstileChallenge: View {
     import androidx.compose.ui.viewinterop.AndroidView
 
     struct TurnstileWebChallenge: View {
-        let siteKey: String
+        let html: String
         let origin: String
         let onToken: (String?) -> Void
 
         // The Skip bridge needs the callback's escaping lifetime in the explicit initializer.
         // swiftformat:disable:next redundantMemberwiseInit
-        init(siteKey: String, origin: String, onToken: @escaping (String?) -> Void) {
-            self.siteKey = siteKey
+        init(html: String, origin: String, onToken: @escaping (String?) -> Void) {
+            self.html = html
             self.origin = origin
             self.onToken = onToken
         }
@@ -135,7 +140,7 @@ struct AndroidTurnstileChallenge: View {
                     view.settings.domStorageEnabled = true
                     CookieManager.getInstance().setAcceptThirdPartyCookies(view, true)
                     view.webViewClient = TurnstileNavigationClient(origin: origin, onToken: onToken)
-                    view.loadDataWithBaseURL(origin, androidTurnstileHTML(siteKey), "text/html", "UTF-8", nil)
+                    view.loadDataWithBaseURL(origin, html, "text/html", "UTF-8", nil)
                     return view
                 }, modifier: context.modifier, update: { _ in })
             }

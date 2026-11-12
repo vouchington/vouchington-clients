@@ -492,7 +492,7 @@ final class NativeRouteSurfaceViewTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testTurnstileChallengeViewRendersWebViewContainer() throws {
-        let sut = NativeTurnstileChallengeView(siteKey: "site-key") { _ in }
+        let sut = NativeTurnstileChallengeView(siteKey: "site-key", action: .postsCreate) { _ in }
 
         XCTAssertNoThrow(try sut.inspect().find(NativeTurnstileChallengeView.self))
     }

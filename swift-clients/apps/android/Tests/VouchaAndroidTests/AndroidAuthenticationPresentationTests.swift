@@ -50,12 +50,27 @@ final class AndroidAuthenticationPresentationTests: XCTestCase {
         XCTAssertEqual(account.turnstileToken, "fresh-token")
     }
 
-    func testChallengeMarkupEscapesConfigurationAndHandlesScriptLoadFailureIndependently() {
-        let html = androidTurnstileHTML("a\"<&")
+    func testChallengeMarkupEscapesConfigurationAndHandlesScriptLoadFailureIndependently() throws {
+        let html = try XCTUnwrap(try androidTurnstileHTML(
+            "a\"<&",
+            actionTag: "auth.email-address-tokens",
+            baseURL: XCTUnwrap(URL(string: "https://staging.example/api"))
+        ))
         XCTAssertTrue(html.contains("data-sitekey=\"a&quot;&lt;&amp;\""))
+        XCTAssertTrue(html.contains("data-action=\"auth-email-address-tokens\""))
         XCTAssertTrue(html.contains("src=\"https://challenges.cloudflare.com/turnstile/v0/api.js\""))
         XCTAssertTrue(html.contains("onerror=\"location.href='voucha://turnstile?error'\""))
         XCTAssertFalse(html.contains("onerror=\"tokenError()\""))
+    }
+
+    func testInvalidChallengeContextProducesNoMarkup() throws {
+        let baseURL = try XCTUnwrap(URL(string: "https://staging.example"))
+        XCTAssertNil(androidTurnstileHTML("key", actionTag: "posts.<create>", baseURL: baseURL))
+        XCTAssertNil(try androidTurnstileHTML(
+            "key",
+            actionTag: "posts.create",
+            baseURL: XCTUnwrap(URL(string: "file:///tmp"))
+        ))
     }
 
 }
