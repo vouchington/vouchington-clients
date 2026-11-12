@@ -26,6 +26,18 @@ final class HackerNewsProfilePaginationTests: NativeRouteSurfaceViewModelTestCas
         return model
     }
 
+    func testOverviewPageDoesNotCarryPostReferenceSidecars() async throws {
+        let model = try await loadedModel()
+        let page = try await model.loadUserProfileCollection(
+            scope: .overview, userId: "user-abc", after: nil, client: makeClient()
+        )
+        XCTAssertFalse(model.profileHackerNewsReferences.isEmpty)
+        XCTAssertTrue(page.hackerNewsReferences.isEmpty)
+        guard case .none = page.collection else {
+            return XCTFail("The overview has no post collection")
+        }
+    }
+
     func testCurrentContinuationUpdatesExistingReferenceCounts() async throws {
         let model = try await loadedModel()
         CannedFeedURLProtocol.handlers[path] = try (page(stories: 7, hasNext: false), 200)
