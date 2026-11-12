@@ -15,7 +15,7 @@ final class SourceCreationViewModel {
     private(set) var isTerminal = false
     private(set) var destination: String?
     var currentDestination: String? {
-        identity() == owner ? destination : nil
+        identity() == owner && destinationGeneration == generation ? destination : nil
     }
 
     let service: SourceCreationService
