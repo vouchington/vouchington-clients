@@ -7,6 +7,12 @@ import VouchaTestSupport
 import XCTest
 
 final class AndroidAuthURLProtocol: URLProtocol {
+    private struct ResponseConfiguration {
+        let status: Int
+        let identity: Data
+        let cookie: String?
+    }
+
     private static let lock = NSLock()
     private nonisolated(unsafe) static var requests: [URLRequest] = []
     private nonisolated(unsafe) static var identity = Data()
@@ -59,7 +65,7 @@ final class AndroidAuthURLProtocol: URLProtocol {
         let path = request.url?.path ?? ""
         var recordedRequest = request
         recordedRequest.httpBody = URLRequestHTTPBody.data(from: request)
-        let (configuredStatus, identity, cookie) = Self.lock.withLock { () -> (Int, Data, String?) in
+        let configuration = Self.lock.withLock {
             Self.requests.append(recordedRequest)
             let status = switch path {
             case "/api/v1/auth/email-address/tokens": Self.otpStatusCode
@@ -67,30 +73,20 @@ final class AndroidAuthURLProtocol: URLProtocol {
             case "/mutation": request.value(forHTTPHeaderField: "x-voucha-bot-challenge-token") == nil ? 403 : 200
             default: 200
             }
-            return (status, Self.identity, Self.responseCookies[path])
+            return ResponseConfiguration(status: status, identity: Self.identity, cookie: Self.responseCookies[path])
         }
         let status: Int
         let data: Data
-        status = path == "/api/v1/session" && !isCredentialedSessionRefresh(recordedRequest) ? 401 : configuredStatus
-        switch path {
-        case "/api/v1/auth/email-address/login":
-            data = Data(#"{"mfaRequired":true,"loginAttemptId":"mfa-attempt"}"#.utf8)
-        case "/api/v1/my/identity":
-            data = identity
-        case "/mutation":
-            data = Data(#"{"code":"BOT_CHALLENGE_REQUIRED","action":"bot-challenge.mutation","message":"Verify"}"#.utf8)
-        case "/api/v1/session":
-            do {
-                data = status == 401 ? Data(#"{"code":"AUTH_REQUIRED"}"#.utf8) : try androidSessionRefreshFixture()
-            } catch {
-                client?.urlProtocol(self, didFailWithError: error)
-                return
-            }
-        default:
-            data = Data("{}".utf8)
+        status = path == "/api/v1/session" && !isCredentialedSessionRefresh(recordedRequest) ? 401 : configuration
+            .status
+        do {
+            data = try responseData(path: path, status: status, identity: configuration.identity)
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+            return
         }
         var headers = ["Content-Type": "application/json"]
-        if let cookie { headers["Set-Cookie"] = cookie }
+        if let cookie = configuration.cookie { headers["Set-Cookie"] = cookie }
         if path == "/api/v1/auth/mfa/totp/verification", status == 200 {
             headers["Set-Cookie"] = "st=fixture-authenticated-session; Path=/; Secure; HttpOnly"
         }
@@ -105,6 +101,21 @@ final class AndroidAuthURLProtocol: URLProtocol {
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: data)
         client?.urlProtocolDidFinishLoading(self)
+    }
+
+    private func responseData(path: String, status: Int, identity: Data) throws -> Data {
+        switch path {
+        case "/api/v1/auth/email-address/login":
+            Data(#"{"mfaRequired":true,"loginAttemptId":"mfa-attempt"}"#.utf8)
+        case "/api/v1/my/identity":
+            identity
+        case "/mutation":
+            Data(#"{"code":"BOT_CHALLENGE_REQUIRED","action":"bot-challenge.mutation","message":"Verify"}"#.utf8)
+        case "/api/v1/session":
+            status == 401 ? Data(#"{"code":"AUTH_REQUIRED"}"#.utf8) : try androidSessionRefreshFixture()
+        default:
+            Data("{}".utf8)
+        }
     }
 
     override func stopLoading() {}

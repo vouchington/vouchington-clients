@@ -188,19 +188,3 @@ final class CookieReadRetryProtocolRegistry: @unchecked Sendable {
         return probes[host.lowercased()]
     }
 }
-
-enum CookieReadFailureTestFixture {
-    static func cookieSnapshot(value: String, domain: String = "voucha.ai") throws -> String {
-        let record = try XCTUnwrap(
-            AndroidSessionCookieStorage.CookieRecord(cookie: sessionCookie(value: value, domain: domain))
-        )
-        let data = try JSONEncoder().encode([record])
-        return try XCTUnwrap(String(data: data, encoding: .utf8))
-    }
-
-    static func sessionCookie(value: String, domain: String = "voucha.ai") throws -> HTTPCookie {
-        try XCTUnwrap(HTTPCookie(properties: [
-            .name: "st", .value: value, .domain: domain, .path: "/", .secure: "TRUE"
-        ]))
-    }
-}
