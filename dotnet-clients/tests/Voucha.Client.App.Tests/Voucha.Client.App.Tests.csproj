@@ -217,6 +217,11 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityPageViews.cs" Link="Pages/IntegrityPageViews.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/IntegrityFlagQueuePageBase.cs" Link="Pages/IntegrityFlagQueuePageBase.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/BookmarkCollectionPaginationFooter.cs" Link="Pages/BookmarkCollectionPaginationFooter.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationReportsPage.cs" Link="Pages/ModerationReportsPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationReportsPage.Actions.cs" Link="Pages/ModerationReportsPage.Actions.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationReportsPage.Cards.cs" Link="Pages/ModerationReportsPage.Cards.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationReportsPage.Filters.cs" Link="Pages/ModerationReportsPage.Filters.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ModerationReportsPage.Presentation.cs" Link="Pages/ModerationReportsPage.Presentation.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPage.cs" Link="Pages/ReportIntegrityPage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReportIntegrityPage.Render.cs" Link="Pages/ReportIntegrityPage.Render.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/VoteIntegrityPage.cs" Link="Pages/VoteIntegrityPage.cs" />

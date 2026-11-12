@@ -76,7 +76,7 @@ extension ModerationReportsViewModel {
             return false
         }
         if case .rerunJudgement = action {
-            return true
+            return !isJudgementPending(report.id)
         }
         guard report.status == .pending else {
             return false

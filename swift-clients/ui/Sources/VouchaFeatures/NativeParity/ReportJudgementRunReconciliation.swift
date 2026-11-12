@@ -1,3 +1,4 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaLocalization
@@ -67,22 +68,76 @@ enum ReportJudgementRunReconciliation {
     }
 }
 
-extension ModerationReportsViewModel {
-    func reconcileAdmittedReportJudgement(
+public extension ModerationReportsViewModel {
+    func isJudgementPending(_ reportId: String) -> Bool {
+        judgementAdmissions.admission(reportId, owner: judgementOwner) != nil
+    }
+
+    func hasAdmittedJudgementRun(_ reportId: String) -> Bool {
+        judgementAdmissions.admission(reportId, owner: judgementOwner)?.runId != nil
+    }
+
+    func refreshPendingJudgement(_ reportId: String) async {
+        guard viewerTier.isStaff, let client, report(id: reportId) != nil,
+              let admission = judgementAdmissions.admission(reportId, owner: judgementOwner),
+              let runId = admission.runId, !isQueueActionInProgress
+        else { return }
+        isMutatingQueue = true
+        defer { isMutatingQueue = false }
+        actionErrors[reportId] = nil
+        do {
+            try await readAdmittedJudgement(reportId, runId: runId, token: admission.token, client: client)
+        } catch {
+            actionErrors[reportId] = message(for: error)
+        }
+    }
+
+    internal func reconcileAdmittedReportJudgement(
         _ report: StaffModerationReport,
         client: APIClient
     ) async throws {
-        let admission: ModerationReportJudgementResponse = try await client.send(
-            .rerunModerationReportJudgement(reportId: report.id)
-        )
-        guard admission.queued, !admission.runId.isEmpty else { return }
+        guard let reserved = judgementAdmissions.admit(report.id, owner: judgementOwner) else { return }
+        let admission: ModerationReportJudgementResponse
+        do {
+            admission = try await client.send(.rerunModerationReportJudgement(reportId: report.id))
+        } catch {
+            let rejected: Bool = switch error {
+            case VouchaError.unauthorized, VouchaError.forbidden, VouchaError.notFound:
+                true
+            case let VouchaError.api(statusCode, _), let VouchaError.apiMessage(statusCode, _, _):
+                (400 ..< 500).contains(statusCode) && statusCode != 408
+            default:
+                false
+            }
+            if rejected {
+                judgementAdmissions.remove(report.id, owner: judgementOwner, token: reserved.token)
+            }
+            throw error
+        }
+        guard admission.queued else {
+            judgementAdmissions.remove(report.id, owner: judgementOwner, token: reserved.token)
+            return
+        }
+        guard !admission.runId.isEmpty else { return }
+        judgementAdmissions.record(admission.runId, reportId: report.id, owner: judgementOwner, token: reserved.token)
+        try await readAdmittedJudgement(report.id, runId: admission.runId, token: reserved.token, client: client)
+    }
+
+    private func readAdmittedJudgement(_ reportId: String, runId: String, token: UUID, client: APIClient) async throws {
+        let revision = generation
         try await ReportJudgementRunReconciliation.read(
-            reportId: report.id,
-            runId: admission.runId,
-            maximumReads: judgementRunReads,
-            delay: judgementRunDelay
+            reportId: reportId, runId: runId, maximumReads: judgementRunReads, delay: judgementRunDelay
         ) { reportId, runId in
-            try await client.send(.moderationReportJudgementRun(reportId: reportId, runId: runId))
+            let run: ModerationReportJudgementRunResponse = try await client.send(
+                .moderationReportJudgementRun(reportId: reportId, runId: runId)
+            )
+            guard !Task.isCancelled, revision == self.generation, self.report(id: reportId) != nil,
+                  self.judgementAdmissions.admission(reportId, owner: self.judgementOwner)?.token == token,
+                  run.runId == runId else { throw CancellationError() }
+            if run.status != .active {
+                self.judgementAdmissions.remove(reportId, owner: self.judgementOwner, token: token)
+            }
+            return run
         }
     }
 }

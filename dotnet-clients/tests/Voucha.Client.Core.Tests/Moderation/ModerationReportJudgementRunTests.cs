@@ -106,6 +106,9 @@ public sealed class ModerationReportJudgementRunTests
 
     Assert.Single(Posts(handler));
     Assert.Empty(RunGets(handler));
+    Assert.True(viewModel.IsJudgementPending(ReportId));
+    Assert.False(await viewModel.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.Single(Posts(handler));
   }
 
   [Fact]
@@ -152,6 +155,120 @@ public sealed class ModerationReportJudgementRunTests
     Assert.Empty(viewModel.RowErrors);
   }
 
+  [Fact]
+  public async Task FailedFirstReadRetainsAdmissionAndManualRefreshNeverPostsAgain()
+  {
+    var handler = Handler(
+        Fixture("native.moderation.reports.default"),
+        Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
+        new RecordedResponse("{}", HttpStatusCode.InternalServerError),
+        Fixture("native.moderation.report-judgement-run.pending"),
+        Fixture("native.moderation.report-judgement-run.failed"));
+    var viewModel = await Loaded(handler, 1);
+    Assert.False(await viewModel.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.True(viewModel.IsJudgementPending(ReportId));
+    Assert.False(await viewModel.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.True(await viewModel.RefreshPendingJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.True(viewModel.IsJudgementPending(ReportId));
+    Assert.False(await viewModel.RefreshPendingJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.False(viewModel.IsJudgementPending(ReportId));
+    Assert.Single(Posts(handler));
+    Assert.Equal(3, RunGets(handler).Length);
+  }
+
+  [Fact]
+  public async Task MismatchedTerminalRunCannotReleaseAdmission()
+  {
+    var handler = Handler(
+        Fixture("native.moderation.reports.default"),
+        Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
+        new RecordedResponse(SucceededRun.Replace(AdmittedRunId, "00000000-0000-7000-8000-000000000999", StringComparison.Ordinal)));
+    var model = await Loaded(handler, 1);
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => model.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.True(model.IsJudgementPending(ReportId));
+    Assert.Empty(model.RowErrors);
+  }
+
+  [Fact]
+  public async Task AmbiguousAdmissionFailureBlocksAnotherPost()
+  {
+    var handler = Handler(Fixture("native.moderation.reports.default"), new RecordedResponse("{}", HttpStatusCode.InternalServerError));
+    var model = await Loaded(handler, 1);
+    Assert.False(await model.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.True(model.IsJudgementPending(ReportId));
+    Assert.False(model.HasAdmittedJudgementRun(ReportId));
+    Assert.False(await model.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.False(await model.RefreshPendingJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.Single(Posts(handler));
+    Assert.Empty(RunGets(handler));
+  }
+
+  [Fact]
+  public async Task ReopenedOwnerRetainsExactRunWhileOtherOwnerCannotReadIt()
+  {
+    var store = new ReportJudgementAdmissionStore();
+    var handler = Handler(Fixture("native.moderation.reports.default"),
+        Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
+        Fixture("native.moderation.report-judgement-run.pending"));
+    var first = ViewModel(handler, 1, _ => Task.CompletedTask, store, "alice");
+    await LoadFlat(first);
+    Assert.True(await first.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    var other = ViewModel(Handler(Fixture("native.moderation.reports.default")), 1, _ => Task.CompletedTask, store, "bob");
+    await LoadFlat(other);
+    Assert.False(other.IsJudgementPending(ReportId));
+    Assert.False(await other.RefreshPendingJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    var reopenedHandler = Handler(Fixture("native.moderation.reports.default"), Fixture("native.moderation.report-judgement-run.failed"));
+    var reopened = ViewModel(reopenedHandler, 1, _ => Task.CompletedTask, store, "alice");
+    await LoadFlat(reopened);
+    Assert.True(reopened.IsJudgementPending(ReportId));
+    Assert.False(await reopened.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.False(await reopened.RefreshPendingJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.False(first.IsJudgementPending(ReportId));
+    Assert.Empty(Posts(reopenedHandler));
+    Assert.False(other.IsJudgementPending(ReportId));
+  }
+
+  [Fact]
+  public async Task DisposedOwnerCannotReleaseAdmissionWithLateTerminalRead()
+  {
+    var paused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var store = new ReportJudgementAdmissionStore();
+    var handler = Handler(Fixture("native.moderation.reports.default"),
+        Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
+        Fixture("native.moderation.report-judgement-run.pending"),
+        Fixture("native.moderation.report-judgement-run.failed"));
+    var original = ViewModel(handler, 2, _ => { paused.SetResult(); return resume.Task; }, store, "alice");
+    await LoadFlat(original);
+    var running = original.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken);
+    await paused.Task;
+    var other = ViewModel(Handler(Fixture("native.moderation.reports.default")), 1, _ => Task.CompletedTask, store, "bob");
+    await LoadFlat(other);
+    original.Dispose();
+    resume.SetResult();
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => running);
+    Assert.True(original.IsJudgementPending(ReportId));
+    Assert.False(other.IsJudgementPending(ReportId));
+    Assert.Empty(other.RowErrors);
+  }
+
+  [Theory]
+  [InlineData(HttpStatusCode.BadRequest, false)]
+  [InlineData(HttpStatusCode.Unauthorized, false)]
+  [InlineData(HttpStatusCode.Forbidden, false)]
+  [InlineData(HttpStatusCode.NotFound, false)]
+  [InlineData(HttpStatusCode.RequestTimeout, true)]
+  [InlineData(HttpStatusCode.InternalServerError, true)]
+  public async Task KnownRejectionsReleaseWhileAmbiguousDeliveryRetainsAdmission(HttpStatusCode status, bool pending)
+  {
+    var model = await Loaded(Handler(Fixture("native.moderation.reports.default"), new RecordedResponse("{}", status)), 1);
+    Assert.False(await model.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+    Assert.Equal(pending, model.IsJudgementPending(ReportId));
+  }
+
+  private static Task LoadFlat(ModerationReportsViewModel model) => model.SetFiltersAsync(
+      ModerationReportStatus.Pending, ModerationReportsMode.Flat, ModerationReportSort.CreatedAtDesc, TestContext.Current.CancellationToken);
+
   private static string RunPath(string runId) => $"/api/v1/reports/{ReportId}/judgements/{runId}";
 
   private static string Admission(bool queued, string runId)
@@ -177,13 +294,14 @@ public sealed class ModerationReportJudgementRunTests
   private static ModerationReportsViewModel ViewModel(
       RecordingHandler handler,
       int reads,
-      Func<CancellationToken, Task> delay) =>
+      Func<CancellationToken, Task> delay,
+      ReportJudgementAdmissionStore? store = null, string? identity = null) =>
       new(
           new ApiModerationService(new VouchaApiClient(
               new HttpClient(handler) { BaseAddress = new Uri("https://api.test") })),
-          new NavigationViewer(true, ["administrator"]),
+          new NavigationViewer(true, ["administrator"], IdentityId: identity),
           judgementRunReads: reads,
-          judgementRunDelay: delay);
+          judgementRunDelay: delay, judgementAdmissions: store, apiBaseUrl: identity is null ? null : new Uri("https://api.test"));
 
   private static RecordingHandler Handler(params RecordedResponse[] responses) => new(responses);
 
