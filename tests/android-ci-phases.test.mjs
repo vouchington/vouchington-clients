@@ -235,23 +235,6 @@ test('native producer retains Skip source hashes only after verified state resto
   }
 })
 
-test('native producer opts in to restored Skip markers only after exact-run verification', async () => {
-  const workflow = await readFile(
-    new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
-    'utf8',
-  )
-  const native = workflow
-    .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android-kotlin-libraries:\n')[0]
-  const restore = native.indexOf(
-    'restore candidate-clients/swift-clients/apps/android "$RUNNER_TEMP/android-dependency-state"',
-  )
-  const verified = native.indexOf('echo \'VOUCHA_ANDROID_STATE_VERIFIED=1\' >> "$GITHUB_ENV"')
-  const build = native.indexOf('ANDROID_BUILD_PHASE: app-native-producer')
-  assert.ok(restore >= 0 && verified > restore && build > verified)
-  assert.match(native, /name: Download exact-run native dependency state/u)
-})
-
 test('native dependency phase uses the pinned prebuild to generate the Gradle package', async () => {
   const f = await fixture()
   try {
@@ -316,15 +299,9 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
   )
-  for (const job of [
-    'build-swift-android-dependency',
-    'build-swift-android-native',
-    'build-swift-android',
-    'test-swift-android-libs',
-    'test-swift-android-host',
-  ]) {
+  for (const job of ['build-swift-android', 'test-swift-android-libs', 'test-swift-android-host']) {
     const block = workflow.split(`  ${job}:\n`)[1].split(/^  [a-z][^\n]*:\n/mu)[0]
-    assert.match(block, /runs-on: macos-latest\n    timeout-minutes: (?:20|30)\n/u)
+    assert.match(block, /runs-on: macos-latest\n    timeout-minutes: (?:20|35)\n/u)
   }
   const gate = workflow
     .split('  test-swift-android-cookie:\n')[1]
@@ -332,7 +309,7 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   assert.match(gate, /name: Swift Android Skip/u)
   assert.match(
     gate,
-    /needs:\n      \[\n        verify,\n        build-swift-android-dependency,\n        build-swift-android-native,\n        build-swift-android-kotlin-libraries,\n        build-swift-android,\n        test-swift-android-libs,\n        test-swift-android-host,\n      \]/u,
+    /needs: \[verify, build-swift-android, test-swift-android-libs, test-swift-android-host\]/u,
   )
   assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
@@ -340,9 +317,6 @@ test('stable Android fan-in rejects every failed, cancelled or skipped phase', a
   const script = run[1].replace(/^ {10}/gmu, '')
   const names = [
     'VERIFY_RESULT',
-    'ANDROID_DEPENDENCY_RESULT',
-    'ANDROID_NATIVE_RESULT',
-    'ANDROID_KOTLIN_LIBRARIES_RESULT',
     'ANDROID_APP_RESULT',
     'ANDROID_LIBS_RESULT',
     'ANDROID_HOST_RESULT',

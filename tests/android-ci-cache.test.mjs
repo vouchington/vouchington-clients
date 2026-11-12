@@ -11,15 +11,6 @@ test('Android caches restore on all runs and save only completed trusted main ph
     new URL('../.github/actions/prepare-android-archives/action.yml', import.meta.url),
     'utf8',
   )
-  const producer = workflow
-    .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android-kotlin-libraries:\n')[0]
-  const kotlin = workflow
-    .split('  build-swift-android-kotlin-libraries:\n')[1]
-    .split('  build-swift-android:\n')[0]
-  const dependency = workflow
-    .split('  build-swift-android-dependency:\n')[1]
-    .split('  build-swift-android-native:\n')[0]
   const app = workflow.split('  build-swift-android:\n')[1].split('  test-swift-android-libs:\n')[0]
   const libs = workflow
     .split('  test-swift-android-libs:\n')[1]
@@ -29,19 +20,17 @@ test('Android caches restore on all runs and save only completed trusted main ph
     .split('  test-swift-android-cookie:\n')[0]
   const coreJob = workflow.split('  build-android-core:\n')[1].split('  build-macos-app:\n')[0]
 
-  for (const job of [dependency, producer, app]) {
-    assert.match(
-      job,
-      /uses: \.\/\.github\/actions\/prepare-native-contract[\s\S]*?skip-candidate-install: true/u,
-    )
-    assert.doesNotMatch(job, /(?:pnpm|npm) (?:run|exec|install) /u)
-  }
+  assert.match(
+    app,
+    /uses: \.\/\.github\/actions\/prepare-native-contract[\s\S]*?skip-candidate-install: true/u,
+  )
+  assert.doesNotMatch(app, /(?:pnpm|npm) (?:run|exec|install) /u)
 
-  for (const job of [producer, app, libs, host]) {
+  for (const job of [app, libs, host]) {
     assert.match(job, /uses: \.\/\.github\/actions\/prepare-android-archives/u)
   }
   assert.match(libs, /save-cache: true/u)
-  for (const job of [producer, app, host]) assert.match(job, /save-cache: false/u)
+  for (const job of [app, host]) assert.match(job, /save-cache: false/u)
   assert.match(archives, /uses: actions\/cache\/restore@[0-9a-f]{40}/u)
   assert.match(archives, /uses: actions\/cache\/save@[0-9a-f]{40}/u)
   assert.match(
@@ -63,7 +52,7 @@ test('Android caches restore on all runs and save only completed trusted main ph
     app.indexOf('Upload candidate Android APKs for runtime proof') <
       app.indexOf('Save Gradle user home from main'),
   )
-  for (const job of [producer, kotlin, app]) {
+  for (const job of [app]) {
     assert.match(job, /name: Select Gradle task-output cache path\n\s+id: android-task-cache-path/u)
     assert.match(
       job,
@@ -85,14 +74,8 @@ test('Android caches restore on all runs and save only completed trusted main ph
     )
     assert.doesNotMatch(job, /Restore prior main Gradle task-output cache/u)
   }
-  assert.ok(
-    app.indexOf('Restore verified exact-run generated Android state') <
-      app.indexOf('Restore Gradle task-output cache'),
-  )
   const appSteps = [
     'Prepare checksummed Swift Android SDK and archives',
-    'Download exact-run generated Android state',
-    'Restore verified exact-run generated Android state',
     'Resolve Android Swift package with shared artifact cache',
     'Restore Gradle user home',
     'Build the selected Android validation phase',
@@ -103,7 +86,7 @@ test('Android caches restore on all runs and save only completed trusted main ph
     assert.ok(app.indexOf(appSteps[index - 1]) < app.indexOf(appSteps[index]))
   }
   assert.match(app, /! grep -E 'Downloading binary artifact' "\$resolve_log"/u)
-  assert.match(app, /echo 'VOUCHA_ANDROID_STATE_VERIFIED=1' >> "\$GITHUB_ENV"/u)
+  assert.doesNotMatch(app, /VOUCHA_ANDROID_STATE_VERIFIED|android-state-cli|android-kotlin-cache/u)
   assert.match(
     app,
     /name: Bound Gradle task-output cache save\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' \}\}/u,
@@ -121,12 +104,9 @@ test('Android caches restore on all runs and save only completed trusted main ph
     assert.doesNotMatch(job, /Select Gradle task-output cache path/u)
     assert.doesNotMatch(job, /Restore Gradle task-output cache/u)
   }
-  for (const job of [producer, libs, host])
-    assert.doesNotMatch(job, /Bound Gradle task-output cache save/u)
-  assert.match(kotlin, /TASK_CACHE_KIND: kotlin-libraries/u)
-  for (const job of [producer, app]) assert.match(job, /TASK_CACHE_KIND: app/u)
+  for (const job of [libs, host]) assert.doesNotMatch(job, /Bound Gradle task-output cache save/u)
+  assert.match(app, /TASK_CACHE_KIND: app/u)
   for (const [job, completed, kind] of [
-    [kotlin, 'Upload exact-run Kotlin library cache', 'Kotlin libraries'],
     [app, 'Upload candidate Android APKs for runtime proof', 'APK'],
   ]) {
     assert.ok(job.indexOf(completed) < job.indexOf('Bound Gradle task-output cache save'))
@@ -148,60 +128,51 @@ test('Android caches restore on all runs and save only completed trusted main ph
   assert.doesNotMatch(coreJob, /restore-keys:/u)
 })
 
-test('native dependency handoff retains the original Gradle build and exact-run state boundary', async () => {
+test('Android app job builds both APKs in one job without exact-run state handoffs', async () => {
   const workflow = await readFile(
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
   )
-  const script = await readFile(
-    new URL('../swift-clients/apps/android/tooling/pre-push.sh', import.meta.url),
+  const properties = await readFile(
+    new URL('../swift-clients/apps/android/Android/gradle.properties', import.meta.url),
     'utf8',
   )
-  const dependency = workflow
-    .split('  build-swift-android-dependency:\n')[1]
-    .split('  build-swift-android-native:\n')[0]
-  const native = workflow
-    .split('  build-swift-android-native:\n')[1]
-    .split('  build-swift-android-kotlin-libraries:\n')[0]
+  const app = workflow.split('  build-swift-android:\n')[1].split('  test-swift-android-libs:\n')[0]
   const required = workflow
     .split('  test-swift-android-cookie:\n')[1]
     .split('  build-swift-ui-tests:\n')[0]
-  assert.match(dependency, /ANDROID_BUILD_PHASE: app-native-dependency/u)
-  assert.doesNotMatch(dependency, /Restore Gradle user home|Restore Gradle task-output cache/u)
-  assert.match(
-    dependency,
-    /android-native-dependency-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
-  )
-  assert.match(native, /needs: \[verify, build-swift-android-dependency\]/u)
-  assert.match(required, /build-swift-android-dependency,/u)
-  assert.match(
-    required,
-    /ANDROID_DEPENDENCY_RESULT: \$\{\{ needs\.build-swift-android-dependency\.result \}\}/u,
-  )
-  assert.match(required, /test "\$ANDROID_DEPENDENCY_RESULT" = success/u)
+  for (const removed of [
+    'build-swift-android-dependency',
+    'build-swift-android-native',
+    'build-swift-android-kotlin-libraries',
+    'android-native-dependency-state',
+    'android-generated-state',
+    'android-kotlin-cache',
+  ]) {
+    assert.doesNotMatch(workflow, new RegExp(removed, 'u'))
+  }
+  assert.match(app, /needs: verify\n/u)
+  assert.match(app, /ANDROID_BUILD_PHASE: app\n/u)
+  assert.match(app, /VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'/u)
+  assert.match(app, /timeout-minutes: 35\n/u)
+  assert.match(properties, /^org\.gradle\.parallel=true$/mu)
+  assert.match(properties, /^org\.gradle\.caching=true$/mu)
+  assert.match(required, /build-swift-android,/u)
+  assert.match(required, /test "\$ANDROID_APP_RESULT" = success/u)
   assert.match(required, /name: Swift Android Skip/u)
   assert.match(required, /Prove checked encrypted storage survives Android process restarts/u)
   const ordered = [
     'Prepare checksummed Swift Android SDK and archives',
-    'Download exact-run native dependency state',
-    'Restore verified native dependency state',
     'Resolve Android Swift package with shared artifact cache',
     'Restore Gradle user home',
+    'Restore Gradle task-output cache',
     'Build the selected Android validation phase',
+    'Package exact candidate Android app and instrumentation APKs',
+    'Upload candidate Android APKs for runtime proof',
   ]
-  for (const step of ordered) assert.notEqual(native.indexOf(step), -1)
+  for (const step of ordered) assert.notEqual(app.indexOf(step), -1)
   for (let index = 1; index < ordered.length; index += 1) {
-    assert.ok(native.indexOf(ordered[index - 1]) < native.indexOf(ordered[index]))
+    assert.ok(app.indexOf(ordered[index - 1]) < app.indexOf(ordered[index]))
   }
-  assert.match(native, /ANDROID_BUILD_PHASE: app-native-producer/u)
-  assert.match(script, /bash "\$SCRIPT_DIR\/build-native-product\.sh" "\$ANDROID_PACKAGE_DIR"/u)
-  assert.match(
-    script,
-    /--package-path "\$generated_package"[\s\S]*--target SkipSwiftUI[\s\S]*--scratch-path "\$generated_scratch"/u,
-  )
-  assert.match(
-    script,
-    /skip plugin --prebuild --package-path "\$ANDROID_PACKAGE_DIR" --plugin-ref "\$plugin_ref"/u,
-  )
-  assert.doesNotMatch(script, /gradle_tasks=\(help\)/u)
+  assert.match(app, /verify-native-abi/u)
 })
