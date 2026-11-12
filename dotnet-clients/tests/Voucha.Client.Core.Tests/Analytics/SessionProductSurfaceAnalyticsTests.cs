@@ -16,7 +16,7 @@ public sealed class SessionProductSurfaceAnalyticsTests
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
     var analytics = new SessionProductSurfaceAnalytics(new VouchaApiClient(http), SignedInSession());
 
-    analytics.RecordLandingPageVisit("page-1", new LandingPageVisitSignal(UtmSource: "newsletter", UtmMedium: "email"));
+    analytics.RecordLandingPageVisit("page-1");
     await analytics.LastDispatch;
     analytics.RecordLandingPageClick("page-1", new LandingPageClickSignal("item-1", "member-1"));
     await analytics.LastDispatch;
@@ -33,9 +33,7 @@ public sealed class SessionProductSurfaceAnalyticsTests
     Assert.Equal(HttpMethod.Post, handler.Methods[0]);
     Assert.Null(handler.Authorization[0]);
     using var visit = JsonDocument.Parse(handler.Bodies[0]!);
-    Assert.Equal("newsletter", visit.RootElement.GetProperty("utm_source").GetString());
-    Assert.Equal("email", visit.RootElement.GetProperty("utm_medium").GetString());
-    Assert.False(visit.RootElement.TryGetProperty("referrer", out _));
+    Assert.Empty(visit.RootElement.EnumerateObject());
     using var click = JsonDocument.Parse(handler.Bodies[1]!);
     Assert.Equal("item-1", click.RootElement.GetProperty("landing_page_item_id").GetString());
     Assert.Equal("member-1", click.RootElement.GetProperty("group_member_id").GetString());
@@ -48,7 +46,7 @@ public sealed class SessionProductSurfaceAnalyticsTests
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
     var analytics = new SessionProductSurfaceAnalytics(new VouchaApiClient(http), new AnonymousSessionStore());
 
-    analytics.RecordLandingPageVisit("page-1", new LandingPageVisitSignal(UtmSource: "newsletter"));
+    analytics.RecordLandingPageVisit("page-1");
     await analytics.LastDispatch;
     analytics.RecordLandingPageClick("page-1", new LandingPageClickSignal("item-1"));
     await analytics.LastDispatch;
@@ -68,7 +66,7 @@ public sealed class SessionProductSurfaceAnalyticsTests
     var session = new MutableSessionStore();
     var analytics = new SessionProductSurfaceAnalytics(new VouchaApiClient(http), session);
 
-    analytics.RecordLandingPageVisit("page-1", new LandingPageVisitSignal(UtmSource: "newsletter"));
+    analytics.RecordLandingPageVisit("page-1");
     await analytics.LastDispatch;
     Assert.Empty(handler.Paths);
 

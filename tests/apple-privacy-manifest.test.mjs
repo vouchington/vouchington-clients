@@ -38,6 +38,7 @@ const expectedSymbols = {
 const collectedTypes = [
   'NSPrivacyCollectedDataTypeEmailAddress',
   'NSPrivacyCollectedDataTypeUserID',
+  'NSPrivacyCollectedDataTypeProductInteraction',
   'NSPrivacyCollectedDataTypeDeviceID',
   'NSPrivacyCollectedDataTypePhotosorVideos',
   'NSPrivacyCollectedDataTypeOtherUserContent',
@@ -117,6 +118,21 @@ describe('Apple privacy manifests', () => {
         ].map(match => match[1]),
         collectedTypes,
       )
+      const collectedBlocks =
+        privacy.match(/<dict>\s*<key>NSPrivacyCollectedDataType<\/key>[\s\S]*?<\/dict>/gu) ?? []
+      for (const block of collectedBlocks) {
+        const [type] = plistStrings(block, 'NSPrivacyCollectedDataType')
+        const purposes =
+          type === 'NSPrivacyCollectedDataTypeProductInteraction'
+            ? ['NSPrivacyCollectedDataTypePurposeAnalytics']
+            : ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        if (type === 'NSPrivacyCollectedDataTypeUserID') {
+          purposes.push('NSPrivacyCollectedDataTypePurposeAnalytics')
+        }
+        assert.deepEqual(plistStrings(block, 'NSPrivacyCollectedDataTypePurposes'), purposes)
+        assert.match(block, /<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>/u)
+        assert.match(block, /<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/u)
+      }
     }
 
     const core = readRepoFile('swift-clients/core/Sources/VouchaCore/PrivacyInfo.xcprivacy')

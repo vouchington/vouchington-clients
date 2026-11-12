@@ -46,6 +46,14 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   local generation is text-only and never silently falls back to another provider.
 - Session cookies are stored through platform-secure stores and keyed by API origin. Native OAuth,
   passkey, and deep-link callbacks remain inside their platform app boundaries.
+- Public landing pages render native item actions in Swift and .NET. Signed-in viewers send one
+  visit per activation and click requests at item activation, including the outer item and member
+  identifiers for topic-group entries. Existing RSS source and focused-item view requests use the
+  same session-attributed, best-effort delivery. Signals have a bounded in-flight limit and deadline;
+  delivery failure does not block navigation. Signed-out views send no analytics request. App-open,
+  foreground, and pre-sign-in installation identity/linkage remain owner and producer decisions in
+  [#478](https://github.com/vouchington/vouchington-clients/issues/478). No generic event endpoint,
+  advertising identifier, or tracking permission is added.
 - PostgreSQL API helpers support separate classifier-result and export-request partition ranges,
   including optional DEFAULT-row budgets. Omitted ranges retain the monthly partition requests.
   Both view models can prepare and confirm an immutable range request with session guards;

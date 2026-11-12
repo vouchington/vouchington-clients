@@ -22,7 +22,7 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(viewModel.rows.first?.title, "Bonus")
     }
 
-    func testSignedInPublicLandingPageRecordsOneVisitWithWebAttribution() async throws {
+    func testSignedInPublicLandingVisitOmitsAllQueryAttribution() async throws {
         let visitPath = "/api/v1/landing-pages/page-1/visits"
         CannedFeedURLProtocol.handlers["/api/v1/users/alice/landing-pages/bonus"] = (publicPageData, 200)
         let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/landing/alice/bonus")?.match)
@@ -30,7 +30,8 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
             entry: entry(for: .landingPages),
             client: makeClient(),
             routeMatch: match,
-            routeQuery: "utm_source=newsletter&utm_medium=email&ref=ignored",
+            routeQuery: "utm_source=alice%40example.com&utm_medium=alice_username"
+                + "&utm_campaign=192.0.2.1&utm_content=private&ref=alice%40example.com",
             isSignedIn: true
         )
 
@@ -43,11 +44,11 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(visits.count, 1)
         XCTAssertEqual(visits.first?.method, "POST")
         let body = try JSONSerialization.jsonObject(with: Data((visits.first?.body ?? "").utf8)) as? [String: String]
-        XCTAssertEqual(body, ["utm_source": "newsletter", "utm_medium": "email"])
+        XCTAssertEqual(body, [:])
         XCTAssertEqual(viewModel.rows.first?.title, "Bonus")
     }
 
-    func testVisitUsesRefWhenTheUtmSourceIsBlank() async throws {
+    func testCachedReactivationAlsoOmitsRefAndCampaignStrings() async throws {
         let visitPath = "/api/v1/landing-pages/page-1/visits"
         CannedFeedURLProtocol.handlers["/api/v1/users/alice/landing-pages/bonus"] = (publicPageData, 200)
         let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/landing/alice/bonus")?.match)
@@ -55,17 +56,24 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
             entry: entry(for: .landingPages),
             client: makeClient(),
             routeMatch: match,
-            routeQuery: "utm_source=%20&ref=partner&utm_campaign=",
+            routeQuery: "utm_source=%20&ref=alice%40example.com&utm_campaign=192.0.2.1"
+                + "&utm_content=alice_username",
             isSignedIn: true
         )
 
         await viewModel.load()
         await settleProductSignals(viewModel)
 
-        let body = try JSONSerialization.jsonObject(
-            with: Data((CannedFeedURLProtocol.capturedRequests.first { $0.url.path == visitPath }?.body ?? "").utf8)
-        ) as? [String: String]
-        XCTAssertEqual(body, ["utm_source": "partner"])
+        viewModel.endProductSurfaceActivation()
+        viewModel.beginProductSurfaceActivation()
+        await settleProductSignals(viewModel)
+        let visits = CannedFeedURLProtocol.capturedRequests.filter { $0.url.path == visitPath }
+        XCTAssertEqual(visits.count, 2)
+        for visit in visits {
+            let body = try JSONSerialization.jsonObject(with: Data((visit.body ?? "").utf8)) as? [String: String]
+            XCTAssertEqual(body, [:])
+            XCTAssertNil(visit.url.query)
+        }
     }
 
     func testFailedVisitDoesNotFailThePageOrSendASecondRequest() async throws {
@@ -233,7 +241,8 @@ final class ProductSurfaceSignalTests: NativeRouteSurfaceViewModelTestCase {
 
     private var publicPageData: Data {
         Data(#"""
-        {"landing_page":{"id":"page-1","title":"Bonus","subtitle":"Public","slug":"bonus","is_default":false}}
+        {"user":{"username":"alice"},"landing_page":{"id":"page-1","title":"Bonus","subtitle":"Public","slug":"bonus","is_default":false,"items":[],
+        "user_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
         """#.utf8)
     }
 

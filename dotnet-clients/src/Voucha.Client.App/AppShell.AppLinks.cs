@@ -131,6 +131,8 @@ public sealed partial class AppShell
       return friendsRoute;
     }
 
+    if (TryOpenPublicLandingPageRouteAsync(resolution) is { } publicLandingRoute) return publicLandingRoute;
+
     if (intentId == LandingPagesRoute)
     {
       return LandingPagesDeepLinkPolicy.TryGetOwnerManagementSlug(resolution, out var slug)

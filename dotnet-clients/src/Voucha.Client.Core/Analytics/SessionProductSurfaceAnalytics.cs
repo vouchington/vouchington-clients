@@ -6,7 +6,7 @@ namespace Voucha.Client.Core.Analytics;
 
 public interface IProductSurfaceAnalytics
 {
-  void RecordLandingPageVisit(string landingPageId, LandingPageVisitSignal signal);
+  void RecordLandingPageVisit(string landingPageId);
 
   void RecordLandingPageClick(string landingPageId, LandingPageClickSignal signal);
 
@@ -19,6 +19,7 @@ public sealed class SessionProductSurfaceAnalytics : IProductSurfaceAnalytics
 {
   private readonly VouchaApiClient client;
   private readonly ISessionStore sessionStore;
+  private int inFlight;
 
   public SessionProductSurfaceAnalytics(VouchaApiClient client, ISessionStore sessionStore)
   {
@@ -28,8 +29,8 @@ public sealed class SessionProductSurfaceAnalytics : IProductSurfaceAnalytics
 
   internal Task LastDispatch { get; private set; } = Task.CompletedTask;
 
-  public void RecordLandingPageVisit(string landingPageId, LandingPageVisitSignal signal) =>
-      Dispatch(VouchaApiEndpoints.LandingPageVisit(landingPageId, signal));
+  public void RecordLandingPageVisit(string landingPageId) =>
+      Dispatch(VouchaApiEndpoints.LandingPageVisit(landingPageId, new LandingPageVisitSignal()));
 
   public void RecordLandingPageClick(string landingPageId, LandingPageClickSignal signal) =>
       Dispatch(VouchaApiEndpoints.LandingPageClick(landingPageId, signal));
@@ -47,6 +48,11 @@ public sealed class SessionProductSurfaceAnalytics : IProductSurfaceAnalytics
       return;
     }
 
+    if (Interlocked.Increment(ref inFlight) > 4)
+    {
+      Interlocked.Decrement(ref inFlight);
+      return;
+    }
     LastDispatch = SendAsync(request);
   }
 
@@ -56,12 +62,36 @@ public sealed class SessionProductSurfaceAnalytics : IProductSurfaceAnalytics
       Justification = "A product-surface signal is dropped so a failed beacon cannot block or fail the screen.")]
   private async Task SendAsync(ApiRequest request)
   {
+    var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+    var token = cancellation.Token;
+    var cancellationGate = new object();
+    var completed = false;
+    var account = sessionStore.Current.Identity?.Id;
+    void AccountChanged(object? sender, SessionChangedEventArgs args)
+    {
+      lock (cancellationGate)
+      {
+        if (!completed && args.Snapshot.Identity?.Id != account) cancellation.Cancel();
+      }
+    }
+    sessionStore.SessionChanged += AccountChanged;
     try
     {
-      await client.SendAsync(request, CancellationToken.None).ConfigureAwait(false);
+      if (account is null || sessionStore.Current.Identity?.Id != account) return;
+      await client.SendAsync(request, token).ConfigureAwait(false);
     }
     catch (Exception)
     {
+    }
+    finally
+    {
+      sessionStore.SessionChanged -= AccountChanged;
+      lock (cancellationGate)
+      {
+        completed = true;
+        cancellation.Dispose();
+      }
+      Interlocked.Decrement(ref inFlight);
     }
   }
 }

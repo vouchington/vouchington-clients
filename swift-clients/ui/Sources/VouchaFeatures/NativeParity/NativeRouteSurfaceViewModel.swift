@@ -83,6 +83,10 @@ public final class NativeRouteSurfaceViewModel {
     var crawlHistorySuffix: [NativeRouteDestinationRow] = []
     var crawlHistoryEndpoint: NativeCrawlHistoryEndpoint?
 
+    var publicLandingPage: NativePublicLandingPage?
+    var productSignalsActive = true
+    var productSurfaceVisible = false
+    var productSignalTasks: [UUID: Task<Void, Never>] = [:]
     var recordedProductSignalKeys: Set<String> = []
     var productSignalTask: Task<Void, Never>?
     let client: APIClient?
