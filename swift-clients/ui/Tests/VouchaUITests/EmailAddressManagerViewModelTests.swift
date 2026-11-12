@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import SwiftUI
 import ViewInspector
 import VouchaAPI
@@ -36,6 +37,50 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         let view = EmailAddressManager(client: makeClient())
         XCTAssertNoThrow(try view.inspect().find(text: "No email addresses yet"))
         XCTAssertNoThrow(try view.inspect().find(ViewType.TextField.self))
+    }
+
+    func testManagerRendersTenCharacterCodePlaceholderAfterRequest() async throws {
+        defer { CannedFeedURLProtocol.requestHandlers = [:] }
+        CannedFeedURLProtocol.handlers["/api/v1/my/email-addresses"] = (
+            Data(#"{"results":[],"page_info":{"has_next_page":false}}"#.utf8), 200
+        )
+        CannedFeedURLProtocol.requestHandlers["POST /api/v1/my/email-addresses"] = (
+            Data(#"{"email_address":"user@example.com"}"#.utf8), 200
+        )
+        let view = EmailAddressManager(client: makeClient())
+            .environment(\.locale, Locale(identifier: "en"))
+        try await ViewHosting.host(view) {
+            try view.inspect().find(ViewType.TextField.self).setInput("user@example.com")
+            await waitForManagerControl {
+                (try? view.inspect().find(button: "Send verification code").isDisabled()) == false
+            }
+            try view.inspect().find(button: "Send verification code").tap()
+            await waitForManagerControl {
+                (try? view.inspect().find(button: "Verify")) != nil
+            }
+            XCTAssertEqual(
+                try view.inspect().find(ViewType.TextField.self).labelView().text().string(),
+                "10-character code"
+            )
+        }
+    }
+
+    private func waitForManagerControl(_ isReady: @escaping @MainActor () -> Bool) async {
+        let ready = expectation(description: "email verification control is ready")
+        var active = true
+        defer { active = false }
+        func observe() {
+            guard active else { return }
+            let matched = withObservationTracking { isReady() } onChange: {
+                Task { @MainActor in observe() }
+            }
+            if matched {
+                active = false
+                ready.fulfill()
+            }
+        }
+        observe()
+        await fulfillment(of: [ready], timeout: 2)
     }
 
     func testManagerRendersRecoveryExplanation() throws {
