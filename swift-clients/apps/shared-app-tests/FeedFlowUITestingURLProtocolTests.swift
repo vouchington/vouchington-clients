@@ -5,8 +5,33 @@ final class FeedFlowUITestingURLProtocolTests: XCTestCase {
     private let feedKey = "VOUCHA_UI_TESTING_FEED_RESPONSE_BASE64"
     private let body = Data("canonical response bytes".utf8)
 
-    func testVideoResponseAndOneShotFailureAreSharedAcrossRequests() {
-        let scenario = makeScenario()
+    func testVideoResponseAndOneShotFailureAreSharedAcrossRequests() throws {
+        let fixture = try VideoFeedLaunchFixture.load()
+        XCTAssertFalse(fixture.title.isEmpty)
+        let canonical = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture.feed) as? [String: Any])
+        let results = try XCTUnwrap(canonical["results"] as? [[String: Any]])
+        let itemID = try XCTUnwrap(results.first?["id"] as? String)
+        let items = try XCTUnwrap(canonical["rss_feed_items"] as? [String: [String: Any]])
+        let item = try XCTUnwrap(items[itemID])
+        let media = try XCTUnwrap(item["media_content"] as? [String: Any])
+        for (field, invalidValue) in [
+            ("medium", "audio"), ("medium", nil), ("type", "audio/mpeg"),
+            ("type", nil), ("type", "video/")
+        ] as [(String, String?)] {
+            var invalidMedia = media
+            invalidMedia[field] = invalidValue
+            var invalidItem = item
+            invalidItem["media_content"] = invalidMedia
+            var invalidItems = items
+            invalidItems[itemID] = invalidItem
+            var invalidFeed = canonical
+            invalidFeed["rss_feed_items"] = invalidItems
+            let invalidData = try JSONSerialization.data(withJSONObject: invalidFeed)
+            XCTAssertThrowsError(try VideoFeedLaunchFixture.videoTitle(in: invalidData)) { error in
+                XCTAssertTrue(error is VideoFeedLaunchFixture.ValidationError)
+            }
+        }
+        let scenario = makeScenario(body: fixture.feed)
         let first = load("/api/v1/feeds/rss_feed_items/any?limit=20&media_type=video", scenario: scenario)
         XCTAssertEqual((first.error as? URLError)?.code, .notConnectedToInternet)
         XCTAssertNil(first.response)
@@ -16,7 +41,7 @@ final class FeedFlowUITestingURLProtocolTests: XCTestCase {
         let retry = load("/api/v1/feeds/rss_feed_items/any?limit=20&media_type=video", scenario: scenario)
         XCTAssertNil(retry.error)
         XCTAssertEqual(retry.response?.statusCode, 200)
-        XCTAssertEqual(retry.data, body)
+        XCTAssertEqual(retry.data, fixture.feed)
         XCTAssertTrue(retry.finished)
     }
 
@@ -75,9 +100,9 @@ final class FeedFlowUITestingURLProtocolTests: XCTestCase {
         XCTAssertFalse(client.finished)
     }
 
-    private func makeScenario(failOnce: Bool = true) -> FeedFlowUITestingURLProtocol.Scenario {
+    private func makeScenario(failOnce: Bool = true, body: Data? = nil) -> FeedFlowUITestingURLProtocol.Scenario {
         .init(environment: [
-            feedKey: body.base64EncodedString(),
+            feedKey: (body ?? self.body).base64EncodedString(),
             "VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64": Data("identity".utf8).base64EncodedString(),
             "VOUCHA_UI_TESTING_VIDEO_FAIL_ONCE": failOnce ? "1" : "0"
         ])

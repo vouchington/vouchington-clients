@@ -1743,7 +1743,7 @@ jobs:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
           SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
         run: |
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaFeedTransportTests -resultBundlePath "$RUNNER_TEMP/macos-feed-transport.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaFeedTransportTests -resultBundlePath "$RUNNER_TEMP/macos-feed-transport.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-feed-transport.xcresult" | jq -e '.totalTestCount == 5 and .passedTests == 5 and .failedTests == 0 and .skippedTests == 0'
       - name: Launch macOS root shell, sidebar feeds, and email sign-in
         timeout-minutes: 15

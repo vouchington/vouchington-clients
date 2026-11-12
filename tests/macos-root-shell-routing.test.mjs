@@ -55,6 +55,7 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
     macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
   )
   assert.match(transport, /-only-testing:VouchaFeedTransportTests/u)
+  assert.match(transport, /VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
   assert.match(transport, /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO/u)
   assert.match(
     transport,
