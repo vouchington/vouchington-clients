@@ -8,7 +8,7 @@ import VouchaModels
 import XCTest
 
 @MainActor
-final class FriendsAvatarPlacementTests: XCTestCase {
+final class FriendsAvatarPlacementTests: NativeRouteSurfaceViewModelTestCase {
     func testAvatarURLRequiresReturnedPlacementDescriptor() throws {
         let config = try AppConfig(
             baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
@@ -55,7 +55,7 @@ final class FriendsAvatarPlacementTests: XCTestCase {
         }
     }
 
-    func testMissingAndWithheldFriendPlacementsRenderNamedInitialsWithoutLegacyRequests() async throws {
+    func testMissingAndWithheldFriendPlacementsRenderNamedInitialsWithoutLegacyImages() async throws {
         for retainsLegacyId in [false, true] {
             let view = try await loadedFriendsView(imageHost: "https://replacement.images.test") { user in
                 user["profile_image_placement"] = NSNull()
