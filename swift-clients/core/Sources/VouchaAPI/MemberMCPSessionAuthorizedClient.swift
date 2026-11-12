@@ -22,12 +22,23 @@ public actor MemberMCPSessionAuthorizedClient {
         }
     }
 
-    /// Closes the remote session with an already-minted token and never mints a new one.
-    public func disconnect() async {
+    /// Drops the in-memory token immediately, then closes the remote session with that already-minted
+    /// token (never minting a new one) in a bounded best-effort task. Returns without waiting for the
+    /// network; await the returned task only when completion matters, for example in tests.
+    @discardableResult
+    public func disconnect(closeTimeout: TimeInterval = 5) async -> Task<Void, Never> {
         let access = await tokens.currentAccessToken
         await tokens.clear()
-        guard let access else { return }
-        try? await client.close(accessToken: access)
+        let client = client
+        return Task {
+            guard let access else { return }
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { try? await client.close(accessToken: access) }
+                group.addTask { try? await Task.sleep(nanoseconds: UInt64(max(closeTimeout, 0) * 1_000_000_000)) }
+                _ = await group.next()
+                group.cancelAll()
+            }
+        }
     }
 
     private func withToken<T: Sendable>(_ call: @Sendable (String) async throws -> T) async throws -> T {

@@ -23,6 +23,9 @@ public final class NativeChatMCPSessionBoundService: NativeChatMCPServicing {
     private let protocolClasses: [AnyClass]?
     private var context: Context?
     private var generation = 0
+    private let remoteCloseTimeout: TimeInterval
+    /// The bounded best-effort remote close started by the last `disconnect`; exposed for tests.
+    private(set) var remoteClose: Task<Void, Never>?
 
     /// - Parameter legacyGrantCleanup: removes grants stored by the retired browser authorization.
     public init(
@@ -31,8 +34,10 @@ public final class NativeChatMCPSessionBoundService: NativeChatMCPServicing {
         apiClient: APIClient,
         currentAccountId: @escaping @MainActor () -> String?,
         legacyGrantCleanup: (@MainActor (String) async throws -> Void)? = nil,
-        protocolClasses: [AnyClass]? = nil
+        protocolClasses: [AnyClass]? = nil,
+        remoteCloseTimeout: TimeInterval = 5
     ) {
+        self.remoteCloseTimeout = remoteCloseTimeout
         self.siteOrigin = siteOrigin
         self.app = app
         self.apiClient = apiClient
@@ -75,7 +80,9 @@ public final class NativeChatMCPSessionBoundService: NativeChatMCPServicing {
         generation += 1
         if let live = context, live.accountId == accountId {
             context = nil
-            await live.authorized.disconnect()
+            // The token is dropped here; the remote DELETE runs bounded in the background so a stalled
+            // server cannot hold up sign-out.
+            remoteClose = await live.authorized.disconnect(closeTimeout: remoteCloseTimeout)
         }
         try await legacyGrantCleanup?(accountId)
     }

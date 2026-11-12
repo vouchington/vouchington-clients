@@ -8,12 +8,14 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
     private static var rejectedBearers: Set<String> = []
     private static var requests: [String] = []
     private static var bearers: [String] = []
+    private static var stallDeletes = false
     private let deliveryLock = NSLock()
     private var stopped = false
 
-    static func reset(rejecting rejected: Set<String> = []) {
+    static func reset(rejecting rejected: Set<String> = [], stallingDeletes: Bool = false) {
         lock.lock()
         defer { lock.unlock() }
+        stallDeletes = stallingDeletes
         mints = 0
         rejectedBearers = rejected
         requests = []
@@ -50,6 +52,7 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
         deliveryLock.lock()
         defer { deliveryLock.unlock() }
         guard !stopped, let url = request.url else { return }
+        if request.httpMethod == "DELETE", Self.recordStalledDelete() { return }
         let rpc = URLRequestHTTPBody.data(from: request)
             .flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         let method = rpc?["method"] as? String
@@ -64,6 +67,15 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         if !payload.isEmpty { client?.urlProtocol(self, didLoad: Data(payload.utf8)) }
         client?.urlProtocolDidFinishLoading(self)
+    }
+
+    /// Records the DELETE and reports whether it must hang without a response.
+    private static func recordStalledDelete() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard stallDeletes else { return false }
+        requests.append("DELETE /api/v1/mcp")
+        return true
     }
 
     private static func answer(

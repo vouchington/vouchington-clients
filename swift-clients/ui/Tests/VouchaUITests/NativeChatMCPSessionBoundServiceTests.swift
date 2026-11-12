@@ -11,7 +11,8 @@ final class NativeChatMCPSessionBoundServiceTests: XCTestCase {
 
     private func makeService(
         account: @escaping @MainActor () -> String? = { "member-a" },
-        cleanedAccounts: CleanedAccounts = CleanedAccounts()
+        cleanedAccounts: CleanedAccounts = CleanedAccounts(),
+        remoteCloseTimeout: TimeInterval = 5
     ) -> NativeChatMCPSessionBoundService {
         let client = APIClient(
             config: AppConfig(baseURL: site, turnstileSiteKey: "key"),
@@ -21,7 +22,8 @@ final class NativeChatMCPSessionBoundServiceTests: XCTestCase {
         return NativeChatMCPSessionBoundService(
             siteOrigin: site, app: .macos, apiClient: client, currentAccountId: account,
             legacyGrantCleanup: { cleanedAccounts.record($0) },
-            protocolClasses: [SessionBoundMCPURLProtocol.self]
+            protocolClasses: [SessionBoundMCPURLProtocol.self],
+            remoteCloseTimeout: remoteCloseTimeout
         )
     }
 
@@ -126,6 +128,7 @@ final class NativeChatMCPSessionBoundServiceTests: XCTestCase {
         _ = try await service.connect(accountId: "member-a")
 
         try await service.disconnect(accountId: "member-a")
+        await service.remoteClose?.value
 
         XCTAssertEqual(SessionBoundMCPURLProtocol.mintCount, 1)
         XCTAssertEqual(SessionBoundMCPURLProtocol.paths.last, "DELETE /api/v1/mcp")
@@ -151,5 +154,27 @@ final class NativeChatMCPSessionBoundServiceTests: XCTestCase {
         XCTAssertNil(session.toolCatalog)
         XCTAssertEqual(session.status, .disconnected)
         XCTAssertEqual(cleaned.all, ["member-a"])
+    }
+
+    func testStalledRemoteCloseDoesNotBlockDisconnectAndIsBounded() async throws {
+        SessionBoundMCPURLProtocol.reset(stallingDeletes: true)
+        let cleaned = CleanedAccounts()
+        let service = makeService(cleanedAccounts: cleaned, remoteCloseTimeout: 0.3)
+        _ = try await service.connect(accountId: "member-a")
+
+        let started = Date()
+        try await service.disconnect(accountId: "member-a")
+
+        XCTAssertLessThan(Date().timeIntervalSince(started), 0.25, "disconnect must not wait for the DELETE")
+        XCTAssertEqual(cleaned.all, ["member-a"])
+        do {
+            _ = try await service.callTool(accountId: "member-a", name: "server_tool", arguments: [:])
+            XCTFail("A disconnected account must not call tools")
+        } catch NativeChatMCPSessionBoundService.Failure.accountMismatch {}
+        let close = try XCTUnwrap(service.remoteClose)
+        await close.value
+        XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(started), 0.3)
+        XCTAssertEqual(SessionBoundMCPURLProtocol.paths.last, "DELETE /api/v1/mcp")
+        XCTAssertEqual(SessionBoundMCPURLProtocol.mintCount, 1)
     }
 }
