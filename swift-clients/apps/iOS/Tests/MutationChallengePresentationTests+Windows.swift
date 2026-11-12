@@ -43,10 +43,17 @@ extension MutationChallengePresentationTests {
         let broker = MutationChallengeBroker()
         let sheet = UIHostingController(rootView: ListsCreateSheet { _ in })
         let (window, _) = try await present(sheet, broker: broker)
+        let sibling = try UIWindow(windowScene: XCTUnwrap(window.windowScene))
+        sibling.rootViewController = UIViewController()
         defer { broker.cancel()
+            sibling.isHidden = true
             window.isHidden = true
         }
-        window.resignKey()
+        sibling.makeKeyAndVisible()
+        await waitUntil { sibling.isKeyWindow && !window.isKeyWindow }
+        XCTAssertTrue(sibling.isKeyWindow)
+        XCTAssertFalse(window.isKeyWindow)
+        XCTAssertNil(provider.onToken)
         let completed = expectation(description: "Owned mutation resumes")
         var proof: String?
         let request = Task {
@@ -55,9 +62,17 @@ extension MutationChallengePresentationTests {
         }
         defer { request.cancel() }
         await waitUntil { broker.pendingID != nil }
+        XCTAssertTrue(sibling.isKeyWindow)
+        XCTAssertFalse(window.isKeyWindow)
         XCTAssertNil(sheet.presentedViewController)
+        XCTAssertNil(provider.onToken)
         window.makeKeyAndVisible()
-        _ = try await presentedChallenge(above: sheet)
+        await waitUntil { window.isKeyWindow && !sibling.isKeyWindow }
+        XCTAssertTrue(window.isKeyWindow)
+        XCTAssertFalse(sibling.isKeyWindow)
+        let challenge = try await presentedChallenge(above: sheet)
+        XCTAssertTrue(challenge.presentingViewController === sheet)
+        XCTAssertNil(sibling.rootViewController?.presentedViewController)
         try XCTUnwrap(provider.onToken)("activated-window-proof")
         await fulfillment(of: [completed], timeout: 2)
         XCTAssertEqual(proof, "activated-window-proof")
