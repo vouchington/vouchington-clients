@@ -2862,11 +2862,13 @@ jobs:
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
           -p:DebugType=portable -p:DebugSymbols=true
       - name: Collect trusted Windows app symbols
+        timeout-minutes: 1
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: candidate-clients
         shell: pwsh
         run: node scripts/sentry-windows-symbols.mjs . "$env:RUNNER_TEMP/sentry-dotnet-windows"
       - name: Retain trusted Windows app symbols
+        timeout-minutes: 2
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
