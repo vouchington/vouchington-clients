@@ -52,6 +52,10 @@ public final class EmailOTPViewModel {
         !email.isEmpty && !isLoading && (turnstileToken != nil || signInService.canBypassTurnstileWithAppAttest)
     }
 
+    public var canVerifyCode: Bool {
+        EmailVerificationCode.normalized(code) != nil && !isLoading
+    }
+
     /// Requests an OTP code for the entered email address.
     public func requestCode() async {
         guard !email.isEmpty, !isLoading else { return }
@@ -82,7 +86,8 @@ public final class EmailOTPViewModel {
 
     /// Verifies the entered OTP code and advances to MFA if required.
     public func verifyCode() async {
-        guard !code.isEmpty, !isLoading else { return }
+        guard !isLoading, let normalized = EmailVerificationCode.normalized(code) else { return }
+        code = normalized
         isLoading = true
         errorMessage = nil
         do {

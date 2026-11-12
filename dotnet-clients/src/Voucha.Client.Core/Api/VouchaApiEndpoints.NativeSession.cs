@@ -13,7 +13,7 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest VerifyNativeEmailOtp(string email, string code) =>
       new(HttpMethod.Post, "/api/v1/auth/native/email-address/login")
       {
-        Body = new VerifyEmailOtpBody(email, code),
+        Body = new VerifyEmailOtpBody(email, Auth.EmailVerificationCode.RequireValid(code)),
       };
 
   public static ApiRequest MintNativeSessionMcpToken(string clientApp) =>

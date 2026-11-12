@@ -30,7 +30,7 @@ public sealed class AuthCoverageTests
 
     var challenge = await service.VerifyEmailOtpAsync(
         "a@example.com",
-        "123456",
+        "ABCDEFGH23",
         TestContext.Current.CancellationToken);
     Assert.Equal("attempt-1", challenge?.LoginAttemptId);
 
@@ -91,10 +91,10 @@ public sealed class AuthCoverageTests
     var service = new AuthenticationService(client, store, new RecordingPasskeyProvider());
 
     await Assert.ThrowsAsync<InvalidOperationException>(
-        () => service.VerifyEmailOtpAsync("a@example.com", "123456", TestContext.Current.CancellationToken));
+        () => service.VerifyEmailOtpAsync("a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken));
 
     await Assert.ThrowsAsync<UnauthorizedAccessException>(
-        () => service.VerifyEmailOtpAsync("a@example.com", "123456", TestContext.Current.CancellationToken));
+        () => service.VerifyEmailOtpAsync("a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken));
   }
 
   [Fact]
@@ -223,7 +223,7 @@ public sealed class AuthCoverageTests
     {
       Email = "a@example.com",
       TurnstileToken = "turnstile",
-      Code = "123456",
+      Code = "ABCDEFGH23",
       TotpCode = "654321",
     };
 
@@ -267,15 +267,15 @@ public sealed class AuthCoverageTests
     {
       Email = "a@example.com",
       TurnstileToken = "turnstile",
-      Code = "12345678",
+      Code = "ABCDEFGH23",
     };
 
     Assert.False(viewModel.HasRequestedEmailOtp);
     Assert.False(viewModel.CanResendEmailOtp);
-    viewModel.ApplyEmailOtpPrefill("a@example.com", "12345678");
+    viewModel.ApplyEmailOtpPrefill("a@example.com", "ABCDEFGH23");
 
     Assert.Equal("a@example.com", viewModel.Email);
-    Assert.Equal("12345678", viewModel.Code);
+    Assert.Equal("ABCDEFGH23", viewModel.Code);
 
     await viewModel.RequestEmailOtpAsync(TestContext.Current.CancellationToken);
 

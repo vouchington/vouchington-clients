@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 private struct NativeEmailTokenBody: Encodable {
     let emailAddress: String
@@ -6,7 +7,7 @@ private struct NativeEmailTokenBody: Encodable {
 
 private struct NativeEmailLoginBody: Encodable {
     let emailAddress: String
-    let token: String
+    let token: EncodedEmailVerificationCode
 }
 
 private struct NativeSessionMCPTokenBody: Encodable {
@@ -33,7 +34,7 @@ public extension Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/auth/native/email-address/login",
-            body: NativeEmailLoginBody(emailAddress: email, token: code),
+            body: NativeEmailLoginBody(emailAddress: email, token: EncodedEmailVerificationCode(code)),
             bodyKeyEncodingStrategy: .useDefaultKeys
         )
     }

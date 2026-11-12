@@ -16,6 +16,25 @@ public sealed partial class AuthViewModel
     Code = code ?? "";
   }
 
+  public async Task VerifyEmailOtpAsync(CancellationToken cancellationToken = default)
+  {
+    if (!EmailVerificationCode.IsValid(Code))
+    {
+      SetLocalizedStatusMessage(UiMessageKey.NativeDotnetAuthOneTimeCode);
+      return;
+    }
+    await RunAsync(async () =>
+    {
+      mfaChallenge = await authenticationService
+          .VerifyEmailOtpAsync(Email, Code, cancellationToken)
+          .ConfigureAwait(true);
+      StatusMessage = mfaChallenge is null
+          ? localization.Localize(UiMessageKey.NativeDotnetCsharpSignedIn)
+          : localization.Localize(UiMessageKey.NativeDotnetAuthMfaCodeRequired);
+      OnPropertyChanged(nameof(SessionLabel));
+    }).ConfigureAwait(true);
+  }
+
   private void MarkEmailOtpRequested()
   {
     var wasRequested = hasRequestedEmailOtp;

@@ -328,7 +328,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("markPostRead", VouchaApiEndpoints.MarkPostRead("post 1"), HttpMethod.Put, "/api/v1/posts/post%201/read", Query());
     yield return Case("markPostUnread", VouchaApiEndpoints.MarkPostUnread("post 1"), HttpMethod.Delete, "/api/v1/posts/post%201/read", Query());
     yield return Case("requestEmailOtp", VouchaApiEndpoints.RequestEmailOtp("test@example.com", "token"), HttpMethod.Post, "/api/v1/auth/email-address/tokens", Query(), true);
-    yield return Case("verifyEmailOtp", VouchaApiEndpoints.VerifyEmailOtp("test@example.com", "123456"), HttpMethod.Post, "/api/v1/auth/email-address/login", Query(), true);
+    yield return Case("verifyEmailOtp", VouchaApiEndpoints.VerifyEmailOtp("test@example.com", "ABCDEFGH23"), HttpMethod.Post, "/api/v1/auth/email-address/login", Query(), true);
     yield return Case("verifyMfaTotp", VouchaApiEndpoints.VerifyMfaTotp("attempt-1", "123456"), HttpMethod.Post, "/api/v1/auth/mfa/totp/verification", Query(), true);
     yield return Case("passkeyAuthOptions", VouchaApiEndpoints.PasskeyAuthOptions(), HttpMethod.Post, "/api/v1/auth/passkeys/authentication/options", Query());
     yield return Case("passkeyAuthVerify", VouchaApiEndpoints.PasskeyAuthVerify(new { id = "credential" }), HttpMethod.Post, "/api/v1/auth/passkeys/authentication/verify", Query(), true);

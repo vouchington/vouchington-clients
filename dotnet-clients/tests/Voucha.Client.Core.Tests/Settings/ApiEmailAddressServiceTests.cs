@@ -20,7 +20,7 @@ public sealed class ApiEmailAddressServiceTests
     var token = TestContext.Current.CancellationToken;
 
     var requested = await service.RequestEmailVerificationAsync("Tests+Native-User@Voucha.ai", token);
-    var verified = await service.VerifyEmailAddressAsync("tests+native-user@voucha.ai", "ABCD1234", token);
+    var verified = await service.VerifyEmailAddressAsync("tests+native-user@voucha.ai", "ABCDEFGH23", token);
 
     Assert.Equal("tests+native-user@voucha.ai", requested.EmailAddress);
     Assert.True(Assert.Single(verified.Results).IsPrimary);
@@ -29,7 +29,7 @@ public sealed class ApiEmailAddressServiceTests
     using var request = JsonDocument.Parse(handler.Requests[0].Body!);
     using var verification = JsonDocument.Parse(handler.Requests[1].Body!);
     Assert.Equal("Tests+Native-User@Voucha.ai", request.RootElement.GetProperty("email_address").GetString());
-    Assert.Equal("ABCD1234", verification.RootElement.GetProperty("token").GetString());
+    Assert.Equal("ABCDEFGH23", verification.RootElement.GetProperty("token").GetString());
     Assert.False(request.RootElement.TryGetProperty("re_auth_token", out _));
     Assert.False(verification.RootElement.TryGetProperty("re_auth_token", out _));
     Assert.All(handler.Requests, item => Assert.Equal(HttpMethod.Post, item.Method));
@@ -47,13 +47,13 @@ public sealed class ApiEmailAddressServiceTests
     var token = TestContext.Current.CancellationToken;
 
     await client.RequestEmailAddressVerificationAsync("alice@example.test", "request-auth", token);
-    await client.VerifyEmailAddressAsync("alice@example.test", "verification-code", "verify-auth", token);
+    await client.VerifyEmailAddressAsync("alice@example.test", "ABCDEFGH23", "verify-auth", token);
 
     using var request = JsonDocument.Parse(handler.Requests[0].Body!);
     using var verification = JsonDocument.Parse(handler.Requests[1].Body!);
     Assert.Equal("alice@example.test", request.RootElement.GetProperty("email_address").GetString());
     Assert.Equal("request-auth", request.RootElement.GetProperty("re_auth_token").GetString());
-    Assert.Equal("verification-code", verification.RootElement.GetProperty("token").GetString());
+    Assert.Equal("ABCDEFGH23", verification.RootElement.GetProperty("token").GetString());
     Assert.Equal("verify-auth", verification.RootElement.GetProperty("re_auth_token").GetString());
   }
 
@@ -67,7 +67,7 @@ public sealed class ApiEmailAddressServiceTests
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
     var service = new ApiEmailAddressService(new VouchaApiClient(http));
     Task operation = verify
-        ? service.VerifyEmailAddressAsync("alice@example.test", "code", cancellation.Token)
+        ? service.VerifyEmailAddressAsync("alice@example.test", "ABCDEFGH23", cancellation.Token)
         : service.RequestEmailVerificationAsync("alice@example.test", cancellation.Token);
     await handler.Started.Task.WaitAsync(TestContext.Current.CancellationToken);
 

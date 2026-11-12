@@ -28,7 +28,7 @@
                             Clicked="OnResendEmailCodeClicked"
                             IsVisible="{Binding CanResendEmailOtp}" />
                     </HorizontalStackLayout>
-                    <Entry Placeholder="{DynamicResource native.dotnet.auth.oneTimeCode}" Text="{Binding Code}" Keyboard="Numeric" />
+                    <Entry Placeholder="{DynamicResource native.dotnet.auth.oneTimeCode}" Text="{Binding Code}" Keyboard="Text" />
                     <Button Text="{DynamicResource native.dotnet.auth.verifyEmailCode}" Clicked="OnVerifyEmailOtpClicked" />
                 </VerticalStackLayout>
             </Border>

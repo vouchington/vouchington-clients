@@ -7,7 +7,7 @@ namespace Voucha.Client.Core.Tests.Settings;
 public sealed class EmailAddressManagerViewModelTests
 {
   [Fact]
-  public async Task EmptyAccountRequestsNormalizedAddressAndVerifiesEightCharacterOtp()
+  public async Task EmptyAccountRequestsNormalizedAddressAndVerifiesTenCharacterOtp()
   {
     var service = new RecordingEmailAddressService();
     var viewModel = new EmailAddressManagerViewModel(service) { EmailAddress = " User@Example.com " };
@@ -19,20 +19,27 @@ public sealed class EmailAddressManagerViewModelTests
     Assert.Equal("user@example.com", viewModel.EmailAddress);
     Assert.True(viewModel.IsAwaitingVerification);
 
-    viewModel.Otp = "ABCD1234";
+    viewModel.Otp = "abcdefgh23";
     Assert.True(await viewModel.VerifyAsync(TestContext.Current.CancellationToken));
+    Assert.Equal("ABCDEFGH23", service.VerifiedToken);
     Assert.Equal("Email verified. Try your action again.", viewModel.SuccessMessage);
     Assert.Single(viewModel.EmailAddresses);
     Assert.True(viewModel.EmailAddresses[0].IsPrimary);
   }
 
-  [Fact]
-  public async Task OtpMustContainExactlyEightCharacters()
+  [Theory]
+  [InlineData("short")]
+  [InlineData("ABCDEFGH01")]
+  [InlineData("ABCDEFGH89")]
+  [InlineData("ABCDEFGH2!")]
+  [InlineData("ABCDEFGHIß")]
+  [InlineData("ABCDEFGHI23")]
+  public async Task OtpMustContainTenBase32Characters(string code)
   {
     var service = new RecordingEmailAddressService();
     var viewModel = new EmailAddressManagerViewModel(service) { EmailAddress = "user@example.com" };
     await viewModel.RequestVerificationAsync(TestContext.Current.CancellationToken);
-    viewModel.Otp = "short";
+    viewModel.Otp = code;
 
     Assert.False(await viewModel.VerifyAsync(TestContext.Current.CancellationToken));
     Assert.Equal("Enter the 8-character verification code.", viewModel.ErrorMessage);
@@ -71,6 +78,7 @@ public sealed class EmailAddressManagerViewModelTests
   private sealed class RecordingEmailAddressService : IEmailAddressService
   {
     public int VerifyCalls { get; private set; }
+    public string? VerifiedToken { get; private set; }
     public EmailAddressListResponse InitialResponse { get; init; } = new([]);
     public EmailAddressListResponse ContinuationResponse { get; init; } = new([]);
     public string? ContinuationAfter { get; private set; }
@@ -98,6 +106,7 @@ public sealed class EmailAddressManagerViewModelTests
         CancellationToken cancellationToken = default)
     {
       VerifyCalls++;
+      VerifiedToken = token;
       return Task.FromResult(new EmailAddressListResponse([
         new EmailAddress(emailAddress, true, DateTimeOffset.Parse("2026-07-11T12:00:00Z")),
       ]));

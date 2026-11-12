@@ -62,10 +62,10 @@ final class EndpointCoverageTests: XCTestCase {
             ]
         )
         assertEndpoint(
-            Endpoint.verifyEmailOTP(email: "test@example.com", code: "123456"),
+            Endpoint.verifyEmailOTP(email: "test@example.com", code: "ABCDEFGH23"),
             method: .POST,
             path: "/api/v1/auth/email-address/login",
-            body: ["emailAddress": "test@example.com", "token": "123456"]
+            body: ["emailAddress": "test@example.com", "token": "ABCDEFGH23"]
         )
         assertEndpoint(Endpoint.logout, method: .POST, path: "/api/v1/auth/logout")
         assertEndpoint(Endpoint.myIdentity, path: "/api/v1/my/identity")

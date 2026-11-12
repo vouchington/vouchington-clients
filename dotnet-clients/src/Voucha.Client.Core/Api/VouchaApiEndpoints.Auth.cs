@@ -11,7 +11,7 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest VerifyEmailOtp(string email, string code) =>
       new(HttpMethod.Post, "/api/v1/auth/email-address/login")
       {
-        Body = new VerifyEmailOtpBody(email, code),
+        Body = new VerifyEmailOtpBody(email, Auth.EmailVerificationCode.RequireValid(code)),
       };
 
   public static ApiRequest VerifyMfaTotp(string loginAttemptId, string code) =>

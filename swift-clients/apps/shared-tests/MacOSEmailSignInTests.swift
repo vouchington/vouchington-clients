@@ -4,7 +4,7 @@
 
     final class MacOSEmailSignInTests: XCTestCase {
         private let email = "ui-test@example.com"
-        private let code = "424242"
+        private let code = "ABCDEFGH23"
         private let turnstileToken = "ui-testing-turnstile-token"
 
         override func setUp() {
@@ -37,7 +37,7 @@
             clickEnabled("Send Code", in: app)
 
             XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
-            LaunchSmokeFieldTyping.type(code, into: textField("6-digit code", in: app))
+            LaunchSmokeFieldTyping.type(code, into: textField("Verify Code", in: app))
             clickEnabled("Verify Code", in: app)
 
             let signIn = app.buttons.matching(NSPredicate(format: "label == %@", "Sign In"))

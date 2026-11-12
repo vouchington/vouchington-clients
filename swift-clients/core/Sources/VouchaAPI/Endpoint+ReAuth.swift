@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 private struct ReAuthCodeBody: Encodable {
     let code: String
@@ -56,7 +57,11 @@ public extension Endpoint {
     }
 
     static func verifyReAuthEmailCode(_ code: String) -> Endpoint {
-        Endpoint(.POST, path: "/api/v1/auth/mfa/re-auth/email/verification", body: ReAuthCodeBody(code: code))
+        Endpoint(
+            .POST,
+            path: "/api/v1/auth/mfa/re-auth/email/verification",
+            body: ReAuthEmailCodeBody(code: EncodedEmailVerificationCode(code))
+        )
     }
 
     static func verifyReAuthTOTP(_ code: String) -> Endpoint {
@@ -123,4 +128,8 @@ public extension Endpoint {
             body: RefreshSessionBody(deviceToken: deviceToken, sessionToken: sessionToken)
         )
     }
+}
+
+private struct ReAuthEmailCodeBody: Encodable {
+    let code: EncodedEmailVerificationCode
 }

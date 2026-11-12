@@ -3,7 +3,7 @@
 
     final class SignInFlowTests: XCTestCase {
         private let email = "ui-test@example.com"
-        private let code = "424242"
+        private let code = "ABCDEFGH23"
         private let turnstileToken = "ui-testing-turnstile-token"
 
         override func setUp() {
@@ -39,7 +39,7 @@
             tapHittableButton("Send Code", in: app)
 
             XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
-            let codeField = app.textFields["6-digit code"]
+            let codeField = app.textFields["Verify Code"]
             XCTAssertTrue(codeField.waitForExistence(timeout: 20))
             LaunchSmokeFieldTyping.type(code, into: codeField)
             tapHittableButton("Verify Code", in: app)

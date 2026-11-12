@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
 
@@ -56,7 +57,7 @@ public sealed partial class EmailAddressManagerViewModel :
   public string Otp
   {
     get => otp;
-    set => SetProperty(ref otp, value ?? string.Empty);
+    set => SetProperty(ref otp, EmailVerificationCode.Normalize(value ?? string.Empty));
   }
 
   public string? ErrorMessage
@@ -112,7 +113,7 @@ public sealed partial class EmailAddressManagerViewModel :
 
   public async Task<bool> VerifyAsync(CancellationToken cancellationToken = default)
   {
-    if (Otp.Trim().Length != 8)
+    if (!EmailVerificationCode.IsValid(Otp))
     {
       ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetCsharpEnterVerificationCode);
       return false;
@@ -120,7 +121,7 @@ public sealed partial class EmailAddressManagerViewModel :
 
     return await RunAsync(async () =>
     {
-      var response = await service.VerifyEmailAddressAsync(EmailAddress, Otp.Trim(), cancellationToken).ConfigureAwait(true);
+      var response = await service.VerifyEmailAddressAsync(EmailAddress, Otp, cancellationToken).ConfigureAwait(true);
       ReplaceEmailPage(response);
       IsAwaitingVerification = false;
       SuccessMessage = localization.Localize(UiMessageKey.NativeDotnetCsharpEmailVerified);
