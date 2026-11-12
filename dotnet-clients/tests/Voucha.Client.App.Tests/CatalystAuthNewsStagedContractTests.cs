@@ -1,4 +1,5 @@
 #if DEBUG
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Voucha.Client.Core.Tests.Support;
@@ -31,10 +32,12 @@ public sealed partial class CatalystAuthNewsStagedContractTests
     Assert.ThrowsAny<Exception>(() => new CatalystAuthNewsHandler(staged.Path));
   }
 
-  private static string[] ShippedFixtureIds()
+  // Search from this source file: CI relocates test output outside the repository.
+  private static string[] ShippedFixtureIds([CallerFilePath] string sourceFile = "")
   {
     var script = File.ReadAllText(RepositoryFilePath.Find(
-        new DirectoryInfo(AppContext.BaseDirectory), "dotnet-clients", "tooling", "catalyst-gui-auth-news.mjs"));
+        new DirectoryInfo(Path.GetDirectoryName(sourceFile)!),
+        "dotnet-clients", "tooling", "catalyst-gui-auth-news.mjs"));
     var list = FixtureList().Match(script).Groups["list"].Value;
     return [.. FixtureId().Matches(list).Select(match => match.Groups["id"].Value)];
   }
