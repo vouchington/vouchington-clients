@@ -85,7 +85,7 @@ extension ImportExportView {
                         : result.input)
                     Text(UiMessages.string(statusText(result), locale: nativeUiLocale))
                         .font(.caption)
-                        .foregroundStyle(result.status == .error ? .red : .secondary)
+                        .foregroundStyle((result.status == .error || result.status == .skipped) ? .red : .secondary)
                 }
                 .accessibilityElement(children: .combine)
             }

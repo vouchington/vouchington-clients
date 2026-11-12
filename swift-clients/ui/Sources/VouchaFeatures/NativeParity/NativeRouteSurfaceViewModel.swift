@@ -40,6 +40,7 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var detailRelationEntityType: String?
     public internal(set) var detailRelationEntityId: String?
     public internal(set) var detailRelationBookmarks: [String: Bool] = [:]
+    public internal(set) var detailRelationErrorMessage: UiVerbatimText?
     public internal(set) var detailRelationIsSelfProfile = false
     var userProfile = NativeUserProfileState()
     public internal(set) var detailUserTags: [EntityRelation] = []

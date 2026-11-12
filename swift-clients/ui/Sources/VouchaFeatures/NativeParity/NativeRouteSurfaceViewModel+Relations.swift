@@ -50,6 +50,7 @@ extension NativeRouteSurfaceViewModel {
         inFlightDetailRelationKeys.insert(key)
         defer { inFlightDetailRelationKeys.remove(key) }
 
+        detailRelationErrorMessage = nil
         let wasActive = detailRelationBookmarks[predicate] == true
         let wasFollowing = detailRelationBookmarks["follow"] == true
         let clearsFollowState = shouldClearFollowState(
@@ -80,6 +81,7 @@ extension NativeRouteSurfaceViewModel {
                 }
             }
         } catch {
+            detailRelationErrorMessage = .message(.nativeCommonSomethingWentWrong)
             detailRelationBookmarks[predicate] = wasActive
             if clearsFollowState, wasFollowing {
                 detailRelationBookmarks["follow"] = true

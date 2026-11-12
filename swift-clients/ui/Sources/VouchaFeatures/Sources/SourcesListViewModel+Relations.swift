@@ -160,6 +160,7 @@ public extension SourcesListViewModel {
         onRollbackActivate: (() -> Void)? = nil
     ) async {
         guard userId != nil, !handlers.isInFlight(id) else { return }
+        statusMessage = nil
         handlers.begin(id)
         defer { handlers.finish(id) }
 
@@ -176,6 +177,7 @@ public extension SourcesListViewModel {
                 : Endpoint.bookmark(entityType: entityType, entityId: id, predicate: predicate)
             let _: EmptyResponse = try await client.send(endpoint)
         } catch {
+            statusMessage = .message(.nativeCommonSomethingWentWrong)
             if wasActive {
                 handlers.activate(id)
             } else {

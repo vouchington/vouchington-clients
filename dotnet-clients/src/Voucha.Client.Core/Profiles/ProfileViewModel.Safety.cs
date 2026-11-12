@@ -158,7 +158,7 @@ public sealed partial class ProfileViewModel
       IsMutedUser = wasMuted;
       IsBlockedUser = wasBlocked;
       IsFollowingUser = wasFollowing;
-      ErrorMessage = ex.Message;
+      ErrorMessage = RelationMutationErrors.Message(ex, localization);
     }
     finally
     {

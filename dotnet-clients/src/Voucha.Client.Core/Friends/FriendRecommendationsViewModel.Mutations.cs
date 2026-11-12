@@ -45,7 +45,7 @@ public sealed partial class FriendRecommendationsViewModel
         ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
       Restore(tombstone);
-      ErrorMessage = ex.Message;
+      ErrorMessage = RelationMutationErrors.Message(ex, localization);
       SetMutationCompletionState(LoadState.Error);
     }
     finally

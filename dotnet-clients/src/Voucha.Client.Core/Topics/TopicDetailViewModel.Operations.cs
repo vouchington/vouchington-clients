@@ -66,7 +66,7 @@ public sealed partial class TopicDetailViewModel
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      ErrorMessage = ex.Message;
+      ErrorMessage = RelationMutationErrors.Message(ex, localization);
     }
   }
 
@@ -87,7 +87,7 @@ public sealed partial class TopicDetailViewModel
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      ErrorMessage = ex.Message;
+      ErrorMessage = RelationMutationErrors.Message(ex, localization);
     }
   }
 

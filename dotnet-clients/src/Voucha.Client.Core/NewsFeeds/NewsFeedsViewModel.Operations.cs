@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
@@ -32,7 +33,7 @@ public sealed partial class NewsFeedsViewModel
     }
     catch (Exception ex)
     {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, ex.Message);
+      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, RelationMutationErrors.Message(ex, localization));
     }
     finally
     {
@@ -68,7 +69,7 @@ public sealed partial class NewsFeedsViewModel
     }
     catch (Exception ex)
     {
-      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, ex.Message);
+      RollbackOptimisticMutation(mutationScope, mutationLoadRequestId, optimisticItems, previousItems, RelationMutationErrors.Message(ex, localization));
     }
     finally
     {

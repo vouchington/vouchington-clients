@@ -48,7 +48,7 @@ public enum ImportResultStatus: String, Codable, Sendable {
     case pending, followed, imported, sourceCreated = "source_created"
     case recommendationCreated = "recommendation_created"
     case alreadyFollowing = "already_following"
-    case error
+    case error, skipped
 }
 
 public enum RssFeedImportErrorCode: String, Codable, Sendable {
@@ -57,6 +57,8 @@ public enum RssFeedImportErrorCode: String, Codable, Sendable {
     case feedFetchTimeout = "FEED_FETCH_TIMEOUT"
     case contributionLimitExceeded = "CONTRIBUTION_LIMIT_EXCEEDED"
     case importFailed = "IMPORT_FAILED"
+    case accountSuspended = "ACCOUNT_SUSPENDED"
+    case relationLimitReached = "RELATION_LIMIT_REACHED"
 }
 
 public struct ImportResult: Codable, Identifiable, Sendable, Equatable {

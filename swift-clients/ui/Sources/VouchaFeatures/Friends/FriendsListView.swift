@@ -65,6 +65,10 @@ public struct FriendsListView: View {
         List {
             tabPicker
                 .listRowSeparator(.hidden)
+            if let statusMessage = viewModel.statusMessage {
+                Text(UiMessages.string(statusMessage, locale: nativeUiLocale))
+                    .foregroundStyle(.secondary)
+            }
             ForEach(viewModel.items) { user in
                 HStack {
                     UserRow(user: user, avatarURL: viewModel.avatarURL(for: user))

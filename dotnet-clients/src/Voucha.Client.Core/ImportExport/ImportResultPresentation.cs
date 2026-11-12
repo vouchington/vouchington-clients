@@ -11,7 +11,9 @@ public sealed record ImportResultPresentation(
 
   public string LocalizedDisplayStatus => Localization.Resolve(StatusText());
 
-  public string? ExternalContentError => Result.Error;
+  public string? ExternalContentError => Result.ErrorCode == RssFeedImportErrorCode.RelationLimitReached
+      ? null
+      : Result.Error;
 
   private UiText StatusText() => Result.Status switch
   {
@@ -35,6 +37,10 @@ public sealed record ImportResultPresentation(
         UiText.Localized(UiMessageKey.NativeSwiftImportExportAlreadyFollowing),
     _ => UiText.Localized(
         UiMessageKey.NativeSwiftImportExportFailed,
-        ("error", UiText.ExternalContent(Result.Error))),
+        ("error", Result.Status == ImportResultStatus.Skipped ||
+            Result.ErrorCode == RssFeedImportErrorCode.RelationLimitReached ||
+            string.IsNullOrWhiteSpace(Result.Error)
+            ? UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed)
+            : UiText.ExternalContent(Result.Error))),
   };
 }

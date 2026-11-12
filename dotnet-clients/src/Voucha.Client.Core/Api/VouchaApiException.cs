@@ -43,6 +43,10 @@ public sealed class VouchaApiException : HttpRequestException
   public bool IsEmailVerificationRequired =>
       string.Equals(ErrorCode, "EMAIL_VERIFICATION_REQUIRED", StringComparison.Ordinal);
 
+  public bool IsRelationLimitReached =>
+      StatusCode == HttpStatusCode.Conflict &&
+      string.Equals(ErrorCode, "RELATION_LIMIT_REACHED", StringComparison.Ordinal);
+
   public bool IsTagLimitReached =>
       string.Equals(ErrorCode, "TAG_LIMIT_REACHED", StringComparison.Ordinal);
 
