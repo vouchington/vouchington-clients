@@ -27,6 +27,9 @@ internal sealed class CatalystGuiAudit
 
   internal void Patch(JsonObject patch, JsonObject before, JsonObject after) => store.Patch(patch, before, after);
 
+  internal void RecordControls(bool engagement, bool moderation, bool scheduleVisible, bool ready) =>
+      store.RecordControls(engagement, moderation, scheduleVisible, ready);
+
   internal void Activate(string canonicalPath) => store.Activate(canonicalPath);
 
   internal void Deactivate() => store.Deactivate();

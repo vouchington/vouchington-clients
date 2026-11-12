@@ -165,6 +165,7 @@
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/RewardsProgramStatusesPage.xaml" Link="Pages/RewardsProgramStatusesPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/RewardsProgramStatusesPage.xaml.cs" Link="Pages/RewardsProgramStatusesPage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.xaml" Link="Pages/NotificationPreferencesView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.ControlAudit.cs" Link="Pages/NotificationPreferencesView.ControlAudit.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.xaml.cs" Link="Pages/NotificationPreferencesView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/NotificationSettingsAccessibilityCoordinator.cs" Link="NotificationSettingsAccessibilityCoordinator.cs" />
     <Compile Include="../../src/Voucha.Client.App/NotificationSettingsRouteEpoch.cs" Link="NotificationSettingsRouteEpoch.cs" />

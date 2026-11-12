@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentView x:Class="Voucha.Client.App.Pages.NotificationPreferencesView" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:settings="clr-namespace:Voucha.Client.Core.Settings;assembly=Voucha.Client.Core" x:DataType="settings:NotificationPreferencesViewModel">
+<ContentView AutomationId="notification-preferences-section" x:Class="Voucha.Client.App.Pages.NotificationPreferencesView" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:settings="clr-namespace:Voucha.Client.Core.Settings;assembly=Voucha.Client.Core" x:DataType="settings:NotificationPreferencesViewModel">
   <VerticalStackLayout Spacing="12">
     <Label x:Name="NotificationPreferencesHeading" AutomationId="notification-preferences-heading" Text="{DynamicResource extracted.intents.productCommunication.notifications_78801183}" SemanticProperties.HeadingLevel="Level1" Style="{StaticResource Headline}" />
     <Label AutomationId="notification-preferences-error" IsVisible="{Binding HasErrorMessage}" Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
@@ -11,7 +11,7 @@
     <Switch x:Name="ModerationSwitch" AutomationId="notification-moderation" IsEnabled="{Binding IsModerationEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.moderationEmails}" Toggled="OnModerationChanged" />
     <Label Text="{DynamicResource native.dotnet.settings.communityDigest}" Style="{StaticResource Body}" />
     <Picker x:Name="CommunityPicker" AutomationId="notification-community-digest" IsEnabled="{Binding IsCommunityEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.communityDigest}" ItemsSource="{Binding DigestOptions}" ItemDisplayBinding="{Binding DisplayLabel}" SelectedIndexChanged="OnCommunityChanged" />
-    <VerticalStackLayout IsVisible="{Binding ShowsModerationSchedule}" Spacing="8">
+    <VerticalStackLayout x:Name="ScheduleControls" AutomationId="notification-moderation-schedule" IsVisible="{Binding ShowsModerationSchedule}" Spacing="8">
       <Label Text="{DynamicResource native.dotnet.settings.moderationEmailCadence}" Style="{StaticResource Body}" />
       <Picker x:Name="CadencePicker" AutomationId="notification-cadence" IsEnabled="{Binding IsCadenceEnabled}" SemanticProperties.Description="{DynamicResource native.dotnet.settings.moderationEmailCadence}" ItemsSource="{Binding CadenceOptions}" ItemDisplayBinding="{Binding DisplayLabel}" SelectedIndexChanged="OnCadenceChanged" />
       <HorizontalStackLayout x:Name="DaysControls" IsVisible="{Binding ShowsSelectedDays}" Spacing="4">
