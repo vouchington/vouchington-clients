@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 @testable import VouchaAndroid
 import VouchaAPI
 import VouchaCore
@@ -15,19 +16,24 @@ final class AndroidMutationChallengeTests: XCTestCase {
             protocolClasses: [AndroidAuthURLProtocol.self]
         )
         await account.installMutationChallengeHandler()
+        let presented = expectation(description: "Native challenge presented")
+        withObservationTracking { _ = account.mutationChallengeBroker.pendingID } onChange: {
+            presented.fulfill()
+        }
+        let completed = expectation(description: "Challenged mutation completed")
         let operation = Task {
-            try await account.apiClient.data(for: .init(.POST, path: "/mutation"))
+            do {
+                _ = try await account.apiClient.data(for: .init(.POST, path: "/mutation"))
+            } catch { XCTFail("Unexpected mutation failure: \(error)") }
+            completed.fulfill()
         }
         defer { operation.cancel()
             account.mutationChallengeBroker.cancel()
         }
-        for _ in 0 ..< 1_000 {
-            if account.mutationChallengeBroker.pendingID != nil { break }
-            await Task.yield()
-        }
+        await fulfillment(of: [presented], timeout: 2)
         let id = try XCTUnwrap(account.mutationChallengeBroker.pendingID)
         account.mutationChallengeBroker.finish(id: id, token: "provider-proof")
-        _ = try await operation.value
+        await fulfillment(of: [completed], timeout: 2)
         let requests = AndroidAuthURLProtocol.requestSnapshot()
         XCTAssertEqual(requests.map { $0.url?.path }, ["/mutation", "/mutation"])
         XCTAssertNil(requests.first?.value(forHTTPHeaderField: "x-voucha-bot-challenge-token"))
