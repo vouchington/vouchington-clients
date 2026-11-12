@@ -96,7 +96,7 @@ public sealed class EmailVerificationCodeTests
       Bodies.Add(await request.Content!.ReadAsStringAsync(cancellationToken));
       return new HttpResponseMessage(status)
       {
-        Content = new StringContent(JsonSerializer.Serialize(new { error = new { message = error } })),
+        Content = new StringContent(JsonSerializer.Serialize(new { error = new { code = status == HttpStatusCode.TooManyRequests ? "RATE_LIMITED" : "INVALID_CODE", message = error } })),
         RequestMessage = request,
       };
     }

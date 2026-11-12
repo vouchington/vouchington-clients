@@ -49,6 +49,7 @@ final class EmailVerificationCodeTests: XCTestCase {
     private func emailEndpoints(code: String) -> [Endpoint] {
         [
             .verifyEmailOTP(email: "user@example.com", code: code),
+            .verifyNativeEmailOTP(email: "user@example.com", code: code),
             .verifyReAuthEmailCode(code),
             .verifyMyEmailAddress(emailAddress: "user@example.com", token: code)
         ]
