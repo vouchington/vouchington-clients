@@ -21,6 +21,11 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.EmbedPreview.cs" Link="Pages/RssFeedItemDetailPage.EmbedPreview.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HackerNewsReferencesView.cs" Link="Controls/HackerNewsReferencesView.cs" />
     <Compile Include="../../src/Voucha.Client.App/CatalystGuiLaunchOptions.cs" Link="CatalystGuiLaunchOptions.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/FreshAccountConfirmationPage.xaml" Link="Pages/FreshAccountConfirmationPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/FreshAccountConfirmationPage.xaml.cs" Link="Pages/FreshAccountConfirmationPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/PlatformReAuthProviderAssertion.cs" Link="PlatformReAuthProviderAssertion.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Support/TestAccountChangeConfirmation.cs" Link="TestSupport/TestAccountChangeConfirmation.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Support/FreshAccountProofTestSupport.cs" Link="TestSupport/FreshAccountProofTestSupport.cs" />
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PublicLandingPagePage.cs" Link="Pages/PublicLandingPagePage.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/LandingPages/PublicLandingPageTestSupport.cs" Link="TestSupport/PublicLandingPageTestSupport.cs" />

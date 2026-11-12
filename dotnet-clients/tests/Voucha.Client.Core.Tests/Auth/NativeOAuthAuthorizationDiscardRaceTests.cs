@@ -15,7 +15,7 @@ public sealed class NativeOAuthAuthorizationDiscardRaceTests
     var persistence = new RacePersistence();
     var handler = new BlockingBeginHandler();
     using var coordinator = new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
         persistence,
         new UnusedBrowser(),
         new AnonymousSessionStore(),
@@ -53,7 +53,7 @@ public sealed class NativeOAuthAuthorizationDiscardRaceTests
         ]))
         {
           BaseAddress = new Uri("https://api.test"),
-        }),
+        }, new TestAccountChangeConfirmation()),
         persistence,
         browser,
         new AnonymousSessionStore(),
@@ -93,7 +93,7 @@ public sealed class NativeOAuthAuthorizationDiscardRaceTests
         new VouchaApiClient(new HttpClient(new AuthenticatedCompletionHandler())
         {
           BaseAddress = new Uri("https://api.test"),
-        }),
+        }, new TestAccountChangeConfirmation()),
         persistence,
         new UnusedBrowser(),
         session);

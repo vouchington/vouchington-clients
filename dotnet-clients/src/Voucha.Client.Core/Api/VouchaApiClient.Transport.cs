@@ -11,6 +11,7 @@ public sealed partial class VouchaApiClient
   public async Task<T> SendAsync<T>(ApiRequest request, CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(request);
+    request = await ConfirmAccountChangeAsync(request, cancellationToken).ConfigureAwait(false);
 
     using var message = new HttpRequestMessage(request.Method, BuildUri(request));
     ApplyHeaders(message, request);
@@ -59,6 +60,7 @@ public sealed partial class VouchaApiClient
   public async Task SendAsync(ApiRequest request, CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(request);
+    request = await ConfirmAccountChangeAsync(request, cancellationToken).ConfigureAwait(false);
 
     using var message = new HttpRequestMessage(request.Method, BuildUri(request));
     ApplyHeaders(message, request);
@@ -86,6 +88,7 @@ public sealed partial class VouchaApiClient
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(request);
+    request = await ConfirmAccountChangeAsync(request, cancellationToken).ConfigureAwait(false);
     ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
     using var message = new HttpRequestMessage(request.Method, BuildUri(request));

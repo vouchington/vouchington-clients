@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Content;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Api;
 
@@ -6,8 +7,11 @@ public sealed partial class VouchaApiClient
 {
   private readonly HttpClient httpClient;
 
-  public VouchaApiClient(HttpClient httpClient) =>
-      this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+  public VouchaApiClient(HttpClient httpClient, IAccountChangeConfirmation? accountChangeConfirmation = null)
+  {
+    this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    this.accountChangeConfirmation = accountChangeConfirmation ?? new UnavailableAccountChangeConfirmation();
+  }
 
   public Task<CommunitySearchResponse> SearchCommunitiesAsync(
       SearchCommunitiesRequest request,

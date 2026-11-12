@@ -11,6 +11,12 @@ public sealed record ApiRequest(HttpMethod Method, string Path)
       new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
   public object? Body { get; init; }
+
+  [JsonIgnore]
+  public Func<string, ApiRequest>? ConfirmationFactory { get; init; }
+
+  public ApiRequest ConfirmWith(string? proof, Func<string, ApiRequest> factory, bool required = true) =>
+      required && string.IsNullOrWhiteSpace(proof) ? this with { ConfirmationFactory = factory } : this;
 }
 
 public sealed record SearchCommunitiesRequest(string Query);

@@ -2,8 +2,7 @@ using System.Text.Json;
 
 namespace Voucha.Client.Core.Api;
 
-// Contract-only builders for fresh account confirmation (re-auth) and rotating session refresh.
-// No settings or session flow calls them yet.
+// Purpose-scoped fresh account confirmation and rotating session refresh.
 public static partial class VouchaApiEndpoints
 {
   public static ApiRequest ReAuthMethods() => Get("/api/v1/auth/re-auth/methods");
@@ -15,7 +14,7 @@ public static partial class VouchaApiEndpoints
       new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/email/verification") { Body = new ReAuthCodeBody(Auth.EmailVerificationCode.RequireValid(code)) };
 
   public static ApiRequest VerifyReAuthTotp(string code) =>
-      new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/totp/verification") { Body = new ReAuthCodeBody(code) };
+      new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/totp/verification") { Body = new ReAuthCodeBody(Auth.TotpVerificationCode.RequireValid(code)) };
 
   public static ApiRequest ReAuthPasskeyOptions(string passkeyId) =>
       new(HttpMethod.Post, "/api/v1/auth/re-auth/passkeys/options")

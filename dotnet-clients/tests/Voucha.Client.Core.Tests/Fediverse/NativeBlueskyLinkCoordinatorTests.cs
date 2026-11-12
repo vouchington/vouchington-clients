@@ -259,7 +259,7 @@ public sealed class NativeBlueskyLinkCoordinatorTests
       RecordingBrowser browser,
       ISessionStore? session = null) =>
       new(
-          new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+          new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
           persistence,
           browser,
           session ?? new RecordingSessionStore());

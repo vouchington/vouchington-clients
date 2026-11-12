@@ -76,6 +76,7 @@ public partial class SettingsPage
       BlueskyStatus.Text = UiCopy.Localize(UiMessageKey.NativeSwiftSettingsBlueskyConnecting);
       await blueskyCoordinator.StartAsync(BlueskyHandleEntry.Text).ConfigureAwait(true);
     }
+    catch (OperationCanceledException) { return; }
     catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or VouchaApiException)
     {
       BlueskyStatus.Text = UiCopy.Localize(UiMessageKey.NativeSwiftSettingsBlueskyLinkFailed);
@@ -103,6 +104,7 @@ public partial class SettingsPage
       await blueskyCoordinator.DisconnectAsync().ConfigureAwait(true);
       BlueskyStatus.Text = string.Empty;
     }
+    catch (OperationCanceledException) { return; }
     catch (Exception ex) when (ex is HttpRequestException or VouchaApiException)
     {
       BlueskyStatus.Text = UiCopy.Localize(UiMessageKey.NativeSwiftSettingsBlueskyDisconnectFailed);
