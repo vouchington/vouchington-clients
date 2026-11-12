@@ -14,6 +14,12 @@ final class InvitationURLProtocol: URLProtocol, @unchecked Sendable {
         set { locked { responses = newValue } }
     }
 
+    private nonisolated(unsafe) static var headers: [[String: String]] = []
+
+    static var capturedHeaders: [[String: String]] {
+        locked { headers }
+    }
+
     static var capturedURLs: [URL] {
         locked { requests.map(\.0) }
     }
@@ -30,6 +36,7 @@ final class InvitationURLProtocol: URLProtocol, @unchecked Sendable {
         locked {
             responses = [:]
             requests = []
+            headers = []
         }
     }
 
@@ -46,6 +53,7 @@ final class InvitationURLProtocol: URLProtocol, @unchecked Sendable {
         let method = request.httpMethod ?? "GET"
         let body = URLRequestHTTPBody.utf8String(from: request)
         let (data, status) = Self.locked {
+            Self.headers.append(request.allHTTPHeaderFields ?? [:])
             Self.requests.append((url, method, body))
             return Self.responses["\(method) \(url.path)"] ?? (Data("{}".utf8), 500)
         }

@@ -90,6 +90,15 @@ public struct RootView: View {
 
     public var body: some View {
         appBody
+            .mutationChallengeSheet(
+                broker: viewModelFactory.mutationChallengeBroker,
+                siteKey: viewModelFactory.config.requiredTurnstileSiteKey,
+                baseURL: viewModelFactory.config.baseURL
+            )
+            .task {
+                await viewModelFactory.installMutationChallengeHandler()
+            }
+            .onDisappear { viewModelFactory.mutationChallengeBroker.cancel() }
             .environment(viewModelFactory.uiLocaleController)
             .environment(\.locale, viewModelFactory.uiLocaleController.locale.foundationLocale)
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -112,6 +121,7 @@ public struct RootView: View {
                 Task { await refreshLocalization() }
             }
             .onChange(of: viewModelFactory.sessionManager.currentUserId) { _, accountId in
+                viewModelFactory.mutationChallengeBroker.cancel()
                 Task {
                     guard accountId == viewModelFactory.sessionManager.currentUserId else { return }
                     await viewModelFactory.nativeChatMCPSession?.useAccount(accountId)
