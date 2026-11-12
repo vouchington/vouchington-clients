@@ -46,7 +46,8 @@ async function checkoutHead(path) {
     })
     child.stdout.on('data', chunk => (output += chunk))
     child.once('error', reject)
-    child.once('exit', code => (code === 0 ? resolvePromise() : reject(new Error('rev-parse'))))
+    // 'close' (not 'exit') guarantees stdout has been fully read before HEAD is compared.
+    child.once('close', code => (code === 0 ? resolvePromise() : reject(new Error('rev-parse'))))
   })
   return output.trim()
 }
