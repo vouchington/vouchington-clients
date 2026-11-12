@@ -56,6 +56,23 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public async Task FetchUserReferralLinksAsyncDecodesPublicRowsFromSharedFixture()
+  {
+    var (client, handler) = CreateClient("native.referral-links.user.public");
+
+    var response = await client.FetchUserReferralLinksAsync(
+        "user-2",
+        cancellationToken: TestContext.Current.CancellationToken);
+
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/referral-links?limit=25&user_id=user-2");
+    Assert.Equal("referral-link-2", response.Results[0].Id);
+    Assert.Equal("user-2", response.Results[0].UserId);
+    Assert.Equal("test-card", response.Results[0].ReferralProgramSlug);
+    Assert.Null(response.Results[0].Label);
+    Assert.Null(response.Results[0].ActivatedAt);
+  }
+
+  [Fact]
   public async Task FetchMyReferralClicksAsyncUsesSharedFixture()
   {
     var (client, handler) = CreateClient("native.referral-clicks.mine.default");

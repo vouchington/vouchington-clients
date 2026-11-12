@@ -61,7 +61,7 @@ final class NativeUserProfileReferralLinksTests: NativeRouteSurfaceViewModelTest
     }
 
     private struct Loaded {
-        let entry: NativeRouteEntry
+        let entry: NativeRouteCatalogEntry
         let viewModel: NativeRouteSurfaceViewModel
 
         func surface(onNavigate: @escaping (String) -> Void = { _ in }) -> NativeUserProfileSurface {
