@@ -66,7 +66,7 @@ public partial class PostsPage : ContentPage
   private Task LoadCurrentAsync() =>
       mode == "browse" || !sessionStore.Current.IsAuthenticated
           ? viewModel.LoadBrowseAsync(postTypes)
-          : viewModel.LoadFeedAsync("any", postTypes);
+          : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek);
 
   private async void OnFeedClicked(object? sender, EventArgs e)
   {

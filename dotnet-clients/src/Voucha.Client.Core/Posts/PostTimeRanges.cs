@@ -2,7 +2,7 @@ namespace Voucha.Client.Core.Posts;
 
 /// <summary>
 /// Finite <c>time_range</c> values for post lists. The default selection is <c>null</c>, which
-/// omits the parameter so the server applies its across-age bounded window.
+/// omits the parameter so the server applies its 30-day default for every sort.
 /// </summary>
 public static class PostTimeRanges
 {

@@ -56,7 +56,8 @@ extension NativeMarkdownEditor {
             case .post:
                 let response: NativeMarkdownPostSearchResponse = try await client.send(.posts(
                     query: token.query,
-                    limit: 8
+                    limit: 8,
+                    timeRange: PostTimeRange.allTime.rawValue
                 ))
                 return response.results.compactMap { result in
                     guard let post = response.posts[result.entityId ?? result.id] else { return nil }

@@ -122,7 +122,7 @@ public extension Endpoint {
         if let postTypes {
             items.append(.init(name: "post_types", value: postTypes))
         }
-        // Omitted by default: the server then uses its across-age bounded window.
+        // Omitted by default: the server applies its 30-day window for every sort.
         if let timeRange {
             items.append(.init(name: "time_range", value: timeRange))
         }

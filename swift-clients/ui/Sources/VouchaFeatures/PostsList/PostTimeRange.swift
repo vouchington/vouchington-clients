@@ -1,4 +1,5 @@
-/// Finite `time_range` values accepted by post lists. The default selection is `nil` (omitted).
+/// Finite `time_range` values accepted by post lists.
+/// The default is the last 30 days: `nil` omits the parameter for every sort.
 public enum PostTimeRange: String, CaseIterable, Sendable {
     case lastDay = "1d"
     case lastWeek = "1w"

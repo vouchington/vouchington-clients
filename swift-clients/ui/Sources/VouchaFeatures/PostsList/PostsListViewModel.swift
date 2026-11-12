@@ -41,7 +41,7 @@ public final class PostsListViewModel {
         }
     }
 
-    /// Selected finite window. `nil` is the default selection and omits `time_range`.
+    /// Selected finite window. `nil` selects the server default of 30 days and omits `time_range`.
     public private(set) var timeRange: PostTimeRange?
 
     var inFlightVotePostIds: Set<String> = []

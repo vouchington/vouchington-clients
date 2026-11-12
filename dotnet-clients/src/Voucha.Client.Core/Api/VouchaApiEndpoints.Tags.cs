@@ -2,8 +2,8 @@ namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
 {
-  public static ApiRequest SearchPosts(string query, int limit = 10) =>
-      Get("/api/v1/posts", Query(("q", query), ("limit", limit)));
+  public static ApiRequest SearchPosts(string query, int limit = 10, string? timeRange = null) =>
+      Get("/api/v1/posts", Query(("q", query), ("limit", limit), ("time_range", timeRange)));
 
   public static ApiRequest VoteEntityRelation(string relationId, ElectionVoteChoice choice)
   {
