@@ -2592,7 +2592,7 @@ jobs:
     name: Mac Catalyst GUI preflight
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read

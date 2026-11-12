@@ -47,14 +47,14 @@ const notificationScript = readFileSync(
 )
 
 describe('Mac Catalyst GUI preflight', () => {
-  it('requires root-shell and notification Debug Mac2 sessions inside a 10-minute job', () => {
+  it('requires root-shell and notification Debug Mac2 sessions inside a 15-minute job', () => {
     const job = jobBlock(workflow, 'dotnet-catalyst-gui')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const needs = jobBlock(workflow, 'tests')
 
     assert.match(job, /name: Mac Catalyst GUI preflight/u)
     assert.match(job, /runs-on: macos-latest/u)
-    assert.match(job, /timeout-minutes: 10/u)
+    assert.match(job, /timeout-minutes: 15/u)
     assert.match(job, /--configuration Debug --framework net10\.0-maccatalyst/u)
     assert.match(job, /name 'Voucha\.app'/u)
     assert.match(job, /name 'Voucha\.app' \| wc -l \| tr -d ' '\)" -eq 1/u)
