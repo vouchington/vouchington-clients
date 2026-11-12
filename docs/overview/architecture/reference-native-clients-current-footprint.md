@@ -46,6 +46,12 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   local generation is text-only and never silently falls back to another provider.
 - Session cookies are stored through platform-secure stores and keyed by API origin. Native OAuth,
   passkey, and deep-link callbacks remain inside their platform app boundaries.
+- Existing email, linked-provider, and Bluesky settings changes use the
+  [fresh account confirmation component](../../development/fresh-account-confirmation.md).
+  Confirmation carries a one-use producer proof for the initiating account, device, and session;
+  it does not create a new login or MFA assurance. Google SDK confirmation remains fail-closed
+  until a supported adapter is configured. Passkey and authenticator management screens remain
+  outside this component's scope.
 - Public landing pages render native item actions in Swift and .NET. Signed-in viewers send one
   visit per activation and click requests at item activation, including the outer item and member
   identifiers for topic-group entries. Existing RSS source and focused-item view requests use the
