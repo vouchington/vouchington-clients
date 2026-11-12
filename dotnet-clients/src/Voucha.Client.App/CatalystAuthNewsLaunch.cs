@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Text.Json;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App;
 
@@ -13,6 +14,22 @@ internal static class CatalystAuthNewsLaunch
   internal const string Code = "ABCDEFGHJK";
   internal const string TurnstileToken = "catalyst-ui-test-token";
   internal static bool IsRequested => Environment.GetCommandLineArgs().Contains(Argument);
+
+  internal static IDeviceLanguageProvider DeviceLanguages(IDeviceLanguageProvider normal, bool active) =>
+      active ? new EnglishFlowLanguages() : normal;
+
+  internal static void RequireEnglishIdentity(string body)
+  {
+    using var document = JsonDocument.Parse(body);
+    var identity = document.RootElement.GetProperty("identity");
+    if (identity.TryGetProperty("ui_locale", out var locale) && locale.GetString() is not (null or "" or "en"))
+      throw new InvalidOperationException("Auth/news identity fixture must not override the English flow locale.");
+  }
+
+  private sealed class EnglishFlowLanguages : IDeviceLanguageProvider
+  {
+    public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
+  }
 
   internal static string ReadFixture(string id, string method, string path)
   {
@@ -28,7 +45,9 @@ internal static class CatalystAuthNewsLaunch
         fixture.GetProperty("status").GetInt32() != 200 || relative is null ||
         !relative.StartsWith("responses/", StringComparison.Ordinal) || relative.Contains(".."))
       throw new InvalidOperationException($"Invalid auth/news GUI fixture {id}.");
-    return File.ReadAllText(Path.Combine(fixtureRoot, relative));
+    var body = File.ReadAllText(Path.Combine(fixtureRoot, relative));
+    if (id == "swift.my.identity.default") RequireEnglishIdentity(body);
+    return body;
   }
 }
 

@@ -51,7 +51,7 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
     if (request.Method == HttpMethod.Get && path == "/api/v1/my/identity")
       return authenticated ? Json(identity) : Json("{}", HttpStatusCode.Unauthorized);
     if (request.Method == HttpMethod.Patch && path == "/api/v1/session")
-      return Json("""{"session":{"dt":"catalyst-flow-device","st":"catalyst-flow-session","dte":3600,"ste":3600}}""");
+      return Json("""{"session":{"dt":"catalyst-bootstrap-device","st":"catalyst-bootstrap-session","dte":3600,"ste":3600}}""");
     if (request.Method == HttpMethod.Get && path == "/api/v1/feeds/rss_feed_items/any" && authenticated &&
         request.RequestUri?.Query == "?limit=20&media_type=article") return Json(news);
     if (request.Method == HttpMethod.Get && path == "/api/v1/feature-flags")

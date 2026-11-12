@@ -209,6 +209,43 @@ async function cliFixture(action) {
 }
 
 describe('Catalyst auth/news CLI orchestration with a child fake (not GUI evidence)', () => {
+  it('shares elapsed startup time with UI polling and still tears down after budget exhaustion', async () => {
+    await cliFixture(async ({ root, result, log, env }) => {
+      const clock = join(root, 'elapsed-startup.mjs')
+      writeFileSync(
+        clock,
+        `
+        const realNow = performance.now.bind(performance)
+        let elapsed = 0
+        Object.defineProperty(performance, 'now', { value: () => realNow() + elapsed })
+        const realFetch = globalThis.fetch
+        globalThis.fetch = async (url, options) => {
+          const response = await realFetch(url, options)
+          if (url.endsWith('/session') && options.method === 'POST') elapsed = 150001
+          return response
+        }
+      `,
+      )
+      await assert.rejects(
+        exec(process.execPath, ['--import', clock, cli, '--session'], {
+          env,
+          timeout: 10_000,
+        }),
+        /overall deadline/u,
+      )
+      assert.throws(() => readFileSync(result), /ENOENT/u)
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.ok(
+        calls.some(call => call.method === 'DELETE' && call.path === '/session/fake-session'),
+      )
+      assert.equal(calls.at(-1).stopped, true)
+      assert.ok(!calls.some(call => call.path?.endsWith('/element')))
+    })
+  })
+
   it('allows Mac2 session startup beyond ten seconds', async () => {
     await cliFixture(async ({ result, log, env }) => {
       await exec(process.execPath, [cli, '--session'], {

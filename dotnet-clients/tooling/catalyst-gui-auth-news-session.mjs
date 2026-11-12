@@ -1,6 +1,6 @@
-import { setTimeout as delay } from 'node:timers/promises'
+import { authNewsBudgetMs, createDeadline } from './catalyst-gui-deadline.mjs'
 
-export async function assertAuthNewsControls(request, sessionId, openNews) {
+export async function assertAuthNewsControls(request, sessionId, openNews, budget = createDeadline(authNewsBudgetMs)) {
   const checks = []
   const passed = name => checks.push({ name, status: 'passed' })
   const path = (element, command) => `/session/${sessionId}/element/${encodeURIComponent(element)}/${command}`
@@ -18,8 +18,9 @@ export async function assertAuthNewsControls(request, sessionId, openNews) {
     const deadline = Date.now() + timeout
     let last
     while (Date.now() < deadline) {
-      try { if (await action()) return } catch (error) { last = error }
-      await delay(400)
+      budget.remaining()
+      try { if (await action()) { budget.remaining(); return } } catch (error) { last = error; budget.remaining() }
+      await budget.pause(Math.min(400, Math.max(1, deadline - Date.now())))
     }
     throw new Error(`${description} did not settle: ${last ?? 'predicate remained false'}`)
   }

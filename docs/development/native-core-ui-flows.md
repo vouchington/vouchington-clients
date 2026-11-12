@@ -46,8 +46,11 @@ article-filter or pagination-limit parity. No shared producer fixture is edited 
 
 The automatic test-retry budget is **zero**. Every shard and Mac2 scenario must pass on its first
 execution, with zero skipped cases. Existing job and step deadlines remain unchanged; the new
-Catalyst scenario has its own three-minute step inside the existing ten-minute job. Local process
-readiness waits are bounded. Network-download retries do not rerun tests or turn failures into passes.
+Catalyst scenario has its own three-minute step inside the existing ten-minute job. One monotonic
+150-second deadline caps Appium readiness, Mac2 startup, every HTTP request, navigation, and UI polling.
+A separate ten-second budget covers diagnostics and teardown, leaving twenty seconds for fixture
+staging, ad-hoc signing, and step overhead. Mac2 startup retains a 100-second maximum and is shortened
+when needed to preserve HTTP response overhead. Local process readiness waits are bounded. Network-download retries do not rerun tests or turn failures into passes.
 Failures retain existing Simulator summaries/logs or the Catalyst native accessibility tree and fail
 the required job. Manually rerunning a candidate is a new execution, not evidence that the first passed.
 
