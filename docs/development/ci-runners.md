@@ -81,73 +81,46 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 ## Android validation
 
-Swift Android native compilation and APK assembly run as an exact-run producer and consumer on
-separate macOS VMs. Host Swift package tests and native test-library preparation run in parallel
-with the producer. The producer packages only bounded generated build state, tied to the verified
-candidate revision, run, attempt, and pinned Gradle version. The consumer verifies its hash and
-identity before rehydration, then executes the original app and instrumentation APK task closure.
-These three serial jobs still verify the exact native contract but omit candidate pnpm installation;
-their candidate tooling uses Node builtins, shell, Swift, and Gradle without installed JS packages.
-The consumer logs the native Swift task outcome to measure actual reuse; the pinned task does not
-document an `UP-TO-DATE` outcome as its correctness condition. Extracted Swift,
-Android SDK, and NDK toolchains are materialized independently in each job and never included in
-the artifact. The existing cookie runtime job also reports the stable `Swift Android Skip` check:
-it first requires the dependency and native producers, consumer, host tests, and test libraries to
-succeed, then runs the full cookie restart proof. `Tests` requires that job's result directly.
-Local Android validation continues to default to both original phases. Producer and consumer
-job budgets are 30 minutes while hosted transfer and cold-build timings are measured. These
-budgets are safety bounds, not evidence that the under-ten-minute target has been met.
+Swift Android native compilation and APK assembly run in one macOS job that executes
+`pre-push.sh --phase app`: a single Gradle invocation builds the native Swift product, the Kotlin
+libraries and both APKs, with Gradle parallelism enabled. Host Swift package tests and native
+test-library preparation run in parallel jobs. The job still verifies the exact native contract
+but omits candidate pnpm installation; its candidate tooling uses Node builtins, shell, Swift, and
+Gradle. Extracted Swift, Android SDK, and NDK toolchains are materialized in the job. The existing
+cookie runtime job also reports the stable `Swift Android Skip` check: it first requires the app
+job, host tests, and test libraries to succeed, then runs the full cookie restart proof. `Tests`
+requires that job's result directly. The job budget is 35 minutes, a safety bound and not evidence
+that the under-ten-minute target has been met.
 The dedicated host job runs the planner-selected source tests with
 `run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
 VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
-path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle producer
-and consumer record pinned `--profile` summaries. The consumer selects the profile named by its
-own Gradle invocation because the verified state also contains the producer's prior profile.
+path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle build
+records a pinned `--profile` summary.
 Reported task and category durations may overlap and are not a critical-path sum.
 
 The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
 task-output build cache is separate from its user home: local builds use the canonical Darwin
 temporary directory, while GitHub Actions uses a private stable runner-home path because cache
-archives retain absolute paths across hosts. The native producer, Kotlin library producer, and app
-consumer restore the task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
-that cache. All three Gradle jobs use the same checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
+archives retain absolute paths across hosts. The app job restores the task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
+that cache. The app job uses the same checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
 the test-library phase saves the shared checksummed-download archive after SDK materialization,
-the Kotlin producer saves a bounded task-output snapshot after its own successful pack and upload,
-and the app consumer saves its Gradle user home and enriched task-output snapshot after APK upload. The
+and the app job saves its Gradle user home and task-output snapshot after APK upload. The
 task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
 30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
 checks remain required on hits.
-After these persistent restores, the app consumer validates and atomically restores the complete
-exact-run Kotlin task-cache inventory. That artifact is authoritative for the selected task-cache
-root; native `.build` and Android `.gradle` state remain from the verified native-state handoff.
-The standalone Kotlin cache merge command continues to reject conflicting existing entries.
 Pull requests still compile from source on a miss, but do not write large per-PR cache copies
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
 The task-output key partitions runner OS, architecture, canonical cache path, pinned Swift/Skip/
-Gradle configuration, candidate revision, and snapshot kind (`app` or `kotlin-libraries`). The
-native producer and app consumer select the app kind; Kotlin uses its own kind so a partial snapshot
-cannot claim the app's immutable primary key. A pull request first requests its exact base revision;
-a `main` push requests its own revision (for reruns), then its exact predecessor. All three jobs
-fall back to a compatible prefix within the same OS, architecture, path, and configuration partition.
-This can reuse either snapshot kind: Gradle still fingerprints task inputs and executes missing
-work. Persistent cache reuse does not replace the exact-run artifact digest or dependency provenance
-checks. Pull requests never publish persistent snapshots.
+Gradle configuration, candidate revision, and snapshot kind (`app`). A pull request first requests
+its exact base revision; a `main` push requests its own revision (for reruns), then its exact
+predecessor. The job falls back to a compatible prefix within the same OS, architecture, path, and
+configuration partition. Gradle still fingerprints task inputs and executes missing work. Pull
+requests never publish persistent snapshots.
 
-A missing compatible cache or changed configuration still requires a cold build. The observed
-failed run spent 3 minutes 36 seconds in setup and was cancelled after 6 minutes 24 seconds of cold
-Kotlin compilation under the former 10-minute job limit; the default-branch cache catalog had no
-Gradle task-output entries. Kotlin therefore has a 23-minute job budget with a 10-minute build step
-(the existing 600-second command wrapper remains), two minutes each for exact-run packing and
-upload, and bounded main-only cache inspection/publication steps. Its successful main snapshot can
-seed later runs independently of the downstream APK result. The observed setup plus the 17
-minutes of bounded build/handoff/publication totals 20 minutes 36 seconds; the job leaves another
-2 minutes 24 seconds for transfer variance and cleanup. These budgets accommodate bootstrap work; native performance and warm-cache timing still require hosted-run validation.
-
-The prior pinned Gradle profile baseline measured task overlap and bounded generated-state
-sizes. This experiment measures compression, artifact transfer, rehydration, and repeated Gradle
-configuration on hosted runners. Only generated build outputs cross the exact-run artifact;
-stable package/download caches and job-scoped extracted toolchains keep their existing rules.
+A missing compatible cache or changed configuration still requires a cold build. The single app
+job has a 35-minute budget; native performance and warm-cache timing still require hosted-run
+validation.
 
 The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
 and reaps only its captured emulator child, including a child that ignores termination or is

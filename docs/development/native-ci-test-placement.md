@@ -54,59 +54,23 @@ The test-library shard retains the Swift 6.4 Android SDK and its pinned NDK, bui
 test runner, verifies its compatibility link, and builds the test libraries and harness. It does
 not build an APK or launch an emulator, so it needs no Java or Android platform/build-tools setup.
 
-The Android app dependency shard asks the pinned Skip prebuild to generate the native Gradle
-package, then builds its `SkipSwiftUI` target using the generated package, scratch directory,
-Swift Android SDK, and compiler flags of the native Gradle task. Its bounded state archive is tied to the
-exact run, attempt, and candidate revision. The native producer invokes the same full-product Skip
-command directly, with the original working directory, environment, compiler flags, JNI output and scratch paths. A digest of the
-generated task and its path resolvers rejects generator drift before this invocation. This avoids
-Gradle startup and configuration in that shard. The app consumer still runs the original Gradle
-Swift package task, builds both APKs, verifies the native ABI, and passes those exact APKs to the
-cookie restart job.
+The Android app job (`Swift Android app`) runs `pre-push.sh --phase app` in one macOS job. Skip
+prebuild, the Swift cross-compilation of the native product, the Kotlin libraries, and both APKs
+(`:app:assembleDebug :app:assembleDebugAndroidTest`) all come from a single Gradle invocation, with
+`org.gradle.parallel=true` so independent Kotlin library work does not serialize behind native
+Swift. The job verifies the native ABI and uploads the exact APKs consumed by the cookie restart
+job. Host Swift tests stay in their own job (`VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST=1`).
 
-A Kotlin library producer runs beside native production from the same verified dependency
-artifact. It selects only `:skipstone:SkipUI:compileDebugKotlin`, including SkipModel,
-SkipFoundation and SkipLib transitively. It retains pinned Swift 6.4 for Skip's host prebuild,
-Java, Google Android SDK, Xcode and frozen package resolution, without provisioning the Swift
-Android SDK/NDK or exposing its cross-compiler alias. A read-only task-graph listener also runs
-in included builds, rejects native/APK/test tasks and reports selected task classes and cacheable
-annotations without modifying task actions or build-cache keys.
-
-This producer exports only bounded, flat Gradle build-cache entries: the persistent save policy’s
-100,000-entry budget and
-512 MiB of logical cache bytes, with an unchanged 30-second scan deadline. Its separately validated
-manifest is bounded to 16 MiB to cover that inventory; existing root metadata remains charged to
-the 512 MiB total before any merge writes. Each handoff has a candidate/run/attempt/Gradle/configuration identity,
-fixed role and requested task,
-and the verified dependency archive SHA-256. It does not export or overwrite generated Swift or
-Gradle execution-state roots. The consumer first restores the native producer's full state and
-ordinary task cache, then merges this exact-run cache after complete hash/collision preflight.
-Identical entries remain; conflicting bytes fail before publication. The final full APK/native
-closure, ABI validation and eight restart phases remain unchanged. Only the main app may persist
-caches, with existing read keys and policies. The new producer has a ten-minute job cap; hosted
-profiles and cache outcomes must establish its actual benefit and the app's timing margin.
-
-The two direct Swift producer phases provision the pinned Swift Android SDK and NDK without
-installing the Java Android SDK or selecting Xcode for host tests. They execute Skip prebuild
-and Swift cross-compilation; the APK consumer owns Gradle, platform/build-tools setup, APK and
-ABI validation. The handoff preserves verified file and directory nanosecond timestamps, modes,
-and complete child-name/type graphs, including canonical tracked Android source directories.
-It validates exact candidate/run/attempt identity, hashes, tracked bytes and directory membership
-before replaying genuine producer metadata; incompatible formats and drift fail closed.
-
-Source timestamp replay uses one Python process for the complete inventory, rather than a process
-per file. It reuses only the current parent directory descriptor while hashing, then reopens every
-distinct parent from the checkout root without following links and checks every basename against
-its retained file descriptor before any timestamp writes. The 60-second deadline, input caps,
-nanosecond verification and rollback remain in force. Bounded phase/count/elapsed diagnostics are
-retained in a timeout error so startup, validation and replay failures can be distinguished.
-
-For #644, a local macOS arm64 measurement used 2,213 tracked files, 10,317,758 logical bytes, five
-Android source directories and 80 distinct immediate file parents. Directory reuse reduced total `os.open`
-calls from 11,928 to 3,048. Seven alternating runs on the same warm payload, including Python
-startup, reduced median replay time from 188.4 ms to 125.0 ms (34%). These are local measurements;
-the old hosted logs establish a hard timeout but contain no phase timings. They do not justify a
-higher deadline or identify the stalled hosted phase. See [issue #644](https://github.com/vouchington/vouchington-clients/issues/644).
+This replaces a chain of three serial macOS jobs (native dependency, native producer, app
+consumer) plus a Kotlin library producer beside them, introduced to chase the soft ten-minute
+target. On run 43249213432 the chain was the critical path at about 28 minutes: the build step of
+each serial job took only 3.9, 2.4 and 4.4 minutes, and the rest was repeated checkout, contract
+preparation, Swift, archive and package-resolve setup plus pack, upload, download and restore of a
+roughly 1.9 GB exact-run state archive. One job pays that setup once and has no state handoff. The
+Gradle user-home and task-output caches restore and save as before (main pushes only). The job cap
+is 35 minutes, a safety bound rather than evidence for the ten-minute target. The state-archive
+and Kotlin cache CLIs and the producer and consumer `pre-push.sh` phases remain available but no
+workflow job uses them.
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
