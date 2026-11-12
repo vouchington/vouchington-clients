@@ -97,6 +97,9 @@ the lowercase "or".
 The analytics requests use the existing authenticated session for account attribution;
 they do not add email, username, IP address, or free-form content properties. Signed-out
 views send no analytics request. No installation identifier or app-open event is added.
+Landing visits omit all optional referrer and campaign strings, including `utm_*` and
+`ref` URL values; the page identifier is carried by the endpoint route, with an empty
+request body. Click bodies contain only the item and optional group-member identifiers.
 The product-interaction category and analytics purpose follow Apple's
 [collected-data types](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype)
 and [collection purposes](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatypepurposes).

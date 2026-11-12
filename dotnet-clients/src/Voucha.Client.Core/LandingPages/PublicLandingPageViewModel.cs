@@ -12,7 +12,6 @@ public sealed class PublicLandingPageViewModel : ObservableObject, IDisposable
   private readonly Func<CancellationToken, Task<PublicLandingPageResponse>> fetch;
   private readonly ISessionStore session;
   private readonly IProductSurfaceAnalytics analytics;
-  private readonly LandingPageVisitSignal visitSignal;
   private string? account;
   private int generation;
   private bool active;
@@ -27,7 +26,7 @@ public sealed class PublicLandingPageViewModel : ObservableObject, IDisposable
 
   public PublicLandingPageViewModel(
       Func<CancellationToken, Task<PublicLandingPageResponse>> fetch,
-      ISessionStore session, IProductSurfaceAnalytics analytics, LandingPageVisitSignal? visitSignal = null)
+      ISessionStore session, IProductSurfaceAnalytics analytics)
   {
     ArgumentNullException.ThrowIfNull(fetch);
     ArgumentNullException.ThrowIfNull(session);
@@ -35,7 +34,6 @@ public sealed class PublicLandingPageViewModel : ObservableObject, IDisposable
     this.fetch = fetch;
     this.session = session;
     this.analytics = analytics;
-    this.visitSignal = visitSignal ?? new LandingPageVisitSignal();
     account = session.Current.Identity?.Id;
     session.SessionChanged += OnSessionChanged;
   }
@@ -68,7 +66,7 @@ public sealed class PublicLandingPageViewModel : ObservableObject, IDisposable
       if (!visited)
       {
         visited = true;
-        if (account is not null) analytics.RecordLandingPageVisit(Page.Id, visitSignal);
+        if (account is not null) analytics.RecordLandingPageVisit(Page.Id);
       }
     }
     catch (Exception ex) when (ex is not OperationCanceledException)

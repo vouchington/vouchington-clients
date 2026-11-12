@@ -27,6 +27,7 @@ internal static class PublicLandingPageTestData
 internal sealed class PublicLandingSession : ISessionStore
 {
   public event EventHandler<SessionChangedEventArgs>? SessionChanged;
+  public EventHandler<SessionChangedEventArgs>? CaptureChanges() => SessionChanged;
   public SessionSnapshot Current { get; private set; } = new(new User("viewer-1", "viewer"));
   public void Set(string? id)
   {
@@ -39,9 +40,9 @@ internal sealed class PublicLandingSession : ISessionStore
 
 internal sealed class PublicLandingSignals : IProductSurfaceAnalytics
 {
-  public List<(string Page, LandingPageVisitSignal Signal)> Visits { get; } = [];
+  public List<string> Visits { get; } = [];
   public List<(string Page, LandingPageClickSignal Signal)> Clicks { get; } = [];
-  public void RecordLandingPageVisit(string landingPageId, LandingPageVisitSignal signal) => Visits.Add((landingPageId, signal));
+  public void RecordLandingPageVisit(string landingPageId) => Visits.Add(landingPageId);
   public void RecordLandingPageClick(string landingPageId, LandingPageClickSignal signal) => Clicks.Add((landingPageId, signal));
   public void RecordRssFeedView(string rssFeedId) => throw new InvalidOperationException();
   public void RecordRssFeedItemView(string itemId) => throw new InvalidOperationException();

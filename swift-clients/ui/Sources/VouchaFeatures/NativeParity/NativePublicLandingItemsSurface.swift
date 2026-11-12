@@ -55,11 +55,7 @@ struct NativePublicLandingItemsSurface: View {
     private func reviewButton(_ review: LandingPageReview, itemId: String, memberId: String? = nil) -> some View {
         Button {
             recordClick(itemId, memberId: memberId)
-            let identifier = review.slug.flatMap { $0.isEmpty ? nil : $0 } ?? review.id
-            let encoded = identifier
-                .addingPercentEncoding(withAllowedCharacters: CharacterSet.urlPathAllowed
-                    .subtracting(CharacterSet(charactersIn: "/?#"))) ?? identifier
-            onNavigate("/review/\(encoded)")
+            onNavigate(NativeEntityDetailPath.review(id: review.id, slug: review.slug))
         } label: {
             Text(verbatim: UiMessages.string(review.landingPageReviewDisplay.text, locale: locale))
         }

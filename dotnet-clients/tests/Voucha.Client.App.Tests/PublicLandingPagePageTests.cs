@@ -79,5 +79,6 @@ public sealed class PublicLandingPagePageTests
       button => button.AutomationId == $"public-landing-item-{id}");
 
   private static void Lifecycle(PublicLandingPagePage page, string method) => typeof(PublicLandingPagePage)
-      .GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, null);
+      .GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+          binder: null, types: Type.EmptyTypes, modifiers: null)!.Invoke(page, null);
 }

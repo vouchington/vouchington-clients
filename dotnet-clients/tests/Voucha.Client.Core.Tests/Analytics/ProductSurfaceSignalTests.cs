@@ -103,7 +103,7 @@ public sealed class ProductSurfaceSignalTests
 
     public List<string> ItemViews { get; } = [];
 
-    public void RecordLandingPageVisit(string landingPageId, LandingPageVisitSignal signal) =>
+    public void RecordLandingPageVisit(string landingPageId) =>
         throw new NotSupportedException();
 
     public void RecordLandingPageClick(string landingPageId, LandingPageClickSignal signal) =>

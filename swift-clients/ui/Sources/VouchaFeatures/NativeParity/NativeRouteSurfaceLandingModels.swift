@@ -17,5 +17,5 @@ struct NativeTopicRecommendationDetailResponse: Decodable {
 }
 
 struct NativeLandingPageOwner: Decodable {
-    let username: String
+    let username: String?
 }

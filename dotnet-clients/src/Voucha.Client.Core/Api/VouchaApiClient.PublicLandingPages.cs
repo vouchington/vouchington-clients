@@ -22,7 +22,7 @@ public sealed record PublicLandingPageResponse
 
 public sealed record PublicLandingPageUser(
     [property: JsonPropertyName("id"), JsonRequired] string Id,
-    [property: JsonPropertyName("username"), JsonRequired] string Username,
+    [property: JsonPropertyName("username")] string? Username,
     [property: JsonPropertyName("display_name"), JsonRequired] string DisplayName);
 
 public sealed partial class VouchaApiClient

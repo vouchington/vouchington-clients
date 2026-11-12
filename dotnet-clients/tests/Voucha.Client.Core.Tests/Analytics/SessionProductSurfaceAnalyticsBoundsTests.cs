@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Tests.LandingPages;
 using Xunit;
 
@@ -19,7 +20,7 @@ public sealed class SessionProductSurfaceAnalyticsBoundsTests
       analytics.RecordLandingPageClick("page", new("item"));
       tasks.Add(analytics.LastDispatch);
     }
-    for (var index = 0; index < 20; index++) analytics.RecordLandingPageVisit("page", new());
+    for (var index = 0; index < 20; index++) analytics.RecordLandingPageVisit("page");
     Assert.Equal(4, handler.Started);
     Assert.All(tasks, task => Assert.False(task.IsCompleted));
     handler.Release.SetResult();
@@ -37,7 +38,7 @@ public sealed class SessionProductSurfaceAnalyticsBoundsTests
     using var http = new HttpClient(handler) { BaseAddress = new("https://api.test") };
     var session = new PublicLandingSession();
     var analytics = new SessionProductSurfaceAnalytics(new VouchaApiClient(http), session);
-    analytics.RecordLandingPageVisit("page", new());
+    analytics.RecordLandingPageVisit("page");
     var dispatch = analytics.LastDispatch;
     session.Set(null);
     await dispatch.WaitAsync(TestContext.Current.CancellationToken);
@@ -45,10 +46,29 @@ public sealed class SessionProductSurfaceAnalyticsBoundsTests
     analytics.RecordLandingPageClick("page", new("item"));
     Assert.Equal(1, handler.Started);
     session.Set("next-account");
-    analytics.RecordLandingPageVisit("page", new());
+    analytics.RecordLandingPageVisit("page");
     handler.Release.SetResult();
     await analytics.LastDispatch.WaitAsync(TestContext.Current.CancellationToken);
     Assert.Equal(2, handler.Started);
+  }
+
+  [Fact]
+  public async Task CapturedSessionCallbackAfterDeliveryCompletionCannotCancelDisposedSource()
+  {
+    var handler = new PendingHandler();
+    using var http = new HttpClient(handler) { BaseAddress = new("https://api.test") };
+    var session = new PublicLandingSession();
+    var analytics = new SessionProductSurfaceAnalytics(new VouchaApiClient(http), session);
+    analytics.RecordLandingPageVisit("page");
+    var captured = session.CaptureChanges();
+    Assert.NotNull(captured);
+    handler.Release.SetResult();
+    await analytics.LastDispatch.WaitAsync(TestContext.Current.CancellationToken);
+    captured(session, new SessionChangedEventArgs(SessionSnapshot.Anonymous));
+    analytics.RecordLandingPageClick("page", new("item"));
+    await analytics.LastDispatch.WaitAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, handler.Started);
+    Assert.False(handler.CancellationObserved);
   }
 
   private sealed class PendingHandler : HttpMessageHandler

@@ -12,7 +12,7 @@ extension NativeRouteSurfaceViewModel {
         publicLandingPage = page
         recordProductSignalOnce(
             "landing-visit:\(page.id)",
-            endpoint: .landingPageVisit(landingPageId: page.id, signal: landingPageVisitSignal()),
+            endpoint: .landingPageVisit(landingPageId: page.id, signal: LandingPageVisitSignal()),
             client: client
         )
         var rows = [
@@ -26,8 +26,7 @@ extension NativeRouteSurfaceViewModel {
                 ].compactMap { $0 })
             )
         ]
-        if isAdministrator {
-            let username = response.user.username
+        if isAdministrator, let username = response.user.username {
             if let analytics: AdminLandingPageAnalyticsResponse = try? await client.send(
                 .adminLandingPageAnalytics(username: username, slug: page.slug)
             ) {
@@ -97,6 +96,13 @@ extension NativeRouteSurfaceViewModel {
         guard !productSurfaceVisible, productSignalsActive else { return }
         productSurfaceVisible = true
         recordedProductSignalKeys.removeAll()
+        if let page = publicLandingPage, let client {
+            recordProductSignalOnce(
+                "landing-visit:\(page.id)",
+                endpoint: .landingPageVisit(landingPageId: page.id, signal: LandingPageVisitSignal()),
+                client: client
+            )
+        }
     }
 
     func endProductSurfaceActivation() {
@@ -112,19 +118,4 @@ extension NativeRouteSurfaceViewModel {
         publicLandingPage = nil
     }
 
-    func landingPageVisitSignal() -> LandingPageVisitSignal {
-        let items = nativeRouteQueryItems(fromEncodedQuery: routeQuery)
-        return LandingPageVisitSignal(
-            utmSource: productSignalText(items["utm_source"]) ?? productSignalText(items["ref"]),
-            utmMedium: productSignalText(items["utm_medium"]),
-            utmCampaign: productSignalText(items["utm_campaign"]),
-            utmContent: productSignalText(items["utm_content"])
-        )
-    }
-}
-
-private func productSignalText(_ value: String?) -> String? {
-    guard let value else { return nil }
-    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    return trimmed.isEmpty ? nil : trimmed
 }

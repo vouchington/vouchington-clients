@@ -134,7 +134,7 @@ final class NativePublicLandingItemsTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(model.productSignalTasks.isEmpty)
     }
 
-    func testPublicEnvelopeRequiresUserAndUsername() throws {
+    func testPublicEnvelopeRequiresUserButAllowsMissingOrNullUsername() throws {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
@@ -144,10 +144,13 @@ final class NativePublicLandingItemsTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertThrowsError(try decoder.decode(
             NativePublicLandingPageResponse.self, from: JSONSerialization.data(withJSONObject: object)
         ))
-        object["user"] = [:] as [String: String]
-        XCTAssertThrowsError(try decoder.decode(
-            NativePublicLandingPageResponse.self, from: JSONSerialization.data(withJSONObject: object)
-        ))
+        for owner in [[:], ["username": NSNull()]] as [[String: Any]] {
+            object["user"] = owner
+            let response = try decoder.decode(
+                NativePublicLandingPageResponse.self, from: JSONSerialization.data(withJSONObject: object)
+            )
+            XCTAssertNil(response.user.username)
+        }
     }
 
 }

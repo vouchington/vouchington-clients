@@ -14,8 +14,7 @@ public sealed partial class AppShell
     if (!LandingPagesDeepLinkPolicy.TryGetPublicTarget(resolution.Match, out var username, out var slug)) return null;
     var client = serviceProvider.GetRequiredService<VouchaApiClient>();
     var model = new PublicLandingPageViewModel(token => client.FetchPublicLandingPageAsync(username!, slug, token),
-        serviceProvider.GetRequiredService<ISessionStore>(), serviceProvider.GetRequiredService<IProductSurfaceAnalytics>(),
-        LandingPagesDeepLinkPolicy.VisitSignalFor(resolution.Match!));
+        serviceProvider.GetRequiredService<ISessionStore>(), serviceProvider.GetRequiredService<IProductSurfaceAnalytics>());
     return Navigation.PushAsync(new PublicLandingPagePage(model, async target =>
     {
       if (target.ReviewIdOrSlug is { } review) await OpenPostDetailAsync(review, null).ConfigureAwait(true);
