@@ -1,11 +1,14 @@
 import Foundation
 #if canImport(Security)
     import Security
+    import VouchaAPI
 
     /// An HTTPCookieStorage that persists cookies to the system Keychain
     /// so they survive app relaunches.
-    public final class KeychainCookieStorage: HTTPCookieStorage, @unchecked Sendable {
+    public final class KeychainCookieStorage: HTTPCookieStorage, TransactionalSessionCookieStorage,
+        @unchecked Sendable {
         private let savePersistedCookies: ([HTTPCookie]) -> Void
+        private let commitPersistedCookies: ([HTTPCookie]) throws -> Void
         private let deletePersistedCookies: () -> Void
         private let queue = DispatchQueue(label: "ai.voucha.KeychainCookieStorage")
         private var _cookies: [HTTPCookie] = []
@@ -13,12 +16,21 @@ import Foundation
         init(
             loadPersistedCookies: @escaping () -> [HTTPCookie],
             savePersistedCookies: @escaping ([HTTPCookie]) -> Void,
-            deletePersistedCookies: @escaping () -> Void
+            deletePersistedCookies: @escaping () -> Void,
+            commitPersistedCookies: (([HTTPCookie]) throws -> Void)? = nil
         ) {
             self.savePersistedCookies = savePersistedCookies
+            self.commitPersistedCookies = commitPersistedCookies ?? savePersistedCookies
             self.deletePersistedCookies = deletePersistedCookies
             super.init()
             _cookies = loadPersistedCookies()
+        }
+
+        public func replaceCookies(_ cookies: [HTTPCookie]) throws {
+            try queue.sync {
+                try commitPersistedCookies(cookies)
+                _cookies = cookies
+            }
         }
 
         override public var cookies: [HTTPCookie]? {

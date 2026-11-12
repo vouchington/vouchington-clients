@@ -68,17 +68,27 @@ public final class ModerationReportsViewModel {
     var activeReportPageRequest: CursorPageRequest?
     var groupedLoadedPageCount = 0
     private var evictedReportIds: Set<String> = []
+    let judgementAdmissions: ReportJudgementAdmissionStore
+    let judgementOwner: AppealAIRerunOwner?
     let judgementRunReads: Int
     let judgementRunDelay: @Sendable () async throws -> Void
 
     public init(
         client: APIClient?,
         viewerTier: ModerationReportsViewerTier,
+        currentUserId: String? = nil,
+        judgementAdmissions: ReportJudgementAdmissionStore? = nil,
         judgementRunReads: Int = 20,
         judgementRunDelay: @escaping @Sendable () async throws -> Void = {
             try await Task.sleep(for: .seconds(3))
         }
     ) {
+        self.judgementAdmissions = judgementAdmissions ?? (currentUserId == nil
+            ? ReportJudgementAdmissionStore() : .session)
+        judgementOwner = AppealAIRerunOwner(
+            userId: currentUserId ?? (judgementAdmissions == nil ? UUID().uuidString : nil),
+            baseURL: client?.baseURL
+        )
         self.client = client
         self.viewerTier = viewerTier
         self.judgementRunReads = judgementRunReads
@@ -137,18 +147,6 @@ public final class ModerationReportsViewModel {
 
     public func hasActiveReports(in duplicateCluster: StaffModerationReportDuplicateCluster) -> Bool {
         duplicateCluster.clusters.contains { !activeReports(in: $0).isEmpty }
-    }
-
-    public func presentationCounts(
-        for duplicateCluster: StaffModerationReportDuplicateCluster
-    ) -> (posts: Int, reports: Int) {
-        let loaded = duplicateCluster.clusters.flatMap(\.reports)
-        let activeClusters = duplicateCluster.clusters.filter { !activeReports(in: $0).isEmpty }
-        let activeCount = activeClusters.reduce(0) { $0 + activeReports(in: $1).count }
-        if loaded.count == activeCount {
-            return (duplicateCluster.postCount, duplicateCluster.reportCount)
-        }
-        return (activeClusters.count, activeCount)
     }
 
     func beginQueueMutation() -> Bool {

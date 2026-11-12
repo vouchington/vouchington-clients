@@ -362,7 +362,7 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
             bootstrapSession: false
         )
         let store = makeStore(defaults: defaults)
-        let sessionManager = SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make())
+        let sessionManager = SessionManager(client: client)
         return CoordinatorFixture(
             coordinator: NativeOAuthAuthorizationCoordinator(
                 client: client,
@@ -451,7 +451,11 @@ final class OAuthCoordinatorURLProtocol: URLProtocol {
         let response = Self.lock.withLock { () -> (Data, Int) in
             Self.requests.append(request)
             guard var queued = Self.responses[path], !queued.isEmpty else {
-                return (Data("{}".utf8), 200)
+                return (
+                    path == "/api/v1/session" ? ApiFixtureLoader
+                        .data("native.auth.session.refresh.rotated") : Data("{}".utf8),
+                    200
+                )
             }
             let next = queued.removeFirst()
             Self.responses[path] = queued

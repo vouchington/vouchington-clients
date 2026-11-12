@@ -18,6 +18,8 @@ public sealed partial class ModerationReportsViewModel :
   private readonly HashSet<string> successfulReportIds = new(StringComparer.Ordinal);
   private readonly Dictionary<string, UiText> rowErrors = new(StringComparer.Ordinal);
   private readonly IDisposable? localeSubscription;
+  private readonly ReportJudgementAdmissionStore judgementAdmissions;
+  private readonly ReportJudgementAdmissionStore.OwnerKey? judgementOwner;
   private readonly int judgementRunReads;
   private readonly Func<CancellationToken, Task> judgementRunDelay;
   private CancellationTokenSource? loadCancellation;
@@ -42,10 +44,16 @@ public sealed partial class ModerationReportsViewModel :
       NavigationViewer viewer,
       IUiLocaleController? localeController = null,
       int judgementRunReads = ReportJudgementRunReconciliation.DefaultReadCount,
-      Func<CancellationToken, Task>? judgementRunDelay = null)
+      Func<CancellationToken, Task>? judgementRunDelay = null,
+      ReportJudgementAdmissionStore? judgementAdmissions = null,
+      Uri? apiBaseUrl = null)
   {
-    this.service = service ?? throw new ArgumentNullException(nameof(service));
     ArgumentNullException.ThrowIfNull(viewer);
+    this.judgementAdmissions = judgementAdmissions ?? new ReportJudgementAdmissionStore();
+    judgementOwner = apiBaseUrl is null && judgementAdmissions is null
+        ? new ReportJudgementAdmissionStore.OwnerKey(Guid.NewGuid().ToString(), "", "", 0, "")
+        : ReportJudgementAdmissionStore.ForOwner(viewer.IdentityId, apiBaseUrl);
+    this.service = service ?? throw new ArgumentNullException(nameof(service));
     ArgumentOutOfRangeException.ThrowIfNegativeOrZero(judgementRunReads);
     IsAdministrator = viewer.Roles.Contains("administrator", StringComparer.Ordinal);
     IsStaff = IsAdministrator || viewer.Roles.Contains("moderator", StringComparer.Ordinal);

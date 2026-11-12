@@ -5,6 +5,21 @@ namespace Voucha.Client.Core.Tests;
 
 public sealed class SentryEventScrubberTests
 {
+  [Theory]
+  [InlineData("x-voucha-bot-challenge-token")]
+  [InlineData("X-Voucha-Bot-Challenge-App-Attest-Key-Id")]
+  [InlineData("x-voucha-bot-challenge-app-attest-assertion")]
+  [InlineData("x-voucha-bot-challenge-app-attest-challenge-id")]
+  public void GenericBotProofIsRedactedFromHeadersAndDroppedFromBreadcrumbs(string header)
+  {
+    var secret = new Dictionary<string, string> { [header] = "secret" };
+    var scrubbed = SentryEventScrubber.Scrub(new SentryOutboundEvent(
+        null, null, null, null, null, null, secret, null, null, null,
+        [new SentryBreadcrumbDraft("http", null, secret)]));
+    Assert.Equal(SentryEventScrubber.Filtered, scrubbed.Headers?[header]);
+    Assert.Empty(Assert.Single(scrubbed.Breadcrumbs!).Data!);
+  }
+
   [Fact]
   public void MissingDsnDoesNotSend()
   {

@@ -61,7 +61,11 @@ public static partial class MauiProgram
         sp.GetRequiredService<NativeOAuthAuthorizationCoordinator>());
     builder.Services.AddSingleton<ReferralLinksRouteContextStore>();
     AddAuthFeatureServices(builder.Services);
-    builder.Services.AddSingleton<ITurnstileTokenProvider, MauiTurnstileTokenProvider>();
+    builder.Services.AddSingleton<ITurnstileTokenProvider>(sp =>
+#if DEBUG
+        CatalystAuthNewsLaunch.IsRequested ? new CatalystAuthNewsTurnstile(CatalystAuthNewsLaunch.IsRequested) :
+#endif
+        new MauiTurnstileTokenProvider(sp.GetRequiredService<AppConfig>()));
     builder.Services.AddSingleton(CreateNavigationViewerProvider);
     builder.Services.AddSingleton<INavigationViewerProvider>(
         sp => sp.GetRequiredService<MutableNavigationViewerProvider>());
@@ -144,10 +148,13 @@ public static partial class MauiProgram
     builder.Services.AddTransient<MembershipGrantViewModel>();
     builder.Services.AddTransient<CommunityBrowseViewModel>();
     builder.Services.AddTransient<ModerationViewModel>();
+    builder.Services.AddSingleton<ReportJudgementAdmissionStore>();
     builder.Services.AddTransient(sp => new ModerationReportsViewModel(
         sp.GetRequiredService<IModerationService>(),
         sp.GetRequiredService<INavigationViewerProvider>().CurrentViewer,
-        sp.GetRequiredService<IUiLocaleController>()));
+        sp.GetRequiredService<IUiLocaleController>(),
+        judgementAdmissions: sp.GetRequiredService<ReportJudgementAdmissionStore>(),
+        apiBaseUrl: sp.GetRequiredService<AppConfig>().ApiBaseUrl));
     builder.Services.AddTransient(sp => new ReviewQueueViewModel(
         sp.GetRequiredService<IModerationService>(),
         sp.GetRequiredService<IModerationExposureService>(),

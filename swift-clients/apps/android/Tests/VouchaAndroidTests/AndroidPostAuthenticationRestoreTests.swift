@@ -33,7 +33,7 @@ final class AndroidPostAuthenticationRestoreTests: XCTestCase {
             XCTAssertNil(account.loginAttemptID)
             XCTAssertEqual(account.otp, "")
             XCTAssertEqual(account.totp, "")
-            XCTAssertEqual(account.cookieStorage.cookies?.map(\.value), ["authenticated-session"])
+            XCTAssertEqual(Set(account.cookieStorage.cookies?.map(\.name) ?? []), ["dt", "st"])
 
             let retryStarted = HeldAuthenticationURLProtocol.expectRequest(host: host, path: "/api/v1/my/identity")
             let retry = Task { await account.retryCookiePersistenceOrRestoration() }

@@ -16,10 +16,14 @@ public partial class SettingsPage
         match?.Path,
         "/my/notification-settings",
         StringComparison.Ordinal);
+    var priorEpoch = notificationRouteEpoch.Value;
     notificationRouteEpoch.Apply(notificationRouteApplied);
-    if (notificationRouteApplied) notificationAccessibility.Deactivate();
+    if (priorEpoch != notificationRouteEpoch.Value) notificationAccessibility.Deactivate();
     notificationSettingsFocused = notificationRouteApplied;
     ApplyNotificationSettingsFocus();
+#if DEBUG
+    if (!notificationRouteApplied) CatalystGuiAudit.Current?.Deactivate();
+#endif
   }
 
   public Task ApplyRouteMatchAsync(NativeRouteMatch? match)
@@ -82,7 +86,10 @@ public partial class SettingsPage
     Dispatcher.Dispatch(() =>
     {
       if (routeEpoch != notificationRouteEpoch.Value || !notificationSettingsFocused || !isPageVisible) return;
-      notificationAccessibility.Deactivate();
+      if (!notificationRouteEpoch.TryActivate(routeEpoch)) return;
+#if DEBUG
+      CatalystGuiAudit.Current?.Activate("/my/notification-settings");
+#endif
       notificationAccessibility.Activate(NotificationPreferencesSection.Heading);
     });
   }

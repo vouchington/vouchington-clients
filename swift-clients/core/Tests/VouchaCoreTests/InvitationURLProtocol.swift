@@ -14,6 +14,19 @@ final class InvitationURLProtocol: URLProtocol, @unchecked Sendable {
         set { locked { responses = newValue } }
     }
 
+    private nonisolated(unsafe) static var responseURL: URL?
+
+    static var finalResponseURL: URL? {
+        get { locked { responseURL } }
+        set { locked { responseURL = newValue } }
+    }
+
+    private nonisolated(unsafe) static var headers: [[String: String]] = []
+
+    static var capturedHeaders: [[String: String]] {
+        locked { headers }
+    }
+
     static var capturedURLs: [URL] {
         locked { requests.map(\.0) }
     }
@@ -30,6 +43,8 @@ final class InvitationURLProtocol: URLProtocol, @unchecked Sendable {
         locked {
             responses = [:]
             requests = []
+            headers = []
+            responseURL = nil
         }
     }
 
@@ -45,12 +60,14 @@ final class InvitationURLProtocol: URLProtocol, @unchecked Sendable {
         guard let url = request.url else { return }
         let method = request.httpMethod ?? "GET"
         let body = URLRequestHTTPBody.utf8String(from: request)
-        let (data, status) = Self.locked {
+        let (data, status, finalURL) = Self.locked {
+            Self.headers.append(request.allHTTPHeaderFields ?? [:])
             Self.requests.append((url, method, body))
-            return Self.responses["\(method) \(url.path)"] ?? (Data("{}".utf8), 500)
+            let (data, status) = Self.responses["\(method) \(url.path)"] ?? (Data("{}".utf8), 500)
+            return (data, status, Self.responseURL ?? url)
         }
         let response = HTTPURLResponse(
-            url: url, statusCode: status, httpVersion: "HTTP/1.1",
+            url: finalURL, statusCode: status, httpVersion: "HTTP/1.1",
             headerFields: ["Content-Type": "application/json"]
         )!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)

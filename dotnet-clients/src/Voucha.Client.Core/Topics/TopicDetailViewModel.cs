@@ -32,7 +32,6 @@ public sealed partial class TopicDetailViewModel : ObservableObject, IDisposable
   private readonly IUiLocalization localization;
   private readonly IUiLocaleController? localeController;
   private readonly IProductSurfaceAnalytics? productSignals;
-  private readonly HashSet<string> recordedRssFeedViewIds = new(StringComparer.Ordinal);
 
   public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();
 

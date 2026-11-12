@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:creation="clr-namespace:Voucha.Client.Core.SourceCreation;assembly=Voucha.Client.Core"
+             x:Class="Voucha.Client.App.Pages.SourceCreationPage"
+             x:DataType="creation:SourceCreationViewModel"
+             Title="{DynamicResource native.taxonomy.topics.rssFeed}">
+    <VerticalStackLayout Padding="20" Spacing="12">
+        <Entry x:Name="UrlEntry" Text="{Binding Input}" Keyboard="Url"
+               Placeholder="{DynamicResource native.dotnet.residual.url}" />
+        <Button x:Name="CreateButton" Text="{DynamicResource native.swift.common.create}"
+                IsEnabled="{Binding CanCreate}" Clicked="OnCreateClicked" />
+        <ActivityIndicator x:Name="ProgressIndicator" IsRunning="{Binding IsBusy}" />
+        <Label x:Name="StatusLabel" Text="{Binding Status}" />
+        <Label x:Name="ErrorLabel" Text="{Binding Error}" />
+        <Button x:Name="RetryButton" Text="{DynamicResource native.swift.importExport.tryStatusAgain}"
+                IsVisible="{Binding CanRetry}" Clicked="OnRetryClicked" />
+        <Button x:Name="OpenButton" Text="{DynamicResource native.swift.podcastPlayback.openSource}"
+                IsVisible="{Binding CanOpen}" Clicked="OnOpenClicked" />
+    </VerticalStackLayout>
+</ContentPage>

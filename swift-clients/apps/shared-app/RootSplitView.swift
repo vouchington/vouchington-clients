@@ -62,7 +62,7 @@ struct RootSplitView: View {
                     UiMessages.string(section.subsectionTitle(sub), locale: locale),
                     systemImage: sub.systemImage
                 )
-                .tag(Optional(sub))
+                .tag(sub)
             }
             .listStyle(.sidebar)
             .navigationTitle(UiMessages.string(section.titleKey, locale: locale))

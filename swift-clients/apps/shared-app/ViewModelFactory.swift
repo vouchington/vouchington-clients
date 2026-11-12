@@ -16,6 +16,7 @@ public final class ViewModelFactory {
     private static let keychainAccessGroupSuffix = "ai.voucha.macos"
 
     /// The shared API client used for all HTTP requests.
+    public let mutationChallengeBroker = MutationChallengeBroker()
     public let apiClient: APIClient
     /// The shared session manager tracking sign-in state.
     public let sessionManager: SessionManager
@@ -90,7 +91,7 @@ public final class ViewModelFactory {
                 metadata: NativeClientMetadata.current()
             )
         #endif
-        let session = SessionManager(client: client, cookieStorage: cookieStorage)
+        let session = SessionManager(client: client)
         let cache = MemoryDiskCacheStore()
         let factory = ViewModelFactory(
             apiClient: client,

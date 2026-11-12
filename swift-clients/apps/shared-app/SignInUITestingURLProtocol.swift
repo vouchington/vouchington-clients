@@ -98,6 +98,8 @@ enum SignInUITestingLaunch {
         private func responseData(for url: URL) -> Data? {
             guard url.host == "ui-testing.voucha.invalid" else { return nil }
             switch (request.httpMethod ?? "", url.path) {
+            case ("PATCH", "/api/v1/session"):
+                return Self.base64EnvironmentValue("VOUCHA_UI_TESTING_SESSION_RESPONSE_BASE64")
             case ("GET", "/api/v1/my/identity"):
                 return Self.base64EnvironmentValue("VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64")
             case ("GET", "/api/v1/auth/oauth/providers"):

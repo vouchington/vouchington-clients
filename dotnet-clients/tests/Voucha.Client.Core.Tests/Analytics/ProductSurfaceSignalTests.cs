@@ -39,7 +39,7 @@ public sealed class ProductSurfaceSignalTests
   }
 
   [Fact]
-  public async Task ReturningToAnEarlierRssFeedRecordsItOnlyOnce()
+  public async Task ReturningToAnEarlierRssFeedRecordsAnotherVisit()
   {
     var signals = new RecordingSignals();
     var viewModel = new TopicDetailViewModel(
@@ -50,7 +50,7 @@ public sealed class ProductSurfaceSignalTests
     await viewModel.LoadAsync("other", TestContext.Current.CancellationToken);
     await viewModel.LoadAsync("rewards", TestContext.Current.CancellationToken);
 
-    Assert.Equal(["feed-1", "feed-2"], signals.FeedViews);
+    Assert.Equal(["feed-1", "feed-2", "feed-1"], signals.FeedViews);
   }
 
   [Fact]
@@ -97,6 +97,73 @@ public sealed class ProductSurfaceSignalTests
     Assert.True(viewModel.HasError);
   }
 
+  [Fact]
+  public async Task ReactivatingTheSameFeedRecordsAnotherVisitButRefreshDoesNot()
+  {
+    var signals = new RecordingSignals();
+    using var model = new TopicDetailViewModel(
+        new TopicService("rss_feed", new Dictionary<string, string> { ["rewards"] = "feed-1" }),
+        productSignals: signals);
+    await model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    model.Deactivate();
+    await model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    Assert.Single(signals.FeedViews);
+    model.Activate();
+    model.Activate();
+    await model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    await model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    Assert.Equal(["feed-1", "feed-1"], signals.FeedViews);
+  }
+
+  [Theory]
+  [InlineData(true)]
+  [InlineData(false)]
+  public async Task AFeedLoadCompletingAfterCancellationOrDisappearanceDoesNotRecord(bool cancel)
+  {
+    var signals = new RecordingSignals();
+    var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+    using var model = new TopicDetailViewModel(
+        new TopicService("rss_feed", new Dictionary<string, string> { ["rewards"] = "feed-1" }, gate.Task),
+        productSignals: signals);
+    var pending = model.LoadAsync("rewards", cancellation.Token);
+    if (cancel) cancellation.Cancel();
+    else
+    {
+      model.Deactivate();
+      model.Activate();
+    }
+    gate.SetResult();
+    await pending;
+    Assert.Empty(signals.FeedViews);
+    Assert.Null(model.SourceRssFeedId);
+  }
+
+  [Theory]
+  [InlineData(true)]
+  [InlineData(false)]
+  public async Task ReplacementActivationFinishesWhileOldTopicOrSourceLoadCannotRecord(bool pendingTopic)
+  {
+    var signals = new RecordingSignals();
+    var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    using var model = new TopicDetailViewModel(
+        new TopicService("rss_feed", new Dictionary<string, string> { ["rewards"] = "feed-1" },
+            feedGate: pendingTopic ? null : gate.Task, topicGate: pendingTopic ? gate.Task : null),
+        productSignals: signals);
+    var staleLoad = model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    Assert.Equal(LoadState.Loading, model.State);
+    model.Deactivate();
+    Assert.Equal(LoadState.Idle, model.State);
+    model.Activate();
+    await model.LoadAsync("rewards", TestContext.Current.CancellationToken);
+    Assert.Equal(LoadState.Loaded, model.State);
+    Assert.Single(signals.FeedViews);
+    gate.SetResult();
+    await staleLoad;
+    Assert.Equal(LoadState.Loaded, model.State);
+    Assert.Single(signals.FeedViews);
+  }
+
   private sealed class RecordingSignals : IProductSurfaceAnalytics
   {
     public List<string> FeedViews { get; } = [];
@@ -128,20 +195,27 @@ public sealed class ProductSurfaceSignalTests
     }
   }
 
-  private sealed class TopicService(string topicType, Dictionary<string, string> feeds) : ITopicsService
+  private sealed class TopicService(string topicType, Dictionary<string, string> feeds, Task? feedGate = null, Task? topicGate = null) : ITopicsService
   {
-    public Task<TopicResponse> FetchTopicAsync(string topicIdOrSlug, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new TopicResponse(new Topic(topicIdOrSlug, topicIdOrSlug, topicIdOrSlug, topicType)));
+    private int topicCalls;
+    private int feedCalls;
 
-    public Task<RssFeedsResponse> FetchRssFeedsForTopicAsync(
+    public async Task<TopicResponse> FetchTopicAsync(string topicIdOrSlug, CancellationToken cancellationToken = default)
+    {
+      if (++topicCalls == 1 && topicGate is not null) await topicGate;
+      return new TopicResponse(new Topic(topicIdOrSlug, topicIdOrSlug, topicIdOrSlug, topicType));
+    }
+
+    public async Task<RssFeedsResponse> FetchRssFeedsForTopicAsync(
         string topicId,
         RssFeedEnabledFilter? enabled = null,
         CancellationToken cancellationToken = default)
     {
+      if (++feedCalls == 1 && feedGate is not null) await feedGate;
       IReadOnlyList<RssFeedSource> results = feeds.TryGetValue(topicId, out var feedId)
           ? [Feed(feedId)]
           : [];
-      return Task.FromResult(new RssFeedsResponse(results, new PageInfo(null, false, null)));
+      return new RssFeedsResponse(results, new PageInfo(null, false, null));
     }
 
     private static RssFeedSource Feed(string feedId) =>
