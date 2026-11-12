@@ -17,10 +17,10 @@ public sealed class FreshAccountBrokerTests
     var broker = new FreshAccountBroker(Client(handler), browser);
     var proof = broker.VerifyAsync("github", TestContext.Current.CancellationToken);
     await browser.Opened.Task.WaitAsync(TestContext.Current.CancellationToken);
-    Assert.False(await broker.HandleCallbackAsync(new Uri("voucha://auth/oauth/callback?flow_id=another&completion_token=x")));
-    Assert.True(await broker.HandleCallbackAsync(Callback));
+    Assert.False(await broker.HandleCallbackAsync(new Uri("voucha://auth/oauth/callback?flow_id=another&completion_token=x"), TestContext.Current.CancellationToken));
+    Assert.True(await broker.HandleCallbackAsync(Callback, TestContext.Current.CancellationToken));
     Assert.Equal("broker-proof", await proof);
-    Assert.False(await broker.HandleCallbackAsync(Callback));
+    Assert.False(await broker.HandleCallbackAsync(Callback, TestContext.Current.CancellationToken));
     Assert.Equal(3, handler.Requests.Count);
     using var begin = JsonDocument.Parse(handler.Requests[0].Body!);
     using var complete = JsonDocument.Parse(handler.Requests[1].Body!);
@@ -44,7 +44,7 @@ public sealed class FreshAccountBrokerTests
     await browser.Opened.Task.WaitAsync(TestContext.Current.CancellationToken);
     await cancellation.CancelAsync();
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => proof);
-    Assert.False(await broker.HandleCallbackAsync(Callback));
+    Assert.False(await broker.HandleCallbackAsync(Callback, TestContext.Current.CancellationToken));
     Assert.Single(handler.Requests);
   }
 
@@ -59,7 +59,7 @@ public sealed class FreshAccountBrokerTests
     var broker = new FreshAccountBroker(Client(handler), browser);
     var proof = broker.VerifyAsync("github", TestContext.Current.CancellationToken);
     await browser.Opened.Task.WaitAsync(TestContext.Current.CancellationToken);
-    Assert.True(await broker.HandleCallbackAsync(Callback));
+    Assert.True(await broker.HandleCallbackAsync(Callback, TestContext.Current.CancellationToken));
     await Assert.ThrowsAsync<VouchaApiException>(() => proof);
     Assert.Equal(2, handler.Requests.Count);
     Assert.DoesNotContain(handler.Requests, request => request.Path.EndsWith("/proofs", StringComparison.Ordinal));

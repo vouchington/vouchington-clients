@@ -15,7 +15,7 @@ public static class AccountChangeSessionBinding
     var device = cookies["dt"]?.Value;
     var session = cookies["st"]?.Value;
     if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(device) || string.IsNullOrWhiteSpace(session)) return null;
-    var authority = $"{origin.Scheme.ToLowerInvariant()}://{origin.IdnHost.ToLowerInvariant()}:{origin.Port}";
+    var authority = $"{origin.Scheme.ToUpperInvariant()}://{origin.IdnHost.ToUpperInvariant()}:{origin.Port}";
     return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{authority}\n{id}\n{device}\n{session}")));
   }
 }

@@ -18,7 +18,7 @@ public sealed partial class PlatformPasskeyAssertionProvider
       "discouraged" => ASAuthorizationPublicKeyCredentialUserVerificationPreference.Discouraged,
       _ => ASAuthorizationPublicKeyCredentialUserVerificationPreference.Preferred,
     };
-    using var challenge = NSData.FromArray(plan.Challenge);
+    using var challenge = NSData.FromArray(plan.Challenge.ToArray());
     if (plan.Kind == PasskeyAuthenticatorKind.Platform)
     {
       using var provider = new ASAuthorizationPlatformPublicKeyCredentialProvider(plan.RpId);

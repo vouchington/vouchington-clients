@@ -16,6 +16,7 @@ public sealed partial class FreshAccountConfirmationViewModel : ObservableObject
   private readonly DateTimeOffset started = DateTimeOffset.UtcNow;
   private readonly TaskCompletionSource<AccountChangeProof> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
   private bool busy;
+  private bool disposed;
   private bool emailMode = true;
   private bool hasSentEmail;
   private string code = string.Empty;
@@ -122,7 +123,7 @@ public sealed partial class FreshAccountConfirmationViewModel : ObservableObject
     Finish(await service.VerifyProviderAsync(provider, cancellation.Token).ConfigureAwait(true));
   });
 
-  private bool IsCurrent() => !cancellation.IsCancellationRequested && captureBinding() == binding &&
+  private bool IsCurrent() => !disposed && !cancellation.IsCancellationRequested && captureBinding() == binding &&
       DateTimeOffset.UtcNow - started < TimeSpan.FromMinutes(5);
   private void EnsureCurrent() { if (!IsCurrent()) throw new OperationCanceledException(); }
   private void Finish(string token)
@@ -154,7 +155,15 @@ public sealed partial class FreshAccountConfirmationViewModel : ObservableObject
 
   private void SetError(UiMessageKey key) { error = UiText.Localized(key); OnPropertyChanged(nameof(ErrorMessage)); }
   private void OnSessionChanged(object? sender, SessionChangedEventArgs args) { if (!IsCurrent()) Cancel(); }
-  public void Cancel() { cancellation.Cancel(); completion.TrySetCanceled(); }
+  public void Cancel() { if (!disposed) cancellation.Cancel(); completion.TrySetCanceled(); }
   public void OnUiLocaleChanged() { OnPropertyChanged(nameof(ErrorMessage)); OnPropertyChanged(nameof(VerifyLabel)); OnPropertyChanged(nameof(Providers)); }
-  public void Dispose() { Cancel(); sessionStore.SessionChanged -= OnSessionChanged; localeSubscription?.Dispose(); cancellation.Dispose(); }
+  public void Dispose()
+  {
+    if (disposed) return;
+    Cancel();
+    disposed = true;
+    sessionStore.SessionChanged -= OnSessionChanged;
+    localeSubscription?.Dispose();
+    cancellation.Dispose();
+  }
 }

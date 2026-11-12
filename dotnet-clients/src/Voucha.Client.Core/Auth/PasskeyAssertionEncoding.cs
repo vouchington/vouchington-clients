@@ -31,7 +31,7 @@ public static class PasskeyAssertionEncoding
 public enum PasskeyAuthenticatorKind { Platform, SecurityKey }
 
 public sealed record PasskeyAssertionRequestPlan(PasskeyAuthenticatorKind Kind, string RpId,
-    byte[] Challenge, string? UserVerification, IReadOnlyList<byte[]> AllowedCredentialIds)
+    IReadOnlyList<byte> Challenge, string? UserVerification, IReadOnlyList<byte[]> AllowedCredentialIds)
 {
   public static IReadOnlyList<PasskeyAssertionRequestPlan> Create(PasskeyAuthenticationOptions options)
   {

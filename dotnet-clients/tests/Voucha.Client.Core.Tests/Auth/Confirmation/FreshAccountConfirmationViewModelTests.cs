@@ -146,6 +146,39 @@ public sealed class FreshAccountConfirmationViewModelTests
   }
 
   [Fact]
+  public async Task DisposedDialogRejectsLateProofAndDisposalIsIdempotent()
+  {
+    var pending = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new FreshAccountProofServiceStub { Verification = () => pending.Task };
+    var session = new ConfirmationSessionStore();
+    var model = New(service, session);
+    await model.InitializeAsync();
+    model.Code = "ABCDEFGH23";
+    var verify = model.VerifyCodeAsync();
+    model.Dispose();
+    model.Dispose();
+    session.Change("other-account");
+    pending.SetResult("late-proof");
+    await verify;
+    await model.VerifyCodeAsync();
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => model.Completion);
+    Assert.Single(service.Codes);
+  }
+
+  [Fact]
+  public async Task SuccessfulProofSurvivesDialogCleanupButRemainsOneUseAndBoundToSession()
+  {
+    var model = New(new FreshAccountProofServiceStub());
+    await model.InitializeAsync();
+    model.Code = "ABCDEFGH23";
+    await model.VerifyCodeAsync();
+    var proof = await model.Completion;
+    model.Dispose();
+    Assert.Equal("proof-token", proof.Consume());
+    Assert.Throws<OperationCanceledException>(() => proof.Consume());
+  }
+
+  [Fact]
   public async Task PasskeyOnlyDiscoverySupportsOwnedSelectionAndBoundedCursorPages()
   {
     var service = new FreshAccountProofServiceStub

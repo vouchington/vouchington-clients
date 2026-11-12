@@ -35,14 +35,20 @@ public sealed class MauiAccountChangeConfirmation(IServiceProvider services) : I
     }
     finally
     {
-      await MainThread.InvokeOnMainThreadAsync(async () =>
+      try
       {
-        model?.Cancel();
-        if (modal is not null && navigation?.ModalStack.LastOrDefault() == modal)
-          await navigation.PopModalAsync().ConfigureAwait(true);
-        model?.Dispose();
-      }).ConfigureAwait(false);
-      gate.Release();
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+          model?.Cancel();
+          if (modal is not null && navigation?.ModalStack.LastOrDefault() == modal)
+            await navigation.PopModalAsync().ConfigureAwait(true);
+        }).ConfigureAwait(false);
+      }
+      finally
+      {
+        try { model?.Dispose(); }
+        finally { gate.Release(); }
+      }
     }
   }
 
