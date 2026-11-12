@@ -74,25 +74,29 @@ public sealed class PostTimeRangePickerRenderingTests
   public void InputOptionsCanRestrictToYearDefaultAndVisibleLabelsRefreshWithoutSelectionChange()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    var app = new Application();
+    _ = new Application();
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
-    app.Resources["extracted.posts.postTimeRangeSelect.label"] = localization.Localize(
-        UiMessageKey.ExtractedPostsPostTimeRangeSelectLabel);
     var model = new PostTimeRangeSelection(localization, ["1w", "1m", "1y"], "1y");
     var control = new PostTimeRangePicker { Selection = model };
+    var host = new ContentPage();
+    host.Resources["extracted.posts.postTimeRangeSelect.label"] = localization.Localize(
+        UiMessageKey.ExtractedPostsPostTimeRangeSelectLabel);
+    host.Content = control;
     var picker = control.FindByName<Picker>("RangePicker");
+    Assert.Same(host, control.Parent);
     var emitted = new List<string>();
     control.RangeSelected += (_, value) => emitted.Add(value);
     Assert.Equal(new[] { "Last 7 days", "Last 30 days", "Last year" }, picker.Items);
     Assert.Equal(2, picker.SelectedIndex);
 
     controller.ApplySavedLocale("es");
-    app.Resources["extracted.posts.postTimeRangeSelect.label"] = localization.Localize(
+    host.Resources["extracted.posts.postTimeRangeSelect.label"] = localization.Localize(
         UiMessageKey.ExtractedPostsPostTimeRangeSelectLabel);
     model.RefreshLabels();
 
     Assert.Equal("Período", picker.Title);
+    Assert.Equal("Período", SemanticProperties.GetDescription(picker));
     Assert.Equal("Último año", picker.Items[2]);
     Assert.Equal(2, picker.SelectedIndex);
     Assert.Equal("1y", model.RequestValue);
