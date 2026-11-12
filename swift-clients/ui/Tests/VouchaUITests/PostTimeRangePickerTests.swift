@@ -146,7 +146,7 @@ final class PostTimeRangePickerTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testFeedHasNoTimeRangeDropdown() throws {
-        let model = NativeRouteSurfaceViewModel(entry: entry(for: .feedPosts), client: nil)
+        let model = try NativeRouteSurfaceViewModel(entry: entry(for: .feedPosts), client: nil)
         XCTAssertThrowsError(try NativeListSurface(viewModel: model).inspect().find(ViewType.Picker.self))
     }
 }
