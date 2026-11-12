@@ -2383,6 +2383,23 @@ jobs:
         run: >-
           dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           --configuration Debug --no-restore
+      - name: Test Debug Catalyst fixture session and notification route
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: |
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj \
+            --configuration Debug --no-restore \
+            --filter FullyQualifiedName~CatalystFixtureRefreshAuthenticatesTheNotificationRouteAndRendersItsHeading \
+            --logger 'trx;LogFileName=catalyst-fixture.trx' \
+            --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+          python3 - "$RUNNER_TEMP/voucha-maui-test-results/catalyst-fixture.trx" <<'PYTHON'
+          import sys
+          import xml.etree.ElementTree as ET
+          counters = ET.parse(sys.argv[1]).find("{*}ResultSummary/{*}Counters")
+          assert counters is not None, "Missing Debug Catalyst fixture test counters"
+          expected = {"total": "2", "executed": "2", "passed": "2", "failed": "0", "notExecuted": "0"}
+          assert all(counters.get(key) == value for key, value in expected.items()), counters.attrib
+          PYTHON
       - name: Upload failed MAUI test diagnostics
         if: ${{ failure() || cancelled() }}
         timeout-minutes: 2

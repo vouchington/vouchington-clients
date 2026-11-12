@@ -55,6 +55,21 @@ test('the rendered shard preserves the complete test suite, locked dependencies 
   assert.doesNotMatch(app, /Build rendered MAUI page tests|Test rendered MAUI pages/u)
 })
 
+test('Debug Catalyst fixture regressions run separately and require both cases to pass', () => {
+  const fixture = step(rendered, 'Test Debug Catalyst fixture session and notification route')
+  assert.match(fixture, /--configuration Debug --no-restore/u)
+  assert.match(
+    fixture,
+    /--filter FullyQualifiedName~CatalystFixtureRefreshAuthenticatesTheNotificationRouteAndRendersItsHeading/u,
+  )
+  assert.match(fixture, /catalyst-fixture\.trx/u)
+  assert.match(
+    fixture,
+    /"total": "2", "executed": "2", "passed": "2", "failed": "0", "notExecuted": "0"/u,
+  )
+  assert.doesNotMatch(fixture, /continue-on-error|\|\| true/u)
+})
+
 test('the app shard retains the original full Release Build, pinned tools and locked project graph', () => {
   assert.ok(
     step(app, 'Verify all twelve committed NuGet locks').includes('restore-locks.sh verify'),

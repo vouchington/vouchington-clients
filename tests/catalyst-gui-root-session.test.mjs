@@ -117,10 +117,16 @@ function stagedSession() {
       '/api/v1/my/email-preferences',
       JSON.stringify({ email_preferences: inputs.preferences }),
     ],
-  ].map(([id, path, body]) => {
+    [
+      'native.auth.session.refresh.rotated',
+      '/api/v1/session',
+      '{"session":{"uid":"member","session":{"uid":"member"}}}',
+      'PATCH',
+    ],
+  ].map(([id, path, body, method = 'GET']) => {
     const bodyFile = `responses/${id}.json`
     writeFileSync(join(fixtureRoot, bodyFile), body)
-    return { id, path, method: 'GET', status: 200, bodyFile }
+    return { id, path, method, status: 200, bodyFile }
   })
   writeFileSync(join(fixtureRoot, 'manifest.json'), JSON.stringify({ fixtures }))
   const driverUrl = new URL('./catalyst-gui-notification-driver.mjs', import.meta.url).href

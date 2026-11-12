@@ -137,7 +137,7 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /timeout-minutes: 1\n/u)
   })
 
-  it('stages producer fixtures with generated client localization', t => {
+  it('stages identity, preferences, rotation and generated client localization', t => {
     const root = mkdtempSync(join(tmpdir(), 'catalyst-fixture-'))
     t.after(() => rmSync(root, { recursive: true, force: true }))
     const consumer = join(root, 'consumer')
@@ -160,6 +160,18 @@ describe('Mac Catalyst GUI preflight', () => {
       join(fixtureRoot, 'responses', 'native.my.email-preferences.default.json'),
       '{"email_preferences":{}}\n',
     )
+    const sessionBody = '{"session":{"uid":"member","session":{"uid":"member"}}}\n'
+    writeFileSync(
+      join(fixtureRoot, 'responses', 'native.auth.session.refresh.rotated.json'),
+      sessionBody,
+    )
+    const sessionFixture = {
+      id: 'native.auth.session.refresh.rotated',
+      method: 'PATCH',
+      path: '/api/v1/session',
+      status: 200,
+      bodyFile: 'responses/native.auth.session.refresh.rotated.json',
+    }
     const identityFixture = {
       id: 'swift.my.identity.default',
       method: 'GET',
@@ -176,7 +188,7 @@ describe('Mac Catalyst GUI preflight', () => {
     }
     writeFileSync(
       join(fixtureRoot, 'manifest.json'),
-      JSON.stringify({ fixtures: [identityFixture, emailFixture] }),
+      JSON.stringify({ fixtures: [identityFixture, emailFixture, sessionFixture] }),
     )
     const script = join(consumer, 'dotnet-clients/tooling/catalyst-gui-preflight.mjs')
     execFileSync(process.execPath, [script, '--check-fixture'], {
@@ -221,6 +233,30 @@ describe('Mac Catalyst GUI preflight', () => {
         ),
       /ENOENT/u,
     )
+    assert.equal(
+      readFileSync(join(staged, 'api-fixtures', 'v1', sessionFixture.bodyFile), 'utf8'),
+      sessionBody,
+    )
+    for (const changed of [
+      null,
+      { method: 'GET' },
+      { path: '/api/v1/session/other' },
+      { status: 201 },
+    ]) {
+      const fixtures = [identityFixture, emailFixture]
+      if (changed) fixtures.push({ ...sessionFixture, ...changed })
+      writeFileSync(join(fixtureRoot, 'manifest.json'), JSON.stringify({ fixtures }))
+      assert.throws(
+        () =>
+          execFileSync(process.execPath, [script, '--check-fixture'], {
+            env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
+            stdio: 'pipe',
+          }),
+        changed
+          ? /not the canonical PATCH/u
+          : /missing shared fixture native\.auth\.session\.refresh\.rotated/u,
+      )
+    }
     writeFileSync(
       join(fixtureRoot, 'manifest.json'),
       JSON.stringify({ fixtures: [identityFixture] }),
