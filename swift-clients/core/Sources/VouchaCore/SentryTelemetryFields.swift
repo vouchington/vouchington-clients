@@ -62,7 +62,7 @@ public extension SentryEventScrubber {
     private static let sensitiveWords: Set<String> = [
         "email", "password", "passwd", "passcode", "token", "tokens", "secret", "secrets", "session",
         "auth", "authorization", "cookie", "cookies", "signature", "apikey", "credential", "credentials",
-        "jwt", "bearer", "otp"
+        "jwt", "bearer", "otp", "proof", "assertion", "nonce"
     ]
     private static let sensitiveWordPairs: Set<String> = ["apikey", "privatekey", "accesskey", "secretkey"]
 

@@ -14,6 +14,7 @@ public actor APIClient {
     let encoder: JSONEncoder
     private let logger = VouchaLogger(category: "APIClient")
     public nonisolated let baseURL: URL
+    var mutationChallengeHandler: (@Sendable () async throws -> String?)?
     private let signer: (any RequestSigning)?
     private let metadata: ClientMetadata
     let sessionBootstrapEnabled: Bool
@@ -171,11 +172,10 @@ public extension APIClient {
         }
         defer { persistCookies?() }
         let rawRequest = try buildRequest(endpoint)
-        let request = await applySigningIfNeeded(rawRequest, method: endpoint.method.rawValue)
         logger.debug("→ \(endpoint.method.rawValue) \(endpoint.path)")
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await mutationData(for: rawRequest, endpoint: endpoint)
         } catch let error as URLError {
             throw VouchaError.network(error)
         }

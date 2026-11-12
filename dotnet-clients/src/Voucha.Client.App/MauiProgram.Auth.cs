@@ -76,6 +76,9 @@ public static partial class MauiProgram
         BaseAddress = sp.GetRequiredService<AppConfig>().ApiBaseUrl,
       };
     });
+    services.AddSingleton(sp => new BotChallengeReplay(
+        () => sp.GetRequiredService<ISessionStore>(),
+        (action, token) => sp.GetRequiredService<ITurnstileTokenProvider>().GetTokenAsync(action, token)));
     services.AddSingleton<VouchaApiClient>();
     services.AddSingleton<IProductSurfaceAnalytics, SessionProductSurfaceAnalytics>();
     services.AddSingleton<CookieSessionStore>();

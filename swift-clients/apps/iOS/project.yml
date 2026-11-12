@@ -132,12 +132,27 @@ targets:
         product: VouchaLocalization
       - package: Sentry
         product: Sentry
-    scheme:
-      testTargets:
-        - VouchaLaunchSmokeTests
-      environmentVariables:
-        VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
-        VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
+
+  VouchaPresentationTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '17.4'
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Voucha
+      - package: VouchaCore
+        product: VouchaAuth
+      - package: VouchaCore
+        product: VouchaAPI
+      - package: VouchaCore
+        product: VouchaCore
+      - package: VouchaUI
+        product: VouchaFeatures
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.presentation-tests
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing
@@ -152,3 +167,22 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.launch-smoke-tests
         PRODUCT_NAME: VouchaLaunchSmokeTests
+
+schemes:
+  Voucha:
+    build:
+      targets:
+        Voucha: all
+    run:
+      environmentVariables: &appEnvironment
+        VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+        VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
+    profile:
+      environmentVariables: *appEnvironment
+    test:
+      targets:
+        - VouchaLaunchSmokeTests
+        - VouchaPresentationTests
+      commandLineArguments:
+        '--ui-testing-sign-in': true
+      environmentVariables: *appEnvironment

@@ -57,6 +57,7 @@ final class AndroidAuthURLProtocol: URLProtocol {
             let status = switch path {
             case "/api/v1/auth/email-address/tokens": Self.otpStatusCode
             case "/api/v1/auth/logout": Self.logoutStatusCode
+            case "/mutation": request.value(forHTTPHeaderField: "x-voucha-bot-challenge-token") == nil ? 403 : 200
             default: 200
             }
             return (status, Self.identity)
@@ -66,6 +67,8 @@ final class AndroidAuthURLProtocol: URLProtocol {
             Data(#"{"mfaRequired":true,"loginAttemptId":"mfa-attempt"}"#.utf8)
         case "/api/v1/my/identity":
             identity
+        case "/mutation":
+            Data(#"{"code":"BOT_CHALLENGE_REQUIRED","action":"bot-challenge.mutation","message":"Verify"}"#.utf8)
         default:
             Data("{}".utf8)
         }

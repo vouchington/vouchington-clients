@@ -155,7 +155,8 @@ public static class SentryEventScrubber
   private static bool IsCredentialHeader(string name)
   {
     var key = name.Trim();
-    return key.StartsWith("x-app-attest-", StringComparison.OrdinalIgnoreCase) || CredentialHeaders.Contains(key);
+    return key.StartsWith("x-app-attest-", StringComparison.OrdinalIgnoreCase) ||
+        key.StartsWith("x-voucha-bot-challenge-", StringComparison.OrdinalIgnoreCase) || CredentialHeaders.Contains(key);
   }
 
   private static bool IsTypedKey(string key)

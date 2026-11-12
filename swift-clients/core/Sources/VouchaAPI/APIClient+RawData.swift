@@ -12,9 +12,8 @@ public extension APIClient {
         }
         defer { persistCookies?() }
         let rawRequest = try buildRequest(endpoint)
-        let request = await applySigningIfNeeded(rawRequest, method: endpoint.method.rawValue)
         do {
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await mutationData(for: rawRequest, endpoint: endpoint)
             try validate(response: response, data: data)
             return data
         } catch let error as URLError {
