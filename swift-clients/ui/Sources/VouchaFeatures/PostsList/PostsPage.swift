@@ -18,6 +18,7 @@ struct PostsPage: Decodable {
     let markdownToHtml: [String: String]?
     let electionVotes: [String: PostVote]?
     let bookmarks: [String: [String: Bool]]?
+    let postHackerNewsReferences: [String: HackerNewsReferences]?
     let postLinkEmbeds: [String: UrlEmbed]?
 
     struct PostVote: Decodable {

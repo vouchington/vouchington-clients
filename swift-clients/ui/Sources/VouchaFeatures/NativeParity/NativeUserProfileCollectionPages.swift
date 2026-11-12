@@ -13,6 +13,8 @@ extension NativeRouteSurfaceViewModel {
             postTypes: filter.queryValue,
             after: after
         ))
+        if after == nil { profileHackerNewsReferences = [:] }
+        profileHackerNewsReferences.merge(response.postHackerNewsReferences ?? [:]) { _, new in new }
         let hydratedPosts = response.posts.mapValues { post in
             post.hydrated(
                 renderedHtml: response.markdownToHtml?[post.id],

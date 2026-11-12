@@ -101,6 +101,7 @@ public struct PostsListView: View {
                     isStaffViewer: isStaffViewer,
                     onViewAppeals: onNavigate.map { navigate in { navigate("/my/appeals") } }
                 )
+                HackerNewsReferencesView(references: viewModel.hackerNewsReferencesByPostId[post.id])
                 if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
                    let embed = viewModel.postEmbedsByPostId[post.id] {
                     ProviderEmbedPreview(embed: embed)

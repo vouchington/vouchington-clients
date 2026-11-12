@@ -21,6 +21,16 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var focusedRssFeedItemElection: RssFeedItemElection?
     public internal(set) var focusedRssFeedItemBookmarks: [String: Bool] = [:]
     public internal(set) var focusedRssFeedItemVote: ElectionVoteChoice?
+    var hackerNewsFilterTask: Task<Void, Never>?
+    var hasHackerNewsReferences = false {
+        didSet {
+            state = .idle
+            hackerNewsFilterTask = Task { await load() }
+        }
+    }
+
+    var profileHackerNewsReferences: [String: HackerNewsReferences] = [:]
+    public internal(set) var focusedHackerNewsReferences: HackerNewsReferences?
     public internal(set) var focusedRssFeedItemEmbed: UrlEmbed?
     public internal(set) var bookmarkEmbedsByEntityId: [String: UrlEmbed] = [:]
     var bookmarkRows: [NativeBookmarkRow] = []

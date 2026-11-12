@@ -189,7 +189,7 @@ final class ContentTypeTests: XCTestCase {
 
 final class PostFilterTests: XCTestCase {
     func testAllCasesCount() {
-        XCTAssertEqual(PostFilter.allCases.count, 3)
+        XCTAssertEqual(PostFilter.allCases.count, 4)
     }
 
     func testIdEqualsRawValue() {

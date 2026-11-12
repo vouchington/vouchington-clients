@@ -13,7 +13,7 @@ extension NativeRouteSurfaceViewModel {
 
     func bookmarkedFeedItemTitle(_ item: NativeRssFeedItemSummary) -> UiVerbatimText {
         .userContent(item.title ?? item.data?.title ?? item.rssFeed?.title
-            ?? URL(string: item.link ?? item.data?.link ?? item.rssFeed?.rssFeedUrl.url ?? "")?.host
+            ?? URL(string: item.link ?? item.data?.link ?? item.rssFeed?.rssFeedUrl?.url ?? "")?.host
             ?? UiMessages.string(.nativeSwiftHouseholdsBookmarksRssItem, locale: .english))
     }
 

@@ -18,6 +18,7 @@ struct NativeNotificationsResponse: Decodable {
 struct NativePostFeedResponse: Decodable {
     let results: [NativePostFeedResult]
     let pageInfo: Page<FixtureReference>.PageInfo?
+    let postHackerNewsReferences: [String: HackerNewsReferences]?
     let posts: [String: NativePostSummary]
 }
 

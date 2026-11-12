@@ -41,6 +41,12 @@ public struct RSSFeedListView: View {
                 loadedListView
             }
         }
+        .toolbar {
+            Toggle(
+                UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
+                isOn: $viewModel.hasHackerNewsReferences
+            )
+        }
         .navigationTitle(UiMessages.string(navigationTitle, locale: nativeUiLocale))
         .task { await viewModel.load() }
         .refreshable { await viewModel.reload() }

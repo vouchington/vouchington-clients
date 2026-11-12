@@ -54,6 +54,7 @@ extension NativeCommentThreadViewModel {
     }
 
     func apply(detailResponse: PostEnvelope) {
+        hackerNewsReferencesByPostId = detailResponse.postHackerNewsReferences ?? [:]
         authorAside = detailResponse.post.isAnonymous ? nil : detailResponse.authorAside
         rootPost = detailResponse.post.withRenderedHtml(detailResponse.html)
         postMetricsById = [rootPostId: detailResponse.postMetrics].compactMapValues { $0 }
@@ -82,6 +83,7 @@ extension NativeCommentThreadViewModel {
         storyPostIdsById = [:]
         pinnedPostIds = []
         postEmbedsByPostId = [:]
+        hackerNewsReferencesByPostId = [:]
         rssFeedItemEmbedsById = [:]
     }
 
@@ -156,6 +158,7 @@ extension NativeCommentThreadViewModel {
         pinnedPostIds.append(contentsOf: (response.pinnedPostIds ?? []).filter {
             knownPinnedPostIds.insert($0).inserted
         })
+        hackerNewsReferencesByPostId.merge(response.postHackerNewsReferences ?? [:]) { _, new in new }
         postEmbedsByPostId.merge(response.postLinkEmbeds ?? [:]) { _, new in new }
         rssFeedItemEmbedsById.merge(response.rssFeedItemEmbeds ?? [:]) { _, new in new }
     }

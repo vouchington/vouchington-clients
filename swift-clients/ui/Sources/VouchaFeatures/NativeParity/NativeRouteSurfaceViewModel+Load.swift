@@ -76,6 +76,7 @@ public extension NativeRouteSurfaceViewModel {
         focusedRssFeedItemBookmarks = [:]
         focusedRssFeedItemVote = nil
         focusedRssFeedItemEmbed = nil
+        focusedHackerNewsReferences = nil
         hostnameDetailId = nil
         hostnameDetailElection = nil
         hostnameDetailVote = nil

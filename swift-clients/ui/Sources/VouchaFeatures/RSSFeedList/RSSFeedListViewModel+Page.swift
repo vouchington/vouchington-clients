@@ -17,6 +17,7 @@ struct RssFeedPage: Decodable {
     let pageInfo: PageInfo
     let rssFeedItems: [String: RssFeedItem]
     let rssFeedItemThumbnailUrl: [String: String]?
+    let rssFeedItemHackerNewsReferences: [String: HackerNewsReferences]?
     let rssFeedItemEmbeds: [String: UrlEmbed]?
     let rssFeedItemElections: [String: RssFeedItemElection]?
     let electionVotes: [String: ElectionVote]?
