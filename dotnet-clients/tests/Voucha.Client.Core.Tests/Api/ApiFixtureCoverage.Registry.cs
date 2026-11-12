@@ -246,6 +246,7 @@ internal static partial class ApiFixtureCoverage
     ["swift.podcast-playback-position.default"] = typeof(PodcastPlaybackPositionResponse),
     ["native.users.profile.default"] = typeof(UserResponse),
     ["native.users.profile.restricted"] = typeof(UserResponse),
+    ["native.users.profile.private-counts.owner"] = typeof(UserResponse),
     ["native.users.vouch-context.default"] = typeof(UserTrustContext),
     ["native.users.profile.topics-following.first-page"] = typeof(BookmarkCollectionResponse<Topic>),
     ["native.users.profile.topics-following.next-page"] = typeof(BookmarkCollectionResponse<Topic>),

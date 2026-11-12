@@ -366,6 +366,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.spending-category-topics.search.default"] = VouchaApiEndpoints.SpendingCategoryTopics("Groceries"),
         ["native.users.profile.default"] = VouchaApiEndpoints.User("alice", true),
         ["native.users.profile.restricted"] = VouchaApiEndpoints.User("restricted", true),
+        ["native.users.profile.private-counts.owner"] = VouchaApiEndpoints.User("alice", true),
         ["native.users.vouch-context.default"] = VouchaApiEndpoints.UserTrustContext("user-abc"),
         ["native.users.profile.topics-following.first-page"] = VouchaApiEndpoints.UserTopics("user-abc", "following"),
         ["native.users.profile.topics-following.next-page"] = VouchaApiEndpoints.UserTopics("user-abc", "following", "eyJ0aW1lc3RhbXAiOjE3ODI5MjE2MDAwMDAwMDAsImlkIjoiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAxIn0"),

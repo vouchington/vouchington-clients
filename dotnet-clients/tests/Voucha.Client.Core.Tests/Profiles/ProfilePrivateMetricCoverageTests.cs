@@ -8,43 +8,72 @@ namespace Voucha.Client.Core.Tests.Profiles;
 
 public sealed partial class ProfileViewModelSafetyTests
 {
-  [Fact]
-  public async Task AvailableAggregateMetricRendersWhileUnpublishedMetricsStayOmitted()
+  private static readonly Dictionary<string, string> NewMetricLabels = new()
   {
-    // Add private values to the canonical public profile; this is client behavior coverage,
-    // not a claim that the canonical fixture contains owner-private counts.
-    const string key = "rss_feed_items_hidden";
-    var profile = JsonSerializer.Deserialize<UserResponse>(
-        ApiFixtureLoader.LoadResponse("native.users.profile.default"), VouchaApiJson.Options)!;
-    var metrics = new UserMetrics("user_metrics", profile.User.Id, new UserMetricsCount(),
-        PrivateCount: new Dictionary<string, int>
-        {
-          [key] = 1000,
-          ["rss_feed_items_viewed"] = 9,
-          ["rss_feed_items_saved"] = 3,
-          ["rss_feeds_subscribed"] = 3,
-          ["rss_feeds_muted"] = 3,
-          ["rss_feeds_viewed"] = 3,
-          ["topics_subscribed_posts"] = 3,
-          ["topics_subscribed_news"] = 3,
-        },
-        PrivateCountCapped: new Dictionary<string, bool> { [key] = true });
+    ["rss_feed_items_saved"] = "Saved RSS Items",
+    ["rss_feed_items_viewed"] = "Recently Viewed RSS Items",
+    ["rss_feeds_subscribed"] = "Subscribed RSS Feeds",
+    ["rss_feeds_muted"] = "Muted RSS Feeds",
+    ["rss_feeds_viewed"] = "Recently Viewed RSS Feeds",
+    ["topics_subscribed_posts"] = "Topics Subscribed for Posts",
+    ["topics_subscribed_news"] = "Topics Subscribed for News",
+    ["rss_feed_items_hidden"] = "Hidden RSS Items",
+  };
+
+  [Fact]
+  public async Task OwnerFixtureRendersEveryPrivateMetricAndCappedOnesWithPlus()
+  {
+    var profile = LoadProfile("native.users.profile.private-counts.owner");
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
-    using var model = NewViewModel(profile.User, metrics: metrics,
+    using var model = NewViewModel(profile.User, metrics: profile.UserMetrics,
         localization: new UiLocalization(controller), localeController: controller);
     model.SetCurrentViewer(profile.User.Id, profile.User.Username);
     await model.LoadOwnAsync(TestContext.Current.CancellationToken);
 
-    var row = Assert.Single(model.PrivateMetricRows);
-    Assert.Equal(key, row.Key);
-    Assert.Equal("Hidden RSS Items", row.Label);
-    Assert.Equal("1,000+", row.CountLabel);
+    var rows = model.PrivateMetricRows.ToDictionary(row => row.Key);
+    Assert.Equal(26, rows.Count);
+    Assert.Equal(profile.UserMetrics!.PrivateCount!.Keys.Order(), rows.Keys.Order());
+    var capped = new HashSet<string> { "rss_feed_items_hidden", "rss_feed_items_saved", "topics_viewed" };
+    foreach (var (key, row) in rows)
+    {
+      Assert.Equal(capped.Contains(key), row.IsCapped);
+      Assert.Equal(capped.Contains(key) ? "1,000+" : profile.UserMetrics.PrivateCount[key].ToString(), row.CountLabel);
+    }
+    foreach (var (key, label) in NewMetricLabels) Assert.Equal(label, rows[key].Label);
+    Assert.Equal(26, rows.Values.Select(row => row.Label).Distinct().Count());
     controller.ApplySavedLocale("es");
-    Assert.Equal("1.000+", Assert.Single(model.PrivateMetricRows).CountLabel);
-
-    model.SetCurrentViewer(null, null);
-    Assert.Empty(model.PrivateMetricRows);
-    model.SetCurrentViewer(profile.User.Id, profile.User.Username);
-    Assert.Empty(model.PrivateMetricRows);
+    Assert.Equal("1.000+", model.PrivateMetricRows.Single(row => row.Key == "rss_feed_items_saved").CountLabel);
   }
+
+  [Theory]
+  [InlineData("native.users.profile.default")]
+  [InlineData("native.users.profile.restricted")]
+  public async Task NonOwnerFixturesShowNoPrivateRows(string fixture)
+  {
+    var profile = LoadProfile(fixture);
+    Assert.Null(profile.UserMetrics?.PrivateCount);
+    using var model = NewViewModel(profile.User, metrics: profile.UserMetrics);
+    model.SetCurrentViewer(profile.User.Id, profile.User.Username);
+    await model.LoadOwnAsync(TestContext.Current.CancellationToken);
+    Assert.Empty(model.PrivateMetricRows);
+    Assert.False(model.HasPrivateMetrics);
+  }
+
+  [Fact]
+  public async Task MissingNewMetricsProduceNoRowsAndNoInventedZeros()
+  {
+    var profile = LoadProfile("native.users.profile.private-counts.owner");
+    var counts = profile.UserMetrics!.PrivateCount!
+        .Where(entry => !NewMetricLabels.ContainsKey(entry.Key)).ToDictionary(e => e.Key, e => e.Value);
+    var metrics = profile.UserMetrics with { PrivateCount = counts, PrivateCountCapped = null };
+    using var model = NewViewModel(profile.User, metrics: metrics);
+    model.SetCurrentViewer(profile.User.Id, profile.User.Username);
+    await model.LoadOwnAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(counts.Count, model.PrivateMetricRows.Count);
+    Assert.DoesNotContain(model.PrivateMetricRows, row => NewMetricLabels.ContainsKey(row.Key));
+  }
+
+  private static UserResponse LoadProfile(string fixture) =>
+      JsonSerializer.Deserialize<UserResponse>(ApiFixtureLoader.LoadResponse(fixture), VouchaApiJson.Options)!;
 }

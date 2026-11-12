@@ -3,6 +3,7 @@
 let userProfileFixtureEndpointRegistry: [String: Endpoint] = [
     "native.users.profile.default": Endpoint.user(idOrSlug: "alice", includeBio: true),
     "native.users.profile.restricted": Endpoint.user(idOrSlug: "restricted", includeBio: true),
+    "native.users.profile.private-counts.owner": Endpoint.user(idOrSlug: "alice", includeBio: true),
     "native.users.vouch-context.default": Endpoint.userTrustContext(userId: "user-abc"),
     "native.users.profile.posts.all": Endpoint.userPosts(
         userId: "user-abc",

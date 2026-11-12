@@ -50,6 +50,9 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.users.profile.restricted") {
             Endpoint.user(idOrSlug: "restricted", includeBio: true)
         },
+        ManifestRegisteredEndpoint(id: "native.users.profile.private-counts.owner") {
+            Endpoint.user(idOrSlug: "alice", includeBio: true)
+        },
         ManifestRegisteredEndpoint(id: "native.users.vouch-context.default") {
             Endpoint.userTrustContext(userId: "user-abc")
         },
