@@ -73,6 +73,10 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
     launch,
     /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarPostsTests\/testPostsFeedSurvivesSidebarNavigation/u,
   )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/SourceCreationSmokeTests\/testCreatesAndOpensSourceFromEveryVertical/u,
+  )
   assert.match(launch, /VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
   const macProject = readFileSync(
     new URL('../swift-clients/apps/macOS/project.yml', import.meta.url),
@@ -84,7 +88,7 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
   assert.match(launch, /platform:macOS/u)
   assert.match(
     launch,
-    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 5 and \.passedTests == 5 and \.failedTests == 0 and \.skippedTests == 0/u,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 6 and \.passedTests == 6 and \.failedTests == 0 and \.skippedTests == 0/u,
   )
   assert.doesNotMatch(launch, /continue-on-error/u)
   assert.match(
