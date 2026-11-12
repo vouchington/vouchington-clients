@@ -100,11 +100,11 @@ final class AndroidCookieAuthPersistenceTests: XCTestCase {
         defer { AndroidAuthURLProtocol.resetRequests() }
         AndroidAuthURLProtocol.setResponseCookie(
             "challenge=otp; Path=/; Secure",
-            path: "/api/v1/auth/email-address/tokens"
+            path: "/api/v1/auth/native/email-address/tokens"
         )
         AndroidAuthURLProtocol.setResponseCookie(
             "challenge=mfa; Path=/; Secure",
-            path: "/api/v1/auth/email-address/login"
+            path: "/api/v1/auth/native/email-address/login"
         )
         let secrets = FailingCookieWriteSecrets()
         let account = AndroidAccount(

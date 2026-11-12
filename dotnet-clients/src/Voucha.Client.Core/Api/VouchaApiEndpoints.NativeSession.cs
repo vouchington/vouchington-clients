@@ -1,13 +1,14 @@
 namespace Voucha.Client.Core.Api;
 
-// Contract-only builders for the native body-token email login and session-to-MCP token mint.
-// No sign-in or settings flow calls them yet.
+// Native body-token email login and session-to-MCP token mint. Native routes reject browser
+// Origin and Sec-Fetch headers; the API client never adds them.
 public static partial class VouchaApiEndpoints
 {
-  public static ApiRequest RequestNativeEmailOtp(string email) =>
+  public static ApiRequest RequestNativeEmailOtp(
+      string email, string? turnstileToken = null, string? uiLocale = null) =>
       new(HttpMethod.Post, "/api/v1/auth/native/email-address/tokens")
       {
-        Body = new RequestNativeEmailOtpBody(email),
+        Body = new RequestNativeEmailOtpBody(email, turnstileToken, uiLocale),
       };
 
   public static ApiRequest VerifyNativeEmailOtp(string email, string code) =>

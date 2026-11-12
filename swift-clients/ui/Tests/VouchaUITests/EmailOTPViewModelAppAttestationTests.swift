@@ -66,7 +66,7 @@ final class EmailOTPViewModelAppAttestationTests: XCTestCase {
     }
 
     func testRequestCodeUsesAppAttestHeadersInsteadOfTurnstile() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/auth/email-address/tokens"] = (Data("{}".utf8), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/auth/native/email-address/tokens"] = (Data("{}".utf8), 200)
         let vm = try makeViewModel()
         vm.email = "alice@example.com"
 
@@ -74,7 +74,8 @@ final class EmailOTPViewModelAppAttestationTests: XCTestCase {
 
         XCTAssertNil(vm.turnstileToken)
         XCTAssertEqual(vm.step, .enterCode)
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/auth/email-address/tokens" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs
+            .contains { $0.path == "/api/v1/auth/native/email-address/tokens" })
     }
 
     func testRequestCodeFallsBackToTurnstileRequiredWhenAttestationFails() async throws {
@@ -87,12 +88,12 @@ final class EmailOTPViewModelAppAttestationTests: XCTestCase {
         XCTAssertEqual(vm.step, .enterEmail)
         XCTAssertEqual(uiEnglish(vm.errorMessage), "Verification token required")
         XCTAssertTrue(
-            CannedFeedURLProtocol.capturedURLs.allSatisfy { $0.path != "/api/v1/auth/email-address/tokens" }
+            CannedFeedURLProtocol.capturedURLs.allSatisfy { $0.path != "/api/v1/auth/native/email-address/tokens" }
         )
     }
 
     func testRequestCodeRetriesWithTurnstileWhenServerRejectsAppAttestBypass() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/auth/email-address/tokens"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/auth/native/email-address/tokens"] = [
             (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0),
             (Data("{}".utf8), 200, 0)
         ]
@@ -104,12 +105,13 @@ final class EmailOTPViewModelAppAttestationTests: XCTestCase {
 
         XCTAssertNil(vm.errorMessage)
         XCTAssertEqual(vm.step, .enterCode)
-        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/auth/email-address/tokens" }
+        let attempts = CannedFeedURLProtocol.capturedURLs
+            .filter { $0.path == "/api/v1/auth/native/email-address/tokens" }
         XCTAssertEqual(attempts.count, 2)
     }
 
     func testRequestCodeSurfacesTurnstileRequiredWhenServerRejectsBypassAndNoTokenAvailable() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/auth/email-address/tokens"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/auth/native/email-address/tokens"] = [
             (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0)
         ]
         let vm = try makeViewModel()
@@ -119,7 +121,8 @@ final class EmailOTPViewModelAppAttestationTests: XCTestCase {
 
         XCTAssertEqual(vm.step, .enterEmail)
         XCTAssertEqual(uiEnglish(vm.errorMessage), "Verification token required")
-        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/auth/email-address/tokens" }
+        let attempts = CannedFeedURLProtocol.capturedURLs
+            .filter { $0.path == "/api/v1/auth/native/email-address/tokens" }
         XCTAssertEqual(attempts.count, 1)
     }
 }

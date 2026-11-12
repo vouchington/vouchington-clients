@@ -10,7 +10,10 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
     @MainActor
     func testHeldOTPRequestLocksEmailAndRejectsStaleTurnstileCallback() async throws {
         let host = "auth-\(UUID().uuidString.lowercased()).example.com"
-        let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: "/api/v1/auth/email-address/tokens")
+        let started = HeldAuthenticationURLProtocol.expectRequest(
+            host: host,
+            path: "/api/v1/auth/native/email-address/tokens"
+        )
         defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
 
         let account = try makeAccount(host: host)
@@ -50,7 +53,7 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
         let host = "auth-\(UUID().uuidString.lowercased()).example.com"
         let started = HeldAuthenticationURLProtocol.expectRequest(
             host: host,
-            path: "/api/v1/auth/email-address/login"
+            path: "/api/v1/auth/native/email-address/login"
         )
         defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
 

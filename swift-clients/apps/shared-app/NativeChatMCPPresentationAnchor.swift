@@ -1,50 +1,37 @@
+import Foundation
+import VouchaAPI
 import VouchaCore
 import VouchaFeatures
-#if canImport(AuthenticationServices) && !targetEnvironment(macCatalyst)
-    import AuthenticationServices
-    import VouchaAPI
-    import VouchaAuth
-    #if os(macOS)
-        import AppKit
-    #elseif os(iOS)
-        import UIKit
-    #endif
-
-    @MainActor
-    enum NativeChatMCPPresentationAnchor {
-        enum Failure: Error { case unavailable }
-    }
-
-#endif
 
 extension ViewModelFactory {
+    /// Member chat connects to MCP with a token minted from the native session. The browser
+    /// authorization anchor is gone; the Keychain store only clears grants left by earlier builds.
     static func makeNativeChatMCPSession(
-        config: AppConfig, accessGroup: String?
+        config: AppConfig,
+        apiClient: APIClient,
+        accessGroup: String?,
+        currentAccountId: @escaping @MainActor () -> String?
     ) -> NativeChatMCPAgentSession? {
-        #if canImport(AuthenticationServices) && !targetEnvironment(macCatalyst)
-            guard #available(iOS 17.4, macOS 14.4, *) else { return nil }
-            guard NativeChatMCPAppleOAuthOrigin.allows(config.baseURL) else { return nil }
+        #if targetEnvironment(macCatalyst)
+            return nil
+        #else
             #if os(iOS)
                 let app: MemberMCPApp = .ios
             #else
                 let app: MemberMCPApp = .macos
             #endif
-            guard let service = try? NativeChatMCPNetworkService(
-                siteOrigin: config.baseURL,
+            let siteOrigin = config.baseURL
+            let tokenStore = KeychainMemberMCPOAuthTokenStore(accessGroup: accessGroup)
+            let service = NativeChatMCPSessionBoundService(
+                siteOrigin: siteOrigin,
                 app: app,
-                tokenStore: KeychainMemberMCPOAuthTokenStore(accessGroup: accessGroup),
-                browserCode: { request, window in
-                    guard let anchor = window as? ASPresentationAnchor else {
-                        throw NativeChatMCPPresentationAnchor.Failure.unavailable
-                    }
-                    return try await MemberMCPAppleAuthorizationSession().code(
-                        for: request, presentationAnchor: anchor
-                    )
-                }
-            ) else { return nil }
+                apiClient: apiClient,
+                currentAccountId: currentAccountId,
+                legacyGrantCleanup: NativeChatMCPSessionBoundService.legacyGrantCleanup(
+                    siteOrigin: siteOrigin, app: app, tokenStore: tokenStore
+                )
+            )
             return NativeChatMCPAgentSession(service: service)
-        #else
-            return nil
         #endif
     }
 }

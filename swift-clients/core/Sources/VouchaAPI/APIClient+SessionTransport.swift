@@ -85,6 +85,10 @@ extension APIClient {
             return (data, response)
         }
         try acceptCookies(response, stamp: stamp, establishesSession: endpoint.establishesSession)
+        if endpoint.path == Self.nativeEmailLoginPath,
+           (response as? HTTPURLResponse).map({ (200 ... 299).contains($0.statusCode) }) == true {
+            try installNativeLoginTokens(from: data, stamp: stamp)
+        }
         return (data, response)
     }
 
