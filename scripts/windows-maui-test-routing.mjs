@@ -6,6 +6,8 @@ const windowsMauiPaths = [
   '.github/actions/prepare-native-contract/action.yml',
   '.github/actions/setup-mise-toolchain/action.yml',
   '.github/workflows/native-contract-tests.yml',
+  '.github/workflows/sentry-symbols.yml',
+  'scripts/sentry-windows-symbols.mjs',
   '.mise.toml',
   'contracts/vouchington.json',
   'docs/development/ci-runners.md',
