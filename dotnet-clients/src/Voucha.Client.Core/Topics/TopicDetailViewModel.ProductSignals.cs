@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Support;
 namespace Voucha.Client.Core.Topics;
 
 public sealed partial class TopicDetailViewModel
