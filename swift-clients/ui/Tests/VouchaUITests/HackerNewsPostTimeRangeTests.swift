@@ -90,6 +90,36 @@ final class HackerNewsPostTimeRangeTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try surface.inspect().find(PostTimeRangePicker.self).find(text: "All time"))
     }
 
+    func testTopicHackerNewsDeepLinkRendersBoundedPickerAndRetainsCanonicalTopicAndCursor() async throws {
+        registerPages()
+        CannedFeedURLProtocol.handlers["/api/v1/topics/swift"] = (
+            Data(#"{"topic":{"id":"topic-1","slug":"swift","name":"Swift"}}"#.utf8), 200
+        )
+        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/reviews"))
+        let model = try NativeRouteSurfaceViewModel(
+            entry: route.entry, client: makeClient(), routeMatch: route.match,
+            routeQuery: "has_hacker_news_references=true&time_range=all"
+        )
+        await model.load()
+        XCTAssertEqual(query("review_topic"), "topic-1")
+        XCTAssertEqual(query("post_types"), "review")
+        XCTAssertEqual(query("time_range"), "1y")
+        XCTAssertEqual(query("has_hacker_news_references"), "true")
+        await model.loadMoreForwardRows()
+        XCTAssertEqual(query("after"), "next==")
+        XCTAssertEqual(query("review_topic"), "topic-1")
+        XCTAssertEqual(query("time_range"), "1y")
+        let surface = NativeListSurface(viewModel: model)
+        XCTAssertNoThrow(try surface.inspect().find(ViewType.Toggle.self))
+        let picker = try surface.inspect().find(PostTimeRangePicker.self)
+        XCTAssertThrowsError(try picker.find(text: "All time"))
+        let month = try XCTUnwrap(URLComponents(string: model.postTimeRangePath(.last30Days)))
+        XCTAssertEqual(month.path, "/topic/swift/reviews")
+        XCTAssertEqual(month.queryItems?.first { $0.name == "time_range" }?.value, "1m")
+        XCTAssertEqual(month.queryItems?.first { $0.name == "has_hacker_news_references" }?.value, "true")
+        XCTAssertNil(month.queryItems?.first { $0.name == "after" })
+    }
+
     private func query(_ name: String) -> String? {
         CannedFeedURLProtocol.capturedURLs.last
             .flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?

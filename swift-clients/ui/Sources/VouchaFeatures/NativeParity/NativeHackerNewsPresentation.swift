@@ -5,7 +5,8 @@ import VouchaModels
 
 extension NativeRouteSurfaceViewModel {
     var supportsHackerNewsFilter: Bool {
-        switch destination {
+        if topicPostCollection != nil { return true }
+        return switch destination {
         case .postsBrowse, .storiesBrowse, .feedNews, .feedPodcasts, .feedVideos: true
         default: false
         }
