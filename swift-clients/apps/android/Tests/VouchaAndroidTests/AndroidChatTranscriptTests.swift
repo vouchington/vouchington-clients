@@ -159,7 +159,7 @@ private extension AndroidChatTranscriptTests {
         let client = try XCTUnwrap(viewModel.apiClient)
         let jar = await client.cookieStorage
         let session = await client.session
-        XCTAssertTrue(session.configuration.httpCookieStorage === jar)
+        XCTAssertNil(session.configuration.httpCookieStorage)
         XCTAssertFalse(session.configuration.httpShouldSetCookies)
         let postURL = try XCTUnwrap(posts[0].url)
         let cookies = try XCTUnwrap(jar.cookies(for: postURL))
