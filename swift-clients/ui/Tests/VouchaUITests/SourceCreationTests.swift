@@ -140,6 +140,21 @@ final class SourceCreationTests: XCTestCase {
         XCTAssertTrue(model.result?.isRetrying == true)
     }
 
+    func testAlreadyFollowingSkippedRowCompletesWithoutAnotherCreate() async {
+        let existing = RssFeedImportStatus(import: .init(
+            id: "import-1", totalRows: 1, completedRows: 0, skippedRows: 1,
+            failedRows: 0, pendingRows: 0, completedAt: Date(), createdAt: Date()
+        ), rows: [.init(input: "https://example.com/feed", status: .alreadyFollowing, entityId: "feed-1")])
+        let script = SourceCreationScript([existing])
+        let model = model(script)
+        await model.create()
+        await model.resume()
+        XCTAssertTrue(model.isTerminal)
+        XCTAssertEqual(model.destination, "/source/topic-1")
+        let posts = await script.posts
+        XCTAssertEqual(posts, 1)
+    }
+
     func testTerminalFailure() async {
         let model = model(SourceCreationScript([status(.error, pending: 0, failed: 1)]))
         await model.create()
@@ -165,7 +180,12 @@ final class SourceCreationTests: XCTestCase {
                 with: "%69mport-1"
             ),
             "http://example.com" + path,
-            "https://example.com:44" + path
+            "https://example.com:44" + path,
+            "/ignored/.." + path,
+            "https://example.com/ignored/.." + path,
+            "https://example.com/%2e%2e" + path,
+            "https://example.com" + path + " ",
+            " https://example.com" + path
         ] {
             XCTAssertFalse(SourceCreationService.validStatusURL(invalid, importId: "import-1", baseURL: base), invalid)
         }
