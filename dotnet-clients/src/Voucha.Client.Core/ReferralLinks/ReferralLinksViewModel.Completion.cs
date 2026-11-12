@@ -6,9 +6,10 @@ namespace Voucha.Client.Core.ReferralLinks;
 
 public sealed partial class ReferralLinksViewModel
 {
-  private int BeginLoad()
+  private int BeginLoad(bool preserveFeed = false)
   {
     var currentRequest = Interlocked.Increment(ref requestId);
+    if (!preserveFeed) ResetFeedPagination();
     State = LoadState.Loading;
     ErrorMessage = null;
     return currentRequest;

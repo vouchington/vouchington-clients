@@ -71,6 +71,12 @@
         </RefreshView>
         <HorizontalStackLayout Grid.Row="4" Spacing="8">
             <controls:HybridPaginationControl
+                x:Name="FeedPaginationControl"
+                PaginationId="referral-feed"
+                HasMore="{Binding HasMoreFeed}"
+                IsLoading="{Binding PaginationIsLoading}"
+                HasError="{Binding HasError}" />
+            <controls:HybridPaginationControl
                 x:Name="LinksPaginationControl"
                 PaginationId="referral-links"
                 HasMore="{Binding HasMoreLinks}"

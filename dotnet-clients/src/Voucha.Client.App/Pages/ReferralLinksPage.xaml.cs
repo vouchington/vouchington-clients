@@ -57,6 +57,7 @@ public partial class ReferralLinksPage : ContentPage
 
   private void OnRemainingItemsThresholdReached(object? sender, EventArgs e)
   {
+    FeedPaginationControl.TryLoadAutomatically();
     LinksPaginationControl.TryLoadAutomatically();
     AnalyticsPaginationControl.TryLoadAutomatically();
   }

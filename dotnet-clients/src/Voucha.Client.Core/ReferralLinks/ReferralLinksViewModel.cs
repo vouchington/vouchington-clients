@@ -87,25 +87,6 @@ public sealed partial class ReferralLinksViewModel : ObservableObject, IDisposab
     set => linksEndCursor = value;
   }
 
-  public async Task LoadFeedAsync(
-      bool mutual = false,
-      CancellationToken cancellationToken = default)
-  {
-    var currentRequest = BeginLoad();
-    await ClientLoadAttempt.RunAsync(
-        async () =>
-        {
-          var response = await referralLinksService
-              .FetchFeedAsync(
-                  new FetchReferralLinksFeedRequest(mutual ? "mutual_follows" : "follow_users"),
-                  cancellationToken)
-              .ConfigureAwait(true);
-          CompleteReferralRows(currentRequest, response.Results.Select(RowFromFeed).ToArray());
-        },
-        () => CompleteCanceled(currentRequest),
-        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
-  }
-
   public async Task LoadPrioritizedAsync(
       string referralProgramId,
       bool all = false,
