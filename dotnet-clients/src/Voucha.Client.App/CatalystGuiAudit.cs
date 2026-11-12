@@ -29,6 +29,8 @@ internal sealed class CatalystGuiAudit
 
   internal void Activate(string canonicalPath) => store.Activate(canonicalPath);
 
+  internal void Deactivate() => store.Deactivate();
+
   internal void Focus(string? automationId, bool succeeded) => store.Dispatch(new JsonObject
   {
     ["kind"] = "focus",

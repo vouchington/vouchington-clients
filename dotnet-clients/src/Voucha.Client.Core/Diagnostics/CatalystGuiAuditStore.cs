@@ -16,7 +16,8 @@ public sealed class CatalystGuiAuditStore
     this.path = path;
     report = new JsonObject
     {
-      ["schemaVersion"] = 1,
+      ["schemaVersion"] = 2,
+      ["notificationRouteActive"] = false,
       ["initialPreferences"] = initialPreferences.DeepClone(),
       ["patches"] = new JsonArray(),
       ["activations"] = new JsonArray(),
@@ -67,6 +68,7 @@ public sealed class CatalystGuiAuditStore
     ArgumentNullException.ThrowIfNull(canonicalPath);
     lock (gate)
     {
+      report["notificationRouteActive"] = true;
       activationId++;
       report["activations"]!.AsArray().Add(new JsonObject
       {
@@ -74,6 +76,25 @@ public sealed class CatalystGuiAuditStore
         ["canonicalPath"] = canonicalPath,
       });
       Write();
+    }
+  }
+
+  public void Deactivate()
+  {
+    lock (gate)
+    {
+      if (!report["notificationRouteActive"]!.GetValue<bool>()) return;
+      report["notificationRouteActive"] = false;
+      var written = false;
+      try
+      {
+        Write();
+        written = true;
+      }
+      finally
+      {
+        if (!written) report["notificationRouteActive"] = true;
+      }
     }
   }
 

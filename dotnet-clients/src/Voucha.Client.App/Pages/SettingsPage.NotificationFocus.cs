@@ -21,6 +21,9 @@ public partial class SettingsPage
     if (priorEpoch != notificationRouteEpoch.Value) notificationAccessibility.Deactivate();
     notificationSettingsFocused = notificationRouteApplied;
     ApplyNotificationSettingsFocus();
+#if DEBUG
+    if (!notificationRouteApplied) CatalystGuiAudit.Current?.Deactivate();
+#endif
   }
 
   public Task ApplyRouteMatchAsync(NativeRouteMatch? match)

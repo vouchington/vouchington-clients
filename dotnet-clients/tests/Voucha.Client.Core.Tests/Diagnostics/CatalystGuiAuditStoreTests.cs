@@ -25,7 +25,7 @@ public sealed class CatalystGuiAuditStoreTests : IDisposable
     store.Activate("/my/notification-settings");
 
     var report = Report();
-    Assert.Equal(1, report["schemaVersion"]!.GetValue<int>());
+    Assert.Equal(2, report["schemaVersion"]!.GetValue<int>());
     Assert.True(JsonNode.DeepEquals(initial, report["initialPreferences"]));
     var patch = Assert.IsType<JsonObject>(Assert.Single(report["patches"]!.AsArray()));
     Assert.Equal("engagement", Assert.Single(patch["fields"]!.AsArray())!.GetValue<string>());
@@ -34,6 +34,43 @@ public sealed class CatalystGuiAuditStoreTests : IDisposable
     Assert.Equal("preserve", patch["after"]!["hidden"]!.GetValue<string>());
     Assert.Empty(report["accessibilityDispatches"]!.AsArray());
     Assert.False(File.Exists(AuditPath + ".tmp"));
+  }
+
+  [Fact]
+  public void RouteDeparturePersistsWithoutInventingAnotherActivation()
+  {
+    var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
+    Assert.False(Report()["notificationRouteActive"]!.GetValue<bool>());
+    store.Activate("/my/notification-settings");
+    Assert.True(Report()["notificationRouteActive"]!.GetValue<bool>());
+
+    store.Deactivate();
+    var departed = File.ReadAllText(AuditPath);
+    Assert.False(Report()["notificationRouteActive"]!.GetValue<bool>());
+    Assert.Single(Report()["activations"]!.AsArray());
+    store.Deactivate();
+    Assert.Equal(departed, File.ReadAllText(AuditPath));
+
+    store.Activate("/my/notification-settings");
+    var returned = Report();
+    Assert.True(returned["notificationRouteActive"]!.GetValue<bool>());
+    Assert.Equal([1, 2], returned["activations"]!.AsArray().Select(value => value!["activationId"]!.GetValue<int>()));
+    Assert.Empty(returned["accessibilityDispatches"]!.AsArray());
+    Assert.False(File.Exists(AuditPath + ".tmp"));
+  }
+
+  [Fact]
+  public void FailedDepartureCanBeRetriedWithoutLosingPersistedEvidence()
+  {
+    var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
+    store.Activate("/my/notification-settings");
+    Directory.Delete(directory, recursive: true);
+    Assert.Throws<DirectoryNotFoundException>(() => store.Deactivate());
+    Directory.CreateDirectory(directory);
+
+    store.Deactivate();
+    Assert.False(Report()["notificationRouteActive"]!.GetValue<bool>());
+    Assert.Single(Report()["activations"]!.AsArray());
   }
 
   [Fact]

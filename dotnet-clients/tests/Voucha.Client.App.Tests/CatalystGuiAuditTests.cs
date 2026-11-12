@@ -31,7 +31,7 @@ public sealed class CatalystGuiAuditTests : IDisposable
     expected["is_engagement_emails_enabled"] = false;
     Assert.True(JsonNode.DeepEquals(expected, persisted));
     var report = Report();
-    Assert.Equal(1, report["schemaVersion"]!.GetValue<int>());
+    Assert.Equal(2, report["schemaVersion"]!.GetValue<int>());
     Assert.True(JsonNode.DeepEquals(original, report["initialPreferences"]));
     var patch = Assert.IsType<JsonObject>(Assert.Single(report["patches"]!.AsArray()));
     Assert.Equal(["is_engagement_emails_enabled"], patch["fields"]!.AsArray().Select(field => field!.GetValue<string>()));
@@ -104,6 +104,22 @@ public sealed class CatalystGuiAuditTests : IDisposable
     Assert.True(dispatches[1]!["succeeded"]!.GetValue<bool>());
     Assert.Equal("Paramètres de notification ouverts", dispatches[2]!["text"]!.GetValue<string>());
     Assert.Equal("announcement", dispatches[4]!["kind"]!.GetValue<string>());
+  }
+
+  [Fact]
+  public void DepartureAdapterPersistsRouteStateAndAllowsReturnActivation()
+  {
+    var audit = CatalystGuiAudit.Create(true, ResultPath, new JsonObject())!;
+    Assert.False(Report()["notificationRouteActive"]!.GetValue<bool>());
+    audit.Activate("/my/notification-settings");
+    Assert.True(Report()["notificationRouteActive"]!.GetValue<bool>());
+
+    audit.Deactivate();
+    Assert.False(Report()["notificationRouteActive"]!.GetValue<bool>());
+    Assert.Single(Report()["activations"]!.AsArray());
+    audit.Activate("/my/notification-settings");
+    Assert.True(Report()["notificationRouteActive"]!.GetValue<bool>());
+    Assert.Equal(2, Report()["activations"]!.AsArray().Count);
   }
 
   [Fact]
