@@ -18,6 +18,8 @@
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml" Link="Pages/TurnstileChallengePage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml.cs" Link="Pages/TurnstileChallengePage.xaml.cs" />
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PublicLandingPagePage.cs" Link="Pages/PublicLandingPagePage.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/LandingPages/PublicLandingPageTestSupport.cs" Link="TestSupport/PublicLandingPageTestSupport.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityBrowsePage.cs" Link="Pages/CommunityBrowsePage.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PlacementImageSourceConverter.cs" Link="Pages/PlacementImageSourceConverter.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ProfilePage.ImagePreview.cs" Link="Pages/ProfilePage.ImagePreview.cs" />

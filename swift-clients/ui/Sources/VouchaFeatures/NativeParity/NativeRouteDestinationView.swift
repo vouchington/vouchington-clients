@@ -92,6 +92,8 @@ struct NativeRouteDestinationSurface: View {
                 scrollContent
             }
         }
+        .onAppear { viewModel.beginProductSurfaceActivation() }
+        .onDisappear { viewModel.endProductSurfaceActivation() }
         .onChange(of: isSignedIn) { _, _ in rebuildViewModels() }
         .onChange(of: currentUserId) { _, _ in rebuildViewModels() }
         .onChange(of: isAdministrator) { _, _ in rebuildViewModels() }
@@ -101,6 +103,7 @@ struct NativeRouteDestinationSurface: View {
         }
         .task(id: authLoadTaskId) {
             guard shouldLoadRouteSurfaceContent else { return }
+            viewModel.beginProductSurfaceActivation()
             await viewModel.load()
         }
         .emailVerificationRecovery(

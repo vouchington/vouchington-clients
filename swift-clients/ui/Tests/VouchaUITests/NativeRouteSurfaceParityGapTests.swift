@@ -105,8 +105,11 @@ final class NativeRouteSurfaceParityGapTests: NativeRouteSurfaceViewModelTestCas
 
     private var landingPageData: Data {
         Data(
-            #"{"landing_page":{"id":"page-1","title":"Bonus","subtitle":"Public","slug":"bonus","is_default":false}}"#
-                .utf8
+            #"""
+            {"user":{"username":"alice"},"landing_page":{"id":"page-1","title":"Bonus","subtitle":"Public","slug":"bonus","is_default":false,"items":[],
+            "user_id":"user-1","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
+            """#
+            .utf8
         )
     }
 

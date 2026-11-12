@@ -5,6 +5,7 @@ manifest entries justified by current native code. Rows under Open decisions are
 answered here.
 
 Audit date: 2026-10-21, stacked on the in-app display-metadata change for #71.
+Analytics declarations updated 2026-11-11 for #478.
 
 ## Required-reason APIs
 
@@ -75,21 +76,32 @@ linked from the iOS and macOS app targets and is not started when `VOUCHA_SENTRY
 is empty. Package manifests declare no collected data types; collection is an app-level
 claim.
 
-Each row is linked to the account, not used for tracking, and declared only for app
-functionality.
+Each row is linked to the account and not used for tracking. Product interaction is
+declared for analytics; user ID is declared for both app functionality and analytics.
+The other rows retain the app-functionality purpose.
 
-| Manifest type                                | Source                                                                                                                                        |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NSPrivacyCollectedDataTypeEmailAddress`     | Settings email-address verification and the email shown for a signed-in account.                                                              |
-| `NSPrivacyCollectedDataTypeUserID`           | Account id, username, and `displayName` sent and shown for the signed-in member.                                                              |
-| `NSPrivacyCollectedDataTypeDeviceID`         | Server `dt` device token persisted as a cookie in `APIClient+Session.swift`, and the App Attest key sent to `/api/v1/app-attestation/attest`. |
-| `NSPrivacyCollectedDataTypePhotosorVideos`   | User-selected images uploaded from `fileImporter` surfaces (profile, post compose, topic image).                                              |
-| `NSPrivacyCollectedDataTypeOtherUserContent` | Posts, comments, and other member-authored content sent to the API.                                                                           |
-| `NSPrivacyCollectedDataTypeCrashData`        | Sentry crash reports, only after a DSN is configured. The attached user is the opaque account id.                                             |
-| `NSPrivacyCollectedDataTypePerformanceData`  | Sentry performance traces at the configured sample rate, only after a DSN is configured.                                                      |
+| Manifest type                                  | Source                                                                                                                                              |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NSPrivacyCollectedDataTypeEmailAddress`       | Settings email-address verification and the email shown for a signed-in account.                                                                    |
+| `NSPrivacyCollectedDataTypeUserID`             | Account id, username, and `displayName` sent and shown for the signed-in member.                                                                    |
+| `NSPrivacyCollectedDataTypeProductInteraction` | Signed-in public landing-page visits and item activations, RSS source views, and focused RSS item views through the existing first-party endpoints. |
+| `NSPrivacyCollectedDataTypeDeviceID`           | Server `dt` device token persisted as a cookie in `APIClient+Session.swift`, and the App Attest key sent to `/api/v1/app-attestation/attest`.       |
+| `NSPrivacyCollectedDataTypePhotosorVideos`     | User-selected images uploaded from `fileImporter` surfaces (profile, post compose, topic image).                                                    |
+| `NSPrivacyCollectedDataTypeOtherUserContent`   | Posts, comments, and other member-authored content sent to the API.                                                                                 |
+| `NSPrivacyCollectedDataTypeCrashData`          | Sentry crash reports, only after a DSN is configured. The attached user is the opaque account id.                                                   |
+| `NSPrivacyCollectedDataTypePerformanceData`    | Sentry performance traces at the configured sample rate, only after a DSN is configured.                                                            |
 
 `NSPrivacyCollectedDataTypePhotosorVideos` is Apple's manifest identifier, including
 the lowercase "or".
+
+The analytics requests use the existing authenticated session for account attribution;
+they do not add email, username, IP address, or free-form content properties. Signed-out
+views send no analytics request. No installation identifier or app-open event is added.
+The product-interaction category and analytics purpose follow Apple's
+[collected-data types](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype)
+and [collection purposes](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatypepurposes).
+These source declarations do not establish a signed archive privacy report or an App
+Store Connect submission.
 
 ## Export compliance
 
@@ -114,9 +126,10 @@ These are not encoded as final nutrition-label or review answers.
 - Session cookie `st`. It is an account session credential stored beside `dt`. It has
   no separate manifest type. Whether App Store Connect should describe it separately
   is open.
-- Tracking and diagnostics. Crash data and performance data are declared, linked to
-  the account, and not used for tracking. Product interaction beyond those performance
-  traces is not declared. An ads or attribution SDK would change the tracking flag.
+- Tracking and diagnostics. Crash data, performance data, and first-party product
+  interaction are declared, linked to the account, and not used for tracking.
+  App-open/foreground events and pre-sign-in installation-ID collection/linkage remain
+  owner and producer decisions. An ads or attribution SDK would change the tracking flag.
 - Age rating. The questionnaire is not answered.
 - Guideline 1.2. Members can report a post, comment, or detail
   (`NativeDetailSurface+Reporting.swift`, `NativeCommentThreadViewModel+Mutations.swift`).

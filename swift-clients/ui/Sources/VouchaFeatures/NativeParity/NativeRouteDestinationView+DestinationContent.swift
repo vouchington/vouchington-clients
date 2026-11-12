@@ -18,7 +18,14 @@ extension NativeRouteDestinationSurface {
                 if isOwnerLandingPageManagementRoute {
                     EmptyView()
                 } else {
-                    NativeListSurface(viewModel: viewModel)
+                    VStack {
+                        NativeListSurface(viewModel: viewModel)
+                        if let page = viewModel.publicLandingPage {
+                            NativePublicLandingItemsSurface(
+                                page: page, viewModel: viewModel, onNavigate: onNavigateToTargetPath
+                            )
+                        }
+                    }
                 }
             case .webSearch, .fediverseSearch:
                 NativeSearchSurface(

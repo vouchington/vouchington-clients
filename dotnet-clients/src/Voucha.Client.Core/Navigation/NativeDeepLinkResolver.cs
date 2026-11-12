@@ -86,7 +86,9 @@ public static partial class NativeDeepLinkResolver
     var requiresAuthentication = RequiresAuthentication(destinationId, match);
     var isPublicProfile = destinationId == NativeRouteDestinationId.UserProfile &&
         NativeUserProfileRoutePaths.IsSupportedMatch(match);
-    var visible = (isPublicProfile || IsVisible(intentId, requiresAuthentication, viewer)) &&
+    var isPublicLanding = destinationId == NativeRouteDestinationId.LandingPages &&
+        LandingPagesDeepLinkPolicy.TryGetPublicTarget(match, out _, out _);
+    var visible = (isPublicProfile || isPublicLanding || IsVisible(intentId, requiresAuthentication, viewer)) &&
         IsRouteVisible(destinationId, match, viewer);
     return new(NativeDeepLinkStatus.Included, pathAndQuery, entry, match, destinationId, intentId, requiresAuthentication, visible, null, viewer.IsAuthenticated);
   }
