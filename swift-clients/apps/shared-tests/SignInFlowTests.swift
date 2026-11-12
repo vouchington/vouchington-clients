@@ -80,11 +80,19 @@
             let matches = identifier.map { app.buttons.matching(identifier: $0) }
                 ?? app.buttons.matching(NSPredicate(format: "label == %@", label))
             var button: XCUIElement?
+            // Probing isHittable on a frameless duplicate (e.g. an offscreen copy) fails the test
+            // outright, so skip empty frames and only inspect every match when uniqueness matters.
+            let actionable: (XCUIElement) -> Bool = {
+                $0.label == label && !$0.frame.isEmpty && $0.isEnabled && $0.isHittable
+            }
             let ready = NSPredicate { _, _ in
-                let hittable = matches.allElementsBoundByIndex.filter {
-                    $0.isHittable && $0.isEnabled && $0.label == label
+                let candidates = matches.allElementsBoundByIndex
+                if requireUnique {
+                    let hittable = candidates.filter(actionable)
+                    button = hittable.count == 1 ? hittable.first : nil
+                } else {
+                    button = candidates.first(where: actionable)
                 }
-                button = (!requireUnique || hittable.count == 1) ? hittable.first : nil
                 return button != nil
             }
             wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
