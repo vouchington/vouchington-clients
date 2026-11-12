@@ -20,7 +20,7 @@ public extension APIClient {
             guard let copy = provided.copy() as? URLSessionConfiguration else {
                 preconditionFailure("API session configuration must support copying")
             }
-            // URLSession copies configuration values, while its in-memory cookie jar stays shared.
+            // Preserve the caller-selected canonical jar while copying transport settings.
             copy.httpCookieStorage = provided.httpCookieStorage
             copy.httpShouldSetCookies = false
             return copy

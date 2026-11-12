@@ -6,10 +6,11 @@ import XCTest
 final class APIClientCookiePersistenceTests: XCTestCase {
     private struct Empty: Decodable {}
 
-    func testProvidedConfigurationKeepsItsExactJarAndCopiesSettings() async throws {
+    func testProvidedConfigurationSelectsCanonicalJarAndCopiesTransportSettings() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         let jar = try XCTUnwrap(configuration.httpCookieStorage)
         configuration.timeoutIntervalForRequest = 17
+        configuration.httpShouldSetCookies = true
         configuration.protocolClasses = [CookiePersistenceURLProtocol.self]
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
@@ -21,7 +22,9 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         let storedJar = await client.cookieStorage
         let session = await client.session
         XCTAssertTrue(storedJar === jar)
-        XCTAssertTrue(session.configuration.httpCookieStorage === jar)
+        XCTAssertTrue(configuration.httpCookieStorage === jar)
+        XCTAssertTrue(configuration.httpShouldSetCookies)
+        XCTAssertNil(session.configuration.httpCookieStorage)
         XCTAssertEqual(session.configuration.timeoutIntervalForRequest, 17)
         let _: Empty = try await client.send(Endpoint(.GET, path: "/empty"))
     }
@@ -118,6 +121,7 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         async let response: Void = server.respondOnce()
         let _: Empty = try await client.send(Endpoint(.GET, path: "/response-cookie"))
         await response
+        XCTAssertEqual(jar.cookies?.first { $0.name == "response_session" }?.value, "updated")
         XCTAssertEqual(recorder.snapshots.last?["response_session"], "updated")
     }
 

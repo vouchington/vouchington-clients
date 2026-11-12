@@ -38,7 +38,7 @@
                 as? [String: [String: Any]]
             let jar = await client.cookieStorage
             let transport = await client.session
-            XCTAssertTrue(transport.configuration.httpCookieStorage === jar)
+            XCTAssertNil(transport.configuration.httpCookieStorage)
             XCTAssertFalse(transport.configuration.httpShouldSetCookies)
             let coordinator = await client.cookieCoordinator
             XCTAssertEqual(coordinator.stamp.revision, 1, "Sign-in must rotate before resolving identity")

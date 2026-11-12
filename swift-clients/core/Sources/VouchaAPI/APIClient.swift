@@ -54,6 +54,9 @@ public actor APIClient {
         }
         self.cookieStorage = configuredCookies
         cookieCoordinator = .shared(for: configuredCookies)
+        // The coordinator owns cookie writes. FoundationNetworking can mutate a
+        // configured jar despite disabled automatic-cookie flags, bypassing persistence.
+        sessionConfig.httpCookieStorage = nil
         if let protocolClasses {
             sessionConfig.protocolClasses = protocolClasses
         }
