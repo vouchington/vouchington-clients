@@ -2,9 +2,15 @@ import SwiftUI
 
 extension SourcesListView {
     var creationSheet: SourceCreationView {
+        creationSheet(isPresented: $showCreation)
+    }
+
+    func creationSheet(isPresented: Binding<Bool>) -> SourceCreationView {
         SourceCreationView(model: creationModel, navigate: { path in
-            showCreation = false
+            isPresented.wrappedValue = false
             navigateToSource(path)
+        }, close: {
+            isPresented.wrappedValue = false
         }, didDismiss: {
             let completed = creationModel
             let identity = creationIdentity()

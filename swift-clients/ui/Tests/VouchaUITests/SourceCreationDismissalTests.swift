@@ -49,12 +49,15 @@ final class SourceCreationDismissalTests: NativeRouteSurfaceViewModelTestCase {
         list.yourLoaded = true
         list.allLoaded = true
         let view = SourcesListView(viewModel: list, scope: .your, navigationTitle: "Sources")
-        let sheet = view.creationSheet
+        var presented = true
+        let sheet = view.creationSheet(isPresented: Binding(get: { presented }, set: { presented = $0 }))
         sheet.model.url = "https://example.com/feed"
         await sheet.model.create()
         CannedFeedURLProtocol.handlers[listPath] = (page, 200)
         let reloaded = expectation(description: "dismissal publishes created source")
         observeItems(list, completion: reloaded)
+        try cancelUsingRenderedControl(sheet)
+        XCTAssertFalse(presented)
         try sheet.inspect().form().callOnDisappear()
         await fulfillment(of: [reloaded], timeout: 2)
         XCTAssertNoThrow(try view.inspect().find(text: "Created source"))
@@ -62,6 +65,82 @@ final class SourceCreationDismissalTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(listPath), 1)
         try sheet.inspect().form().callOnDisappear()
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(listPath), 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count, 1)
+    }
+
+    private func cancelUsingRenderedControl(_ sheet: SourceCreationView) throws {
+        let button = try sheet.inspect().find(button: "Cancel")
+        XCTAssertFalse(button.isDisabled())
+        XCTAssertEqual(try button.role(), .cancel)
+        let content = try XCTUnwrap(Mirror(reflecting: button).children.first { $0.label == "content" }?.value)
+        let shortcut = try XCTUnwrap(keyboardShortcut(in: content))
+        XCTAssertEqual(shortcut.key, KeyEquivalent.escape)
+        XCTAssertEqual(shortcut.modifiers, [])
+        // Escape dispatches this button action through SwiftUI's cancelAction shortcut.
+        try button.tap()
+    }
+
+    private func keyboardShortcut(in value: Any, depth: Int = 0) -> KeyboardShortcut? {
+        if let shortcut = value as? KeyboardShortcut { return shortcut }
+        guard depth < 12 else { return nil }
+        for child in Mirror(reflecting: value).children {
+            if let shortcut = keyboardShortcut(in: child.value, depth: depth + 1) { return shortcut }
+        }
+        return nil
+    }
+
+    func testRenderedCancelClosesUnsubmittedAndTerminalFailureSheets() async throws {
+        for submitted in [false, true] {
+            CannedFeedURLProtocol.reset()
+            try registerCreation(outcome: .error)
+            let list = try SourcesListViewModel(client: makeClient(), userId: "account", feedType: "article")
+            list.yourLoaded = true
+            list.allLoaded = true
+            let view = SourcesListView(viewModel: list, scope: .your, navigationTitle: "Sources")
+            var presented = true
+            let sheet = view.creationSheet(isPresented: Binding(get: { presented }, set: { presented = $0 }))
+            if submitted {
+                sheet.model.url = "https://example.com/feed"
+                await sheet.model.create()
+                XCTAssertTrue(sheet.model.isTerminal)
+            }
+            try cancelUsingRenderedControl(sheet)
+            XCTAssertFalse(presented)
+            try sheet.inspect().form().callOnDisappear()
+            XCTAssertFalse(sheet.model.isWorking)
+            XCTAssertTrue(list.yourLoaded)
+            XCTAssertTrue(list.allLoaded)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(listPath), 0)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count, submitted ? 1 : 0)
+        }
+    }
+
+    func testRenderedCancelClosesAndFencesActivePollWithoutRefresh() async throws {
+        try registerCreation(pending: true)
+        let list = try SourcesListViewModel(client: makeClient(), userId: "account", feedType: "article")
+        list.yourLoaded = true
+        list.allLoaded = true
+        let view = SourcesListView(viewModel: list, scope: .your, navigationTitle: "Sources")
+        var presented = true
+        let sheet = view.creationSheet(isPresented: Binding(get: { presented }, set: { presented = $0 }))
+        let statusPath = "/api/v1/my/import/rss-feeds/batch"
+        CannedFeedURLProtocol.suspendResponse(path: statusPath)
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: statusPath, method: "GET")
+        sheet.model.url = "https://example.com/feed"
+        let operation = Task { await sheet.model.create() }
+        _ = try await barrier.wait()
+        XCTAssertTrue(sheet.model.isWorking)
+        try cancelUsingRenderedControl(sheet)
+        XCTAssertFalse(presented)
+        XCTAssertFalse(sheet.model.isWorking)
+        try sheet.inspect().form().callOnDisappear()
+        CannedFeedURLProtocol.releaseOldestResponse(path: statusPath)
+        await operation.value
+        XCTAssertFalse(sheet.model.isWorking)
+        XCTAssertNil(sheet.model.currentDestination)
+        XCTAssertTrue(list.yourLoaded)
+        XCTAssertTrue(list.allLoaded)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(listPath), 0)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count, 1)
     }
 

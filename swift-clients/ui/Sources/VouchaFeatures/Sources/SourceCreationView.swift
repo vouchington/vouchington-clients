@@ -5,10 +5,16 @@ struct SourceCreationView: View {
     @Environment(\.locale) var locale
     @Bindable var model: SourceCreationViewModel
     var navigate: (String) -> Void
+    var close: () -> Void
     var didDismiss: () -> Void = {}
 
     var body: some View {
         Form {
+            Button(UiMessages.string(.nativeSwiftCommonCancel, locale: locale), role: .cancel) {
+                model.cancel()
+                close()
+            }
+            .keyboardShortcut(.cancelAction)
             TextField(UiMessages.string(.nativeSwiftHouseholdsBookmarksUrl, locale: locale), text: $model.url)
                 .disabled(model.submitted || model.isWorking || model.isTerminal)
             Button(UiMessages.string(.nativeSwiftCommonCreate, locale: locale)) {

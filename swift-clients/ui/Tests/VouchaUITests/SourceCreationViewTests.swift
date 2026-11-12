@@ -50,7 +50,7 @@ final class SourceCreationViewTests: XCTestCase {
             identity: { "a" },
             delay: {}
         )
-        let view = SourceCreationView(model: model, navigate: { _ in })
+        let view = SourceCreationView(model: model, navigate: { _ in }, close: {})
         try view.inspect().find(ViewType.TextField.self).setInput("https://example.com/feed")
         try view.inspect().find(button: "Create").tap()
         await gate.wait()

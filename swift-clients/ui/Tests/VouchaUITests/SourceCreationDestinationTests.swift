@@ -64,7 +64,7 @@ final class SourceCreationDestinationTests: XCTestCase {
         let model = makeModel(script)
         await model.create()
         var path: String?
-        let view = SourceCreationView(model: model, navigate: { path = $0 })
+        let view = SourceCreationView(model: model, navigate: { path = $0 }, close: {})
         try view.inspect().find(button: "Open source").tap()
         XCTAssertEqual(path, "/source/canonical-source")
         let counts = await (script.posts, script.lookups)
@@ -83,7 +83,7 @@ final class SourceCreationDestinationTests: XCTestCase {
             withObservationTracking { _ = model.destination } onChange: {
                 Task { @MainActor in completed.fulfill() }
             }
-            let view = SourceCreationView(model: model, navigate: { _ in })
+            let view = SourceCreationView(model: model, navigate: { _ in }, close: {})
             try view.inspect().find(button: "Try status again").tap()
             await fulfillment(of: [completed], timeout: 2)
             XCTAssertEqual(model.currentDestination, "/source/resolved-topic")
@@ -110,7 +110,7 @@ final class SourceCreationDestinationTests: XCTestCase {
         let model = makeModel(script)
         await model.create()
         XCTAssertFalse(model.isTerminal)
-        XCTAssertNoThrow(try SourceCreationView(model: model, navigate: { _ in }).inspect()
+        XCTAssertNoThrow(try SourceCreationView(model: model, navigate: { _ in }, close: {}).inspect()
             .find(button: "Try status again"))
         let counts = await (script.posts, script.lookups)
         XCTAssertEqual(counts.0, 1)

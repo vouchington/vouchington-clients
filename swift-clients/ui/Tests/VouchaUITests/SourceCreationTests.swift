@@ -210,7 +210,7 @@ final class SourceCreationTests: XCTestCase {
         let model = model(SourceCreationScript([status(.sourceCreated, pending: 0)]), identity: { account })
         await model.create()
         var destination: String?
-        let view = SourceCreationView(model: model, navigate: { destination = $0 })
+        let view = SourceCreationView(model: model, navigate: { destination = $0 }, close: {})
         let retainedButton = try view.inspect().find(button: "Open source")
         XCTAssertNotNil(model.currentDestination)
         account = "b"
@@ -228,7 +228,7 @@ final class SourceCreationTests: XCTestCase {
         let model = model(SourceCreationScript([status(.sourceCreated, pending: 0)]))
         await model.create()
         var destination: String?
-        let view = SourceCreationView(model: model, navigate: { destination = $0 })
+        let view = SourceCreationView(model: model, navigate: { destination = $0 }, close: {})
         XCTAssertNoThrow(try view.inspect().find(text: "Source created"))
         try view.inspect().find(button: "Open source").tap()
         XCTAssertEqual(destination, "/source/topic-1")
