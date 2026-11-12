@@ -53,6 +53,8 @@ final class SourceCreationFencingTests: XCTestCase {
             await model.create()
             XCTAssertNil(model.importId)
             XCTAssertTrue(model.submitted)
+            XCTAssertTrue(model.isTerminal)
+            XCTAssertNotNil(model.message)
             XCTAssertFalse(model.isWorking)
         }
     }

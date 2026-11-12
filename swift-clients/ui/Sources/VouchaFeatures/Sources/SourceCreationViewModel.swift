@@ -46,6 +46,10 @@ final class SourceCreationViewModel {
     func cancel() {
         generation += 1
         isWorking = false
+        if submitted, importId == nil {
+            isTerminal = true
+            message = .message(.nativeSwiftImportExportUnknownError)
+        }
     }
 
     func reset() {
