@@ -46,6 +46,14 @@ public sealed partial class SourceCreationViewModel
         importId = submission.Import.Id;
         summary = submission.Import;
         var expected = $"/api/v1/my/import/rss-feeds/{Uri.EscapeDataString(importId)}";
+        var raw = submission.StatusUrl.OriginalString;
+        var rawPath = raw;
+        if (submission.StatusUrl.IsAbsoluteUri)
+        {
+          var pathStart = raw.IndexOf('/', raw.IndexOf("://", StringComparison.Ordinal) + 3);
+          rawPath = pathStart < 0 ? string.Empty : raw[pathStart..];
+        }
+        if (rawPath != expected || raw.Contains('\\', StringComparison.Ordinal) || raw != raw.Trim()) throw new InvalidOperationException();
         var status = new Uri(origin, submission.StatusUrl);
         if (string.IsNullOrWhiteSpace(importId) || status.GetLeftPart(UriPartial.Authority) != origin.GetLeftPart(UriPartial.Authority) ||
             status.PathAndQuery != expected || status.Fragment.Length != 0 || status.UserInfo.Length != 0)
@@ -63,7 +71,7 @@ public sealed partial class SourceCreationViewModel
           throw new InvalidOperationException();
         if (status.Import.IsTerminal() && status.Rows[0].Status != Api.ImportResultStatus.Pending && (status.Import.PendingRows != 0 ||
             (status.Rows[0].IsTerminalFailure() ? status.Import.FailedRows != 1 :
-              status.Import.FailedRows != 0 || status.Import.CompletedRows != 1)))
+              status.Import.FailedRows != 0 || status.Import.CompletedRows + status.Import.SkippedRows != 1)))
           throw new InvalidOperationException();
         summary = status.Import;
         result = status.Rows[0];

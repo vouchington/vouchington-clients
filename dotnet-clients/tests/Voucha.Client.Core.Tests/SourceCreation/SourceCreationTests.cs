@@ -74,6 +74,74 @@ public sealed class SourceCreationTests
   }
 
   [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task RawDotSegmentsCannotNormalizeIntoAcceptedStatusPath(bool absolute)
+  {
+    var service = new FakeService();
+    var id = service.Submission.Import.Id;
+    var path = $"/api/v1/my/import/rss-feeds/{id}/../{id}";
+    service.Submission = service.Submission with
+    {
+      StatusUrl = new Uri(absolute ? "https://api.test" + path : path, UriKind.RelativeOrAbsolute),
+    };
+    using var model = Model(service);
+    model.Input = "https://example.test/feed.xml";
+    await model.CreateAsync();
+    Assert.NotNull(model.Error);
+    Assert.False(model.CanRetry);
+    await model.CreateAsync();
+    Assert.Equal(1, service.Posts);
+    Assert.Equal(0, service.Gets);
+  }
+
+  [Theory]
+  [InlineData("https://evil.test", "")]
+  [InlineData("https://api.test", "?extra=1")]
+  [InlineData("https://api.test", "#fragment")]
+  [InlineData("https://api.test", "\\..\\ignored")]
+  public async Task UnsafeStatusMetadataCannotReadOrRepeatCreation(string authority, string suffix)
+  {
+    var service = new FakeService();
+    service.Submission = service.Submission with
+    {
+      StatusUrl = new Uri(authority + service.Submission.StatusUrl.OriginalString + suffix),
+    };
+    using var model = Model(service);
+    model.Input = "https://example.test/feed.xml";
+    await model.CreateAsync();
+    Assert.NotNull(model.Error);
+    await model.RetryAsync();
+    await model.CreateAsync();
+    Assert.Equal(1, service.Posts);
+    Assert.Equal(0, service.Gets);
+  }
+
+  [Fact]
+  public async Task AbsoluteSameOriginExactStatusPathCanReconcileExistingFollow()
+  {
+    var completed = Status("completed");
+    var service = new FakeService
+    {
+      DefaultStatus = completed with
+      {
+        Import = completed.Import with { CompletedRows = 0, SkippedRows = 1 },
+        Rows = [completed.Rows[0] with { Status = ImportResultStatus.AlreadyFollowing }],
+      },
+    };
+    service.Submission = service.Submission with { StatusUrl = new Uri(service.ApiOrigin, service.Submission.StatusUrl) };
+    using var model = Model(service);
+    model.Input = "https://example.test/feed.xml";
+    await model.CreateAsync();
+    Assert.True(model.CanOpen);
+    Assert.Equal(completed.Rows[0].EntityId, model.EntityId);
+    Assert.Equal("Already following", model.Status);
+    Assert.Null(model.Error);
+    Assert.Equal(1, service.Posts);
+    Assert.Equal(1, service.Gets);
+  }
+
+  [Theory]
   [InlineData(null)]
   [InlineData("")]
   [InlineData("bad")]
