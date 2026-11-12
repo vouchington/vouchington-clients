@@ -106,13 +106,15 @@ public sealed partial class ImportExportViewModel : ObservableObject, IDisposabl
   }
   public IReadOnlyList<ImportResultPresentation> PresentationResults =>
       Results.Select(result => new ImportResultPresentation(result, localization)).ToArray();
-  public RssFeedImportSummary? Progress { get => progress; private set { if (SetProperty(ref progress, value)) { OnPropertyChanged(nameof(CanResume)); OnPropertyChanged(nameof(CanRetryStatus)); OnPropertyChanged(nameof(ProgressValue)); } } }
+  public RssFeedImportSummary? Progress { get => progress; private set { if (SetProperty(ref progress, value)) { OnPropertyChanged(nameof(CanResume)); OnPropertyChanged(nameof(CanRetryStatus)); OnPropertyChanged(nameof(ProgressValue)); OnPropertyChanged(nameof(HasPartialFailures)); } } }
   public ExportDocument? ExportDocument { get { lock (exportDocumentLock) return exportDocument; } }
   public bool HasExportDocument => ExportDocument is not null;
   public bool CanImport => !IsBusy && !IsMonitoring;
   public bool CanExport => !IsBusy && !IsMonitoring;
   public bool CanCancelActiveOperation => IsBusy || IsMonitoring;
-  public bool HasPartialFailures => Results.Any(result => result.IsTerminalFailure()) && Results.Any(result => !result.IsTerminalFailure());
+  public bool HasPartialFailures => Progress is { } summary
+      ? summary.FailedRows > 0 && summary.CompletedRows > 0
+      : Results.Any(result => result.IsTerminalFailure()) && Results.Any(result => !result.IsTerminalFailure());
   public bool IsTopics => Context.Owner == ImportExportOwner.Topics;
   public bool IsSources => Context.Owner == ImportExportOwner.Sources;
   public double ProgressValue => Progress is { TotalRows: > 0 } value

@@ -11,6 +11,7 @@ public enum ImportResultStatus
   SourceCreated,
   RecommendationCreated,
   AlreadyFollowing,
+  Skipped,
   Error,
 }
 
@@ -24,6 +25,10 @@ public enum RssFeedImportErrorCode
   FeedFetchTimeout,
   [JsonStringEnumMemberName("CONTRIBUTION_LIMIT_EXCEEDED")]
   ContributionLimitExceeded,
+  [JsonStringEnumMemberName("ACCOUNT_SUSPENDED")]
+  AccountSuspended,
+  [JsonStringEnumMemberName("RELATION_LIMIT_REACHED")]
+  RelationLimitReached,
   [JsonStringEnumMemberName("IMPORT_FAILED")]
   ImportFailed,
 }

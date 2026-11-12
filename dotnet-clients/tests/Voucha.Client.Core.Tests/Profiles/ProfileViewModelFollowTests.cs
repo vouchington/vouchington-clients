@@ -1,3 +1,5 @@
+using System.Net;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Api;
 using Xunit;
 
@@ -5,6 +7,24 @@ namespace Voucha.Client.Core.Tests.Profiles;
 
 public sealed partial class ProfileViewModelSafetyTests
 {
+  [Fact]
+  public async Task RelationLimitRefusalRestoresFollowAction()
+  {
+    var safety = new RecordingProfileSafetyService
+    {
+      SetException = new VouchaApiException(HttpStatusCode.Conflict,
+          "{\"error\":{\"code\":\"RELATION_LIMIT_REACHED\"}}"),
+    };
+    var model = NewViewModel(new User("user-2", "bob", "Hello"), safety);
+    model.SetCurrentViewer("user-1", "alice");
+    await model.LoadPublicAsync("bob", cancellationToken: TestContext.Current.CancellationToken);
+    await model.ToggleFollowUserAsync(TestContext.Current.CancellationToken);
+    Assert.False(model.IsFollowingUser);
+    Assert.True(model.CanFollowUser);
+    Assert.False(model.CanUnfollowUser);
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpActionFailed), model.ErrorMessage);
+  }
+
   [Fact]
   public async Task SignedOutProfileShowsFollowAuthenticationActionOnly()
   {
