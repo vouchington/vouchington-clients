@@ -56,6 +56,8 @@ public struct RootView: View {
     @State
     var showingSignIn = false
     @State
+    var nativeChatMCPConnectTask: Task<Void, Never>?
+    @State
     var podcastPlaybackController: PodcastPlaybackController
     @Environment(\.openURL)
     var openURL
@@ -107,10 +109,7 @@ public struct RootView: View {
             }
             .task {
                 await restoreSessionAndNativeAuthorizationsOnLaunch()
-                await viewModelFactory.nativeChatMCPSession?.useAccount(
-                    viewModelFactory.sessionManager.currentUserId
-                )
-                try? await viewModelFactory.nativeChatMCPSession?.connect()
+                startNativeChatMCPConnect(for: viewModelFactory.sessionManager.currentUserId)
                 await refreshLocalization()
                 await refreshFeatureFlags()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
@@ -122,11 +121,7 @@ public struct RootView: View {
             }
             .onChange(of: viewModelFactory.sessionManager.currentUserId) { _, accountId in
                 viewModelFactory.mutationChallengeBroker.cancel()
-                Task {
-                    guard accountId == viewModelFactory.sessionManager.currentUserId else { return }
-                    await viewModelFactory.nativeChatMCPSession?.useAccount(accountId)
-                    try? await viewModelFactory.nativeChatMCPSession?.connect()
-                }
+                startNativeChatMCPConnect(for: accountId)
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }

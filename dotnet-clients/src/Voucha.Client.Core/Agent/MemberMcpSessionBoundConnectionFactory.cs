@@ -6,9 +6,13 @@ namespace Voucha.Client.Core.Agent;
 /// <summary>Creates session-bound MCP connections; no OAuth discovery or browser is involved.</summary>
 public sealed class MemberMcpSessionBoundConnectionFactory(
     Uri siteOrigin, VouchaApiClient api, ISessionStore sessionStore,
-    Func<HttpMessageHandler>? createHandler = null, string clientApp = "windows")
+    Func<HttpMessageHandler>? createHandler = null, string clientApp = "windows",
+    IMemberMcpSessionConnectionFactory? legacyGrantRevocationFactory = null)
     : IMemberMcpSessionConnectionFactory
 {
+  /// <summary>Revokes grants a retired browser authorization left behind; never opens a browser.</summary>
+  public IMemberMcpSessionConnectionFactory? LegacyGrantRevocationFactory => legacyGrantRevocationFactory;
+
   public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken)
   {
     cancellationToken.ThrowIfCancellationRequested();

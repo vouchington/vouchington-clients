@@ -89,8 +89,8 @@ final class MemberMCPSessionTokenSourceTests: XCTestCase {
         _ = try await source(signer: Signer()).accessToken()
 
         let headers = try XCTUnwrap(SessionMCPMintProtocol.seen(host: host).first).headers
-        XCTAssertEqual(headers[RequestSignatureHeader.keyId], "key-1")
-        XCTAssertEqual(headers[RequestSignatureHeader.assertion], "assertion-1")
+        XCTAssertEqual(headers[RequestSignatureHeader.keyId.lowercased()], "key-1")
+        XCTAssertEqual(headers[RequestSignatureHeader.assertion.lowercased()], "assertion-1")
     }
 
     func testMintsAgainAfterExpiry() async throws {

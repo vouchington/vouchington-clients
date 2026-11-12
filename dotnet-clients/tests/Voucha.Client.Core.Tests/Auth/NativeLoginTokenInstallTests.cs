@@ -32,7 +32,7 @@ public sealed class NativeLoginTokenInstallTests
     var device = Jwt("device");
     var session = Jwt("session", TimeSpan.FromMinutes(10));
 
-    await jar.InstallNativeLoginTokensAsync(device, session, TestContext.Current.CancellationToken);
+    await jar.InstallNativeLoginTokensAsync(device, session, cancellationToken: TestContext.Current.CancellationToken);
 
     var cookies = container.GetCookies(ApiBaseUrl);
     Assert.Equal(device, cookies["dt"]?.Value);
@@ -54,7 +54,7 @@ public sealed class NativeLoginTokenInstallTests
     var revision = jar.CredentialRevision;
 
     await jar.InstallNativeLoginTokensAsync(
-        "fixture-device-jwt", "fixture-session-jwt", TestContext.Current.CancellationToken);
+        "fixture-device-jwt", "fixture-session-jwt", cancellationToken: TestContext.Current.CancellationToken);
 
     Assert.Equal(revision, jar.CredentialRevision);
     Assert.Equal(0, persistence.WriteCount);
@@ -71,7 +71,7 @@ public sealed class NativeLoginTokenInstallTests
     var jar = new SessionCookieJar(container, ApiBaseUrl, persistence);
 
     await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-        jar.InstallNativeLoginTokensAsync(Jwt("device"), bad, TestContext.Current.CancellationToken));
+        jar.InstallNativeLoginTokensAsync(Jwt("device"), bad, cancellationToken: TestContext.Current.CancellationToken));
 
     Assert.Empty(container.GetCookies(ApiBaseUrl));
     Assert.Equal(0, persistence.WriteCount);
@@ -84,46 +84,130 @@ public sealed class NativeLoginTokenInstallTests
 
     await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
         jar.InstallNativeLoginTokensAsync(
-            Jwt("device", TimeSpan.FromSeconds(-30)), Jwt("session"), TestContext.Current.CancellationToken));
+            Jwt("device", TimeSpan.FromSeconds(-30)), Jwt("session"), cancellationToken: TestContext.Current.CancellationToken));
+  }
+
+  private sealed class Stack : IDisposable
+  {
+    private const string RefreshBody =
+        """{"session":{"dt":"rotated-dt","st":"rotated-st","dte":3600,"ste":900,"secure":true,"uid":"user-1","session":{"uid":"user-1","client":"dotnet"}}}""";
+    private readonly HttpClient http;
+
+    public Stack(string loginBody, Func<Task>? beforeLoginResponse = null)
+    {
+      Container = new CookieContainer();
+      Persistence = new TestSessionCookiePersistence();
+      Jar = new SessionCookieJar(Container, ApiBaseUrl, Persistence);
+      Terminal = new Terminal(loginBody, RefreshBody, beforeLoginResponse);
+      http = new HttpClient(new ClientMetadataHandler(
+          new ClientMetadata(ClientPlatform.Windows, "1.0"), ApiBaseUrl, Jar,
+          new SessionCookiePersistenceHandler(Jar, Terminal)))
+      { BaseAddress = ApiBaseUrl };
+      Client = new VouchaApiClient(http);
+      Store = new CookieSessionStore(Client, Jar);
+      Service = new AuthenticationService(Client, Store, new NoPasskeys());
+    }
+
+    public CookieContainer Container { get; }
+    public TestSessionCookiePersistence Persistence { get; }
+    public SessionCookieJar Jar { get; }
+    public Terminal Terminal { get; }
+    public VouchaApiClient Client { get; }
+    public CookieSessionStore Store { get; }
+    public AuthenticationService Service { get; }
+
+    public void Dispose()
+    {
+      http.Dispose();
+      Jar.Dispose();
+    }
   }
 
   [Fact]
   public async Task VerifyEmailOtpInstallsBodyTokensBeforeRefreshingTheSession()
   {
-    var container = new CookieContainer();
     var device = Jwt("device");
     var session = Jwt("session");
-    var handler = new RecordingHandler(LoginBody(device, session), device, session);
-    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = ApiBaseUrl });
-    var store = new CookieSessionStore(
-        client, new SessionCookieJar(container, ApiBaseUrl, new TestSessionCookiePersistence()));
-    var service = new AuthenticationService(client, store, new NoPasskeys());
+    using var stack = new Stack(LoginBody(device, session));
 
-    var challenge = await service.VerifyEmailOtpAsync(
+    var challenge = await stack.Service.VerifyEmailOtpAsync(
         "a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken);
 
     Assert.Null(challenge);
-    Assert.Equal("/api/v1/auth/native/email-address/login", handler.Paths[0]);
-    Assert.Equal("/api/v1/session", handler.Paths[1]);
-    Assert.True(handler.PostLoginRequestCarriedTokens);
+    // The first PATCH is the anonymous session bootstrap; the last one is the post-login refresh.
+    Assert.Equal(
+        ["/api/v1/session", "/api/v1/auth/native/email-address/login", "/api/v1/session"],
+        stack.Terminal.Paths.Take(3));
+    Assert.Contains(device, stack.Terminal.RefreshBody, StringComparison.Ordinal);
+    Assert.Contains(session, stack.Terminal.RefreshBody, StringComparison.Ordinal);
+    Assert.True(stack.Store.Current.IsAuthenticated);
   }
 
   [Fact]
   public async Task MfaResponseInstallsNoCredentials()
   {
-    var container = new CookieContainer();
-    var handler = new RecordingHandler("""{"mfa_required":true,"login_attempt_id":"attempt-1"}""");
-    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = ApiBaseUrl });
-    var store = new CookieSessionStore(
-        client, new SessionCookieJar(container, ApiBaseUrl, new TestSessionCookiePersistence()));
-    var service = new AuthenticationService(client, store, new NoPasskeys());
+    using var stack = new Stack("""{"mfa_required":true,"login_attempt_id":"attempt-1"}""");
 
-    var challenge = await service.VerifyEmailOtpAsync(
+    var challenge = await stack.Service.VerifyEmailOtpAsync(
         "a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken);
 
     Assert.Equal("attempt-1", challenge?.LoginAttemptId);
-    Assert.Empty(container.GetCookies(ApiBaseUrl));
-    Assert.Single(handler.Paths);
+    Assert.Equal(["/api/v1/session", "/api/v1/auth/native/email-address/login"], stack.Terminal.Paths);
+    Assert.Equal("rotated-dt", stack.Container.GetCookies(ApiBaseUrl)["dt"]?.Value);
+  }
+
+  [Fact]
+  public async Task LoginResponseSupersededBySignOutDoesNotRestoreCredentials()
+  {
+    var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var stale = Jwt("stale-device");
+    using var stack = new Stack(LoginBody(stale, Jwt("stale-session")), async () =>
+    {
+      entered.TrySetResult();
+      await release.Task;
+    });
+
+    var login = stack.Service.VerifyEmailOtpAsync(
+        "a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken);
+    await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    await stack.Jar.ClearAsync(TestContext.Current.CancellationToken);
+    release.SetResult();
+
+    try { await login; }
+    catch (UnauthorizedAccessException) { }
+    Assert.DoesNotContain(stale, stack.Terminal.RefreshBody, StringComparison.Ordinal);
+    Assert.DoesNotContain(stale, stack.Persistence.Value ?? "", StringComparison.Ordinal);
+    Assert.NotEqual(stale, stack.Container.GetCookies(ApiBaseUrl)["dt"]?.Value);
+  }
+
+  [Fact]
+  public async Task LoginResponseSupersededByNewerAuthenticationDoesNotOverwriteIt()
+  {
+    var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var stale = Jwt("stale-device");
+    using var stack = new Stack(LoginBody(stale, Jwt("stale-session")), async () =>
+    {
+      entered.TrySetResult();
+      await release.Task;
+    });
+
+    var login = stack.Service.VerifyEmailOtpAsync(
+        "a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken);
+    await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+    var unusedMarker = Jwt("stale-device");
+    var newer = Jwt("newer-device");
+    await stack.Jar.StoreSessionTokensAsync(
+        newer, Jwt("newer-session"), TimeSpan.FromHours(1), TimeSpan.FromHours(1),
+        TestContext.Current.CancellationToken);
+    stack.Jar.BeginAuthentication();
+    release.SetResult();
+
+    try { await login; }
+    catch (UnauthorizedAccessException) { }
+    Assert.DoesNotContain(stale, stack.Terminal.RefreshBody, StringComparison.Ordinal);
+    Assert.Contains(newer, stack.Terminal.RefreshBody, StringComparison.Ordinal);
   }
 
   private sealed class NoPasskeys : IPasskeyAssertionProvider
@@ -133,35 +217,33 @@ public sealed class NativeLoginTokenInstallTests
         throw new NotSupportedException();
   }
 
-  private sealed class RecordingHandler(string loginBody, string device = "", string session = "") : HttpMessageHandler
+  private sealed class Terminal(string loginBody, string refreshBody, Func<Task>? beforeLoginResponse)
+      : HttpMessageHandler
   {
-    private const string RefreshBody =
-        """{"session":{"dt":"rotated-dt","st":"rotated-st","dte":3600,"ste":900,"secure":true,"uid":"user-1","session":{"uid":"user-1","client":"dotnet"}}}""";
-
     public List<string> Paths { get; } = [];
 
-    public bool PostLoginRequestCarriedTokens { get; private set; }
+    public string RefreshBody { get; private set; } = "";
 
-    protected override Task<HttpResponseMessage> SendAsync(
+    protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
       var path = request.RequestUri!.AbsolutePath;
       Paths.Add(path);
-      if (path == "/api/v1/session" && request.Content is { } content &&
-          content.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult() is var sent &&
-          sent.Contains(device, StringComparison.Ordinal) && sent.Contains(session, StringComparison.Ordinal))
-        PostLoginRequestCarriedTokens = true;
+      if (path == "/api/v1/auth/native/email-address/login" && beforeLoginResponse is not null)
+        await beforeLoginResponse().ConfigureAwait(false);
+      if (path == "/api/v1/session" && request.Content is { } content)
+        RefreshBody = await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
       var body = path switch
       {
         "/api/v1/auth/native/email-address/login" => loginBody,
-        "/api/v1/session" => RefreshBody,
+        "/api/v1/session" => refreshBody,
         _ => """{"identity":{"id":"user-1","username":"alice","roles":["user"],"email_address":"alice@example.com","membership_plan":"free"}}""",
       };
-      return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+      return new HttpResponseMessage(HttpStatusCode.OK)
       {
         Content = new StringContent(body),
         RequestMessage = request,
-      });
+      };
     }
   }
 }

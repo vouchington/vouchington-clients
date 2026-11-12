@@ -11,15 +11,6 @@ import VouchaModels
 private struct AuthResponse: Decodable {
     let mfaRequired: Bool?
     let loginAttemptId: String?
-    /// Body credentials the native email login returns beside `Set-Cookie`.
-    let deviceToken: NativeSessionToken?
-    let sessionToken: NativeSessionToken?
-
-    private enum CodingKeys: String, CodingKey {
-        case mfaRequired, loginAttemptId
-        case deviceToken = "dt"
-        case sessionToken = "st"
-    }
 }
 
 /// Service for all authentication flows: email OTP, Apple Sign In, and MFA TOTP.
@@ -141,9 +132,6 @@ public struct SignInService: Sendable {
                 throw VouchaError.api(statusCode: 0, preconditionCode: "MISSING_LOGIN_ATTEMPT_ID")
             }
             return MFAChallenge(loginAttemptId: attemptId)
-        }
-        if let device = response.deviceToken?.token, let session = response.sessionToken?.token {
-            try await client.installNativeLoginTokens(deviceToken: device, sessionToken: session)
         }
         await sessionManager.refresh()
         guard sessionManager.isSignedIn else {

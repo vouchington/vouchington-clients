@@ -6,6 +6,7 @@ import Foundation
 /// Canned native MCP mint transport. State is keyed by host so tests never share it, and every
 /// access is serialized because `URLProtocol` callbacks arrive on transport queues.
 final class SessionMCPMintProtocol: URLProtocol, @unchecked Sendable {
+    /// Header names are lowercased because Darwin and FoundationNetworking preserve different casing.
     struct Seen {
         let path: String
         let headers: [String: String]
@@ -85,7 +86,9 @@ final class SessionMCPMintProtocol: URLProtocol, @unchecked Sendable {
         let body = Self.bodyData(request)
         let hold = Self.withState(host) { state -> Bool in
             state.seen.append(Seen(
-                path: request.url?.path ?? "", headers: request.allHTTPHeaderFields ?? [:], body: body
+                path: request.url?.path ?? "", headers: Dictionary(
+                    uniqueKeysWithValues: (request.allHTTPHeaderFields ?? [:]).map { ($0.key.lowercased(), $0.value) }
+                ), body: body
             ))
             if state.holding { state.held.append(self) }
             return state.holding

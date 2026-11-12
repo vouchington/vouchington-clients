@@ -83,32 +83,61 @@ final class SignInServiceNativeTokenTests: XCTestCase {
     }
 
     func testExpiredBodyTokenIsRejected() async throws {
-        let (client, _, jar, host, _) = try setup()
+        let (_, service, jar, host, transport) = try setup()
         defer { SessionRecoveryProtocol.remove(host) }
+        transport.handler = { _, _ in
+            .init(status: 200, body: self.loginBody(dt: Self.jwt("device", expiresIn: -10), st: Self.jwt("session")))
+        }
         do {
-            try await client.installNativeLoginTokens(
-                deviceToken: Self.jwt("device", expiresIn: -10), sessionToken: Self.jwt("session")
-            )
+            _ = try await service.verifyEmailOTP(email: "a@example.test", code: "ABCDEFGH23")
             XCTFail("An expired token must not be installed")
         } catch VouchaError.unauthorized {}
         XCTAssertTrue(jar.cookies?.isEmpty ?? true)
     }
 
     func testTokensAlreadyInstalledFromSetCookieAreKept() async throws {
-        let (client, _, jar, host, _) = try setup()
+        let (_, service, jar, host, transport) = try setup()
         defer { SessionRecoveryProtocol.remove(host) }
-        for (name, value) in [("dt", "fixture-device-jwt"), ("st", "fixture-session-jwt")] {
-            try jar.setCookie(XCTUnwrap(HTTPCookie(properties: [
-                .domain: host,
-                .path: "/",
-                .name: name,
-                .value: value
-            ])))
+        let cookies = "dt=fixture-device-jwt; Path=/; HttpOnly, st=fixture-session-jwt; Path=/; HttpOnly"
+        transport.handler = { request, _ in
+            switch request.url?.path {
+            case "/api/v1/auth/native/email-address/login":
+                .init(
+                    status: 200,
+                    body: self.loginBody(dt: "fixture-device-jwt", st: "fixture-session-jwt"),
+                    headers: ["Set-Cookie": cookies]
+                )
+            case "/api/v1/session": SessionRecoveryTransport.tokens("fresh", uid: "user")
+            default: .init(status: 200, body: ApiFixtureLoader.data("swift.my.identity.default"))
+            }
         }
-        try await client.installNativeLoginTokens(
-            deviceToken: "fixture-device-jwt",
-            sessionToken: "fixture-session-jwt"
-        )
-        XCTAssertEqual(jar.cookies?.count, 2)
+        let challenge = try await service.verifyEmailOTP(email: "a@example.test", code: "ABCDEFGH23")
+        XCTAssertNil(challenge)
+        let refresh = try XCTUnwrap(transport.captured.first { $0.url?.path == "/api/v1/session" })
+        XCTAssertTrue(refresh.value(forHTTPHeaderField: "Cookie")?.contains("dt=fixture-device-jwt") == true)
+        XCTAssertNotNil(jar.cookies)
+    }
+
+    func testSignOutThatSupersedesTheLoginRejectsItsBodyTokens() async throws {
+        let (client, service, jar, host, transport) = try setup()
+        defer { SessionRecoveryProtocol.remove(host) }
+        let stale = Self.jwt("stale-device")
+        transport.handler = { request, _ in
+            request.url?.path == "/api/v1/auth/native/email-address/login" ? nil : .init(status: 500, body: Data())
+        }
+        let login = Task { try await service.verifyEmailOTP(email: "a@example.test", code: "ABCDEFGH23") }
+        while transport.captured.isEmpty {
+            await Task.yield()
+        }
+        client.fenceSessionRequests()
+        transport.release(.init(status: 200, body: loginBody(dt: stale, st: Self.jwt("stale-session"))))
+
+        let result = await login.result
+        if case .success = result { XCTFail("A superseded login must not sign the user in") }
+        XCTAssertNil(jar.cookies?.first { $0.value == stale })
+        XCTAssertFalse(transport.captured
+            .contains {
+                $0.url?.path == "/api/v1/session" && $0.value(forHTTPHeaderField: "Cookie")?.contains(stale) == true
+            })
     }
 }

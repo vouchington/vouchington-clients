@@ -33,12 +33,6 @@ public interface IForcedSessionRefreshStore
   Task RefreshAsync(bool force = false, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Installs the body credentials a native email login returns before the session refresh.</summary>
-public interface INativeLoginCredentialStore
-{
-  Task InstallNativeLoginTokensAsync(string deviceToken, string sessionToken, CancellationToken cancellationToken = default);
-}
-
 public interface IConfirmingSessionRefreshStore
 {
   Task RefreshConfirmingAsync(CancellationToken cancellationToken = default);
