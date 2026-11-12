@@ -193,6 +193,7 @@ async function cliFixture(action) {
   mkdirSync(join(fixtures, 'responses'), { recursive: true })
   writeFileSync(join(fixtures, 'responses', 'identity.json'), '{}')
   writeFileSync(join(fixtures, 'responses', 'news.json'), '{}')
+  writeFileSync(join(fixtures, 'responses', 'login.json'), '{}')
   writeFileSync(
     join(fixtures, 'manifest.json'),
     JSON.stringify({
@@ -210,6 +211,13 @@ async function cliFixture(action) {
           path: '/api/v1/feeds/rss_feed_items/any',
           status: 200,
           bodyFile: 'responses/news.json',
+        },
+        {
+          id: 'native.auth.email-address.login.authenticated',
+          method: 'POST',
+          path: '/api/v1/auth/native/email-address/login',
+          status: 200,
+          bodyFile: 'responses/login.json',
         },
       ],
     }),
@@ -233,7 +241,6 @@ async function cliFixture(action) {
     rmSync(root, { recursive: true, force: true })
   }
 }
-
 describe('Catalyst auth/news CLI orchestration with a child fake (not GUI evidence)', () => {
   it('shares elapsed startup time with UI polling and still tears down after budget exhaustion', async () => {
     await cliFixture(async ({ root, result, log, env }) => {

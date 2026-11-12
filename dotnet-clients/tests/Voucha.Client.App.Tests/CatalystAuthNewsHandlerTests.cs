@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Tests.Api;
@@ -10,8 +11,8 @@ namespace Voucha.Client.App.Tests;
 
 public sealed class CatalystAuthNewsHandlerTests
 {
-  private const string Tokens = "/api/v1/auth/email-address/tokens";
-  private const string Login = "/api/v1/auth/email-address/login";
+  private const string Tokens = "/api/v1/auth/native/email-address/tokens";
+  private const string Login = "/api/v1/auth/native/email-address/login";
   private const string Identity = "/api/v1/my/identity";
   private const string News = "/api/v1/feeds/rss_feed_items/any?limit=20&media_type=article";
 
@@ -58,12 +59,14 @@ public sealed class CatalystAuthNewsHandlerTests
     Assert.Equal(HttpStatusCode.Unauthorized, before.StatusCode);
     using var accepted = await client.PostAsJsonAsync(Login, LoginBody(), TestContext.Current.CancellationToken);
     Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
-    var auth = await accepted.Content.ReadFromJsonAsync<AuthResponse>(TestContext.Current.CancellationToken);
-    Assert.False(auth!.MfaRequired);
-    Assert.Equal(2, accepted.Headers.GetValues("Set-Cookie").Count());
+    using var issued = JsonDocument.Parse(await accepted.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    Assert.False(accepted.Headers.Contains("Set-Cookie"));
+    var deviceToken = issued.RootElement.GetProperty("dt").GetProperty("token").GetString();
+    var sessionToken = issued.RootElement.GetProperty("st").GetProperty("token").GetString();
+    Assert.Equal(3, sessionToken!.Split('.').Length);
     using var withoutCookie = await client.GetAsync(Identity, TestContext.Current.CancellationToken);
     Assert.Equal(HttpStatusCode.Unauthorized, withoutCookie.StatusCode);
-    client.DefaultRequestHeaders.Add("Cookie", "dt=catalyst-flow-device; st=catalyst-flow-session");
+    client.DefaultRequestHeaders.Add("Cookie", $"dt={deviceToken}; st={sessionToken}");
     Assert.Equal(ApiFixtureLoader.LoadResponse("swift.my.identity.default"),
         await client.GetStringAsync(Identity, TestContext.Current.CancellationToken));
     Assert.Equal(ApiFixtureLoader.LoadResponse("web.rss-feed-items.feed.default"),

@@ -2,24 +2,35 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Voucha.Client.App;
 
 internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
 {
-  private readonly string identity = CatalystAuthNewsLaunch.ReadFixture(
-      "swift.my.identity.default", "GET", "/api/v1/my/identity");
+  private readonly string identity;
   // Deliberate unchanged UI replay: producer fixture uses limit=25 and video items
   // within an article feed. This is not an article-filter or response-contract parity test.
-  private readonly string news = CatalystAuthNewsLaunch.ReadFixture(
-      "web.rss-feed-items.feed.default", "GET", "/api/v1/feeds/rss_feed_items/any");
+  private readonly string news;
+  // Native login fixture shape; the two body tokens are re-minted as JWT-shaped credentials with a
+  // future exp because the client refuses an installed token it cannot read an expiry from.
+  private readonly JsonObject nativeLogin;
+  private readonly string deviceToken = Jwt();
+  private readonly string sessionToken = Jwt();
   private readonly string userId;
   private bool requested;
   private bool authenticated;
   private readonly object gate = new();
 
-  public CatalystAuthNewsHandler()
+  public CatalystAuthNewsHandler(string? contractRoot = null)
   {
+    identity = CatalystAuthNewsLaunch.ReadFixture(
+        "swift.my.identity.default", "GET", "/api/v1/my/identity", contractRoot);
+    news = CatalystAuthNewsLaunch.ReadFixture(
+        "web.rss-feed-items.feed.default", "GET", "/api/v1/feeds/rss_feed_items/any", contractRoot);
+    nativeLogin = (JsonObject)JsonNode.Parse(CatalystAuthNewsLaunch.ReadFixture(
+        "native.auth.email-address.login.authenticated", "POST", "/api/v1/auth/native/email-address/login",
+        contractRoot))!;
     using var document = JsonDocument.Parse(identity);
     userId = document.RootElement.GetProperty("identity").GetProperty("id").GetString()
         ?? throw new InvalidOperationException("Identity fixture has no user id.");
@@ -41,27 +52,28 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
     var path = request.RequestUri.AbsolutePath;
     if (path != "/api/v1/feeds/rss_feed_items/any" && request.RequestUri.Query.Length != 0)
       return Json("{}", HttpStatusCode.BadRequest);
-    if (request.Method == HttpMethod.Post && path == "/api/v1/auth/email-address/tokens" &&
+    if (request.Method == HttpMethod.Post && path == "/api/v1/auth/native/email-address/tokens" &&
         Text(body, "emailAddress") == CatalystAuthNewsLaunch.Email &&
         Text(body, "cfTurnstileResponse") == CatalystAuthNewsLaunch.TurnstileToken)
     {
       requested = true;
       return Json("{}");
     }
-    if (request.Method == HttpMethod.Post && path == "/api/v1/auth/email-address/login" && requested &&
+    if (request.Method == HttpMethod.Post && path == "/api/v1/auth/native/email-address/login" && requested &&
         Text(body, "emailAddress") == CatalystAuthNewsLaunch.Email && Text(body, "token") == CatalystAuthNewsLaunch.Code)
     {
       authenticated = true;
-      var response = Json("""{"mfa_required":false}""");
-      response.Headers.Add("Set-Cookie", new[] { "dt=catalyst-flow-device; Path=/; Secure; HttpOnly", "st=catalyst-flow-session; Path=/; Secure; HttpOnly" });
-      return response;
+      var issued = (JsonObject)nativeLogin.DeepClone();
+      issued["dt"]!["token"] = deviceToken;
+      issued["st"]!["token"] = sessionToken;
+      return Json(issued.ToJsonString());
     }
     if (request.Method == HttpMethod.Get && path == "/api/v1/my/identity")
       return HasIssuedSession(request) ? Json(identity) : Json("{}", HttpStatusCode.Unauthorized);
     // Post-login rotation must return the same authenticated user, as the producer does.
     if (request.Method == HttpMethod.Patch && path == "/api/v1/session")
       return Json(HasIssuedSession(request)
-          ? """{"session":{"dt":"catalyst-flow-device","st":"catalyst-flow-session","dte":3600,"ste":3600,"uid":""" +
+          ? "{\"session\":{\"dt\":\"" + deviceToken + "\",\"st\":\"" + sessionToken + "\",\"dte\":3600,\"ste\":3600,\"uid\":" +
             JsonSerializer.Serialize(userId) + ""","session":{"uid":""" + JsonSerializer.Serialize(userId) + "}}}"
           : """{"session":{"dt":"catalyst-bootstrap-device","st":"catalyst-bootstrap-session","dte":3600,"ste":3600}}""");
     if (request.Method == HttpMethod.Get && path == "/api/v1/feeds/rss_feed_items/any" && HasIssuedSession(request) &&
@@ -78,7 +90,15 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
   // Protected routes require the cookie issued at login, not just the server-side flag.
   private bool HasIssuedSession(HttpRequestMessage request) =>
       authenticated && request.Headers.TryGetValues("Cookie", out var values) &&
-      values.SelectMany(value => value.Split(';')).Any(part => part.Trim() == "st=catalyst-flow-session");
+      values.SelectMany(value => value.Split(';')).Any(part => part.Trim() == "st=" + sessionToken);
+
+  private static string Jwt()
+  {
+    static string Segment(string json) => Convert.ToBase64String(Encoding.UTF8.GetBytes(json))
+        .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    var exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
+    return Segment("""{"alg":"none"}""") + "." + Segment($$"""{"exp":{{exp}},"jti":"{{Guid.NewGuid()}}"}""") + ".sig";
+  }
 
   private static string? Text(JsonElement body, string key) =>
       body.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

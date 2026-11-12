@@ -176,6 +176,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.topics.publisher-types.default": Endpoint.publisherTypes(),
             "web.topics.search.default": Endpoint.topics(query: "tech"),
             "web.topics.show.default": Endpoint.topic(id: "test-topic"),
+            "web.topics.show.viewer-lower-bound": Endpoint.topic(id: "test-topic"),
+            "web.topics.show.viewer-review-data-lower-bound": Endpoint.topic(id: "test-topic"),
             "web.topics.mutation.default": Endpoint.createTopic(
                 body: CreateTopicBody(name: "Tech", slug: "tech", topicType: "topic")
             ),

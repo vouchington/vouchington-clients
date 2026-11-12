@@ -57,8 +57,10 @@ public sealed class CatalystAuthNewsSessionFlowTests
     Assert.NotEqual(bootstrapPersistence, loginPersistence);
     using var restoredLogin = new SessionCookieJar(new CookieContainer(), origin, persistence);
     await restoredLogin.RestoreAsync(TestContext.Current.CancellationToken);
-    Assert.Equal("catalyst-flow-device", restoredLogin.CookieContainer.GetCookies(origin)["dt"]!.Value);
-    Assert.Equal("catalyst-flow-session", restoredLogin.CookieContainer.GetCookies(origin)["st"]!.Value);
+    var device = restoredLogin.CookieContainer.GetCookies(origin)["dt"]!.Value;
+    var sessionToken = restoredLogin.CookieContainer.GetCookies(origin)["st"]!.Value;
+    Assert.Equal(3, device.Split('.').Length);
+    Assert.Equal(3, sessionToken.Split('.').Length);
   }
 
   [Fact]

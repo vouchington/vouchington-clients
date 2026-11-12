@@ -25,7 +25,7 @@ final class SessionRefreshEpochReviewTests: XCTestCase {
                     loggingIn ? "new" : "old",
                     uid: loggingIn ? new.user.id : old.user.id
                 )
-            case "/api/v1/auth/email-address/login":
+            case "/api/v1/auth/native/email-address/login":
                 return .init(
                     status: 200,
                     body: Data("{}".utf8),
@@ -58,7 +58,7 @@ final class SessionRefreshEpochReviewTests: XCTestCase {
         XCTAssertEqual(publishedBeforeOldResponse, "new-account")
         XCTAssertEqual(fixture.manager.currentUserId, "new-account")
         XCTAssertEqual(fixture.transport.captured.map { $0.url!.path }, [
-            "/api/v1/session", "/api/v1/my/identity", "/api/v1/auth/email-address/login",
+            "/api/v1/session", "/api/v1/my/identity", "/api/v1/auth/native/email-address/login",
             "/api/v1/session", "/api/v1/my/identity"
         ])
     }
@@ -68,7 +68,7 @@ final class SessionRefreshEpochReviewTests: XCTestCase {
         defer { SessionRecoveryProtocol.remove(fixture.host) }
         try fixture.manager.synchronize(with: identity(id: "old-account").user)
         fixture.transport.handler = { request, _ in
-            if request.url!.path == "/api/v1/auth/email-address/login" {
+            if request.url!.path == "/api/v1/auth/native/email-address/login" {
                 return .init(
                     status: 200,
                     body: Data("{}".utf8),

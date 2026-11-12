@@ -54,7 +54,7 @@ public sealed class AuthenticationService
       string? uiLocale,
       CancellationToken cancellationToken = default) =>
       client.SendAsync(
-          VouchaApiEndpoints.RequestEmailOtp(email, turnstileToken, uiLocale),
+          VouchaApiEndpoints.RequestNativeEmailOtp(email, turnstileToken, uiLocale),
           cancellationToken);
 
   public async Task<MfaChallenge?> VerifyEmailOtpAsync(
@@ -64,7 +64,7 @@ public sealed class AuthenticationService
   {
     var response = await client
         .SendAsync<AuthResponse>(
-            VouchaApiEndpoints.VerifyEmailOtp(email, code),
+            VouchaApiEndpoints.VerifyNativeEmailOtp(email, code),
             cancellationToken)
         .ConfigureAwait(false);
     return await CompleteAuthAsync(response, cancellationToken).ConfigureAwait(false);

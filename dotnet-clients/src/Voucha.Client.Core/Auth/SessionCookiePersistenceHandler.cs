@@ -62,6 +62,19 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
       }
     }
 
+    if (authenticationIntent is not null && response.IsSuccessStatusCode &&
+        uri.AbsolutePath == "/api/v1/auth/native/email-address/login" && cookieJar.IsFirstParty(uri))
+      await InstallBodyTokensAsync(response, authenticationIntent, cancellationToken).ConfigureAwait(false);
+
     return response;
+  }
+
+  // Native login also returns dt/st in the body; install them under the request's own intent.
+  private async Task InstallBodyTokensAsync(HttpResponseMessage response, long? intent, CancellationToken cancellationToken)
+  {
+    await response.Content.LoadIntoBufferAsync(cancellationToken).ConfigureAwait(false);
+    var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+    if (SessionCookieJar.ReadNativeLoginTokens(body) is not var (device, session)) return;
+    await cookieJar.InstallNativeLoginTokensAsync(device, session, intent, cancellationToken).ConfigureAwait(false);
   }
 }
