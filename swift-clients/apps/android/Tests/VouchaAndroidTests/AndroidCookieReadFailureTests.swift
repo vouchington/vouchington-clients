@@ -59,14 +59,18 @@ final class AndroidCookieReadFailureTests: XCTestCase {
         XCTAssertTrue(storage.persistenceStatus.enabled)
         XCTAssertNil(account.cookiePersistenceNotice.errorMessage)
         XCTAssertTrue(account.session.isSignedIn)
-        XCTAssertEqual(probe.requestPaths(), ["/api/v1/my/identity"])
-        XCTAssertEqual(probe.cookieValuesAtRequests(), [["original-session"]])
-        let persisted = try XCTUnwrap(secrets.snapshotValue(forKey: persistenceKey))
+        XCTAssertEqual(probe.requestPaths(), ["/api/v1/session", "/api/v1/my/identity"])
         XCTAssertEqual(
-            try JSONSerialization.jsonObject(with: Data(persisted.utf8)) as? NSArray,
-            try JSONSerialization.jsonObject(with: Data(rawSnapshot.utf8)) as? NSArray
+            probe.cookieValuesAtRequests().map { $0.sorted() },
+            try [["original-session"], androidRotatedCookieValues()]
         )
-        // APIClient persists the restored jar after the successful identity response.
+        let persisted = try XCTUnwrap(secrets.snapshotValue(forKey: persistenceKey))
+        let records = try JSONDecoder().decode(
+            [AndroidSessionCookieStorage.CookieRecord].self,
+            from: Data(persisted.utf8)
+        )
+        XCTAssertEqual(records.map(\.value).sorted(), try androidRotatedCookieValues())
+        // Only the changed renewal snapshot is written; identity leaves credentials unchanged.
         XCTAssertEqual(secrets.writeCount(), 1)
     }
 

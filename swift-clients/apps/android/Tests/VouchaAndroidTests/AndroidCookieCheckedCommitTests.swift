@@ -22,11 +22,12 @@ final class AndroidCookieCheckedCommitTests: XCTestCase {
         XCTAssertNotNil(storage.persistenceStatus.errorMessage)
     }
 
-    func testAccountRotationFailureNeverPublishesIdentityOrLeavesUsableCookies() async {
+    func testAccountRotationFailureNeverPublishesIdentityOrLeavesUsableCookies() async throws {
         AndroidAuthURLProtocol.resetRequests()
         defer { AndroidAuthURLProtocol.resetRequests() }
         let secrets = FailingCookieWriteSecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
+        try seedCredentials(storage)
         let account = AndroidAccount(cookieStorage: storage, protocolClasses: [AndroidAuthURLProtocol.self])
         secrets.setWriteFailure(true)
         let restored = await account.session.refresh()
@@ -45,6 +46,7 @@ final class AndroidCookieCheckedCommitTests: XCTestCase {
         try AndroidAuthURLProtocol.setIdentity(Data(contentsOf: ContractRoot.requiredURL(path, root: root)))
         let secrets = FailingCookieWriteSecrets()
         let storage = AndroidSessionCookieStorage(secrets: secrets)
+        try seedCredentials(storage)
         let account = AndroidAccount(cookieStorage: storage, protocolClasses: [AndroidAuthURLProtocol.self])
         let restored = await account.session.refresh()
         XCTAssertTrue(restored)
@@ -67,6 +69,7 @@ final class AndroidCookieCheckedCommitTests: XCTestCase {
             cookieStorage: AndroidSessionCookieStorage(secrets: secrets),
             protocolClasses: [AndroidAuthURLProtocol.self]
         )
+        try seedCredentials(account.cookieStorage)
         let signedIn = await account.session.refresh()
         XCTAssertTrue(signedIn)
         let signedOut = await account.signOut()
@@ -77,9 +80,16 @@ final class AndroidCookieCheckedCommitTests: XCTestCase {
             cookieStorage: AndroidSessionCookieStorage(secrets: secrets),
             protocolClasses: [AndroidAuthURLProtocol.self]
         )
-        let restored = await next.session.refresh()
-        XCTAssertTrue(restored)
+        next.loginAttemptID = "fresh-mfa-attempt"
+        next.totp = "654321"
+        await next.verifyMFA()
         XCTAssertTrue(next.session.isSignedIn)
+    }
+
+    private func seedCredentials(_ storage: AndroidSessionCookieStorage) throws {
+        try storage.cookieStorage.setCookie(XCTUnwrap(HTTPCookie(properties: [
+            .originURL: AppConfig.shared.baseURL, .path: "/", .name: "st", .value: "fixture-previous-session"
+        ])))
     }
 
     func testCheckedCommitRejectsDisabledPersistence() {

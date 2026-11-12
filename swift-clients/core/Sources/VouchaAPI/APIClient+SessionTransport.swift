@@ -63,7 +63,6 @@ extension APIClient {
             establishingSession: endpoint.establishesSession
         )
         if let expectedEpoch, expectedEpoch != stamp.epoch { throw CancellationError() }
-        defer { try? cookieCoordinator.persist(stamp: stamp, action: checkedPersistence) }
         let request = await applySigningIfNeeded(prepared, method: endpoint.method.rawValue)
         try cookieCoordinator.check(stamp)
         let (data, response): (Data, URLResponse)

@@ -155,16 +155,16 @@ private extension AndroidChatTranscriptTests {
         )
         XCTAssertEqual(firstBody["model_provider"] as? String, "android_aicore")
         XCTAssertEqual(firstBody["model_name"] as? String, "android-aicore-system")
-        // Darwin URLProtocol intercepts before Cookie injection; APIClientCookiePersistenceTests
-        // verifies delivery over real HTTP, while this checks the bound authenticated session.
+        // The coordinator sends explicit credentials and prevents URLSession from applying late cookies.
         let client = try XCTUnwrap(viewModel.apiClient)
         let jar = await client.cookieStorage
         let session = await client.session
         XCTAssertTrue(session.configuration.httpCookieStorage === jar)
-        XCTAssertTrue(session.configuration.httpShouldSetCookies)
+        XCTAssertFalse(session.configuration.httpShouldSetCookies)
         let postURL = try XCTUnwrap(posts[0].url)
         let cookies = try XCTUnwrap(jar.cookies(for: postURL))
         XCTAssertEqual(cookies.map { "\($0.name)=\($0.value)" }, ["st=fixture-session"])
+        XCTAssertTrue(posts.allSatisfy { $0.value(forHTTPHeaderField: "Cookie") == "st=fixture-session" })
         XCTAssertFalse(recorder.requestSnapshot().contains { $0.url?.path == "/api/v1/chat" })
     }
 }

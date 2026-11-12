@@ -30,8 +30,12 @@ final class CookiePersistenceURLProtocol: URLProtocol {
         case "/lines": "first\nsecond\n"
         default: "{}"
         }
+        var headers = ["Content-Type": "application/json"]
+        if ["/raw", "/lines", "/hold", "/error", "/not-modified"].contains(path) {
+            headers["Set-Cookie"] = "response_cookie=\(path.dropFirst()); Path=/"
+        }
         guard let response = HTTPURLResponse(
-            url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"]
+            url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers
         ) else { return }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         guard !stopped else { return }

@@ -134,6 +134,7 @@ targets:
         - VouchaLaunchSmokeTests
         - VouchaSentryBoundaryTests
         - VouchaFeedTransportTests
+        - VouchaLaunchTransportTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
@@ -195,3 +196,30 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.launch-smoke-tests
         PRODUCT_NAME: VouchaLaunchSmokeTests
+
+  VouchaLaunchTransportTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: LaunchTransportTests.swift
+      - path: ../shared-app/SignInUITestingURLProtocol.swift
+      - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
+    dependencies:
+      - package: VouchaCore
+        product: VouchaCore
+      - package: VouchaCore
+        product: VouchaAPI
+      - package: VouchaCore
+        product: VouchaAuth
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.launch-transport-tests
+        PRODUCT_NAME: VouchaLaunchTransportTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO

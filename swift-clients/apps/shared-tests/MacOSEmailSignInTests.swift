@@ -27,6 +27,7 @@
             app.launchEnvironment["VOUCHA_UI_TESTING_TURNSTILE_TOKEN"] = turnstileToken
             app.launchEnvironment["VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"] = fixtures.identity
             app.launchEnvironment["VOUCHA_UI_TESTING_OAUTH_PROVIDERS_RESPONSE_BASE64"] = fixtures.providers
+            try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
             app.activate()
 

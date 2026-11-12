@@ -24,7 +24,9 @@ extension SessionCookieCoordinator {
                 snapshot.removeAll { $0.name == cookie.name && $0.domain == cookie.domain && $0.path == cookie.path }
                 if cookie.expiresDate.map({ $0 > Date() }) ?? true { snapshot.append(cookie) }
             }
-            try persistSnapshot(snapshot, action: persist, clear: clearPersistence ?? persist)
+            if !Self.sameSnapshot(previous, snapshot) {
+                try persistSnapshot(snapshot, action: persist, clear: clearPersistence ?? persist)
+            }
             if rotated { revision &+= 1
                 confirmedIdentityRevision = authenticated ? revision : nil
             }
@@ -68,6 +70,26 @@ extension SessionCookieCoordinator {
                 }
                 throw error
             }
+        }
+    }
+
+    private static func sameSnapshot(_ first: [HTTPCookie], _ second: [HTTPCookie]) -> Bool {
+        guard first.count == second.count else { return false }
+        return first.allSatisfy { cookie in
+            guard let other = second.first(where: {
+                $0.name == cookie.name && $0.domain == cookie.domain && $0.path == cookie.path
+            }) else { return false }
+            var firstProperties = cookie.properties ?? [:]
+            var secondProperties = other.properties ?? [:]
+            // OriginURL and creation metadata are not Set-Cookie attributes. Creation
+            // participates only in Max-Age expiry, whose original timestamp must survive.
+            firstProperties.removeValue(forKey: .originURL)
+            secondProperties.removeValue(forKey: .originURL)
+            if firstProperties[.maximumAge] == nil, secondProperties[.maximumAge] == nil {
+                firstProperties.removeValue(forKey: HTTPCookiePropertyKey("Created"))
+                secondProperties.removeValue(forKey: HTTPCookiePropertyKey("Created"))
+            }
+            return NSDictionary(dictionary: firstProperties).isEqual(to: secondProperties)
         }
     }
 

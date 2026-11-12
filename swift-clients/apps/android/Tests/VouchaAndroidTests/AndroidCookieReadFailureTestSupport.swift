@@ -124,20 +124,31 @@ final class CookieReadRetryURLProtocol: URLProtocol {
             return
         }
         let identity = probe.record(request)
-        guard request.url?.path == "/api/v1/my/identity" else {
+        let data: Data
+        let status: Int
+        if request.url?.path == "/api/v1/session", isCredentialedSessionRefresh(request) {
+            do { data = try androidSessionRefreshFixture() } catch {
+                deliver { $0.urlProtocol(self, didFailWithError: error) }
+                return
+            }
+            status = 200
+        } else if request.url?.path == "/api/v1/my/identity" {
+            data = identity
+            status = 200
+        } else {
             deliver { $0.urlProtocol(self, didFailWithError: URLError(.unsupportedURL)) }
             return
         }
         guard let url = request.url,
               let response = HTTPURLResponse(
                   url: url,
-                  statusCode: 200,
+                  statusCode: status,
                   httpVersion: "HTTP/1.1",
                   headerFields: ["Content-Type": "application/json"]
               )
         else { return }
         deliver { $0.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
-        deliver { $0.urlProtocol(self, didLoad: identity) }
+        deliver { $0.urlProtocol(self, didLoad: data) }
         deliver { $0.urlProtocolDidFinishLoading(self) }
     }
 

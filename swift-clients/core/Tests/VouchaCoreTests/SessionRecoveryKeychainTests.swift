@@ -75,6 +75,23 @@
             XCTAssertTrue(storage.cookies?.isEmpty == true)
         }
 
+        func testUnchangedResponsesDoNotAttemptTransactionalKeychainReplacement() throws {
+            let saved = cookie("saved")
+            let storage = KeychainCookieStorage(
+                loadPersistedCookies: { [saved] }, savePersistedCookies: { _ in }, deletePersistedCookies: {},
+                commitPersistedCookies: { _ in
+                    XCTFail("An unchanged snapshot must not touch the Keychain")
+                    throw CocoaError(.fileWriteNoPermission)
+                }
+            )
+            let coordinator = SessionCookieCoordinator.shared(for: storage)
+            let stamp = coordinator.stamp
+            try coordinator.commit([], stamp: stamp, persist: nil)
+            try coordinator.commit([saved], stamp: stamp, persist: nil)
+            XCTAssertEqual(storage.cookies?.map(\.value), ["saved"])
+            XCTAssertEqual(coordinator.stamp, stamp)
+        }
+
         func testFailedTransactionalClearStillRemovesLiveCookiesAndReportsFailure() throws {
             let storage = KeychainCookieStorage(
                 loadPersistedCookies: { [self.cookie("old")] },

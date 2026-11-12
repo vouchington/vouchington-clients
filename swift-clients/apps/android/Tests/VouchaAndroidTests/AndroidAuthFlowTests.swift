@@ -107,9 +107,9 @@ final class AndroidAuthFlowTests: XCTestCase {
         await account.session.setBeforeSignOut { _ in throw URLError(.cancelled) }
 
         await account.signOut()
-        try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
-            .name: "st", .value: "still-active", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
-        ])))
+        var activeProperties = try XCTUnwrap(storage.cookies?.first { $0.name == "st" }?.properties)
+        activeProperties[.value] = "still-active"
+        try storage.setCookie(XCTUnwrap(HTTPCookie(properties: activeProperties)))
         await storage.flushPendingPersistence()
 
         XCTAssertTrue(account.session.isSignedIn)

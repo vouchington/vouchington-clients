@@ -44,7 +44,6 @@ extension APIClient {
         stamp: SessionCookieCoordinator.Stamp,
         endpoint: Endpoint? = nil
     ) async throws -> SessionRotationResult {
-        defer { try? cookieCoordinator.persist(stamp: stamp, action: checkedPersistence) }
         let endpoint = try endpoint ?? Endpoint(
             .PATCH,
             path: "/api/v1/session",
