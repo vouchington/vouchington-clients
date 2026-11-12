@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import ViewInspector
 @testable import VouchaFeatures
 import VouchaLocalization
@@ -152,12 +153,38 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
             onWarning: {},
             onConfirm: { _ in }
         )
-        let inspected = try row.inspect()
-        XCTAssertTrue(try inspected.find(button: "Re-run judgement").isDisabled())
-        XCTAssertNoThrow(try inspected.find(text: "Pending"))
-        XCTAssertFalse(try inspected.find(button: "Refresh").isDisabled())
-        try inspected.find(button: "Refresh").tap()
-        await Task.yield()
+        try await ViewHosting.host(row) {
+            let inspected = try row.inspect()
+            XCTAssertTrue(try inspected.find(button: "Re-run judgement").isDisabled())
+            XCTAssertNoThrow(try inspected.find(text: "Pending"))
+            XCTAssertFalse(try inspected.find(button: "Refresh").isDisabled())
+            let path = runPath(admittedRunId)
+            let requested = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                CannedFeedURLProtocol.capturedPathCount(path) == 2
+            }, object: nil)
+            try await Task { @MainActor in
+                try row.inspect().find(button: "Refresh").tap()
+            }.value
+            await fulfillment(of: [requested], timeout: 2)
+            let refreshed = expectation(description: "Refresh finishes updating the pending run")
+            @MainActor
+            func observeRefresh() {
+                if !viewModel.isQueueActionInProgress {
+                    refreshed.fulfill()
+                    return
+                }
+                withObservationTracking {
+                    _ = viewModel.isMutatingQueue
+                } onChange: {
+                    Task { @MainActor in observeRefresh() }
+                }
+            }
+            observeRefresh()
+            await fulfillment(of: [refreshed], timeout: 2)
+            XCTAssertEqual(requestCount(method: "GET", path: path), 2)
+            XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
+            XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        }
     }
 
     func testMismatchedTerminalRunCannotReleaseAdmission() async throws {

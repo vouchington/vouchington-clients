@@ -13,6 +13,10 @@ public sealed class ReportJudgementAdmissionStoreTests
     var same = ReportJudgementAdmissionStore.ForOwner("alice", new Uri("https://api.test:443/base"));
     var other = ReportJudgementAdmissionStore.ForOwner("bob", new Uri("https://api.test/base"));
     Assert.Equal(owner, same);
+    Assert.NotNull(owner);
+    var normalized = owner.Value;
+    Assert.Equal(("alice", "HTTPS", "API.TEST", 443, "base"),
+        (normalized.IdentityId, normalized.Scheme, normalized.Host, normalized.Port, normalized.BasePath));
     Assert.False(store.Contains(null, "report"));
     Assert.False(store.TryGet(null, "report", out _));
     Assert.False(store.TryAdmit(null, "report", out _));
