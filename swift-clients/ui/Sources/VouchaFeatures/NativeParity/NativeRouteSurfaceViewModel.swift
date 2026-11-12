@@ -21,9 +21,11 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var focusedRssFeedItemElection: RssFeedItemElection?
     public internal(set) var focusedRssFeedItemBookmarks: [String: Bool] = [:]
     public internal(set) var focusedRssFeedItemVote: ElectionVoteChoice?
+    var hackerNewsFilterRevision = 0
     var hackerNewsFilterTask: Task<Void, Never>?
     var hasHackerNewsReferences = false {
         didSet {
+            hackerNewsFilterRevision += 1
             state = .idle
             hackerNewsFilterTask = Task { await load() }
         }

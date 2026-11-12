@@ -28,35 +28,42 @@ public extension NativeRouteSurfaceViewModel {
         await performLoad(
             destination: destination,
             client: client,
-            moderationTransparencyLoadRevision: moderationTransparencyLoadRevision
+            moderationTransparencyLoadRevision: moderationTransparencyLoadRevision,
+            hackerNewsFilterRevision: hackerNewsFilterRevision
         )
     }
 
     private func performLoad(
         destination: NativeRouteDestinationIdentifier,
         client: APIClient,
-        moderationTransparencyLoadRevision: Int?
+        moderationTransparencyLoadRevision: Int?,
+        hackerNewsFilterRevision: Int
     ) async {
         do {
             let loadedForwardRows = try await loadInitialForwardRowsIfSupported(client: client)
             if !loadedForwardRows {
                 let loadedRows = try await loadRows(for: destination, client: client)
-                guard ownsInitialModerationTransparencyLoad(moderationTransparencyLoadRevision) else { return }
+                guard ownsInitialLoad(moderationTransparencyLoadRevision, filterRevision: hackerNewsFilterRevision)
+                else { return }
                 rows = loadedRows
             }
-            guard ownsInitialModerationTransparencyLoad(moderationTransparencyLoadRevision) else { return }
+            guard ownsInitialLoad(moderationTransparencyLoadRevision, filterRevision: hackerNewsFilterRevision)
+            else { return }
             state = .loaded
         } catch let error as VouchaError {
-            guard ownsInitialModerationTransparencyLoad(moderationTransparencyLoadRevision) else { return }
+            guard ownsInitialLoad(moderationTransparencyLoadRevision, filterRevision: hackerNewsFilterRevision)
+            else { return }
             state = .error(error)
         } catch {
-            guard ownsInitialModerationTransparencyLoad(moderationTransparencyLoadRevision) else { return }
+            guard ownsInitialLoad(moderationTransparencyLoadRevision, filterRevision: hackerNewsFilterRevision)
+            else { return }
             state = .error(.api(statusCode: 0, preconditionCode: nil))
         }
     }
 
-    private func ownsInitialModerationTransparencyLoad(_ revision: Int?) -> Bool {
-        revision == nil || revision == moderationTransparencyLoadRevision
+    private func ownsInitialLoad(_ revision: Int?, filterRevision: Int) -> Bool {
+        filterRevision == hackerNewsFilterRevision
+            && (revision == nil || revision == moderationTransparencyLoadRevision)
     }
 
     private func prepareForLoad(preservingProfileHeader: Bool) {
