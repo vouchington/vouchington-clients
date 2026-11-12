@@ -84,10 +84,27 @@
         }
 
         private func fixture(_ id: String) throws -> Data {
-            let root = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_CONTRACT_ROOT"])
-            XCTAssertTrue(root.hasPrefix("/"))
-            return try Data(contentsOf: URL(fileURLWithPath: root)
-                .appendingPathComponent("api-fixtures/v1/responses/\(id).json"))
+            let path = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_CONTRACT_ROOT"])
+            _ = try XCTUnwrap(path.hasPrefix("/") && !path.contains("$(") ? path : nil)
+            let root = URL(fileURLWithPath: path).appendingPathComponent("api-fixtures/v1", isDirectory: true)
+            let manifest = try XCTUnwrap(JSONSerialization.jsonObject(
+                with: Data(contentsOf: root.appendingPathComponent("manifest.json"))
+            ) as? [String: Any])
+            let fixtures = try XCTUnwrap(manifest["fixtures"] as? [[String: Any]])
+            let expected = try XCTUnwrap([
+                "native.auth.session.refresh.rotated": ("PATCH", "/api/v1/session"),
+                "swift.my.identity.default": ("GET", "/api/v1/my/identity"),
+                "swift.rss-feed-items.feed.default": ("GET", "/api/v1/feeds/rss_feed_items/any")
+            ][id])
+            let matches = fixtures.filter { $0["id"] as? String == id }
+            XCTAssertEqual(matches.count, 1)
+            let entry = try XCTUnwrap(matches.first)
+            XCTAssertEqual(entry["method"] as? String, expected.0)
+            XCTAssertEqual(entry["path"] as? String, expected.1)
+            XCTAssertEqual(entry["status"] as? Int, 200)
+            let bodyFile = try XCTUnwrap(entry["bodyFile"] as? String)
+            _ = try XCTUnwrap(bodyFile.hasPrefix("responses/") && !bodyFile.contains("..") ? bodyFile : nil)
+            return try Data(contentsOf: root.appendingPathComponent(bodyFile))
         }
 
         private func environment(_ key: String, _ value: String) {

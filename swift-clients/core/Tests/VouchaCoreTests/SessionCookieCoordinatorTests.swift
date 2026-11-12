@@ -45,10 +45,6 @@ final class SessionCookieCoordinatorTests: XCTestCase {
         XCTAssertEqual(jar.cookies?.map(\.value), ["fresh"])
         coordinator.invalidate()
         XCTAssertThrowsError(try coordinator.commit([cookie("late")], stamp: stamp, persist: nil))
-        XCTAssertThrowsError(try coordinator.persist(
-            stamp: stamp,
-            action: { XCTFail("Stale snapshot cannot persist") }
-        ))
     }
 
     func testPrepareIncludesOnlyOriginCookiesAndDisablesAutomaticHandling() throws {

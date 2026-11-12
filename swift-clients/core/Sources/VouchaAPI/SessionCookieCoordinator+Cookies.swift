@@ -38,13 +38,6 @@ extension SessionCookieCoordinator {
         }
     }
 
-    func persist(stamp: Stamp, action: (() throws -> Void)?) throws {
-        try lock.withLock {
-            guard epoch == stamp.epoch else { throw CancellationError() }
-            try action?()
-        }
-    }
-
     func clear(ifCurrent stamp: Stamp? = nil, persist: (() throws -> Void)?) throws {
         try lock.withLock {
             if let stamp {
