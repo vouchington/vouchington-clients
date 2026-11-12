@@ -64,6 +64,7 @@ export function validateNotificationAppEvidence(report, { preferences, announcem
     [
       'schemaVersion',
       'notificationRouteActive',
+      'controls',
       'initialPreferences',
       'patches',
       'activations',
@@ -71,7 +72,7 @@ export function validateNotificationAppEvidence(report, { preferences, announcem
     ],
     'app evidence',
   )
-  assert.equal(report.schemaVersion, 2, 'unsupported app evidence schema')
+  assert.equal(report.schemaVersion, 3, 'unsupported app evidence schema')
   assert.equal(report.notificationRouteActive, true, 'final notification route must be active')
   assert.deepEqual(
     report.initialPreferences,
@@ -110,6 +111,21 @@ export function validateNotificationAppEvidence(report, { preferences, announcem
     assert.equal(patch.after[field], transitions[index][1], 'unexpected hosted switch value')
     state = patch.after
   }
+  keys(
+    report.controls,
+    ['engagement', 'moderation', 'scheduleVisible', 'ready'],
+    'applied controls',
+  )
+  assert.deepEqual(
+    report.controls,
+    {
+      engagement: state.is_engagement_emails_enabled,
+      moderation: state.is_moderation_emails_enabled,
+      scheduleVisible: true,
+      ready: true,
+    },
+    'controls must be applied and interactive after final activation',
+  )
   assert.ok(
     Array.isArray(report.activations) && report.activations.length === 2,
     'two canonical route activations are required',

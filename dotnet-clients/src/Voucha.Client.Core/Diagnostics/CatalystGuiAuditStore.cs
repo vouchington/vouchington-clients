@@ -16,7 +16,8 @@ public sealed class CatalystGuiAuditStore
     this.path = path;
     report = new JsonObject
     {
-      ["schemaVersion"] = 2,
+      ["schemaVersion"] = 3,
+      ["controls"] = null,
       ["notificationRouteActive"] = false,
       ["initialPreferences"] = initialPreferences.DeepClone(),
       ["patches"] = new JsonArray(),
@@ -60,6 +61,23 @@ public sealed class CatalystGuiAuditStore
       {
         if (!written) patches.RemoveAt(patches.Count - 1);
       }
+    }
+  }
+
+  public void RecordControls(bool engagement, bool moderation, bool scheduleVisible, bool ready)
+  {
+    lock (gate)
+    {
+      var previous = report["controls"];
+      report["controls"] = new JsonObject
+      {
+        ["engagement"] = engagement,
+        ["moderation"] = moderation,
+        ["scheduleVisible"] = scheduleVisible,
+        ["ready"] = ready,
+      };
+      try { Write(); }
+      catch { report["controls"] = previous; throw; }
     }
   }
 

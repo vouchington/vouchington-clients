@@ -40,7 +40,7 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
     assert.ok(
       session.calls
         .filter(call => call.url.endsWith('/click'))
-        .every(call => /notification-(?:engagement|moderation)\/click$/u.test(call.url)),
+        .every(call => /notification-(?:engagement|moderation)-\d+\/click$/u.test(call.url)),
     )
     assert.ok(
       session.calls
@@ -58,7 +58,7 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
     [{ unsupported: true }, /Mac2 unknown command/u],
     [{ wrongField: true }, /exactly its API field/u],
     [{ corruptUnrelated: true }, /changed an unrelated field/u],
-    [{ hiddenScheduleVisible: true }, /schedule visibility differs/u],
+    [{ hiddenScheduleVisible: true }, /applied notification controls did not settle/u],
     [{ noDeparture: true }, /departure from notification settings did not settle/u],
     [{ duplicate: true }, /multiple PATCH requests/u],
     [{ noPatch: true }, /engagement persisted PATCH did not settle/u],
@@ -79,7 +79,7 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
         .every(
           call =>
             call.url === '/session/native/element' &&
-            call.body?.value === 'notification-preferences-heading',
+            call.body?.value === 'notification-preferences-section',
         ),
     )
   })
@@ -121,7 +121,7 @@ it('cancels in-flight native requests and rejects a response that arrives past t
       'native',
       {
         readEvidence: async () => session.evidence,
-        expectedAnnouncement: 'fixture',
+        expectedAnnouncement: 'Notification settings opened',
         now: () => clock,
         timeoutMs: 500,
       },
@@ -189,13 +189,16 @@ it('uses the applied-route audit when the shared Settings page retains its headi
 it('never schedules a negative delay after an evidence read crosses its poll deadline', async () => {
   const session = nativeSession({ noPatch: true })
   let clock = 0
-  let reads = 0
+  let crossed = false
   const delays = []
   await assert.rejects(
     session.run({
       now: () => clock,
       readEvidence: async () => {
-        if (++reads === 3) clock = 10_045
+        if (!crossed && session.calls.at(-1)?.url.endsWith('/click')) {
+          clock = 10_045
+          crossed = true
+        }
         return structuredClone(session.evidence)
       },
       sleep: async ms => {
@@ -210,7 +213,7 @@ it('never schedules a negative delay after an evidence read crosses its poll dea
 
 for (const [phase, matches, duration] of [
   ['readiness', call => call.url.endsWith('/element'), 75_001],
-  ['mutations', call => call.url.endsWith('/notification-engagement/click'), 45_001],
+  ['mutations', call => /notification-engagement-\d+\/click$/u.test(call.url), 45_001],
   ['departure', call => call.body?.args?.[0]?.url === 'voucha://my/preferences', 10_001],
   ['return', call => call.body?.args?.[0]?.url === 'voucha://my/notification-settings', 10_001],
 ]) {
@@ -239,3 +242,58 @@ for (const [phase, matches, duration] of [
     )
   })
 }
+
+it('waits for initial route, delayed applied controls, and return readiness before scoped native calls', async () => {
+  const session = nativeSession({ initialDelayReads: 3, uiDelayReads: 3, returnDelayReads: 3 })
+  assert.equal((await session.run()).length, 4)
+  const globals = session.calls.filter(call => call.url === '/session/native/element')
+  assert.equal(globals.length, 2, 'one section lookup per route activation')
+  assert.ok(globals.every(call => call.body.value === 'notification-preferences-section'))
+  assert.equal(
+    session.calls.some(
+      call =>
+        call.url.endsWith('/elements') ||
+        call.url.includes('/attribute/') ||
+        call.url.endsWith('/displayed'),
+    ),
+    false,
+  )
+  assert.equal(
+    session.calls.filter(call => call.body?.value === 'notification-moderation-schedule').length,
+    1,
+    'do not repeat the final visibility scan',
+  )
+})
+
+it('does not send another gesture while persisted controls still reject events', async () => {
+  const session = nativeSession({ eventsBlocked: true })
+  await assert.rejects(session.run(), /applied notification controls did not settle/u)
+  assert.equal(session.evidence.patches.length, 1)
+  assert.equal(session.calls.filter(call => call.url.endsWith('/click')).length, 1)
+})
+
+it('finishes unchanged phase budgets with the observed 2.6-second native call cost', async () => {
+  const session = nativeSession()
+  let clock = 0
+  const checks = await assertNotificationControls(
+    async (...args) => {
+      const result = await session.request(...args)
+      clock += 2600
+      return result
+    },
+    'native',
+    {
+      now: () => clock,
+      sleep: async ms => {
+        assert.ok(ms > 0)
+        clock += ms
+      },
+      readEvidence: session.readEvidence,
+      expectedAnnouncement: 'Notification settings opened',
+    },
+  )
+  assert.equal(checks.length, 4)
+  assert.equal(session.evidence.patches.length, 3)
+  assert.ok(clock < 45_000)
+  assert.ok(session.calls.length <= 13)
+})

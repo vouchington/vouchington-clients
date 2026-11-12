@@ -13,6 +13,36 @@ public sealed class CatalystGuiAuditStoreTests : IDisposable
   public CatalystGuiAuditStoreTests() => Directory.CreateDirectory(directory);
 
   [Fact]
+  public void AppliedControlsRemainUnknownUntilRecordedAndReplaceIndependentSnapshots()
+  {
+    var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
+    Assert.Null(Report()["controls"]);
+    store.RecordControls(true, false, false, false);
+    var prior = Report()["controls"]!.DeepClone();
+    store.RecordControls(false, true, true, true);
+    Assert.True(prior["engagement"]!.GetValue<bool>());
+    Assert.False(prior["ready"]!.GetValue<bool>());
+    Assert.True(JsonNode.DeepEquals(JsonNode.Parse("""
+        {"engagement":false,"moderation":true,"scheduleVisible":true,"ready":true}
+        """), Report()["controls"]));
+    Assert.Empty(Report()["patches"]!.AsArray());
+  }
+
+  [Fact]
+  public void FailedControlSnapshotIsRolledBackBeforeAnotherReportWrite()
+  {
+    var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
+    store.RecordControls(true, false, false, true);
+    var prior = Report()["controls"]!.DeepClone();
+    Directory.Delete(directory, recursive: true);
+    Assert.Throws<DirectoryNotFoundException>(() => store.RecordControls(false, true, true, false));
+    Directory.CreateDirectory(directory);
+    store.Activate("/recovered");
+    Assert.True(JsonNode.DeepEquals(prior, Report()["controls"]));
+    Assert.False(File.Exists(AuditPath + ".tmp"));
+  }
+
+  [Fact]
   public void PersistsIndependentSnapshotsAndReplacesCompleteReport()
   {
     var before = new JsonObject { ["engagement"] = true, ["hidden"] = "preserve" };
@@ -25,7 +55,7 @@ public sealed class CatalystGuiAuditStoreTests : IDisposable
     store.Activate("/my/notification-settings");
 
     var report = Report();
-    Assert.Equal(2, report["schemaVersion"]!.GetValue<int>());
+    Assert.Equal(3, report["schemaVersion"]!.GetValue<int>());
     Assert.True(JsonNode.DeepEquals(initial, report["initialPreferences"]));
     var patch = Assert.IsType<JsonObject>(Assert.Single(report["patches"]!.AsArray()));
     Assert.Equal("engagement", Assert.Single(patch["fields"]!.AsArray())!.GetValue<string>());

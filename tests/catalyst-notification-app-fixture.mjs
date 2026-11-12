@@ -18,7 +18,8 @@ export const inputs = {
 
 export function appReport() {
   const report = {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    controls: { engagement: false, moderation: true, scheduleVisible: true, ready: true },
     notificationRouteActive: true,
     initialPreferences: structuredClone(inputs.preferences),
     patches: [],

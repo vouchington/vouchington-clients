@@ -31,7 +31,7 @@ public sealed class CatalystGuiAuditTests : IDisposable
     expected["is_engagement_emails_enabled"] = false;
     Assert.True(JsonNode.DeepEquals(expected, persisted));
     var report = Report();
-    Assert.Equal(2, report["schemaVersion"]!.GetValue<int>());
+    Assert.Equal(3, report["schemaVersion"]!.GetValue<int>());
     Assert.True(JsonNode.DeepEquals(original, report["initialPreferences"]));
     var patch = Assert.IsType<JsonObject>(Assert.Single(report["patches"]!.AsArray()));
     Assert.Equal(["is_engagement_emails_enabled"], patch["fields"]!.AsArray().Select(field => field!.GetValue<string>()));
