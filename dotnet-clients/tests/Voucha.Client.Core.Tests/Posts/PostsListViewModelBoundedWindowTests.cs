@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Posts;
+using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.Support;
 using Xunit;
 
@@ -230,6 +231,33 @@ public sealed class PostsListViewModelBoundedWindowTests
     Assert.True(model.HasMore);
     Assert.Equal("1y", service.BrowseRequests.Last().TimeRange);
     Assert.Null(service.BrowseRequests.Last().After);
+  }
+
+  [Theory]
+  [InlineData("posts", "topics", null)]
+  [InlineData("discussions", "topics", null)]
+  [InlineData("reviews", "review_topic", "review")]
+  [InlineData("data-points", "data_point_topic", "data_point")]
+  public async Task TopicScopeSurvivesRangeResetAndOpaqueCursorPagination(string section, string filter, string? type)
+  {
+    var service = new ScriptedPostsService(
+        Page(["default"], "old-cursor"), Page(["selected"], "selected-cursor"), Page(["more"], null));
+    using var model = new PostsListViewModel(service);
+    var scope = new TopicPostsRoute("travel", section).RequestForTopic("canonical-topic");
+    await model.LoadBrowseAsync(scope.PostTypes, scope: scope, cancellationToken: TestContext.Current.CancellationToken);
+    await model.SelectBrowseTimeRangeAsync("all", TestContext.Current.CancellationToken);
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(new[] { "selected", "more" }, model.Items.Select(row => row.Id));
+    Assert.Equal(new string?[] { null, "all", "all" }, service.BrowseRequests.Select(request => request.TimeRange));
+    Assert.Equal(new string?[] { null, null, "selected-cursor" }, service.BrowseRequests.Select(request => request.After));
+    Assert.All(service.BrowseRequests, request =>
+    {
+      Assert.Equal(type, request.PostTypes);
+      var endpoint = VouchaApiEndpoints.AllPosts(request);
+      Assert.Equal("canonical-topic", endpoint.Query[filter]);
+      Assert.False(endpoint.Query.ContainsKey("data_point_vertical"));
+    });
   }
 
   private static Task<PostsFeedResponse> Page(string[] ids, string? endCursor, bool? hasNext = null) =>

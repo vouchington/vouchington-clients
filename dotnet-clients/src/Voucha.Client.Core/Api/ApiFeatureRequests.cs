@@ -14,6 +14,7 @@ public static partial class VouchaApiEndpoints
             ("review_topic", request.ReviewTopic),
             ("creator", request.Creator),
             ("data_point_vertical", request.DataPointVertical),
+            ("data_point_topic", request.DataPointTopic),
             ("sort", request.Sort),
             ("limit", request.Limit),
             ("after", request.After),

@@ -69,7 +69,7 @@ public partial class PostsPage : ContentPage
   {
     TimeRangePicker.IsVisible = mode == "browse" || !sessionStore.Current.IsAuthenticated;
     return mode == "browse" || !sessionStore.Current.IsAuthenticated
-          ? viewModel.LoadBrowseAsync(postTypes, viewModel.TimeRange.RequestValue, hasHackerNewsReferences: hasHackerNewsReferences)
+          ? viewModel.LoadBrowseAsync(postTypes, viewModel.TimeRange.RequestValue, hasHackerNewsReferences: hasHackerNewsReferences, scope: browseScope)
           : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek);
   }
 

@@ -18,10 +18,10 @@
     </ContentPage.Resources>
     <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="16">
         <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Start">
-            <Button Text="{DynamicResource native.dotnet.posts.feed}" Clicked="OnFeedClicked" Margin="0,0,8,8" />
-            <Button Text="{DynamicResource native.swift.common.all}" Clicked="OnAllClicked" Margin="0,0,8,8" />
-            <Button Text="{DynamicResource native.swift.navigationTitles.reviews}" Clicked="OnReviewsClicked" Margin="0,0,8,8" />
-            <Button Text="{DynamicResource native.swift.navigationTitles.discussions}" Clicked="OnDiscussionsClicked" Margin="0,0,8,8" />
+            <Button x:Name="FeedButton" Text="{DynamicResource native.dotnet.posts.feed}" Clicked="OnFeedClicked" Margin="0,0,8,8" />
+            <Button x:Name="AllButton" Text="{DynamicResource native.swift.common.all}" Clicked="OnAllClicked" Margin="0,0,8,8" />
+            <Button x:Name="ReviewsButton" Text="{DynamicResource native.swift.navigationTitles.reviews}" Clicked="OnReviewsClicked" Margin="0,0,8,8" />
+            <Button x:Name="DiscussionsButton" Text="{DynamicResource native.swift.navigationTitles.discussions}" Clicked="OnDiscussionsClicked" Margin="0,0,8,8" />
             <Button Text="{Binding HackerNewsFilterLabel}" IsVisible="{Binding IsHackerNewsFilterVisible}" Clicked="OnHackerNewsClicked" Margin="0,0,8,8" BackgroundColor="#E5E7EB" TextColor="#111827">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button" Binding="{Binding IsHackerNewsFilterSelected}" Value="True">

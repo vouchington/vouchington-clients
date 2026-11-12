@@ -18,6 +18,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   private string? activePostTypes;
   private string? activeTimeRange;
   private bool? activeHackerNewsFilter;
+  private FetchPostsRequest activeBrowseRequest = new();
   private bool browsing;
   private int requestId;
   private readonly HashSet<string> votingIds = new(StringComparer.Ordinal);
@@ -125,12 +126,15 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
       string? postTypes = null,
       string? timeRange = null,
       bool? hasHackerNewsReferences = null,
-      CancellationToken cancellationToken = default)
+      CancellationToken cancellationToken = default,
+      FetchPostsRequest? scope = null)
   {
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
     HackerNewsFilter = hasHackerNewsReferences;
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
+    activeBrowseRequest = (scope ?? new()) with { PostTypes = postTypes, TimeRange = timeRange, HasHackerNewsReferences = hasHackerNewsReferences, After = null };
+    var request = activeBrowseRequest;
     endCursor = null;
     HasMore = true;
     var currentRequest = BeginLoad();
@@ -138,8 +142,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         async () =>
         {
           var response = await postsService
-              .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes, TimeRange: timeRange,
-                  HasHackerNewsReferences: hasHackerNewsReferences), cancellationToken)
+              .FetchPostsAsync(request, cancellationToken)
               .ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);
         },

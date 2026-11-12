@@ -53,7 +53,7 @@ public sealed partial class AppShell
       "chat" => CreateChatPage(match),
       "friends" => serviceProvider.GetRequiredService<FriendsPage>(),
       NavigationCatalog.SettingsIntentId => CreateSettingsPage(match),
-      "posts" => serviceProvider.GetRequiredService<PostsPage>(),
+      "posts" => CreatePostsPage(match),
       "topics" => serviceProvider.GetRequiredService<TopicsPage>(),
       "referral-links" => serviceProvider.GetRequiredService<ReferralLinksPage>(),
       "moderation" => CreateModerationPage(match),
