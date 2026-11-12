@@ -12,10 +12,23 @@ extension NativeRouteSurfaceViewModel {
         return true
     }
 
+    var postTimeRangeOptions: [PostTimeRange] {
+        PostTimeRange.listOptions.filter { !hasHackerNewsReferences || !supportsHackerNewsFilter || $0 != .allTime }
+    }
+
+    var boundedHackerNewsTimeRange: PostTimeRange {
+        let requested = nativeRouteQueryItems(fromEncodedQuery: routeQuery)["time_range"]
+            .flatMap(PostTimeRange.init(rawValue:))
+        return requested == nil || requested == .allTime ? .lastYear : requested ?? .lastYear
+    }
+
     var postTimeRange: PostTimeRange {
         let requested = nativeRouteQueryItems(fromEncodedQuery: routeQuery)["time_range"]
             .flatMap(PostTimeRange.init(rawValue:))
-        return requested.flatMap { PostTimeRange.listOptions.contains($0) ? $0 : nil } ?? .last30Days
+        let range = selectedPostTimeRange ?? requested
+        if hasHackerNewsReferences, supportsHackerNewsFilter,
+           range == nil || range == .allTime { return .lastYear }
+        return range ?? .last30Days
     }
 
     /// Explicitly bound the request: omission disables the producer age filter.
@@ -28,8 +41,11 @@ extension NativeRouteSurfaceViewModel {
         components.path = routeMatch?.path ?? "/posts"
         components.percentEncodedQuery = routeQuery
         var items = components.queryItems ?? []
-        items.removeAll { $0.name == "time_range" || $0.name == "after" }
-        if range != .last30Days {
+        items.removeAll { $0.name == "time_range" || $0.name == "after" || $0.name == "has_hacker_news_references" }
+        if hasHackerNewsReferences, supportsHackerNewsFilter {
+            items.append(.init(name: "has_hacker_news_references", value: "true"))
+        }
+        if range != .last30Days || (hasHackerNewsReferences && supportsHackerNewsFilter) {
             items.append(.init(name: "time_range", value: range.rawValue))
         }
         components.queryItems = items.isEmpty ? nil : items

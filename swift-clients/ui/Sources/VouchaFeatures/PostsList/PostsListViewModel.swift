@@ -42,7 +42,11 @@ public final class PostsListViewModel {
     }
 
     public var hasHackerNewsReferences = false {
-        didSet { filterReloadTask = Task { await reload() } }
+        didSet {
+            guard hasHackerNewsReferences != oldValue else { return }
+            if hasHackerNewsReferences, supportsHackerNewsFilter { timeRange = .lastYear }
+            filterReloadTask = Task { await reload() }
+        }
     }
 
     public var filter: PostFilter = .all {
@@ -75,7 +79,9 @@ public final class PostsListViewModel {
     /// Select a finite range (or `nil` for the default). A change drops the cursor and reloads.
     public func selectTimeRange(_ range: PostTimeRange?) async {
         guard !isFeed else { return }
-        let range = range == .last30Days ? nil : range
+        let range = hasHackerNewsReferences && supportsHackerNewsFilter
+            ? (range == nil || range == .allTime ? .lastYear : range)
+            : (range == .last30Days ? nil : range)
         guard range != timeRange else { return }
         timeRange = range
         await reload()
@@ -159,6 +165,16 @@ public final class PostsListViewModel {
         await loadNextPage()
     }
 
+    var timeRangeOptions: [PostTimeRange] {
+        PostTimeRange.listOptions.filter { !hasHackerNewsReferences || $0 != .allTime }
+    }
+
+    var selectedTimeRange: PostTimeRange {
+        if hasHackerNewsReferences, supportsHackerNewsFilter,
+           timeRange == nil || timeRange == .allTime { return .lastYear }
+        return timeRange ?? .last30Days
+    }
+
     func feedEndpoint(after cursor: String?) -> Endpoint {
         if isFeed {
             return .posts(
@@ -170,7 +186,8 @@ public final class PostsListViewModel {
         }
         return .postsFeed(
             postTypes: filter.postTypes,
-            timeRange: (timeRange ?? .last30Days).rawValue,
+            timeRange: selectedTimeRange.rawValue,
+            hasHackerNewsReferences: hasHackerNewsReferences && supportsHackerNewsFilter ? true : nil,
             sort: "hot",
             after: cursor
         )
@@ -184,23 +201,6 @@ public final class PostsListViewModel {
         if predicates["hide"] == true {
             hiddenPostIds.insert(postId)
         }
-    }
-
-    func feedEndpoint(after cursor: String?) -> Endpoint {
-        hasHackerNewsReferences && supportsHackerNewsFilter
-            ? Endpoint.postsFeed(
-                postTypes: filter.postTypes,
-                timeRange: (timeRange ?? .last30Days).rawValue,
-                hasHackerNewsReferences: true,
-                sort: "hot",
-                after: cursor
-            )
-            : Endpoint.posts(
-                feedType: feedType,
-                after: cursor,
-                postTypes: filter.postTypes,
-                timeRange: (timeRange ?? .last30Days).rawValue
-            )
     }
 
 }

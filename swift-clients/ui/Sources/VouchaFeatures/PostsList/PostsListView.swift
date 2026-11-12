@@ -145,8 +145,8 @@ public struct PostsListView: View {
             filterPicker
             if !viewModel.isFeed, !timeRangeOptions.isEmpty {
                 PostTimeRangePicker(
-                    range: viewModel.timeRange ?? .last30Days,
-                    options: timeRangeOptions
+                    range: viewModel.selectedTimeRange,
+                    options: timeRangeOptions.filter { viewModel.timeRangeOptions.contains($0) }
                 ) { range in
                     Task { await viewModel.selectTimeRange(range) }
                 }
