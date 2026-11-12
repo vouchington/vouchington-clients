@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Households;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
@@ -15,12 +16,24 @@ public partial class HouseholdInvitationsPage : ContentPage
     BindingContext = viewModel;
   }
 
-  public void ConfigureSent(string householdId) => viewModel.ConfigureSent(householdId);
+  public void ConfigureSent(string householdId)
+  {
+    viewModel.ConfigureSent(householdId);
+    SetDynamicResource(TitleProperty, UiMessageKey.SettingsHouseholdInvitationsSentTitle.Value);
+  }
 
   protected override async void OnAppearing()
   {
     base.OnAppearing();
     await PageLoadGuard.RunAsync(() => viewModel.LoadAsync());
+  }
+
+  protected override void OnNavigatedFrom(NavigatedFromEventArgs args)
+  {
+    base.OnNavigatedFrom(args);
+    // The view model is created per page outside the root container, so the page owns its lifetime.
+    if (args.NavigationType is NavigationType.Pop or NavigationType.PopToRoot or NavigationType.Remove)
+      viewModel.Dispose();
   }
 
   private async void OnLoadMoreClicked(object? sender, EventArgs e) => await viewModel.LoadMoreAsync();

@@ -67,6 +67,16 @@ public sealed class HouseholdInvitationsPageTests
   }
 
   [Fact]
+  public void SentModeUsesTheSentNavigationTitle()
+  {
+    using var model = new HouseholdInvitationsViewModel(new HouseholdInvitationsTestService());
+    var page = CreatePage(model);
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.SettingsHouseholdInvitationsReceivedTitle), page.Title);
+    page.ConfigureSent("home");
+    Assert.Equal(UiLocalization.English.Localize(UiMessageKey.SettingsHouseholdInvitationsSentTitle), page.Title);
+  }
+
+  [Fact]
   public async Task LoadErrorRendersRetryAndRetriesTheFailedCursor()
   {
     var service = new HouseholdInvitationsTestService { Fetch = _ => throw new HttpRequestException("offline") };

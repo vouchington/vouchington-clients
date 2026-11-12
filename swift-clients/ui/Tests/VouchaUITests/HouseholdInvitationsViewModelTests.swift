@@ -67,6 +67,31 @@ final class HouseholdInvitationsViewModelTests: XCTestCase {
         XCTAssertTrue(model.pagination.hasMore)
     }
 
+    func testSendKeepsLoadedPagesAndCursorWithoutRefetching() async throws {
+        let service = InvitationServiceStub()
+        let first = try invitationFixture(edits: ["id": "first"])
+        let second = try invitationFixture(edits: ["id": "second"])
+        let sent = try invitationFixture(edits: ["id": "sent"])
+        service.pages[nil] = HouseholdInvitationPage(
+            results: [first],
+            pageInfo: .init(hasNextPage: true, endCursor: "one")
+        )
+        service.pages["one"] = HouseholdInvitationPage(
+            results: [second],
+            pageInfo: .init(hasNextPage: true, endCursor: "two")
+        )
+        service.response = sent
+        let model = HouseholdInvitationsViewModel(service: service, householdId: "owned")
+        await model.load()
+        await model.loadNext()
+        model.username = "alice"
+        await model.send()
+        XCTAssertEqual(model.invitations.map(\.id), [sent.id, first.id, second.id])
+        XCTAssertEqual(model.pagination.endCursor, "two")
+        XCTAssertTrue(model.pagination.hasMore)
+        XCTAssertEqual(service.requests.count, 2)
+    }
+
     func testInvalidOrBusySendDoesNotCallServiceAndFailureKeepsDraft() async {
         let service = InvitationServiceStub()
         let received = HouseholdInvitationsViewModel(service: service)

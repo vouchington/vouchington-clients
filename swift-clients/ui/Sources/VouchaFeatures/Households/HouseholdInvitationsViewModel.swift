@@ -77,9 +77,10 @@ final class HouseholdInvitationsViewModel {
             self.username = ""
             self.relationship = ""
             message = .settingsHouseholdInvitationsInvitationSent
-            pagination.reset()
+            // Keep every loaded page and its cursor; only fetch when nothing has loaded yet.
             await load()
-            pagination.replaceItems([invitation] + pagination.items)
+            dismissedIds.remove(invitation.id)
+            pagination.replaceItems([invitation] + pagination.items.filter { $0.id != invitation.id })
         } catch {
             message = .settingsHouseholdInvitationsInvitationSendFailed
         }
