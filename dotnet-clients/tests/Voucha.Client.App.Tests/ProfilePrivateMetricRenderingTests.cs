@@ -30,8 +30,8 @@ public sealed class ProfilePrivateMetricRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
-    foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
-      app.Resources[key] = new Style(typeof(Label));
+    foreach (var styleKey in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
+      app.Resources[styleKey] = new Style(typeof(Label));
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(localization);
@@ -75,8 +75,8 @@ public sealed class ProfilePrivateMetricRenderingTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
-    foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
-      app.Resources[key] = new Style(typeof(Label));
+    foreach (var styleKey in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
+      app.Resources[styleKey] = new Style(typeof(Label));
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
     app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
     app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
