@@ -6,11 +6,15 @@ import VouchaLocalization
 struct NativeEngineeringPostgresqlSurface: View {
     @Environment(\.locale)
     var nativeUiLocale
+    let accountId: String?
+    let isAdministrator: Bool
     let entry: NativeRouteCatalogEntry
     @State
     private var viewModel: NativeEngineeringPostgresqlViewModel?
 
-    init(entry: NativeRouteCatalogEntry, client: APIClient?) {
+    init(entry: NativeRouteCatalogEntry, client: APIClient?, accountId: String? = nil, isAdministrator: Bool = false) {
+        self.accountId = accountId
+        self.isAdministrator = isAdministrator
         self.entry = entry
         _viewModel = State(initialValue: client.map(NativeEngineeringPostgresqlViewModel.init(client:)))
     }
@@ -94,7 +98,11 @@ struct NativeEngineeringPostgresqlSurface: View {
                 Text(UiMessages.string(message, locale: nativeUiLocale))
             }
         }
+        .onChange(of: accountId) { _, _ in updateRangeAccess(viewModel) }
+        .onChange(of: isAdministrator) { _, _ in updateRangeAccess(viewModel) }
+        .onDisappear { viewModel.cancelRangeOperation() }
         .task {
+            updateRangeAccess(viewModel)
             await viewModel.load()
         }
     }

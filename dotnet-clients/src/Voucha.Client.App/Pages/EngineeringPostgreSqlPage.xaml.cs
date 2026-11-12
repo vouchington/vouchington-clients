@@ -4,7 +4,7 @@ using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
-public partial class EngineeringPostgreSqlPage : ContentPage
+public partial class EngineeringPostgreSqlPage : ContentPage, IDisposable
 {
   private readonly EngineeringPostgreSqlViewModel viewModel;
 
@@ -13,6 +13,7 @@ public partial class EngineeringPostgreSqlPage : ContentPage
     InitializeComponent();
     this.viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     BindingContext = viewModel;
+    Unloaded += OnUnloaded;
   }
 
   protected override async void OnAppearing()
@@ -20,6 +21,16 @@ public partial class EngineeringPostgreSqlPage : ContentPage
     base.OnAppearing();
     await PageLoadGuard.RunAsync(() => viewModel.LoadAsync()).ConfigureAwait(true);
   }
+
+  protected override void OnDisappearing()
+  {
+    viewModel.CancelRangeOperation();
+    base.OnDisappearing();
+  }
+
+  private void OnUnloaded(object? sender, EventArgs args) => Dispose();
+
+  public void Dispose() => viewModel.Dispose();
 
   private async void OnRefreshClicked(object? sender, EventArgs e) => await viewModel.LoadAsync().ConfigureAwait(true);
   private async void OnRunMigrationsClicked(object? sender, EventArgs e) => await viewModel.RunMigrationsAsync().ConfigureAwait(true);

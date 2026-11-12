@@ -3,6 +3,10 @@ import VouchaAPI
 import VouchaLocalization
 
 extension NativeEngineeringPostgresqlSurface {
+    func updateRangeAccess(_ viewModel: NativeEngineeringPostgresqlViewModel) {
+        viewModel.updateRangeAccess(accountId: accountId, isAdministrator: isAdministrator)
+    }
+
     func confirmMessage(for action: NativeEngineeringPostgresqlPendingAction?) -> UiMessage? {
         switch action {
         case .createPartitions:
