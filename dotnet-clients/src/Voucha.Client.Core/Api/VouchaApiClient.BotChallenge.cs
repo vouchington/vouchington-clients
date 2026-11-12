@@ -22,6 +22,8 @@ public sealed partial class VouchaApiClient
     HttpRequestMessage CreateMessage(string? proof = null)
     {
       var message = new HttpRequestMessage(method, uri);
+      message.Options.Set(ClientMetadataHandler.RepeatableJson, true);
+      message.Options.Set(ClientMetadataHandler.CoordinatedRotation, request.IsCoordinatedSessionRotation);
       foreach (var (name, value) in headers) message.Headers.TryAddWithoutValidation(name, value);
       if (bytes is not null)
       {

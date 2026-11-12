@@ -4,14 +4,14 @@ using Voucha.Client.Core.Api;
 namespace Voucha.Client.Core.Auth;
 
 #if DEBUG
-public sealed class CookieSessionStore :
+public sealed partial class CookieSessionStore :
     ISessionStore,
     IForcedSessionRefreshStore,
     IConfirmingSessionRefreshStore,
     ICommittedOAuthDisconnectSessionStore,
     IDevelopmentSessionStore
 #else
-public sealed class CookieSessionStore :
+public sealed partial class CookieSessionStore :
     ISessionStore,
     IForcedSessionRefreshStore,
     IConfirmingSessionRefreshStore,
@@ -24,6 +24,8 @@ public sealed class CookieSessionStore :
   private SessionSnapshot current = SessionSnapshot.Anonymous;
   private Task? refreshTask;
   private long refreshGeneration;
+  private long refreshCookieGeneration;
+  private bool signingOut;
 
   public CookieSessionStore(
       VouchaApiClient client,
@@ -31,6 +33,13 @@ public sealed class CookieSessionStore :
   {
     this.client = client ?? throw new ArgumentNullException(nameof(client));
     this.cookieJar = cookieJar ?? throw new ArgumentNullException(nameof(cookieJar));
+    cookieJar.SessionInvalidated += OnSessionInvalidated;
+  }
+
+  private void OnSessionInvalidated(object? sender, EventArgs args)
+  {
+    lock (syncLock) refreshGeneration++;
+    SetCurrent(SessionSnapshot.Anonymous);
   }
 
   public event EventHandler<SessionChangedEventArgs>? SessionChanged;
@@ -79,96 +88,63 @@ public sealed class CookieSessionStore :
   {
     lock (syncLock)
     {
-      if (!force && refreshTask is not null && !refreshTask.IsCompleted)
+      if (signingOut) return Task.CompletedTask.WaitAsync(cancellationToken);
+      if (refreshTask is not null && !refreshTask.IsCompleted && refreshCookieGeneration == cookieJar.Generation)
       {
-        return refreshTask;
+        return ObserveRefreshAsync(refreshTask, reportTransientFailure, cancellationToken);
       }
 
-      var generation = force ? ++refreshGeneration : refreshGeneration;
-      refreshTask = RefreshInternalAsync(generation, reportTransientFailure, cancellationToken);
-      return refreshTask;
+      refreshCookieGeneration = cookieJar.Generation;
+      var generation = refreshGeneration;
+      refreshTask = RefreshInternalAsync(generation, CancellationToken.None);
+      return ObserveRefreshAsync(refreshTask, reportTransientFailure, cancellationToken);
     }
   }
 
   private async Task RefreshInternalAsync(
       long generation,
-      bool reportTransientFailure,
       CancellationToken cancellationToken)
   {
+    var cookieGeneration = cookieJar.Generation;
     try
     {
+      await cookieJar.RestoreAsync(cancellationToken).ConfigureAwait(false);
+      if (cookieJar.CanRecoverAuthentication)
+        await cookieJar.RenewAsync((dt, st) => client.SendAsync<NativeSessionRefreshResponse>(
+            VouchaApiEndpoints.RefreshSession(dt!, st) with { IsCoordinatedSessionRotation = true }, CancellationToken.None),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
       var response = await client
           .FetchMyIdentityAsync(cancellationToken)
           .ConfigureAwait(false);
-      SetCurrent(generation, new SessionSnapshot(response.Identity));
+      if (cookieGeneration == cookieJar.Generation) SetCurrent(generation, new SessionSnapshot(response.Identity));
+    }
+    catch (UnauthorizedAccessException)
+    {
+      if (cookieGeneration == cookieJar.Generation || !cookieJar.HasDeviceCookie)
+        SetCurrent(generation, SessionSnapshot.Anonymous);
     }
     catch (VouchaApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
     {
-      SetCurrent(generation, SessionSnapshot.Anonymous);
-    }
-    catch (VouchaApiException) when (!reportTransientFailure)
-    {
-      // Keep the prior snapshot for transient identity failures.
-    }
-    catch (HttpRequestException) when (!reportTransientFailure)
-    {
-      // Keep the prior snapshot for transient identity failures.
-    }
-    catch (TaskCanceledException) when (
-        !reportTransientFailure && !cancellationToken.IsCancellationRequested)
-    {
-      // Keep the prior snapshot for transient identity failures.
+      if (cookieGeneration == cookieJar.Generation || !cookieJar.HasDeviceCookie)
+        SetCurrent(generation, SessionSnapshot.Anonymous);
     }
   }
 
-  public async Task SignOutAsync(CancellationToken cancellationToken = default)
+  private static async Task ObserveRefreshAsync(Task refresh, bool reportTransientFailure, CancellationToken cancellationToken)
   {
     try
     {
-      await client
-          .SendAsync(VouchaApiEndpoints.Logout(), cancellationToken)
-          .ConfigureAwait(false);
+      await refresh.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
-    catch (VouchaApiException)
+    catch (HttpRequestException) when (!reportTransientFailure)
     {
-      // Clear local session state even if the server session is already gone.
+      // Preserve the current identity and cookies across transient transport failures.
     }
-    catch (HttpRequestException)
+    catch (TaskCanceledException) when (!reportTransientFailure && !cancellationToken.IsCancellationRequested)
     {
-      // Clear local session state even when the network is unavailable.
-    }
-    catch (TaskCanceledException)
-    {
-      // Clear local session state when the logout request times out.
-    }
-    finally
-    {
-      lock (syncLock)
-      {
-        refreshGeneration++;
-      }
-
-      using var clearTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-      await cookieJar.ClearAsync(clearTimeout.Token).ConfigureAwait(false);
-      SetCurrent(SessionSnapshot.Anonymous);
+      // A timed-out shared operation does not invalidate the current session.
     }
   }
-
-#if DEBUG
-  public async Task InjectDevelopmentCookiesAsync(
-      string deviceToken,
-      string sessionToken,
-      CancellationToken cancellationToken = default)
-  {
-    await cookieJar
-        .StoreDevelopmentCookiesAsync(deviceToken, sessionToken, cancellationToken)
-        .ConfigureAwait(false);
-    await RefreshCoreAsync(
-        force: true,
-        reportTransientFailure: false,
-        cancellationToken).ConfigureAwait(false);
-  }
-#endif
 
   private void SetCurrent(SessionSnapshot snapshot)
   {
@@ -185,9 +161,10 @@ public sealed class CookieSessionStore :
   {
     lock (syncLock)
     {
-      if (generation != refreshGeneration) return;
+      if (generation != refreshGeneration || current == snapshot) return;
+      current = snapshot;
     }
 
-    SetCurrent(snapshot);
+    SessionChanged?.Invoke(this, new SessionChangedEventArgs(snapshot));
   }
 }

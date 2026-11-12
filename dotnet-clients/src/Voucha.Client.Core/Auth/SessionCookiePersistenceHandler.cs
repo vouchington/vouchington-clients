@@ -5,8 +5,22 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
   private readonly SessionCookieJar cookieJar;
 
   public SessionCookiePersistenceHandler(SessionCookieJar cookieJar, HttpMessageHandler innerHandler)
-      : base(innerHandler) =>
-      this.cookieJar = cookieJar ?? throw new ArgumentNullException(nameof(cookieJar));
+      : base(innerHandler)
+  {
+    this.cookieJar = cookieJar ?? throw new ArgumentNullException(nameof(cookieJar));
+    var handler = innerHandler;
+    while (handler is DelegatingHandler delegating) handler = delegating.InnerHandler!;
+    if (handler is SocketsHttpHandler sockets)
+    {
+      sockets.UseCookies = false;
+      sockets.AllowAutoRedirect = false;
+    }
+    if (handler is HttpClientHandler http)
+    {
+      http.UseCookies = false;
+      http.AllowAutoRedirect = false;
+    }
+  }
 
   protected override async Task<HttpResponseMessage> SendAsync(
       HttpRequestMessage request,
@@ -14,15 +28,25 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
   {
     ArgumentNullException.ThrowIfNull(request);
 
-    await cookieJar.RestoreAsync(cancellationToken).ConfigureAwait(false);
+    var uri = request.RequestUri ?? throw new InvalidOperationException("Request URI is unavailable.");
+    var sessionRequest = request.Method == HttpMethod.Patch && uri.AbsolutePath == "/api/v1/session" &&
+        request.Options.TryGetValue(Voucha.Client.Core.Api.ClientMetadataHandler.CoordinatedRotation, out var coordinated) && coordinated;
+    var snapshot = await cookieJar.PrepareRequestAsync(uri, sessionRequest, cancellationToken).ConfigureAwait(false);
+    var logout = uri.AbsolutePath == "/api/v1/auth/logout" && cookieJar.IsFirstParty(uri);
+    var cookies = logout && request.Headers.TryGetValues("Cookie", out var captured)
+        ? string.Join("; ", captured) : snapshot.Header;
+    request.Headers.Remove("Cookie");
+    if (!string.IsNullOrEmpty(cookies)) request.Headers.TryAddWithoutValidation("Cookie", cookies);
     var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
-    if (response.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders))
+    if (request.RequestUri?.AbsolutePath != "/api/v1/auth/logout" &&
+        !sessionRequest &&
+        response.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders))
     {
-      cookieJar.StoreSetCookieHeaders(request.RequestUri, setCookieHeaders);
       try
       {
         using var persistTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await cookieJar.PersistAsync(persistTimeout.Token).ConfigureAwait(false);
+        await cookieJar.ApplyResponseCookiesAsync(
+            request.RequestUri, setCookieHeaders, snapshot.Generation, snapshot.Revision, persistTimeout.Token).ConfigureAwait(false);
       }
       catch (TaskCanceledException)
       {

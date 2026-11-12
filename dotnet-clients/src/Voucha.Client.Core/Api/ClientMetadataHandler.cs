@@ -1,17 +1,15 @@
 using System.Net.Http.Json;
-using System.Text.Json.Serialization;
 using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Api;
 
-public sealed class ClientMetadataHandler(
+public sealed partial class ClientMetadataHandler(
     ClientMetadata metadata,
     Uri apiOrigin,
     SessionCookieJar cookieJar,
     HttpMessageHandler innerHandler)
     : DelegatingHandler(innerHandler)
 {
-  private readonly SemaphoreSlim bootstrapLock = new(1, 1);
 
   protected override async Task<HttpResponseMessage> SendAsync(
       HttpRequestMessage request,
@@ -28,44 +26,45 @@ public sealed class ClientMetadataHandler(
     {
       return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
+    if (request.Method != HttpMethod.Get &&
+        IsSessionTransition(request.RequestUri.AbsolutePath))
+      cookieJar.Invalidate();
     ApplyMetadata(request);
-    if (!IsSessionEndpoint(request.RequestUri))
-      await EnsureSessionBootstrapAsync(cancellationToken).ConfigureAwait(false);
-    return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+    if (!IsSessionEndpoint(request.RequestUri) && request.RequestUri.AbsolutePath != "/api/v1/auth/logout")
+      await EnsureSessionBootstrapAsync(request, cancellationToken).ConfigureAwait(false);
+    return await SendWithRecoveryAsync(request, cancellationToken).ConfigureAwait(false);
   }
 
-  private async Task EnsureSessionBootstrapAsync(CancellationToken cancellationToken)
+  private async Task EnsureSessionBootstrapAsync(HttpRequestMessage request, CancellationToken cancellationToken)
   {
     await cookieJar.RestoreAsync(cancellationToken).ConfigureAwait(false);
+    await cookieJar.WaitForRenewalAsync(cancellationToken).ConfigureAwait(false);
     if (cookieJar.HasDeviceCookie) return;
-    await bootstrapLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-    try
-    {
-      if (cookieJar.HasDeviceCookie) return;
-      using var bootstrap = new HttpRequestMessage(HttpMethod.Patch, new Uri(apiOrigin, "/api/v1/session"))
-      {
-        Content = JsonContent.Create(new { }),
-      };
-      ApplyMetadata(bootstrap);
-      using var response = await base.SendAsync(bootstrap, cancellationToken).ConfigureAwait(false);
-      response.EnsureSuccessStatusCode();
-      var payload = await response.Content
-          .ReadFromJsonAsync<SessionBootstrapResponse>(cancellationToken)
-          .ConfigureAwait(false) ?? throw new InvalidDataException("Session bootstrap response was empty.");
-      await cookieJar
-          .StoreSessionTokensAsync(
-              payload.Session.DeviceToken,
-              payload.Session.SessionToken,
-              TimeSpan.FromSeconds(payload.Session.DeviceExpirationSeconds),
-              TimeSpan.FromSeconds(payload.Session.SessionExpirationSeconds),
-              cancellationToken)
-          .ConfigureAwait(false);
-    }
-    finally
-    {
-      bootstrapLock.Release();
-    }
+    var userAgent = ReadUserAgent(request);
+    await cookieJar.RenewAsync((dt, st) => RotateAsync(dt, st, userAgent), bootstrap: true, cancellationToken).ConfigureAwait(false);
   }
+
+  private async Task<NativeSessionRefreshResponse> RotateAsync(
+      string? deviceToken, string? sessionToken, string[] userAgent)
+  {
+    using var renewal = new HttpRequestMessage(HttpMethod.Patch, new Uri(apiOrigin, "/api/v1/session"))
+    {
+      Content = JsonContent.Create(deviceToken is null ? (object)new { } :
+          new RefreshSessionBody(deviceToken, sessionToken!)),
+    };
+    if (userAgent.Length > 0) renewal.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+    renewal.Options.Set(CoordinatedRotation, true);
+    ApplyMetadata(renewal);
+    using var response = await base.SendAsync(renewal, CancellationToken.None).ConfigureAwait(false);
+    if (!response.IsSuccessStatusCode)
+      throw new VouchaApiException(response.StatusCode,
+          await VouchaApiClient.ReadErrorBodyAsync(response.Content, CancellationToken.None).ConfigureAwait(false));
+    return await response.Content.ReadFromJsonAsync<NativeSessionRefreshResponse>(VouchaApiJson.Options)
+        .ConfigureAwait(false) ?? throw new InvalidDataException("Session renewal response was empty.");
+  }
+
+  private static string[] ReadUserAgent(HttpRequestMessage request) =>
+      request.Headers.TryGetValues("User-Agent", out var values) ? values.ToArray() : [];
 
   private void ApplyMetadata(HttpRequestMessage request)
   {
@@ -76,14 +75,15 @@ public sealed class ClientMetadataHandler(
     else request.Headers.Remove("x-voucha-sdk-version");
   }
 
+  private static bool IsSessionTransition(string path) => path is
+      "/api/v1/auth/email-address/login" or "/api/v1/auth/native/email-address/login" or
+      "/api/v1/auth/mfa/totp/verification" or "/api/v1/auth/passkeys/authentication/verify" or
+      "/api/v1/auth/oauth/apple/continue" or "/api/v1/auth/logout" ||
+      path.StartsWith("/api/v1/auth/oauth/authorizations/", StringComparison.Ordinal) &&
+      path.EndsWith("/complete", StringComparison.Ordinal);
+
   private static bool IsSessionEndpoint(Uri requestUri) =>
       string.Equals(requestUri.AbsolutePath, "/api/v1/session", StringComparison.Ordinal);
-
-  protected override void Dispose(bool disposing)
-  {
-    if (disposing) bootstrapLock.Dispose();
-    base.Dispose(disposing);
-  }
 
   private static void Set(HttpRequestMessage request, string name, string value)
   {
@@ -91,12 +91,4 @@ public sealed class ClientMetadataHandler(
     request.Headers.TryAddWithoutValidation(name, value);
   }
 
-  private sealed record SessionBootstrapResponse(
-      [property: JsonPropertyName("session")] SessionBootstrap Session);
-
-  private sealed record SessionBootstrap(
-      [property: JsonPropertyName("dt")] string DeviceToken,
-      [property: JsonPropertyName("st")] string SessionToken,
-      [property: JsonPropertyName("dte")] int DeviceExpirationSeconds,
-      [property: JsonPropertyName("ste")] int SessionExpirationSeconds);
 }

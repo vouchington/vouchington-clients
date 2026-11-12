@@ -13,12 +13,16 @@ public sealed partial class SessionCookieJar
   {
     ArgumentException.ThrowIfNullOrEmpty(deviceToken);
     ArgumentException.ThrowIfNullOrEmpty(sessionToken);
+    Invalidate();
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
       var now = DateTimeOffset.UtcNow;
       SetCookie("dt", deviceToken, now.Add(deviceLifetime));
       SetCookie("st", sessionToken, now.Add(sessionLifetime));
+      Interlocked.Increment(ref credentialRevision);
+      authenticatedSession = null;
+      Invalidate();
       await PersistUnlockedAsync(cancellationToken).ConfigureAwait(false);
     }
     finally
