@@ -1,5 +1,6 @@
 import SwiftUI
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -51,7 +52,9 @@ struct CommunityCreateSurface: View {
         }
         .sheet(isPresented: $showingTurnstile) {
             NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
+                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+                action: .communitiesCreate,
+                baseURL: client?.baseURL ?? AppConfig.shared.baseURL
             ) { token in
                 viewModel.turnstileToken = token
                 showingTurnstile = false

@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -81,7 +82,9 @@ struct NativePostComposeSurface: View {
         }
         .sheet(isPresented: $showingTurnstile) {
             NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
+                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+                action: viewModel.communityIdOrSlug == nil ? .postsCreate : .communitiesCreatePost,
+                baseURL: client?.baseURL ?? AppConfig.shared.baseURL
             ) { token in
                 viewModel.turnstileToken = token
                 showingTurnstile = false

@@ -40,7 +40,7 @@ internal static class NativeReportPrompt
       string token;
       try
       {
-        token = await turnstileTokenProvider.GetTokenAsync().ConfigureAwait(true);
+        token = await turnstileTokenProvider.GetTokenAsync("reports.create").ConfigureAwait(true);
       }
       catch (OperationCanceledException)
       {

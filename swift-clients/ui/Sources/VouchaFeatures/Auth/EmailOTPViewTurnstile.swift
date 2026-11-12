@@ -8,7 +8,11 @@ extension View {
         viewModel: EmailOTPViewModel
     ) -> some View {
         sheet(isPresented: isPresented) {
-            NativeTurnstileChallengeView(siteKey: siteKey ?? AppConfig.shared.requiredTurnstileSiteKey) { token in
+            NativeTurnstileChallengeView(
+                siteKey: siteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+                action: .authEmailAddressTokens,
+                baseURL: viewModel.turnstileBaseURL
+            ) { token in
                 viewModel.turnstileToken = token
                 isPresented.wrappedValue = false
             }

@@ -46,6 +46,10 @@ public final class EmailOTPViewModel {
         }
     }
 
+    var turnstileBaseURL: URL {
+        signInService.baseURL
+    }
+
     /// Whether `requestCode()` can proceed: either a Turnstile token is present, or App Attest
     /// can stand in for it. UI layers use this to enable the Send Code button.
     public var canRequestCode: Bool {

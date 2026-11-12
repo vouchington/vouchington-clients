@@ -227,7 +227,7 @@ public sealed class CommunityActionInvitePageLifecycleTests
 
   private sealed class TokenProvider : Voucha.Client.App.ITurnstileTokenProvider
   {
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default) => Task.FromResult("token");
+    public Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default) => Task.FromResult("token");
   }
 
   private sealed class InviteHandler(bool deferResponse) : HttpMessageHandler

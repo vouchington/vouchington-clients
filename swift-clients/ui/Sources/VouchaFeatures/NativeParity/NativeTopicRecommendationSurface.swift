@@ -64,7 +64,9 @@ extension NativeTopicRecommendationSurface {
         .emailVerificationRecovery(client: viewModel.client, gate: viewModel.emailVerificationGate)
         .sheet(isPresented: $showingTurnstile) {
             NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
+                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+                action: .postsCreate,
+                baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
             ) { token in
                 viewModel.turnstileToken = token
                 showingTurnstile = false
@@ -172,28 +174,6 @@ extension NativeTopicRecommendationSurface {
         }
         .buttonStyle(.borderedProminent)
         .disabled(!viewModel.canSubmit || viewModel.isLoading)
-    }
-
-    @ViewBuilder
-    private func status(viewModel: NativeTopicRecommendationViewModel) -> some View {
-        switch viewModel.state {
-        case .required:
-            Text(UiMessages.string(.nativeSwiftPostComposeVerificationTokenRequired, locale: nativeUiLocale))
-                .foregroundStyle(Colors.secondaryLabel)
-        case let .error(error):
-            Text(contributionAdmissionMessage(error) ?? error.localizedDescription)
-                .foregroundStyle(Colors.negativeVote)
-                .accessibilityAddTraits(.isStaticText)
-        default:
-            if let saved = viewModel.savedPostId {
-                Text(UiMessages.string(
-                    .nativeSwiftTopicRecommendationSavedValue,
-                    parameters: ["value": UiMessages.string(.verbatim(saved), locale: nativeUiLocale)],
-                    locale: nativeUiLocale
-                ))
-                .foregroundStyle(Colors.secondaryLabel)
-            }
-        }
     }
 
 }

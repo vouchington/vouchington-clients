@@ -1,11 +1,13 @@
 import SwiftUI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
 
 struct MemberAppealForm: View {
-    @Environment(\.locale) private var locale
+    @Environment(\.locale)
+    private var locale
     let viewModel: MemberAppealsViewModel
     let turnstileSiteKey: String?
 
@@ -64,7 +66,9 @@ struct MemberAppealForm: View {
                 Color.black.opacity(0.35).ignoresSafeArea()
                 VStack {
                     NativeTurnstileChallengeView(
-                        siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
+                        siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+                        action: .appealsCreate,
+                        baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
                     ) { token in
                         viewModel.turnstileToken = token
                         viewModel.isPresentingTurnstile = false

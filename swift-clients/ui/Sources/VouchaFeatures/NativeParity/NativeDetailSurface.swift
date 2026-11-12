@@ -1,4 +1,5 @@
 import SwiftUI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -72,7 +73,9 @@ struct NativeDetailSurface: View {
         }
         .sheet(isPresented: reportTurnstileBinding) {
             NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
+                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+                action: .reportsCreate,
+                baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
             ) { token in
                 handleReportTurnstileToken(token)
             }

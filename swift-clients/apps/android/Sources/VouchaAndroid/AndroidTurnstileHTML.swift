@@ -1,16 +1,15 @@
 import Foundation
+import VouchaCore
 
 // Skip 1.9.13 requires a plain directive; a documentation comment does not export this helper.
 // swiftformat:disable:next docComments
 // SKIP @bridge
-func androidTurnstileHTML(_ key: String) -> String {
-    let escaped = key.replacingOccurrences(of: "&", with: "&amp;")
-        .replacingOccurrences(of: "\"", with: "&quot;")
-        .replacingOccurrences(of: "<", with: "&lt;")
+func androidTurnstileHTML(_ key: String, actionTag: String, baseURL: URL) -> String? {
+    guard let context = TurnstileChallengeContext(actionTag: actionTag, baseURL: baseURL) else { return nil }
     return """
     <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" onerror="location.href='voucha://turnstile?error'" async defer></script></head>
-    <body><div class="cf-turnstile" data-sitekey="\(escaped)" data-callback="tokenReady"
+    <body><div class="cf-turnstile" \(context.widgetAttributes(siteKey: key)) data-callback="tokenReady"
     data-expired-callback="tokenExpired" data-error-callback="tokenError"></div>
     <script>
     function tokenReady(token){location.href='voucha://turnstile?token='+encodeURIComponent(token);}

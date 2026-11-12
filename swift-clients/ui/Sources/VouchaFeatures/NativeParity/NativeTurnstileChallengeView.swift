@@ -1,19 +1,33 @@
 import SwiftUI
+import VouchaAuth
+import VouchaCore
+import VouchaLocalization
 import WebKit
 
 struct NativeTurnstileChallengeView: View {
     let siteKey: String
+    let action: AppAttestActionTag
+    var baseURL: URL = AppConfig.shared.baseURL
     let onToken: (String) -> Void
 
+    @Environment(\.locale)
+    private var locale
+
     var body: some View {
-        NativeTurnstileWebView(siteKey: siteKey, onToken: onToken)
-            .frame(minWidth: 320, minHeight: 240)
-            .padding()
+        if let context = TurnstileChallengeContext(actionTag: action.rawValue, baseURL: baseURL) {
+            NativeTurnstileWebView(siteKey: siteKey, challenge: context, onToken: onToken)
+                .id(context)
+                .frame(minWidth: 320, minHeight: 240)
+                .padding()
+        } else {
+            Text(UiMessages.string(.nativeAuthVerificationTokenRequired, locale: locale))
+        }
     }
 }
 
 private final class NativeTurnstileCoordinator: NSObject, WKScriptMessageHandler {
     let onToken: (String) -> Void
+    var isActive = true
 
     init(onToken: @escaping (String) -> Void) {
         self.onToken = onToken
@@ -23,28 +37,30 @@ private final class NativeTurnstileCoordinator: NSObject, WKScriptMessageHandler
         _: WKUserContentController,
         didReceive message: WKScriptMessage
     ) {
-        guard message.name == "turnstileToken", let token = message.body as? String, !token.isEmpty else {
+        guard isActive, message.frameInfo.isMainFrame, message.name == "turnstileToken",
+              let token = message.body as? String, !token.isEmpty else {
             return
         }
         onToken(token)
     }
 }
 
-private func makeTurnstileWebView(siteKey: String, coordinator: NativeTurnstileCoordinator) -> WKWebView {
+private func makeTurnstileWebView(
+    siteKey: String,
+    challenge: TurnstileChallengeContext,
+    coordinator: NativeTurnstileCoordinator
+) -> WKWebView {
     let contentController = WKUserContentController()
     contentController.add(coordinator, name: "turnstileToken")
     let configuration = WKWebViewConfiguration()
     configuration.userContentController = contentController
     let webView = WKWebView(frame: .zero, configuration: configuration)
-    webView.loadHTMLString(turnstileHTML(siteKey: siteKey), baseURL: URL(string: "https://voucha.ai"))
+    webView.loadHTMLString(turnstileHTML(siteKey: siteKey, challenge: challenge), baseURL: challenge.origin)
     return webView
 }
 
-private func turnstileHTML(siteKey: String) -> String {
-    let escapedSiteKey = siteKey
-        .replacingOccurrences(of: "&", with: "&amp;")
-        .replacingOccurrences(of: "\"", with: "&quot;")
-        .replacingOccurrences(of: "<", with: "&lt;")
+func turnstileHTML(siteKey: String, challenge: TurnstileChallengeContext) -> String {
+    let attributes = challenge.widgetAttributes(siteKey: siteKey)
     return """
     <!doctype html>
     <html>
@@ -56,7 +72,7 @@ private func turnstileHTML(siteKey: String) -> String {
         </style>
       </head>
       <body>
-        <div class="cf-turnstile" data-sitekey="\(escapedSiteKey)" data-callback="onTurnstileToken"></div>
+        <div class="cf-turnstile" \(attributes) data-callback="onTurnstileToken"></div>
         <script>
           function onTurnstileToken(token) {
             window.webkit.messageHandlers.turnstileToken.postMessage(token);
@@ -70,6 +86,7 @@ private func turnstileHTML(siteKey: String) -> String {
 #if os(iOS)
     private struct NativeTurnstileWebView: UIViewRepresentable {
         let siteKey: String
+        let challenge: TurnstileChallengeContext
         let onToken: (String) -> Void
 
         func makeCoordinator() -> NativeTurnstileCoordinator {
@@ -77,12 +94,14 @@ private func turnstileHTML(siteKey: String) -> String {
         }
 
         func makeUIView(context: Context) -> WKWebView {
-            makeTurnstileWebView(siteKey: siteKey, coordinator: context.coordinator)
+            makeTurnstileWebView(siteKey: siteKey, challenge: challenge, coordinator: context.coordinator)
         }
 
         func updateUIView(_: WKWebView, context _: Context) {}
 
-        static func dismantleUIView(_ uiView: WKWebView, coordinator _: NativeTurnstileCoordinator) {
+        static func dismantleUIView(_ uiView: WKWebView, coordinator: NativeTurnstileCoordinator) {
+            coordinator.isActive = false
+            uiView.stopLoading()
             uiView.configuration.userContentController.removeScriptMessageHandler(forName: "turnstileToken")
         }
     }
@@ -90,6 +109,7 @@ private func turnstileHTML(siteKey: String) -> String {
 #elseif os(macOS)
     private struct NativeTurnstileWebView: NSViewRepresentable {
         let siteKey: String
+        let challenge: TurnstileChallengeContext
         let onToken: (String) -> Void
 
         func makeCoordinator() -> NativeTurnstileCoordinator {
@@ -97,12 +117,14 @@ private func turnstileHTML(siteKey: String) -> String {
         }
 
         func makeNSView(context: Context) -> WKWebView {
-            makeTurnstileWebView(siteKey: siteKey, coordinator: context.coordinator)
+            makeTurnstileWebView(siteKey: siteKey, challenge: challenge, coordinator: context.coordinator)
         }
 
         func updateNSView(_: WKWebView, context _: Context) {}
 
-        static func dismantleNSView(_ nsView: WKWebView, coordinator _: NativeTurnstileCoordinator) {
+        static func dismantleNSView(_ nsView: WKWebView, coordinator: NativeTurnstileCoordinator) {
+            coordinator.isActive = false
+            nsView.stopLoading()
             nsView.configuration.userContentController.removeScriptMessageHandler(forName: "turnstileToken")
         }
     }
