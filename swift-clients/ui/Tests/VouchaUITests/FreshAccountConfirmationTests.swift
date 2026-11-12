@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import VouchaAPI
 import VouchaAuth
-import VouchaCore
+@testable import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
@@ -148,11 +148,11 @@ final class FreshAccountConfirmationTests: XCTestCase {
         XCTAssertNotNil(unconfigured.model.errorMessage)
     }
 
-    private var paths: [String] {
+    var paths: [String] {
         CannedFeedURLProtocol.capturedURLs.map(\.path)
     }
 
-    private func waitForMethods(_ model: FreshAccountConfirmationViewModel) async {
+    func waitForMethods(_ model: FreshAccountConfirmationViewModel) async {
         let ready = expectation(
             for: NSPredicate { _, _ in MainActor.assumeIsolated { model.methods != nil } },
             evaluatedWith: nil
@@ -160,8 +160,13 @@ final class FreshAccountConfirmationTests: XCTestCase {
         await fulfillment(of: [ready], timeout: 2)
     }
 
-    private func makeFixture(google: (any FreshProviderAssertion)? = nil) throws
-        -> (model: FreshAccountConfirmationViewModel, client: APIClient, cookies: HTTPCookieStorage) {
+    func makeFixture(google: (any FreshProviderAssertion)? = nil, brokerEnabled: Bool = false) throws
+        -> (
+            model: FreshAccountConfirmationViewModel,
+            client: APIClient,
+            cookies: HTTPCookieStorage,
+            broker: NativeOAuthAuthorizationCoordinator?
+        ) {
         let cookies = HTTPCookieStorage()
         try setCookie("dt", value: "initiating-device", storage: cookies)
         try setCookie("st", value: "initiating-session", storage: cookies)
@@ -177,7 +182,23 @@ final class FreshAccountConfirmationTests: XCTestCase {
         }
         CannedFeedURLProtocol.handlers["/api/v1/auth/mfa/re-auth/email/tokens"] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.handlers["/api/v1/auth/bluesky/link"] = (Data("{}".utf8), 200)
-        return (FreshAccountConfirmationViewModel(client: client, googleAssertion: google), client, cookies)
+        let broker: NativeOAuthAuthorizationCoordinator?
+        if brokerEnabled {
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+            broker = NativeOAuthAuthorizationCoordinator(
+                client: client, sessionManager: SessionManager(client: client, cookieStorage: cookies),
+                store: NativeOAuthAuthorizationStore(secureState: UserDefaultsNativePendingState(
+                    key: "reauth",
+                    defaults: defaults
+                ))
+            )
+        } else { broker = nil }
+        return (
+            FreshAccountConfirmationViewModel(client: client, broker: broker, googleAssertion: google),
+            client,
+            cookies,
+            broker
+        )
     }
 
     private func setCookie(_ name: String, value: String, storage: HTTPCookieStorage) throws {

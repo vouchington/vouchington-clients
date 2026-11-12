@@ -76,6 +76,7 @@
         }
     }
 
+    @objc(VouchaFreshConfirmationTestPublicKeyAssertion)
     private final class TestPublicKeyAssertion: NSObject, ASAuthorizationPublicKeyCredentialAssertion {
         static var supportsSecureCoding: Bool {
             true
