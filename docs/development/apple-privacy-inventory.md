@@ -1,98 +1,102 @@
 # Apple privacy inventory
 
-Source-backed inventory for the iOS and macOS apps. Nutrition-label rows below are the
-manifest entries justified by current native code. Rows under Open decisions are not
-answered here.
-
-Audit date: 2026-10-21, stacked on the in-app display-metadata change for #71.
-Analytics declarations updated 2026-11-11 for #478.
+Repository-side inventory for the Swift iOS and macOS apps, reviewed on 2026-11-11
+against source baseline `c9764824`, the current analytics changes from #616, and
+the manifests in this change. It is a source and packaging audit, not an App Store
+Connect submission or a legal determination.
+The .NET Mac Catalyst parity head is not one of these Swift distribution targets.
 
 ## Required-reason APIs
 
-Apple's required-reason categories were checked across `swift-clients/apps`,
-`swift-clients/core`, and `swift-clients/ui`, excluding tests and `test-support`.
-Only the symbols below appear in shipped Swift.
+The direct Swift uses below remain covered by the existing reasons. Apple's
+[current API/category definitions](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype)
+associate app-private defaults with `CA92.1` and local elapsed-time calculations with
+`35F9.1`.
 
 | Symbol         | Category                                     | Reason   | Production files                                                                                                                                                                                                                                                                                    |
 | -------------- | -------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `UserDefaults` | `NSPrivacyAccessedAPICategoryUserDefaults`   | `CA92.1` | `swift-clients/apps/shared-app/ViewModelFactory.swift`, `swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkStore.swift`, `swift-clients/core/Sources/VouchaCore/NativeBlueskyLinkPersistence.swift`, `swift-clients/ui/Sources/VouchaFeatures/NativeParity/NativeCommentThreadViewModel.swift` |
 | `systemUptime` | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` | `swift-clients/core/Sources/VouchaAPI/MemberMCPClient.swift`                                                                                                                                                                                                                                        |
 
-`CA92.1` matches app-private `UserDefaults.standard`. `ViewModelFactory` reads
-`requestSigningDisabled` only in the `DeviceCheck` build, which is the iOS app target.
-`NativeBlueskyLinkStore()` stores the Bluesky link result in `UserDefaults.standard`.
-Pending OAuth and Bluesky link state in that production initializer uses the keychain,
-not user defaults. `UserDefaultsNativePendingState` is the injected storage used by
-tests and by `NativeBlueskyLinkStore.init(defaults:)`.
+`ViewModelFactory` reads the iOS request-signing preference. Bluesky link state uses
+app-private defaults; production pending OAuth state uses keychain storage. Signed-out
+comment-collapse preferences use app-private defaults; signed-in collapse state uses
+server bookmarks. `MemberMCPRetryCooldown` uses uptime only for local retry deadlines;
+it does not send boot time off device.
 
-`NativeCommentThreadViewModel` stores signed-out comment-collapse preferences under
-the root-post key in app-private user defaults. Signed-in collapse state uses server
-bookmarks and is not written to user defaults. This preference is not shared or used
-for tracking.
+Both app manifests declare these two categories. `VouchaCore` and `VouchaFeatures`
+declare only user defaults; `VouchaAPI` declares only system boot time. Their package
+targets copy `PrivacyInfo.xcprivacy` into resource bundles. Third-party SDK reasons
+remain in the SDK's own bundled manifest, rather than being added to app declarations.
 
-`35F9.1` matches `MemberMCPRetryCooldown`, which uses `ProcessInfo.processInfo.systemUptime`
-as a local monotonic deadline for MCP rate-limit backoff. The uptime value is not sent
-off device. `retryAfterSeconds` is the server-provided limit or the remaining local
-interval.
-
-The same two categories are declared on both app `PrivacyInfo.xcprivacy` files because
-those targets ship the calling code. `VouchaCore` declares only user defaults.
-`VouchaAPI` declares only system boot time. `VouchaFeatures` declares only user defaults.
-The package manifests are copied into the target resource bundles with
-`.copy("PrivacyInfo.xcprivacy")`.
-
-## Reviewed and not declared
-
-These calls were reviewed and are not required-reason symbols:
-
-- `DispatchTime.now().uptimeNanoseconds` in `ImageUploadService.swift` is not
-  `systemUptime` or `mach_absolute_time`.
-- `url.resourceValues(forKeys: [.fileSizeKey])` reads a file size, not a file timestamp
-  or a volume-capacity API.
-- `FileManager` use elsewhere creates, moves, removes, or checks files. It does not read
-  creation or modification dates.
-- `ProcessInfo.processInfo.environment` and `.arguments` are not boot-time APIs.
-- No shipped Swift uses `mach_absolute_time`, `volumeAvailableCapacity`, `statfs`,
-  `statvfs`, `fstatfs`, `getattrlist`, `activeInputModes`, or the file-timestamp resource
-  keys.
+The bounded source guard scans shipped Swift under apps/core/UI, excluding tests and
+build/dependency directories. It is a conservative symbol/call inventory, not a full
+Swift semantic analyzer: a new match requires source review. No new direct file-time,
+volume-capacity, or active-keyboard use was found in this audit. File-size reads,
+`DispatchTime.now().uptimeNanoseconds`, and `ProcessInfo.environment`/`arguments` are
+not treated as the covered APIs merely because they involve files or time.
 
 ## Packaged dependencies
 
-Pins are the committed `Package.resolved` revisions.
+These are the current committed pins, not versions copied from the earlier inventory.
 
-| Package              | Revision                                   | Shipped?                                                 | Manifest                                                                                                                                                |
-| -------------------- | ------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| swift-crypto 5.0.1   | `1c80d3aff53fedc445b60692980cb4f19a618657` | Yes, through `VouchaCore`, `VouchaAPI`, and `VouchaAuth` | Each product ships `PrivacyInfo.xcprivacy` with tracking off and an empty accessed-API array. The checkout has no `UserDefaults` or `systemUptime` use. |
-| swift-asn1 1.7.1     | `a9a5efd40eaf558a2bcd48d64b1d1646be686008` | Yes, transitive through swift-crypto                     | No `PrivacyInfo.xcprivacy`. The checkout has no required-reason symbols from the scan above.                                                            |
-| SwiftSoup 2.14.2     | `7a185638b31911a9980655b70a26af1279d4917b` | Yes, through `VouchaDesignSystem`                        | No privacy manifest. Tag `2.14.2` has no required-reason symbols from the scan above.                                                                   |
-| ViewInspector 0.10.5 | `2dacb6e514be19379c605a5a11564d0f3fea89d9` | No. `VouchaUITests` only                                 | Not part of either app target. Not scanned as a shipped dependency.                                                                                     |
-| sentry-cocoa 9.31.0  | `2f64c77f77514acd01780d1aac86ae75b7fccd04` | Yes, iOS and macOS app targets only                      | `generate.sh` adds this pin to the generated app lock. The xcframework ships its own privacy manifest. Core and UI packages do not depend on it.        |
+| Package       | Version / revision                                  | Shipping and manifest evidence                                                                                                                          |
+| ------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| swift-crypto  | 5.1.1 / `f8fad2f95ad67b45f6340c0960e2396094d67e07`  | Core/UI locks; shipped cryptographic products include their privacy resources.                                                                          |
+| swift-asn1    | 1.7.1 / `a9a5efd40eaf558a2bcd48d64b1d1646be686008`  | Transitive shipped dependency; no standalone privacy manifest.                                                                                          |
+| SwiftSoup     | 2.14.3 / `e7f85f4d3dd91ca9a1e94d3328aa1ed5120a8c0f` | UI lock, used by `VouchaDesignSystem`; no standalone privacy manifest.                                                                                  |
+| ViewInspector | 0.10.5 / `2dacb6e514be19379c605a5a11564d0f3fea89d9` | Test-only; not a product dependency of either app.                                                                                                      |
+| sentry-cocoa  | 9.31.0 / `2f64c77f77514acd01780d1aac86ae75b7fccd04` | Both app projects pin the version. `swift-clients/tooling/generate.sh` injects this revision into the generated app lock. Core/UI do not import Sentry. |
+
+The downloaded pinned Sentry xcframework's iOS and macOS manifests declare user
+defaults (`CA92.1`), boot time (`35F9.1`), and file timestamps (`C617.1`). Its vendor
+collection rows are CrashData, PerformanceData, and OtherDiagnosticData, nontracking
+and vendor-declared unlinked, for AppFunctionality. Do not replace the SDK manifest
+with the app's manifest or assume that its default linkage describes the configured
+app integration. The app explicitly declares `NSPrivacyCollectedDataTypeCrashData` and
+`NSPrivacyCollectedDataTypePerformanceData` as linked because it
+adds the opaque account ID. Effective linkage of the SDK's other diagnostics remains
+part of the release-owner review below.
+
+`SentryAppSupport.swift` and `SentryLaunchPlan.swift` start Sentry only with a valid
+configured `VOUCHA_SENTRY_DSN`. Default PII is disabled; performance sampling is 0.1
+when enabled. Event, breadcrumb, and span projections scrub sensitive request data.
+`SentryAccountBinding` clears or replaces the bound opaque ID when account ownership
+changes. Email and username are not Sentry user properties.
 
 ## Collected data in the app manifests
 
-All five manifests set `NSPrivacyTracking` to false and omit `NSPrivacyTrackingDomains`.
-No App Tracking Transparency framework or advertising identifier is linked. Sentry is
-linked from the iOS and macOS app targets and is not started when `VOUCHA_SENTRY_DSN`
-is empty. Package manifests declare no collected data types; collection is an app-level
-claim.
+Every app row is linked to the user and not used for tracking. Purposes are listed
+explicitly below; package manifests have no app-level collection rows. All five
+first-party manifests set tracking false and omit tracking domains. The declarations
+cover configured collection even when a particular build has no Sentry DSN.
 
-Each row is linked to the account and not used for tracking. Product interaction is
-declared for analytics; user ID is declared for both app functionality and analytics.
-The other rows retain the app-functionality purpose.
+Apple's [data-type identifiers](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype)
+and [purpose identifiers](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatypepurposes)
+are the source for the strings below. These are declarations supported by observed
+native behavior, not final store questionnaire answers.
 
-| Manifest type                                  | Source                                                                                                                                              |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NSPrivacyCollectedDataTypeEmailAddress`       | Settings email-address verification and the email shown for a signed-in account.                                                                    |
-| `NSPrivacyCollectedDataTypeUserID`             | Account id, username, and `displayName` sent and shown for the signed-in member.                                                                    |
-| `NSPrivacyCollectedDataTypeProductInteraction` | Signed-in public landing-page visits and item activations, RSS source views, and focused RSS item views through the existing first-party endpoints. |
-| `NSPrivacyCollectedDataTypeDeviceID`           | Server `dt` device token persisted as a cookie in `APIClient+Session.swift`, and the App Attest key sent to `/api/v1/app-attestation/attest`.       |
-| `NSPrivacyCollectedDataTypePhotosorVideos`     | User-selected images uploaded from `fileImporter` surfaces (profile, post compose, topic image).                                                    |
-| `NSPrivacyCollectedDataTypeOtherUserContent`   | Posts, comments, and other member-authored content sent to the API.                                                                                 |
-| `NSPrivacyCollectedDataTypeCrashData`          | Sentry crash reports, only after a DSN is configured. The attached user is the opaque account id.                                                   |
-| `NSPrivacyCollectedDataTypePerformanceData`    | Sentry performance traces at the configured sample rate, only after a DSN is configured.                                                            |
+| Manifest suffix (`NSPrivacyCollectedDataType…`) | Purpose                     | Source evidence                                                                                                                                                                                                                                              |
+| ----------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `EmailAddress`                                  | AppFunctionality            | Settings email verification and signed-in email identity.                                                                                                                                                                                                    |
+| `UserID`                                        | AppFunctionality, Analytics | Account identity and authenticated first-party product signals.                                                                                                                                                                                              |
+| `DeviceID`                                      | AppFunctionality            | Server `dt` cookie persistence and App Attest key submission. This is not an analytics installation-ID implementation.                                                                                                                                       |
+| `PhotosorVideos`                                | AppFunctionality            | User-selected profile, post, and topic image uploads. Apple's token uses lowercase `or`.                                                                                                                                                                     |
+| `OtherUserContent`                              | AppFunctionality            | Posts, comments, profile markdown, and other member-authored API content.                                                                                                                                                                                    |
+| `OtherFinancialInfo`                            | AppFunctionality            | `PaymentCardDraft.updateBody` and `PaymentCardService.update` submit credit-limit amounts; `SpendingCategoryDraft` and `SpendingCategoryService` submit budget amounts and frequency. No full payment-card number or CVV form is established by these paths. |
+| `CrashData`                                     | AppFunctionality            | Configured Sentry crash/error reporting with the opaque account ID.                                                                                                                                                                                          |
+| `PerformanceData`                               | AppFunctionality            | Configured Sentry traces, with the approved account linkage.                                                                                                                                                                                                 |
+| `ProductInteraction`                            | Analytics                   | Signed-in landing visits/clicks and RSS feed/item views.                                                                                                                                                                                                     |
+| `EmailsOrTextMessages`                          | AppFunctionality            | `DirectMessagesViewModel+Mutations.swift` submits member text through `Endpoint+Messages.swift`; private in-app messages are a distinct category from public content.                                                                                        |
 
-`NSPrivacyCollectedDataTypePhotosorVideos` is Apple's manifest identifier, including
-the lowercase "or".
+### Current analytics boundary
+
+`NativeRouteSurfaceViewModel+ProductSignals.swift` sends landing visits/clicks and RSS
+feed views; `NativeRouteSurfaceViewModel+FocusedRssItem.swift` sends item views.
+`dispatchProductSignal` requires `isSignedIn` and uses the normal authenticated client.
+These are the existing first-party feature endpoints, not a generic event-ingestion SDK.
+Failures do not block the UI. This is why ProductInteraction is declared now even
+though [#478](https://github.com/vouchington/vouchington-clients/issues/478) remains open.
 
 The analytics requests use the existing authenticated session for account attribution;
 they do not add email, username, IP address, or free-form content properties. Signed-out
@@ -100,59 +104,86 @@ views send no analytics request. No installation identifier or app-open event is
 Landing visits omit all optional referrer and campaign strings, including `utm_*` and
 `ref` URL values; the page identifier is carried by the endpoint route, with an empty
 request body. Click bodies contain only the item and optional group-member identifiers.
-The product-interaction category and analytics purpose follow Apple's
-[collected-data types](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype)
-and [collection purposes](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatypepurposes).
 These source declarations do not establish a signed archive privacy report or an App
 Store Connect submission.
 
-## Export compliance
+The approved direction is account identity while signed in and an opaque installation
+identity before sign-in, without email/username/IP event properties or cross-company
+tracking. The currently audited Swift paths do not emit installation-ID events while
+signed out. Linkage on sign-in, identifier rotation/clearing, remaining surface coverage,
+and any generic app-open events remain in #478. Do not describe that planned behavior
+as already shipped or add an ATT prompt for the approved nontracking design.
 
-`ITSAppUsesNonExemptEncryption` is false on both Apple `Info.plist` files. Shipped
-cryptography is HTTPS with ATS (`NSAllowsArbitraryLoads` false, plus the existing
-localhost exception), SHA-256 from swift-crypto and CryptoKit, App Attest, and the
-keychain. No non-standard encryption algorithm is implemented in the native clients.
+## Export and owner/release determinations
+
+`ITSAppUsesNonExemptEncryption` remains false in both Apple Info.plists and project
+settings. Shipped code uses HTTPS/ATS, swift-crypto/CryptoKit, App Attest, and keychain
+services. This preserves repository metadata; the owner must confirm the appropriate
+export-compliance answers for the actual selected distribution path.
 
 ## Open decisions
 
-These are not encoded as final nutrition-label or review answers.
+These remain outside repository-only completion. They must be listed in the release
+review and resolved by the owner; the manifests do not silently answer them.
 
-- Account deletion. `SettingsViewModel.deleteAccount()` sends `deleteUser` after the
-  member types "delete my account". The response either logs the member out or reports
-  that deletion was requested. Whether that meets Guideline 5.1.1(v) for every account
-  type, including data kept after a requested deletion, is open.
-- Purchases. The app does not use StoreKit. `purchaseMembership` creates a server
-  checkout URL, and `openMembershipPortal` opens a billing portal URL. Payment data,
-  purchase history, and Guideline 3.1.1 are open.
-- Legal name. `displayName` is declared with the user id, not as `Name`. Whether any
-  display name is a legal name that must also be declared as `Name` is open.
-- Session cookie `st`. It is an account session credential stored beside `dt`. It has
-  no separate manifest type. Whether App Store Connect should describe it separately
-  is open.
-- Tracking and diagnostics. Crash data, performance data, and first-party product
-  interaction are declared, linked to the account, and not used for tracking.
-  App-open/foreground events and pre-sign-in installation-ID collection/linkage remain
-  owner and producer decisions. An ads or attribution SDK would change the tracking flag.
-- Age rating. The questionnaire is not answered.
-- Guideline 1.2. Members can report a post, comment, or detail
-  (`NativeDetailSurface+Reporting.swift`, `NativeCommentThreadViewModel+Mutations.swift`).
-  A complete block control and moderation-response claim was not established.
-- Push tokens. iOS and macOS sources do not register for remote notifications. The
-  Android Darwin host does. Apple push collection is open if that registration is added.
+- **Account deletion and retention:** `SettingsViewModel+ManagementActions.swift`
+  sends `deleteUser` and handles immediate deletion versus a deletion request. Confirm
+  all account types, retained records, third-party deletion, and the store's deletion
+  requirements before making a compliance claim.
+- **Purchases and financial disclosures:** membership checkout and billing portal links
+  remain server/web flows; no StoreKit integration was found. Confirm the selected
+  storefront/distribution rules, payment-provider data access, purchase-history and
+  payment-data answers. Review dynamic MCP financial tools and any future credit-score
+  forms separately; a DTO alone is not evidence of a shipped native form.
+- **Names, sessions, and other data:** determine whether display names contain legal
+  names, how `st`/`dt` credentials and App Attest identifiers appear in store answers,
+  whether retained server search/social-graph data requires additional categories,
+  and whether optional external support-email collection needs disclosure. The Swift
+  settings support action is a `mailto:` link, not an in-app support-ticket POST.
+- **SDK diagnostics:** reconcile Sentry's vendor-declared OtherDiagnosticData and its
+  effective linkage/purposes with the configured release and the server-side retention
+  policy. The app's linked crash/performance declarations already preserve the owner's
+  stated decision; do not treat the SDK's default unlinked rows as proof of anonymity.
+- **Analytics identity:** resolve #478's pre-sign-in linkage/rotation and any additional
+  events in the producer contract before expanding native behavior or store answers.
+- **Store review:** choose final age-rating, user-generated-content/moderation, privacy
+  policy/deletion links, and privacy/export questionnaire answers. Recheck push-token
+  collection if Apple targets gain remote-notification registration.
+- **Signed artifacts and App Store Connect:** build each selected release artifact with
+  owner-provided configuration/signing; inspect its aggregate privacy report and submit
+  the final answers in App Store Connect. No store access or submission occurred here.
 
-## CI
+## Static and artifact verification
 
-`tests/apple-privacy-manifest.test.mjs` fails when an app or package manifest is
-removed, when a declared reason or collected type changes, or when a new shipped Swift
-file uses a required-reason symbol outside the table above. The test runs with the
-Node suite in the Validate workflow.
+Run from the repository root:
 
-## Not proven
+```sh
+node --test tests/apple-privacy-manifest.test.mjs
+python3 scripts/verify-apple-privacy.py --source-root .
+python3 scripts/verify-apple-privacy.py --source-root . --artifact /path/to/Voucha.app
+python3 scripts/verify-apple-privacy.py --source-root . --artifact /path/to/Voucha.xcarchive
+```
 
-XcodeGen 2.46.0 generated both app projects and added `PrivacyInfo.xcprivacy` to each
-target's Resources build phase. This inventory does not include an archived Xcode
-privacy report (`xcodebuild -exportPrivacyReport` or an archive). `plutil -lint` only
-checks that the property lists parse. App Store Connect nutrition-label submission and
-TestFlight export-compliance prompts were not exercised. The local Xcode 27.1 SDK does
-not ship the collected-data type string catalog, so the nutrition-label identifiers were
-not reconfirmed from SDK headers.
+The Node tests run in the existing Validate suite on Linux. They verify reason maps,
+collection types/linkage/tracking/purposes, app/package resource wiring, and the bounded
+source inventory. Positive iOS/macOS app/archive fixtures and negative malformed,
+missing-resource, reason, and policy cases exercise the portable plist checker.
+The artifact check inspects actual bundle resources, including Sentry's pinned SDK
+reason declarations; source configuration tests alone do not establish packaging.
+
+Generate projects only after `pnpm run contracts:pull`, using
+`bash swift-clients/tooling/generate.sh macOS` and the equivalent `iOS` command.
+Both projects were generated during this audit. A local unsigned Release archive
+attempt stopped at the existing non-test `VOUCHA_TURNSTILE_SITE_KEY` requirement;
+no key was invented and no release gate was bypassed. The unsigned macOS Debug build
+succeeded with Xcode 27.2; the checker passed against its actual app, all three
+first-party resource bundles, and embedded Sentry manifest. The app also contains
+the parseable `swift-crypto_Crypto.bundle` privacy resource.
+That result establishes local packaging only, not signed-release acceptance.
+
+For the official aggregate report, archive the final configured target in Xcode,
+then use **Organizer → archive context menu → Generate Privacy Report** and review the
+PDF alongside the SDK manifests. Apple's [documented report workflow](https://developer.apple.com/documentation/bundleresources/describing-data-use-in-privacy-manifests)
+is an Xcode Organizer action; this runbook does not invent an `xcodebuild` export flag.
+A structurally valid plist or a local bundle check does not establish that the
+App Store Connect answers, encryption attestation, or final signed archive agree.
