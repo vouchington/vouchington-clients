@@ -44,6 +44,7 @@ extension NativeRouteSurfaceViewModel {
                 endCursor: page.pageInfo.endCursor,
                 hasNextPage: page.pageInfo.hasNextPage
             ) else { return }
+            profileHackerNewsReferences.merge(page.hackerNewsReferences) { _, new in new }
             userProfile.collection = userProfile.collection.appending(page.collection)
         } catch let error as VouchaError {
             userProfile.pagination.fail(request, error: error)

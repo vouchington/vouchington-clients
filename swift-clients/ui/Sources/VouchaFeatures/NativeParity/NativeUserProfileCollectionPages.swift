@@ -13,8 +13,6 @@ extension NativeRouteSurfaceViewModel {
             postTypes: filter.queryValue,
             after: after
         ))
-        if after == nil { profileHackerNewsReferences = [:] }
-        profileHackerNewsReferences.merge(response.postHackerNewsReferences ?? [:]) { _, new in new }
         let hydratedPosts = response.posts.mapValues { post in
             post.hydrated(
                 renderedHtml: response.markdownToHtml?[post.id],
@@ -30,7 +28,8 @@ extension NativeRouteSurfaceViewModel {
                     post: $0,
                     posts: hydratedPosts
                 ) }
-            })
+            }),
+            hackerNewsReferences: response.postHackerNewsReferences ?? [:]
         )
     }
 
@@ -76,11 +75,13 @@ extension NativeRouteSurfaceViewModel {
 
     private func collectionPage(
         _ pageInfo: Page<some Decodable & Sendable>.PageInfo,
-        collection: NativeUserProfileCollection
+        collection: NativeUserProfileCollection,
+        hackerNewsReferences: [String: HackerNewsReferences] = [:]
     ) -> NativeUserProfileCollectionPage {
         .init(
             collection: collection,
-            pageInfo: .init(hasNextPage: pageInfo.hasNextPage, endCursor: pageInfo.endCursor)
+            pageInfo: .init(hasNextPage: pageInfo.hasNextPage, endCursor: pageInfo.endCursor),
+            hackerNewsReferences: hackerNewsReferences
         )
     }
 }

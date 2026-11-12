@@ -118,7 +118,10 @@ final class HackerNewsFeedTests: XCTestCase {
         XCTAssertTrue(model.supportsHackerNewsFilter)
         model.filter = .reviews
         await model.filterReloadTask?.value
-        model.hasHackerNewsReferences = true
+        let view = PostsListView(viewModel: model, isSignedIn: false)
+        let toggle = try view.inspect().group().toolbar().itemGroup().toggle()
+        XCTAssertEqual(try toggle.labelView().text().string(), "Seen or mentioned on Hacker News")
+        try toggle.tap()
         await model.filterReloadTask?.value
         XCTAssertEqual(model.items.map(\.id), ["profile-review-1"])
         XCTAssertEqual(model.hackerNewsReferencesByPostId["profile-review-1"]?.storyCount, 1)

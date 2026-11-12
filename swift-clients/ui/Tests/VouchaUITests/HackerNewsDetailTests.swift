@@ -73,8 +73,8 @@ final class HackerNewsDetailTests: NativeRouteSurfaceViewModelTestCase {
             onNavigate: { _ in }
         )
         XCTAssertFalse(try surface.inspect().findAll(HackerNewsReferencesView.self).isEmpty)
-        _ = try await model.userPostPage(userId: "user-abc", filter: .all, after: "opaque", client: makeClient())
-        XCTAssertFalse(model.profileHackerNewsReferences.isEmpty)
+        let page = try await model.userPostPage(userId: "user-abc", filter: .all, after: "opaque", client: makeClient())
+        XCTAssertFalse(page.hackerNewsReferences.isEmpty)
     }
 
 }
