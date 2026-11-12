@@ -44,6 +44,25 @@ public sealed class PostTimeRangeSelection : ObservableObject
     return true;
   }
 
+  public void Reconfigure(
+      IReadOnlyList<string> ranges,
+      string defaultRange,
+      bool preserveSelection = true)
+  {
+    ArgumentNullException.ThrowIfNull(ranges);
+    var offered = ranges.Select(Option).ToArray();
+    var fallback = offered.FirstOrDefault(option => option.Value == defaultRange)
+        ?? throw new ArgumentException("Default range must be offered.", nameof(defaultRange));
+    var selected = preserveSelection
+        ? offered.FirstOrDefault(option => option.Value == selectedOption.Value) ?? fallback
+        : fallback;
+    options = offered;
+    selectedOption = selected;
+    OnPropertyChanged(nameof(Options));
+    OnPropertyChanged(nameof(SelectedOption));
+    OnPropertyChanged(nameof(RequestValue));
+  }
+
   public void RefreshLabels()
   {
     var value = selectedOption.Value;

@@ -48,6 +48,37 @@ public sealed class PostTimeRangeSelectionTests
   }
 
   [Fact]
+  public void InputReconfigurationCanResetToYearThenPreserveFiniteSelections()
+  {
+    var selection = new PostTimeRangeSelection(UiLocalization.English);
+    selection.Select("1w");
+    selection.Reconfigure(["1w", "1m", "1y"], "1y", preserveSelection: false);
+    Assert.Equal("1y", selection.RequestValue);
+    Assert.Equal(new[] { "1w", "1m", "1y" }, selection.Options.Select(option => option.Value));
+    selection.Select("1m");
+    selection.Reconfigure(["1w", "1m", "1y"], "1y");
+    Assert.Equal("1m", selection.RequestValue);
+    selection.Reconfigure(PostTimeRangeSelection.BrowseOptions, "1m");
+    Assert.Equal("1m", selection.RequestValue);
+    selection.Select("all");
+    selection.Reconfigure(["1w", "1m", "1y"], "1y");
+    Assert.Equal("1y", selection.RequestValue);
+    selection.Reconfigure(PostTimeRangeSelection.BrowseOptions, "1m");
+    Assert.Equal("1y", selection.RequestValue);
+    Assert.Equal("all", selection.Options.Last().Value);
+  }
+
+  [Fact]
+  public void InvalidReconfigurationPreservesTheCurrentSelectionAndOptions()
+  {
+    var selection = new PostTimeRangeSelection(UiLocalization.English);
+    selection.Select("all");
+    Assert.Throws<ArgumentException>(() => selection.Reconfigure(["1w"], "1y"));
+    Assert.Equal("all", selection.RequestValue);
+    Assert.Equal(new[] { "1w", "1m", "1y", "all" }, selection.Options.Select(option => option.Value));
+  }
+
+  [Fact]
   public void LocaleRefreshKeepsValueAndUpdatesVisibleOptions()
   {
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
