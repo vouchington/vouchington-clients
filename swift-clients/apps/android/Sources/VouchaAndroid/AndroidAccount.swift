@@ -53,12 +53,13 @@ final class AndroidAccount {
             protocolClasses: protocolClasses,
             metadata: ClientMetadata(platform: .android, appVersion: Self.appVersion()),
             sessionConfiguration: cookieStorage.sessionConfiguration,
-            persistCookies: { cookieStorage.persistCookies() }
+            persistCookies: { cookieStorage.persistCookies() },
+            persistCookiesChecked: { try cookieStorage.persistCookiesChecked() },
+            clearCookiesChecked: { try cookieStorage.persistClearedCookiesChecked() }
         )
         apiClient = client
         session = SessionManager(
             client: client,
-            cookieStorage: cookieStorage.cookieStorage,
             beforeClearSessionCookies: { try await cookieStorage.clearPersistedCookies() },
             beforePublishSignedIn: { try await cookieStorage.flushCheckedPersistence() }
         )

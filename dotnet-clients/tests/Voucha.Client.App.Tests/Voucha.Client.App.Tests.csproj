@@ -15,6 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../src/Voucha.Client.App/AppShell.ShellContentEnumeration.cs" Link="AppShell.ShellContentEnumeration.cs" />
+    <Compile Include="../../src/Voucha.Client.App/AppShell.SettingsIntentPages.cs" Link="AppShell.SettingsIntentPages.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPage.NotificationFocus.cs" Link="Pages/SettingsPage.NotificationFocus.cs" />
+    <Compile Include="../../src/Voucha.Client.App/CatalystGuiSessionCookiePersistence.cs" Link="CatalystGuiSessionCookiePersistence.cs" />
+    <Compile Include="../../src/Voucha.Client.App/CatalystGuiFixtureHandler.cs" Link="CatalystGuiFixtureHandler.cs" />
+    <Compile Include="../../src/Voucha.Client.App/CatalystGuiAudit.cs" Link="CatalystGuiAudit.cs" />
+    <Compile Include="../../src/Voucha.Client.App/MauiSecureSessionCookiePersistence.cs" Link="MauiSecureSessionCookiePersistence.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml" Link="Pages/TurnstileChallengePage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml.cs" Link="Pages/TurnstileChallengePage.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.cs" Link="Pages/RssFeedItemDetailPage.cs" />
@@ -160,6 +167,7 @@
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/RewardsProgramStatusesPage.xaml" Link="Pages/RewardsProgramStatusesPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/RewardsProgramStatusesPage.xaml.cs" Link="Pages/RewardsProgramStatusesPage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.xaml" Link="Pages/NotificationPreferencesView.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.ControlAudit.cs" Link="Pages/NotificationPreferencesView.ControlAudit.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/NotificationPreferencesView.xaml.cs" Link="Pages/NotificationPreferencesView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/NotificationSettingsAccessibilityCoordinator.cs" Link="NotificationSettingsAccessibilityCoordinator.cs" />
     <Compile Include="../../src/Voucha.Client.App/NotificationSettingsRouteEpoch.cs" Link="NotificationSettingsRouteEpoch.cs" />

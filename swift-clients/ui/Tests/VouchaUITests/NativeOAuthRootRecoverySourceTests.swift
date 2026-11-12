@@ -47,7 +47,9 @@ final class NativeOAuthRootRecoverySourceTests: XCTestCase {
         )
 
         XCTAssertTrue(factorySource.contains(#"hasPrefix("--ui-testing-")"#))
-        XCTAssertTrue(isolatedSource.contains("HTTPCookieStorage()"))
+        XCTAssertTrue(isolatedSource.contains("URLSessionConfiguration.ephemeral"))
+        XCTAssertTrue(isolatedSource.contains("sessionConfiguration.httpCookieStorage"))
+        XCTAssertTrue(isolatedSource.contains("sessionConfiguration: sessionConfiguration"))
         XCTAssertTrue(isolatedSource.contains("bootstrapSession: false"))
         XCTAssertTrue(isolatedSource.contains("UITestingOAuthAuthorizationSecureState()"))
         XCTAssertTrue(isolatedSource.contains("UITestingFeatureFlagOverrideStore()"))

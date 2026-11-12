@@ -11,6 +11,8 @@ import {
   validateNotificationEvidence,
 } from '../scripts/catalyst-notification-evidence.mjs'
 
+import { inputs, writeInputs } from './catalyst-notification-app-fixture.mjs'
+
 const controls = ['auth-session-heading', 'auth-email-address', 'auth-send-email-code']
 const nativeRevision = 'a'.repeat(40)
 const { commit: producerCommit } = JSON.parse(
@@ -105,6 +107,7 @@ describe('Mac Catalyst root shell controls', () => {
 
 function stagedSession() {
   const root = mkdtempSync(join(tmpdir(), 'catalyst-root-session-'))
+  writeInputs(root)
   const fixtureRoot = join(root, 'api-fixtures', 'v1')
   mkdirSync(join(fixtureRoot, 'responses'), { recursive: true })
   const fixtures = [
@@ -112,41 +115,59 @@ function stagedSession() {
     [
       'native.my.email-preferences.default',
       '/api/v1/my/email-preferences',
-      '{"email_preferences":{}}',
+      JSON.stringify({ email_preferences: inputs.preferences }),
     ],
-  ].map(([id, path, body]) => {
+    [
+      'native.auth.session.refresh.rotated',
+      '/api/v1/session',
+      '{"session":{"uid":"member","session":{"uid":"member"}}}',
+      'PATCH',
+    ],
+  ].map(([id, path, body, method = 'GET']) => {
     const bodyFile = `responses/${id}.json`
     writeFileSync(join(fixtureRoot, bodyFile), body)
-    return { id, path, method: 'GET', status: 200, bodyFile }
+    return { id, path, method, status: 200, bodyFile }
   })
   writeFileSync(join(fixtureRoot, 'manifest.json'), JSON.stringify({ fixtures }))
+  const driverUrl = new URL('./catalyst-gui-notification-driver.mjs', import.meta.url).href
+  const fixtureUrl = new URL('./catalyst-notification-app-fixture.mjs', import.meta.url).href
   const harness = join(root, 'webdriver.mjs')
   writeFileSync(
     harness,
     `
 import { syncBuiltinESMExports } from 'node:module'
 import childProcess from 'node:child_process'
-import { appendFileSync } from 'node:fs'
+import { appendFileSync, writeFileSync } from 'node:fs'
+import { nativeSession } from ${JSON.stringify(driverUrl)}
+import { inputs } from ${JSON.stringify(fixtureUrl)}
 const record = value => appendFileSync(process.env.CATALYST_TEST_LOG, JSON.stringify(value) + '\\n')
 childProcess.spawn = (command, args) => {
   record({ command, args })
   return { kill: signal => record({ signal }) }
 }
 syncBuiltinESMExports()
-let engagement = false
+const notification = nativeSession({ wrongField: process.env.CATALYST_TEST_FAIL_NOTIFICATION === 'true' }, inputs)
+let rootShell = false
 globalThis.fetch = async (url, options) => {
   const path = new URL(url).pathname
   const payload = options.body ? JSON.parse(options.body) : null
   record({ method: options.method, path, payload })
   let value = null
   if (path === '/status') value = { ready: true }
-  else if (path === '/session') value = { sessionId: 'root-session' }
+  else if (path === '/session') {
+    rootShell = payload.capabilities.alwaysMatch['appium:arguments'].includes('--ui-testing-root-shell-smoke')
+    value = { sessionId: 'root-session' }
+    if (!rootShell) writeFileSync(process.env.CATALYST_GUI_RESULT + '.app.json', JSON.stringify(notification.evidence))
+  }
+  else if (path.endsWith('/source')) value = '<root-session />'
+  else if (!rootShell && options.method !== 'DELETE') {
+    const response = await notification.request(options.method, path.replace('/session/root-session/', '/session/native/'), payload)
+    value = response.value
+    writeFileSync(process.env.CATALYST_GUI_RESULT + '.app.json', JSON.stringify(notification.evidence))
+  }
   else if (path.endsWith('/element')) value = { ELEMENT: payload.value }
   else if (path.endsWith('/displayed')) value = !path.includes(process.env.CATALYST_TEST_HIDDEN ?? 'never-hidden')
   else if (path.endsWith('/enabled') || path.endsWith('/attribute/enabled')) value = true
-  else if (path.endsWith('/attribute/value')) value = path.includes('engagement') ? engagement : true
-  else if (path.endsWith('/click')) engagement = !engagement
-  else if (path.endsWith('/source')) value = '<root-session />'
   return { ok: true, text: async () => JSON.stringify({ value }) }
 }
 `,
@@ -159,7 +180,7 @@ globalThis.fetch = async (url, options) => {
   }
 }
 
-function runSession(fixture, mode, hidden, revision = nativeRevision) {
+function runSession(fixture, mode, hidden, revision = nativeRevision, failNotification = false) {
   const script = fileURLToPath(
     new URL('../dotnet-clients/tooling/catalyst-gui-preflight.mjs', import.meta.url),
   )
@@ -171,6 +192,7 @@ function runSession(fixture, mode, hidden, revision = nativeRevision) {
       CATALYST_APPIUM_PREFIX: join(fixture.root, 'appium'),
       CATALYST_GUI_RESULT: fixture.result,
       CATALYST_TEST_LOG: fixture.log,
+      CATALYST_TEST_FAIL_NOTIFICATION: String(failNotification),
       CATALYST_NATIVE_REVISION: mode === '--root-session' ? '' : revision,
       ...(hidden ? { CATALYST_TEST_HIDDEN: hidden } : {}),
     },
@@ -187,9 +209,11 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
         const result = JSON.parse(readFileSync(fixture.result, 'utf8'))
         if (mode === '--root-session') {
           assert.deepEqual(result, { total: 3, passed: 3, failed: 0, skipped: 0 })
+          assert.equal(existsSync(`${fixture.result}.app.json`), false)
         } else {
           validateNotificationEvidence(result, nativeRevision, producerCommit)
           assert.equal(result.total, 4)
+          assert.equal(result.schemaVersion, 3)
           assert.deepEqual(
             result.checks,
             notificationChecks.map(name => ({ name, status: 'passed' })),
@@ -210,6 +234,15 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
             request => request.method === 'DELETE' && request.path === '/session/root-session',
           ),
         )
+        if (mode === '--session') {
+          assert.deepEqual(
+            requests
+              .filter(request => request.payload?.script === 'macos: deepLink')
+              .map(request => request.payload.args[0].url),
+            ['voucha://my/preferences', 'voucha://my/notification-settings'],
+          )
+          assert.equal(requests.filter(request => request.path === '/session').length, 1)
+        }
         assert.equal(requests.at(-1).signal, 'SIGTERM')
       } finally {
         rmSync(fixture.root, { recursive: true, force: true })
@@ -226,6 +259,9 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
         /must be full SHAs/u,
       )
       assert.equal(existsSync(fixture.result), false)
+      const appReport = JSON.parse(readFileSync(`${fixture.result}.app.json`, 'utf8'))
+      assert.equal(new Set(appReport.patches.flatMap(patch => patch.fields)).size, 2)
+      assert.equal(appReport.activations.length, 2)
       const requests = readFileSync(fixture.log, 'utf8')
         .trim()
         .split('\n')
@@ -246,6 +282,30 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
     try {
       assert.throws(() => runSession(fixture, '--unsupported-mode'), /or --root-session/u)
       assert.equal(existsSync(fixture.result), false)
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps notification audit diagnostics without taking a failure page-source snapshot', () => {
+    const fixture = stagedSession()
+    try {
+      assert.throws(
+        () => runSession(fixture, '--session', undefined, nativeRevision, true),
+        /exactly its API field/u,
+      )
+      assert.equal(existsSync(fixture.result), false)
+      assert.equal(existsSync(`${fixture.result}.app.json`), true)
+      assert.equal(existsSync(join(fixture.root, 'source.xml')), false)
+      const requests = readFileSync(fixture.log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.equal(
+        requests.some(request => request.path?.endsWith('/source')),
+        false,
+      )
+      assert.ok(requests.some(request => request.method === 'DELETE'))
     } finally {
       rmSync(fixture.root, { recursive: true, force: true })
     }

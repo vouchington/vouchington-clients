@@ -13,6 +13,10 @@ public sealed record ApiRequest(HttpMethod Method, string Path)
   public object? Body { get; init; }
 
   public bool AllowsBotChallenge { get; init; } = true;
+
+  internal bool IsCoordinatedSessionRotation { get; init; }
+
+  internal bool IsCoordinatedSignOut { get; init; }
 }
 
 public sealed record SearchCommunitiesRequest(string Query);

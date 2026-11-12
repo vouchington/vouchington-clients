@@ -14,28 +14,37 @@ public extension APIClient {
 extension APIClient {
     func mutationData(for rawRequest: URLRequest, endpoint: Endpoint) async throws -> (Data, URLResponse) {
         let method = rawRequest.httpMethod ?? "GET"
-        let sessionIdentity = mutationSessionIdentity()
-        let signed = await applySigningIfNeeded(rawRequest, method: method)
-        let first = try await session.data(for: signed)
+        let initialRevision = cookieCoordinator.stamp.revision
+        let first = try await executeBuffered(rawRequest, endpoint: endpoint, mayRecover: true)
         guard !isProductSignal(endpoint), rawRequest.url?.scheme == baseURL.scheme,
               rawRequest.url?.host == baseURL.host, rawRequest.url?.port == baseURL.port,
               rawRequest.httpBodyStream == nil, ["POST", "PUT", "PATCH", "DELETE"].contains(method),
+              rawRequest.value(forHTTPHeaderField: RequestSignatureHeader.challengeId) == nil,
+              rawRequest.value(forHTTPHeaderField: RequestSignatureHeader.assertion) == nil,
               let response = first.1 as? HTTPURLResponse, response.statusCode == 403,
               response.url == rawRequest.url,
               let challenge = try? decoder.decode(BotChallengeRequiredResponse.self, from: first.0),
               challenge.code == BotChallengeRequiredResponse.requiredCode,
               challenge.action == "bot-challenge.mutation",
               let handler = mutationChallengeHandler else { return first }
+        // Recovery may rotate credentials before returning the first challenge. Bind
+        // its proof to that current owner, then fence account changes while prompting.
+        let owner = cookieCoordinator.stamp
+        let sessionIdentity = mutationSessionIdentity()
         try Task.checkCancellation()
         guard let token = try await handler(), !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               mutationSessionIdentity() == sessionIdentity else { return first }
         try Task.checkCancellation()
-        // Keep the original encoded bytes and route proof; refresh normal request signing only.
-        var replay = await applySigningIfNeeded(rawRequest, method: method)
+        try cookieCoordinator.check(owner)
+        // Keep original encoded bytes and route proof. Each buffered attempt prepares
+        // current credentials and fresh signing, including a subsequent 401 recovery.
+        var replay = rawRequest
         replay.setValue(token, forHTTPHeaderField: "x-voucha-bot-challenge-token")
         try Task.checkCancellation()
         guard mutationSessionIdentity() == sessionIdentity else { return first }
-        return try await session.data(for: replay)
+        return try await executeBuffered(
+            replay, endpoint: endpoint, mayRecover: owner.revision == initialRevision, expectedEpoch: owner.epoch
+        )
     }
 
     private func isProductSignal(_ endpoint: Endpoint) -> Bool {

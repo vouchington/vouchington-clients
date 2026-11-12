@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
-test('Android caches restore on all runs and save only one completed main phase', async () => {
+test('Android caches restore on all runs and save only completed trusted main phases', async () => {
   const workflow = await readFile(
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
@@ -14,6 +14,9 @@ test('Android caches restore on all runs and save only one completed main phase'
   const producer = workflow
     .split('  build-swift-android-native:\n')[1]
     .split('  build-swift-android-kotlin-libraries:\n')[0]
+  const kotlin = workflow
+    .split('  build-swift-android-kotlin-libraries:\n')[1]
+    .split('  build-swift-android:\n')[0]
   const dependency = workflow
     .split('  build-swift-android-dependency:\n')[1]
     .split('  build-swift-android-native:\n')[0]
@@ -60,7 +63,7 @@ test('Android caches restore on all runs and save only one completed main phase'
     app.indexOf('Upload candidate Android APKs for runtime proof') <
       app.indexOf('Save Gradle user home from main'),
   )
-  for (const job of [producer, app]) {
+  for (const job of [producer, kotlin, app]) {
     assert.match(job, /name: Select Gradle task-output cache path\n\s+id: android-task-cache-path/u)
     assert.match(
       job,
@@ -78,10 +81,9 @@ test('Android caches restore on all runs and save only one completed main phase'
     assert.match(job, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.cache-key \}\}/u)
     assert.match(
       job,
-      /name: Restore prior main Gradle task-output cache\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' && steps\.android-task-cache-path\.outputs\.previous-key != '' \}\}/u,
+      /restore-keys: \|\n\s+\$\{\{ steps\.android-task-cache-path\.outputs\.previous-key \}\}\n\s+\$\{\{ steps\.android-task-cache-path\.outputs\.compatible-prefix \}\}/u,
     )
-    assert.match(job, /key: \$\{\{ steps\.android-task-cache-path\.outputs\.previous-key \}\}/u)
-    assert.doesNotMatch(job, /restore-keys:/u)
+    assert.doesNotMatch(job, /Restore prior main Gradle task-output cache/u)
   }
   assert.ok(
     app.indexOf('Restore verified exact-run generated Android state') <
@@ -121,6 +123,22 @@ test('Android caches restore on all runs and save only one completed main phase'
   }
   for (const job of [producer, libs, host])
     assert.doesNotMatch(job, /Bound Gradle task-output cache save/u)
+  assert.match(kotlin, /TASK_CACHE_KIND: kotlin-libraries/u)
+  for (const job of [producer, app]) assert.match(job, /TASK_CACHE_KIND: app/u)
+  for (const [job, completed, kind] of [
+    [kotlin, 'Upload exact-run Kotlin library cache', 'Kotlin libraries'],
+    [app, 'Upload candidate Android APKs for runtime proof', 'APK'],
+  ]) {
+    assert.ok(job.indexOf(completed) < job.indexOf('Bound Gradle task-output cache save'))
+    assert.match(
+      job,
+      /name: Bound Gradle task-output cache save\n(?:\s+timeout-minutes: 1\n)?\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' \}\}/u,
+    )
+    assert.ok(job.includes(`Save Gradle task-output cache from successful main ${kind} build`))
+    assert.match(job, /if: \$\{\{ steps\.android-task-cache-save\.outputs\.save == 'true' \}\}/u)
+    assert.match(job, /check-gradle-build-cache\.mjs/u)
+    assert.match(job, /key: \$\{\{ steps\.android-task-cache\.outputs\.cache-primary-key \}\}/u)
+  }
   assert.match(coreJob, /uses: actions\/cache@[0-9a-f]{40}/u)
   assert.match(coreJob, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
   assert.match(

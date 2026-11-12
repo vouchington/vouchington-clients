@@ -22,15 +22,15 @@ final class SessionManagerRefreshRecoveryTests: XCTestCase {
         XCTAssertFalse(fixture.manager.isSignedIn)
         XCTAssertNotNil(fixture.manager.lastRefreshErrorMessage)
         XCTAssertEqual(fixture.jar.cookies?.map(\.value), ["saved-session"])
-        XCTAssertEqual(fixture.transport.requestPaths(), ["/api/v1/my/identity"])
+        XCTAssertEqual(fixture.transport.requestPaths(), ["/api/v1/session"])
 
         let recovered = await fixture.manager.refresh()
 
         XCTAssertTrue(recovered)
         XCTAssertTrue(fixture.manager.isSignedIn)
         XCTAssertNil(fixture.manager.lastRefreshErrorMessage)
-        XCTAssertEqual(fixture.jar.cookies?.map(\.value), ["saved-session"])
-        XCTAssertEqual(fixture.transport.requestPaths().count, 2)
+        XCTAssertEqual(Set(fixture.jar.cookies?.map(\.name) ?? []), ["dt", "st"])
+        XCTAssertEqual(fixture.transport.requestPaths().count, 3)
     }
 
     func testTimeoutPreservesIdentityAndUnauthorizedClearsRetryError() async throws {
@@ -115,7 +115,7 @@ final class SessionManagerRefreshRecoveryTests: XCTestCase {
             XCTAssertEqual(fixture.manager.currentUserId, shouldRetainOwner ? originalIdentity.id : nil)
             XCTAssertEqual(fixture.manager.uiLocale, shouldRetainOwner ? originalIdentity.uiLocale : nil)
             XCTAssertNotNil(fixture.manager.lastRefreshErrorMessage)
-            XCTAssertEqual(fixture.transport.requestPaths(), ["/api/v1/my/identity"])
+            XCTAssertEqual(fixture.transport.requestPaths(), ["/api/v1/session", "/api/v1/my/identity"])
             SessionRefreshURLProtocol.unregister(host: fixture.host)
         }
     }
@@ -142,7 +142,7 @@ final class SessionManagerRefreshRecoveryTests: XCTestCase {
         )
         return SessionRefreshSetup(
             manager: SessionManager(
-                client: client, cookieStorage: jar, beforePublishSignedIn: beforePublishSignedIn
+                client: client, beforePublishSignedIn: beforePublishSignedIn
             ),
             jar: jar, transport: transport, host: host
         )

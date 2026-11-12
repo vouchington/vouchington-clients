@@ -12,9 +12,9 @@ const native = jobBlock(workflow, 'build-swift-android-native')
 const app = jobBlock(workflow, 'build-swift-android')
 const step = (job, name) => stepBlock(job, name)
 
-test('Kotlin libraries run beside native production with pinned host tools and no persistent writes', () => {
+test('Kotlin libraries run beside native production with pinned host tools and main-only persistent writes', () => {
   assert.match(library, /needs: \[verify, build-swift-android-dependency\]/u)
-  assert.match(library, /timeout-minutes: 10/u)
+  assert.match(library, /^    timeout-minutes: 23$/mu)
   assert.match(library, /ANDROID_BUILD_PHASE: app-kotlin-libraries/u)
   assert.match(library, /tool: swift/u)
   assert.match(library, /select-xcode\.sh 26\.6/u)
@@ -30,7 +30,8 @@ test('Kotlin libraries run beside native production with pinned host tools and n
     step(library, 'Restore Gradle task-output cache'),
     step(native, 'Restore Gradle task-output cache'),
   )
-  assert.doesNotMatch(library, /actions\/cache\/save|restore-keys:|Save Gradle/u)
+  assert.match(step(library, 'Build the selected Android validation phase'), /timeout-minutes: 10/u)
+  assert.match(library, /TASK_CACHE_KIND: kotlin-libraries/u)
   assert.match(
     library,
     /name: android-native-dependency-state-\$\{\{ needs\.verify\.outputs\.revision-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
