@@ -36,8 +36,11 @@ public sealed record PostRow(
     string? ViewerId = null,
     bool IsStaffViewer = false,
     string? ClearanceStatus = null,
-    string? ClearanceReason = null)
+    string? ClearanceReason = null,
+    HackerNewsReferences? HackerNewsReferences = null)
 {
+  public HackerNewsPresentation HackerNews => new(HackerNewsReferences, L);
+
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
   public string Title => L.Resolve(TitleText);

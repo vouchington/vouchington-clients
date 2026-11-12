@@ -24,6 +24,7 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding RootRow.LocalizedTitle}" FlowDirection="{Binding RootRow.TitleFlowDirection}" Style="{StaticResource Headline}" />
+                    <controls:HackerNewsReferencesView ShowDetails="True" Presentation="{Binding RootRow.HackerNews}" />
                     <HorizontalStackLayout Spacing="8" VerticalOptions="Center" IsVisible="{Binding RootRow.ShowAuthor}">
                         <Image
                             AutomationId="post-author-avatar-root"

@@ -34,6 +34,9 @@ public sealed record PostDetailPageRow(
     string? ViewerId = null,
     bool IsStaffViewer = false)
 {
+  public HackerNewsReferences? HackerNewsReferences { get; init; }
+  public HackerNewsPresentation HackerNews => new(HackerNewsReferences, Localization);
+
   public bool CanInteractWithVotes => CanCreateVote || CanClearVote;
 
   public bool IsEligibleForFollowerDistribution =>

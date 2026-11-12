@@ -33,6 +33,6 @@ public sealed partial class ApiNewsFeedService : IRssFeedItemDetailService
         response.RssFeedItemEmbeds,
         null,
         null);
-    return new(item, response.ContentHtml);
+    return new(item with { HackerNewsReferences = response.RssFeedItemHackerNewsReferences?.GetValueOrDefault(item.Id) }, response.ContentHtml);
   }
 }

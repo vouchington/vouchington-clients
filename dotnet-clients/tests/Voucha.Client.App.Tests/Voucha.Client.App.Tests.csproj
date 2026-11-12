@@ -17,6 +17,9 @@
   <ItemGroup>
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml" Link="Pages/TurnstileChallengePage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml.cs" Link="Pages/TurnstileChallengePage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.cs" Link="Pages/RssFeedItemDetailPage.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.EmbedPreview.cs" Link="Pages/RssFeedItemDetailPage.EmbedPreview.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/HackerNewsReferencesView.cs" Link="Controls/HackerNewsReferencesView.cs" />
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PublicLandingPagePage.cs" Link="Pages/PublicLandingPagePage.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/LandingPages/PublicLandingPageTestSupport.cs" Link="TestSupport/PublicLandingPageTestSupport.cs" />

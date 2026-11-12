@@ -162,6 +162,7 @@ public sealed partial class ProfileViewModel
               response.PostLinkEmbeds,
               localization) with
           {
+            HackerNewsReferences = response.PostHackerNewsReferences?.GetValueOrDefault(id!),
             ViewerId = currentViewerUserId,
             IsStaffViewer = currentViewerIsStaff,
           })

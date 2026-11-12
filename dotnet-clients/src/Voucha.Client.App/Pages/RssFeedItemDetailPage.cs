@@ -42,6 +42,8 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
     var image = new Image { HeightRequest = 220, Aspect = Aspect.AspectFill };
     image.SetBinding(Image.SourceProperty, "Detail.Item.ThumbnailUrl");
     var embedPreview = CreateEmbedPreview();
+    var hackerNews = new HackerNewsReferencesView { ShowDetails = true };
+    hackerNews.SetBinding(HackerNewsReferencesView.PresentationProperty, "Detail.Item.HackerNews");
     var source = BoundLabel(nameof(RssFeedItemDetailViewModel.UserContentSource), 13, FontAttributes.Bold);
     var title = BoundLabel(nameof(RssFeedItemDetailViewModel.UserContentTitle), 24, FontAttributes.Bold);
     var summary = new NativeHtmlContentView();
@@ -89,7 +91,7 @@ public sealed partial class RssFeedItemDetailPage : ContentPage
         Spacing = 10,
         Children =
         {
-          image, source, title, embedPreview, summary, published, votes, bookmarks, hidden,
+          image, source, title, hackerNews, embedPreview, summary, published, votes, bookmarks, hidden,
           new HorizontalStackLayout { Spacing = 8, Children = { play, playEmbed, videoUnavailable, open, embedOpen, followerSend } },
           error, retry,
         },

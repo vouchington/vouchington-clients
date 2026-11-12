@@ -5,6 +5,7 @@ namespace Voucha.Client.Core.Posts;
 
 public sealed partial class CommentThreadViewModel
 {
+  public HackerNewsReferences? RootHackerNewsReferences => rootPostResponse?.PostHackerNewsReferences?.GetValueOrDefault(rootPostResponse.Post.Id);
   private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>> EmptyBookmarks =
       new Dictionary<string, IReadOnlyDictionary<string, bool>>(StringComparer.Ordinal);
 
