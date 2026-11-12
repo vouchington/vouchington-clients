@@ -76,3 +76,23 @@ respectively, all bounded by the existing shared 140-second deadline. Each reque
 remaining phase, poll, and session budget. A read that exhausts its poll budget fails before another
 sleep; nonpositive remaining time is never passed to a timer. The final observation and evidence
 read must also complete within the return and shared budgets.
+
+## Cached Settings routing regression
+
+Run [43188316323](https://github.com/vouchington/vouchington-clients/actions/runs/43188316323)
+accepted the outbound URL, but its audit retained one notification activation and an active route.
+The uploaded diagnostics contained the three switch PATCHes and startup navigation confirmation,
+with no screenshots or hierarchy capture. An accepted OS URL command alone does not establish that
+the destination was applied.
+
+The route-application defect was in AppShell's cached-page enumeration. MAUI 10.0.20 stores a
+`ContentTemplate`-created page in its shell content cache, exposed by `IShellContentController.Page`;
+`ShellContent.Content` remains null. Reading `Content` missed the displayed Settings page, so a new
+match was queued for creation while navigation reused the existing page without applying the match.
+Startup preflight had masked this by applying its initial notification match directly.
+
+Enumeration now reads the instantiated controller page without creating an unvisited template.
+The App regression exercises the real MAUI template cache, production settings-route helper, and
+production notification focus method; it verifies that the ordinary Settings route hides the
+notification section and records audit departure. The GUI still sends the real outbound URL and
+requires the departure audit before returning; no synthetic route or audit mutation is substituted.
