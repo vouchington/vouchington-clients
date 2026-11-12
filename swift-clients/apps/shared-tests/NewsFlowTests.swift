@@ -26,6 +26,12 @@
             app.launchEnvironment["VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"] = fixture.identity.base64EncodedString()
             app.launch()
 
+            // Fixture identity restoration precedes mounting RootView and loading its feed.
+            // Keep launch readiness separate from the existing content assertion deadline.
+            XCTAssertTrue(
+                app.otherElements["root-shell"].waitForExistence(timeout: 20),
+                "News fixture did not finish identity restoration and mount the native root"
+            )
             let primary = app.staticTexts[fixture.primaryTitle].firstMatch
             XCTAssertTrue(primary.waitForExistence(timeout: 20))
             let related = app.staticTexts[fixture.relatedTitle].firstMatch
