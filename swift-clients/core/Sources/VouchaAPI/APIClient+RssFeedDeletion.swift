@@ -8,6 +8,13 @@ import VouchaCore
 public enum RssFeedDeletionOutcome: Equatable, Sendable {
     case accepted(rssFeedId: String)
     case blockedByAdminImports
+
+    public var status: String? {
+        switch self {
+        case .accepted: "deleting"
+        case .blockedByAdminImports: nil
+        }
+    }
 }
 
 private struct RssFeedDeletionAcceptance: Decodable {

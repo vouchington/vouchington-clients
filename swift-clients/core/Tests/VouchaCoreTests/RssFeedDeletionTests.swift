@@ -22,6 +22,7 @@ final class RssFeedDeletionTests: XCTestCase {
                 status: status
             )
             XCTAssertEqual(outcome, expected)
+            XCTAssertEqual(outcome.status, status == 202 ? "deleting" : nil)
             XCTAssertEqual(InvitationURLProtocol.capturedMethods, ["DELETE"])
             XCTAssertEqual(InvitationURLProtocol.capturedURLs.map(\.path), ["/api/v1/rss-feeds/\(feedId)"])
         }
