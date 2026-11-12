@@ -73,13 +73,15 @@ public sealed partial class PlatformPasskeyAssertionProvider :
   [Export("authorizationController:didCompleteWithAuthorization:")]
   public void DidComplete(ASAuthorizationController controller, ASAuthorization authorization)
   {
-    if (authorization.GetCredential<ASAuthorizationPlatformPublicKeyCredentialAssertion>() is { } platform)
+    using var credentialKey = new NSString("credential");
+    var credential = authorization.ValueForKey(credentialKey);
+    if (credential is ASAuthorizationPlatformPublicKeyCredentialAssertion platform)
     {
       Finish(PasskeyAssertionEncoding.Create(platform.CredentialId.ToArray(),
           platform.RawAuthenticatorData.ToArray(), platform.RawClientDataJson.ToArray(),
           platform.Signature.ToArray(), platform.UserId?.ToArray()));
     }
-    else if (authorization.GetCredential<ASAuthorizationSecurityKeyPublicKeyCredentialAssertion>() is { } securityKey)
+    else if (credential is ASAuthorizationSecurityKeyPublicKeyCredentialAssertion securityKey)
     {
       Finish(PasskeyAssertionEncoding.Create(securityKey.CredentialId.ToArray(),
           securityKey.RawAuthenticatorData.ToArray(), securityKey.RawClientDataJson.ToArray(),
