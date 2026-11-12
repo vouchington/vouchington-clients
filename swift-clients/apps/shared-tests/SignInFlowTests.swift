@@ -1,4 +1,5 @@
 #if os(iOS)
+    import UIKit
     import XCTest
 
     final class SignInFlowTests: XCTestCase {
@@ -25,9 +26,10 @@
             app.launch()
 
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
+            dismissSidebarIfPresented(in: app)
             let signIn = app.buttons["signed-out-sign-in"]
             XCTAssertTrue(signIn.waitForExistence(timeout: 20))
-            tapHittableButton("Sign In", identifier: "signed-out-sign-in", in: app, timeout: 20)
+            tapHittableButton("Sign In", identifier: "signed-out-sign-in", in: app, timeout: 20, requireUnique: true)
 
             let continueWithEmail = app.buttons["Continue with Email"]
             XCTAssertTrue(continueWithEmail.waitForExistence(timeout: 20))
@@ -53,20 +55,39 @@
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
         }
 
+        private func dismissSidebarIfPresented(in app: XCUIApplication) {
+            guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+            let hideSidebar = app.buttons["Hide Sidebar"]
+            let showSidebar = app.buttons["Show Sidebar"]
+            // Settle split navigation before using its detail-column sign-in control.
+            let sidebarReady = NSPredicate { _, _ in
+                [hideSidebar, showSidebar].contains { $0.exists && $0.isHittable && $0.isEnabled }
+            }
+            wait(for: [expectation(for: sidebarReady, evaluatedWith: nil)], timeout: 20)
+            guard hideSidebar.exists, hideSidebar.isHittable, hideSidebar.isEnabled else { return }
+            tapHittableButton("Hide Sidebar", in: app, timeout: 20)
+            XCTAssertTrue(hideSidebar.waitForNonExistence(timeout: 20))
+        }
+
         @discardableResult
         private func tapHittableButton(
             _ label: String,
             identifier: String? = nil,
             in app: XCUIApplication,
-            timeout: TimeInterval = 10
+            timeout: TimeInterval = 10,
+            requireUnique: Bool = false
         ) -> XCUIElement {
             let matches = identifier.map { app.buttons.matching(identifier: $0) }
                 ?? app.buttons.matching(NSPredicate(format: "label == %@", label))
+            var button: XCUIElement?
             let ready = NSPredicate { _, _ in
-                matches.allElementsBoundByIndex.contains { $0.isHittable && $0.isEnabled && $0.label == label }
+                let hittable = matches.allElementsBoundByIndex.filter {
+                    $0.isHittable && $0.isEnabled && $0.label == label
+                }
+                button = (!requireUnique || hittable.count == 1) ? hittable.first : nil
+                return button != nil
             }
             wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
-            let button = matches.allElementsBoundByIndex.first { $0.isHittable && $0.isEnabled && $0.label == label }
             XCTAssertNotNil(button)
             button?.tap()
             return button ?? app.buttons[label]
