@@ -13,11 +13,12 @@ const options = {
   'news-digest': ['none', 'daily', 'weekly'],
   'community-digest': ['none', 'daily', 'weekly'],
   cadence: ['daily', 'selected_days', 'weekly'],
-  timezone: ['UTC', 'America/Los_Angeles'],
+  timezone: ['Africa/Abidjan', 'Africa/Accra', 'America/Los_Angeles', 'UTC'],
 }
 export function nativeSession(fault = {}, fixture = {}) {
   let clock = 0
   let focused
+  let picker
   let notificationRouteVisible = true
   let departed = false
   const calls = []
@@ -75,11 +76,18 @@ export function nativeSession(fault = {}, fixture = {}) {
       return { value: { 'element-6066-11e4-a52e-4f735466cecf': body.value } }
     }
     if (path === '/elements' && body.using === 'xpath') {
-      assert.equal(
-        body.value,
-        `//*[@label="${state.moderation_email_timezone === 'UTC' ? 'America/Los_Angeles' : 'UTC'}"]`,
+      assert.ok(
+        [
+          '//*[self::XCUIElementTypeSheet or self::XCUIElementTypeAlert][.//XCUIElementTypePickerWheel]',
+          '//XCUIElementTypePickerWheel',
+        ].includes(body.value),
+        'options are not clickable menu elements',
       )
-      return { value: [{ ELEMENT: 'timezone-option' }] }
+      return {
+        value: picker
+          ? [{ ELEMENT: body.value.startsWith('//*[') ? 'picker-sheet' : 'picker-wheel' }]
+          : [],
+      }
     }
     if (path === '/elements') {
       return { value: [{ 'element-6066-11e4-a52e-4f735466cecf': body.value }] }
@@ -89,6 +97,25 @@ export function nativeSession(fault = {}, fixture = {}) {
       const id = decodeURIComponent(match[1])
       const field = id.replace('notification-', '')
       const command = match[2]
+      if (command === 'elements' && id === 'picker-sheet') {
+        assert.ok(picker, 'action sheet must be open')
+        assert.equal(body.using, 'xpath')
+        const isWheel = body.value === './/XCUIElementTypePickerWheel'
+        assert.ok(isWheel || body.value === './/XCUIElementTypeButton[@label="Done"]')
+        if (fault.pickerQueryError === picker.field)
+          return { value: { error: 'unknown command', message: 'picker query unavailable' } }
+        const missing = isWheel ? fault.noWheel : fault.noDone
+        const ambiguous = isWheel ? fault.ambiguousWheel : fault.ambiguousDone
+        const id = isWheel ? 'picker-wheel' : 'picker-done'
+        return {
+          value:
+            missing === picker.field
+              ? []
+              : [id, ...(ambiguous === picker.field ? [id + '-copy'] : [])].map(ELEMENT => ({
+                  ELEMENT,
+                })),
+        }
+      }
       if (command === 'elements' && id === 'notification-time') {
         assert.equal(body.using, 'xpath')
         assert.equal(body.value, './/XCUIElementTypeTextField')
@@ -117,7 +144,8 @@ export function nativeSession(fault = {}, fixture = {}) {
             state.is_moderation_emails_enabled,
         }
       }
-      if (command === 'attribute/enabled') return { value: true }
+      if (command === 'attribute/enabled')
+        return { value: !(picker && fault.disabledWheel === picker.field && id === 'picker-wheel') }
       if (command === 'attribute/label')
         return {
           value: id.startsWith('time-hour')
@@ -129,11 +157,27 @@ export function nativeSession(fault = {}, fixture = {}) {
       if (command === 'attribute/amType')
         return {
           value:
-            id === 'notification-time'
-              ? (fault.timeType ?? 'XCUIElementTypeDatePicker')
-              : (fault.hourType ?? 'XCUIElementTypeTextField'),
+            id === 'picker-wheel'
+              ? fault.wheelType === picker.field
+                ? 'XCUIElementTypeTextField'
+                : 'XCUIElementTypePickerWheel'
+              : id === 'notification-time'
+                ? (fault.timeType ?? 'XCUIElementTypeDatePicker')
+                : (fault.hourType ?? 'XCUIElementTypeTextField'),
         }
       if (command === 'attribute/value') {
+        if (id === 'picker-wheel') {
+          assert.ok(picker)
+          const value = picker.values[picker.index]
+          return {
+            value:
+              fault.emptyWheel === picker.field
+                ? ''
+                : picker.field === 'timezone'
+                  ? value
+                  : `Localized ${value}`,
+          }
+        }
         const [hour, minute] = state.moderation_email_time_of_day.split(':')
         return {
           value: id.startsWith('time-hour')
@@ -146,12 +190,25 @@ export function nativeSession(fault = {}, fixture = {}) {
         }
       }
       if (command === 'click') {
-        if (id === 'timezone-option') {
-          persist(
-            'moderation_email_timezone',
-            state.moderation_email_timezone === 'UTC' ? 'America/Los_Angeles' : 'UTC',
-          )
+        if (id === 'picker-done') {
+          assert.ok(picker, 'Done requires an open action sheet')
+          if (fault.doneError === picker.field)
+            return { value: { error: 'invalid element state', message: 'Done unavailable' } }
+          const selected = picker.values[picker.index]
+          if (fault.noPickerPatch !== picker.field) persist(keys[picker.field], selected)
+          if (fault.noDismissal !== picker.field) picker = undefined
           return { value: null }
+        }
+        if (Object.hasOwn(options, field)) {
+          assert.equal(picker, undefined, 'previous selection must be completed')
+          const values =
+            field === 'timezone'
+              ? [
+                  state[keys[field]],
+                  ...options.timezone.filter(value => value !== state[keys[field]]),
+                ]
+              : options[field]
+          picker = { field, values, index: values.indexOf(state[keys[field]]) }
         }
         focused = field
         if (['engagement', 'moderation'].includes(field)) persist(keys[field], !state[keys[field]])
@@ -173,6 +230,19 @@ export function nativeSession(fault = {}, fixture = {}) {
         return { value: { error: 'unknown command', message: 'keys unavailable' } }
       const args = body.args[0]
       if (body.script === 'macos: keys') {
+        if (args.elementId === 'picker-wheel') {
+          assert.ok(picker, 'wheel only exists while its action sheet is open')
+          assert.equal(args.keys.length, 1, 'confirm with Done, never Return')
+          assert.ok(['XCUIKeyboardKeyDownArrow', 'XCUIKeyboardKeyUpArrow'].includes(args.keys[0]))
+          if (fault.wheelKeysError === picker.field)
+            return { value: { error: 'invalid element state', message: 'wheel unavailable' } }
+          if (fault.stuckWheel !== picker.field)
+            picker.index += args.keys[0] === 'XCUIKeyboardKeyDownArrow' ? 1 : -1
+          assert.ok(picker.index >= 0 && picker.index < picker.values.length)
+          if (fault.earlyPickerPatch === picker.field)
+            persist(keys[picker.field], picker.values[picker.index])
+          return { value: null }
+        }
         assert.equal(args.keys.at(-1), 'XCUIKeyboardKeyReturn')
         if (focused === 'time-hour') {
           assert.equal(args.elementId, 'time-hour')
@@ -186,16 +256,7 @@ export function nativeSession(fault = {}, fixture = {}) {
               'moderation_email_time_of_day',
               `${String(Number(hour) + (args.keys[0] === 'XCUIKeyboardKeyUpArrow' ? 1 : -1)).padStart(2, '0')}:${minute}`,
             )
-        } else {
-          const values = options[focused]
-          let index = values.indexOf(state[keys[focused]])
-          for (const key of args.keys.slice(0, -1)) {
-            assert.ok(['XCUIKeyboardKeyDownArrow', 'XCUIKeyboardKeyUpArrow'].includes(key))
-            index += key === 'XCUIKeyboardKeyDownArrow' ? 1 : -1
-          }
-          assert.ok(index >= 0 && index < values.length)
-          persist(keys[focused], values[index])
-        }
+        } else assert.fail('native Picker cannot be edited as a text field or menu')
       } else if (body.script === 'macos: deepLink') {
         if (args.url === 'voucha://my/preferences') {
           if (!fault.noDeparture) {

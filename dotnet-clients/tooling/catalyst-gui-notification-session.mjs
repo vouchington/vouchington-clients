@@ -12,7 +12,7 @@ const fieldNames = {
   timezone: 'moderation_email_timezone',
 }
 
-// These are native keyboard gestures, not fixture commands. The persisted report is
+// These are native control gestures, not fixture commands. The persisted report is
 // mandatory: an accepted key/click alone never establishes that a setting changed.
 // Mac2 commands: https://appium.github.io/appium-mac2-driver/latest/reference/execute-methods/
 export async function assertNotificationControls(request, sessionId, options = {}) {
@@ -77,14 +77,14 @@ export async function assertNotificationControls(request, sessionId, options = {
   const mutate = async (field, expected, action) => {
     const before = await report()
     assert.equal(before.patches.length, patchCount, 'unexpected or stale PATCH history before gesture')
-    await action()
+    const selected = await action()
     const after = await poll(`${field} persisted PATCH`, report, value => value.patches.length > patchCount)
     assert.equal(after.patches.length, patchCount + 1, `${field} gesture produced multiple PATCH requests`)
     const patch = after.patches.at(-1)
     const key = fieldNames[field]
     assert.deepEqual(patch.fields, [key], `${field} PATCH must contain exactly its API field`)
     assert.deepEqual(patch.before, state, `${field} PATCH started from stale persisted state`)
-    const expectedState = { ...state, [key]: expected }
+    const expectedState = { ...state, [key]: expected ?? selected }
     assert.deepEqual(patch.after, expectedState, `${field} PATCH changed an unrelated field or failed to persist`)
     state = patch.after
     patchCount += 1
@@ -99,19 +99,62 @@ export async function assertNotificationControls(request, sessionId, options = {
       enabled: truth(await attr(element, 'enabled')), value: switchState(await attr(element, 'value')),
     }), value => value.enabled && value.value === !before)
   }
-  const select = async (field, choices, target) => {
+  // MAUI 10.0.20 PickerHandler.iOS.cs presents UIPickerView in an action
+  // sheet on Catalyst. Its Done action commits the selected row. Mac2's
+  // setValue types text; use element-scoped native keys on the wheel instead.
+  const one = async (parent, xpath, description) => {
+    const values = await command('POST', parent ? path(parent, 'elements') : '/elements', { using: 'xpath', value: xpath })
+    assert.ok(Array.isArray(values), `${description} query must return an array`)
+    const shown = []
+    for (const value of values) {
+      const element = value['element-6066-11e4-a52e-4f735466cecf'] ?? value.ELEMENT
+      assert.ok(typeof element === 'string' && element.length > 0, `invalid ${description} reference`)
+      if (truth(await visible(element))) shown.push(element)
+    }
+    assert.equal(shown.length, 1, `${description} must expose exactly one native element`)
+    assert.equal(truth(await attr(shown[0], 'enabled')), true, `${description} was disabled`)
+    return shown[0]
+  }
+  const pick = async (field, steps) => {
     const element = await ready(`notification-${field === 'news' || field === 'community' ? `${field}-digest` : field}`)
+    await click(element)
+    const sheet = await poll('native picker action sheet', async () => {
+      const values = await command('POST', '/elements', { using: 'xpath', value: '//*[self::XCUIElementTypeSheet or self::XCUIElementTypeAlert][.//XCUIElementTypePickerWheel]' })
+      assert.ok(Array.isArray(values), 'picker action sheet query must return an array')
+      return values
+    }, values => values.length > 0)
+    assert.equal(sheet.length, 1, 'picker must expose exactly one action sheet')
+    const sheetId = sheet[0]['element-6066-11e4-a52e-4f735466cecf'] ?? sheet[0].ELEMENT
+    const wheel = await one(sheetId, './/XCUIElementTypePickerWheel', 'picker wheel')
+    assert.equal(await attr(wheel, 'amType'), 'XCUIElementTypePickerWheel', 'unsupported native picker control')
+    let value = await attr(wheel, 'value')
+    assert.ok(typeof value === 'string' && value.length > 0, 'picker wheel value was empty')
+    if (field === 'timezone') assert.equal(value, state.moderation_email_timezone, 'timezone wheel started from a stale selection')
+    await click(wheel)
+    for (let step = 0; step < Math.abs(steps); step += 1) {
+      const before = value
+      await execute('keys', { elementId: wheel, keys: [steps > 0 ? 'XCUIKeyboardKeyDownArrow' : 'XCUIKeyboardKeyUpArrow'] })
+      value = await poll('picker wheel adjustment', () => attr(wheel, 'value'), next => typeof next === 'string' && next.length > 0 && next !== before)
+    }
+    if (field === 'timezone') {
+      assert.notEqual(value, state.moderation_email_timezone, 'timezone wheel did not change')
+      // The first row is the saved zone; the next is a system IANA zone.
+      // Read the selected row instead of assuming an offscreen target exists.
+      assert.ok(/^(?:UTC|[A-Za-z_+-]+(?:\/[A-Za-z0-9_+.-]+)+)$/u.test(value), 'unsupported native timezone value')
+    }
+    await click(await one(sheetId, './/XCUIElementTypeButton[@label="Done"]', 'picker Done button'))
+    await poll('picker dismissal', () => command('POST', '/elements', { using: 'xpath', value: '//XCUIElementTypePickerWheel' }), values => {
+      assert.ok(Array.isArray(values), 'picker dismissal query must return an array')
+      return values.length === 0
+    })
+    await poll(`${field} enabled after selection`, () => attr(element, 'enabled'), truth)
+    return value
+  }
+  const select = async (field, choices, target) => {
     const current = choices.indexOf(state[fieldNames[field]])
     const next = choices.indexOf(target)
     assert.ok(current >= 0 && next >= 0 && current !== next, `unsupported ${field} native picker value`)
-    await mutate(field, target, async () => {
-      await click(element)
-      await execute('keys', { keys: [
-        ...Array(Math.abs(next - current)).fill(next > current ? 'XCUIKeyboardKeyDownArrow' : 'XCUIKeyboardKeyUpArrow'),
-        'XCUIKeyboardKeyReturn',
-      ] })
-    })
-    await poll(`${field} enabled after selection`, () => attr(element, 'enabled'), truth)
+    await mutate(field, target, () => pick(field, next - current))
   }
   const visibility = async (ids, expected) => {
     for (const id of ids) {
@@ -209,22 +252,7 @@ export async function assertNotificationControls(request, sessionId, options = {
     await execute('keys', { elementId: hours[0], keys: [delta > 0 ? 'XCUIKeyboardKeyUpArrow' : 'XCUIKeyboardKeyDownArrow', 'XCUIKeyboardKeyReturn'] })
   })
   passed('time-mutation-persisted')
-  const zone = state.moderation_email_timezone === 'UTC' ? 'America/Los_Angeles' : 'UTC'
-  await mutate('timezone', zone, async () => {
-    await click(await ready('notification-timezone'))
-    // Timezone names are protocol values, not translated labels. Query the actual
-    // open native menu rather than guessing its runtime-generated item ordering.
-    const candidates = await command('POST', '/elements', { using: 'xpath', value: `//*[@label="${zone}"]` })
-    assert.ok(Array.isArray(candidates), 'Mac2 timezone menu response must be an array')
-    const shown = []
-    for (const candidate of candidates) {
-      const element = candidate['element-6066-11e4-a52e-4f735466cecf'] ?? candidate.ELEMENT
-      if (truth(await visible(element))) shown.push(element)
-    }
-    assert.equal(shown.length, 1, 'timezone must expose exactly one visible native menu option')
-    assert.equal(truth(await attr(shown[0], 'enabled')), true, 'timezone menu option was disabled')
-    await click(shown[0])
-  })
+  await mutate('timezone', undefined, () => pick('timezone', 1))
   passed('timezone-mutation-persisted')
   await execute('deepLink', { url: 'voucha://my/preferences', ...(options.bundleId ? { bundleId: options.bundleId } : {}) })
   await poll('departure from notification settings', async () => {

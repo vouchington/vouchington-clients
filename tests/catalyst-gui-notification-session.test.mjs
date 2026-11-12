@@ -28,6 +28,60 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
     assert.ok(session.calls.some(call => call.url.endsWith('/notification-day-2/click')))
     assert.ok(session.calls.some(call => call.body?.script === 'macos: deepLink'))
   })
+  it('opens each native wheel, adjusts its selected row, and confirms Done before PATCH', async () => {
+    const session = nativeSession()
+    await session.run()
+    const done = session.calls.filter(call => call.url.endsWith('/picker-done/click'))
+    assert.equal(done.length, 4)
+    const wheelKeys = session.calls.filter(
+      call => call.body?.args?.[0]?.elementId === 'picker-wheel',
+    )
+    assert.equal(wheelKeys.length, 4)
+    assert.ok(wheelKeys.every(call => call.body.args[0].keys.length === 1))
+    assert.equal(session.evidence.patches.at(-1).after.moderation_email_timezone, 'Africa/Abidjan')
+    assert.equal(
+      session.calls.some(call => call.body?.value?.includes('@label="Africa/Abidjan"')),
+      false,
+    )
+    assert.equal(
+      session.calls.some(call => call.method === 'POST' && call.url.endsWith('/value')),
+      false,
+    )
+  })
+  for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
+    for (const [fault, message] of [
+      ['noWheel', /picker wheel must expose exactly one/u],
+      ['ambiguousWheel', /picker wheel must expose exactly one/u],
+      ['disabledWheel', /picker wheel was disabled/u],
+      ['wheelType', /unsupported native picker control/u],
+      ['emptyWheel', /picker wheel value was empty/u],
+      ['stuckWheel', /picker wheel adjustment did not settle/u],
+      ['wheelKeysError', /Mac2 invalid element state/u],
+      ['pickerQueryError', /Mac2 unknown command/u],
+      ['noDone', /picker Done button must expose exactly one/u],
+      ['ambiguousDone', /picker Done button must expose exactly one/u],
+      ['doneError', /Mac2 invalid element state/u],
+      ['noDismissal', /picker dismissal did not settle/u],
+      ['earlyPickerPatch', /multiple PATCH requests/u],
+      ['noPickerPatch', /persisted PATCH did not settle/u],
+    ]) {
+      it(`rejects ${field} ${fault} without claiming a completed native selection`, async () => {
+        const session = nativeSession({ [fault]: field })
+        await assert.rejects(session.run(), message)
+        assert.equal(
+          session.calls.some(call => call.body?.script === 'macos: deepLink'),
+          false,
+        )
+      })
+    }
+  }
+  it('uses the saved timezone as row zero even when it is not UTC', async () => {
+    const fixture = nativeSession().evidence.initialPreferences
+    fixture.moderation_email_timezone = 'Africa/Abidjan'
+    const session = nativeSession({}, { preferences: fixture })
+    await session.run()
+    assert.equal(session.evidence.patches.at(-1).after.moderation_email_timezone, 'Africa/Accra')
+  })
   for (const [fault, message] of [
     [{ stale: true }, /stale element reference/u],
     [{ unsupported: true }, /Mac2 unknown command/u],
