@@ -97,6 +97,9 @@ public struct SourcesListView: View {
         .refreshable { await viewModel.reload() }
     }
 
+}
+
+extension SourcesListView {
     func replaceCreationContext() {
         creationModel.reset()
         creationModel = SourceCreationViewModel(

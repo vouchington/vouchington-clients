@@ -115,8 +115,9 @@ final class SourceCreationViewModel {
                     return
                 }
                 result = status.rows.first
-                if status.import.pendingRows == 0 || status.import.completedAt != nil {
-                    if let result, result.status != .pending, result.status != .error,
+                if status.import.pendingRows == 0 || status.import.completedAt != nil,
+                   let result, result.status != .pending {
+                    if result.status != .error,
                        let entityId = result.entityId, status.import.failedRows == 0 {
                         let topic = try await service.topic(entityId)
                         guard current(token, account) else { return }

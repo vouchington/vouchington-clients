@@ -132,6 +132,14 @@ final class SourceCreationTests: XCTestCase {
         XCTAssertNotNil(model.message)
     }
 
+    func testPendingErrorRowWinsOverTerminalSummaryDuringReconciliation() async {
+        let script = SourceCreationScript([status(.pending, pending: 0)])
+        let model = model(script, limit: 1)
+        await model.create()
+        XCTAssertFalse(model.isTerminal)
+        XCTAssertTrue(model.result?.isRetrying == true)
+    }
+
     func testTerminalFailure() async {
         let model = model(SourceCreationScript([status(.error, pending: 0, failed: 1)]))
         await model.create()
