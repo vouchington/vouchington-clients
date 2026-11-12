@@ -159,13 +159,14 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
             XCTAssertNoThrow(try inspected.find(text: "Pending"))
             XCTAssertFalse(try inspected.find(button: "Refresh").isDisabled())
             let path = runPath(admittedRunId)
-            let requested = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                CannedFeedURLProtocol.capturedPathCount(path) == 2
-            }, object: nil)
+            CannedFeedURLProtocol.suspendResponse(path: path)
+            defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+            let requested = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
             try await Task { @MainActor in
                 try row.inspect().find(button: "Refresh").tap()
             }.value
-            await fulfillment(of: [requested], timeout: 2)
+            _ = try await requested.wait()
+            XCTAssertTrue(viewModel.isQueueActionInProgress)
             let refreshed = expectation(description: "Refresh finishes updating the pending run")
             @MainActor
             func observeRefresh() {
@@ -180,6 +181,7 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
                 }
             }
             observeRefresh()
+            CannedFeedURLProtocol.releaseResponse(path: path)
             await fulfillment(of: [refreshed], timeout: 2)
             XCTAssertEqual(requestCount(method: "GET", path: path), 2)
             XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
