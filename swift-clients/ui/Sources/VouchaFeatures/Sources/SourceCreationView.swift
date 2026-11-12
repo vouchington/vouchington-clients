@@ -26,9 +26,9 @@ struct SourceCreationView: View {
                     Task { await model.resume() }
                 }
             }
-            if let destination = model.destination {
+            if model.currentDestination != nil {
                 Button(UiMessages.string(.nativeSwiftPodcastPlaybackOpenSource, locale: locale)) {
-                    navigate(destination)
+                    if let destination = model.currentDestination { navigate(destination) }
                 }
             }
         }

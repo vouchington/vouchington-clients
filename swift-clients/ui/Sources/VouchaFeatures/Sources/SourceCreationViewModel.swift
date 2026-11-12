@@ -14,6 +14,10 @@ final class SourceCreationViewModel {
     private(set) var message: UiVerbatimText?
     private(set) var isTerminal = false
     private(set) var destination: String?
+    var currentDestination: String? {
+        identity() == owner ? destination : nil
+    }
+
     let service: SourceCreationService
     let baseURL: URL
     let identity: @MainActor () -> String?
@@ -21,6 +25,7 @@ final class SourceCreationViewModel {
     let pollLimit: Int
     private var generation = 0
     private var owner: String?
+    private var destinationGeneration: Int?
 
     init(
         service: SourceCreationService,
@@ -52,6 +57,7 @@ final class SourceCreationViewModel {
         message = nil
         isTerminal = false
         destination = nil
+        destinationGeneration = nil
         owner = nil
     }
 
@@ -122,6 +128,7 @@ final class SourceCreationViewModel {
                         let topic = try await service.topic(entityId)
                         guard current(token, account) else { return }
                         destination = topic.map { "/source/\($0)" }
+                        destinationGeneration = token
                         isTerminal = true
                         message = .message(.nativeSwiftImportExportSourceCreated)
                     } else {

@@ -185,6 +185,25 @@ final class SourceCreationTests: XCTestCase {
         XCTAssertEqual(count, 0)
     }
 
+    func testRetainedOpenControlFencesAccountChangeBeforeParentReset() async throws {
+        var account = "a"
+        let model = model(SourceCreationScript([status(.sourceCreated, pending: 0)]), identity: { account })
+        await model.create()
+        var destination: String?
+        let view = SourceCreationView(model: model, navigate: { destination = $0 })
+        let retainedButton = try view.inspect().find(button: "Open source")
+        XCTAssertNotNil(model.currentDestination)
+        account = "b"
+        XCTAssertNil(model.currentDestination)
+        try retainedButton.tap()
+        XCTAssertNil(destination)
+        account = "a"
+        model.cancel()
+        XCTAssertNil(model.currentDestination)
+        try retainedButton.tap()
+        XCTAssertNil(destination)
+    }
+
     func testRenderedCompletionNavigation() async throws {
         let model = model(SourceCreationScript([status(.sourceCreated, pending: 0)]))
         await model.create()
