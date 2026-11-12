@@ -3,16 +3,17 @@ import Foundation
     import FoundationNetworking
 #endif
 
-extension APIClient {
+public extension APIClient {
     /// Clears the cookie jar used by this client's transports and persists the cleared state.
-    public func clearSessionCookies() {
-        for cookie in cookieStorage.cookies ?? [] {
-            cookieStorage.deleteCookie(cookie)
-        }
-        persistCookies?()
+    func clearSessionCookies() {
+        try? clearSessionCookiesChecked()
     }
 
-    static func cookieSessionConfiguration(
+    func clearSessionCookiesChecked() throws {
+        try cookieCoordinator.clear(persist: checkedClearPersistence)
+    }
+
+    internal static func cookieSessionConfiguration(
         _ provided: URLSessionConfiguration?, cookieStorage: HTTPCookieStorage
     ) -> URLSessionConfiguration {
         if let provided {
@@ -21,11 +22,12 @@ extension APIClient {
             }
             // URLSession copies configuration values, while its in-memory cookie jar stays shared.
             copy.httpCookieStorage = provided.httpCookieStorage
+            copy.httpShouldSetCookies = false
             return copy
         }
         let configuration = URLSessionConfiguration.default
         configuration.httpCookieStorage = cookieStorage
-        configuration.httpShouldSetCookies = true
+        configuration.httpShouldSetCookies = false
         configuration.httpCookieAcceptPolicy = .always
         return configuration
     }

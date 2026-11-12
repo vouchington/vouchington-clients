@@ -62,23 +62,32 @@ import Foundation
             accessGroup: String?,
             backend: Backend = .security
         ) {
-            let props = cookies
-                .compactMap(\.properties)
-                .map(KeychainCookieExpiration.propertiesByAddingAbsoluteExpiryIfNeeded)
-            guard let data = propertyListData(from: props) else { return }
-            let query = baseQuery(
+            try? saveChecked(
+                cookies,
                 serviceName: serviceName,
                 keychainKey: keychainKey,
-                accessGroup: accessGroup
+                accessGroup: accessGroup,
+                backend: backend
             )
+        }
+
+        static func saveChecked(
+            _ cookies: [HTTPCookie], serviceName: String, keychainKey: String,
+            accessGroup: String?, backend: Backend = .security
+        ) throws {
+            let props = cookies.compactMap(\.properties)
+                .map(KeychainCookieExpiration.propertiesByAddingAbsoluteExpiryIfNeeded)
+            guard let data = propertyListData(from: props) else { throw CocoaError(.propertyListWriteInvalid) }
+            let query = baseQuery(serviceName: serviceName, keychainKey: keychainKey, accessGroup: accessGroup)
             let update: [CFString: Any] = [kSecValueData: data]
-            let status = backend.update(query as CFDictionary, update as CFDictionary)
+            var status = backend.update(query as CFDictionary, update as CFDictionary)
             if status == errSecItemNotFound {
                 var addQuery = query
                 addQuery[kSecValueData] = data
                 addQuery[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-                _ = backend.add(addQuery as CFDictionary, nil)
+                status = backend.add(addQuery as CFDictionary, nil)
             }
+            guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
         }
 
         static func delete(

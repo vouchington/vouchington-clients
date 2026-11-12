@@ -1,66 +1,122 @@
 import Foundation
+import VouchaCore
+import VouchaModels
 #if !canImport(Darwin)
     import FoundationNetworking
 #endif
 
 extension APIClient {
     func ensureSessionBootstrap() async throws {
-        guard sessionBootstrapEnabled, !hasDeviceCookie else { return }
-        if let sessionBootstrapTask {
-            try await sessionBootstrapTask.value
-            return
+        guard sessionBootstrapEnabled else { return }
+        let observed = cookieCoordinator.stamp
+        if !hasDeviceCookie {
+            _ = try await rotateSession(since: observed)
+        } else {
+            try await cookieCoordinator.awaitRotation()
         }
-        let task = Task { try await performSessionBootstrap() }
-        sessionBootstrapTask = task
-        defer { sessionBootstrapTask = nil }
-        try await task.value
     }
 
-    private func performSessionBootstrap() async throws {
-        defer { persistCookies?() }
-        let endpoint = Endpoint(.PATCH, path: "/api/v1/session", body: [String: String]())
-        let request = try buildRequest(endpoint)
-        let (data, response) = try await session.data(for: request)
+    /// Rotates first-party credentials before resolving identity on lifecycle refreshes.
+    public func refreshSession() async throws {
+        let stamp = cookieCoordinator.stamp
+        _ = try await rotateSession(since: stamp)
+        try requireAuthenticatedSession(epoch: stamp.epoch)
+    }
+
+    public nonisolated func invalidateSessionRequests() {
+        cookieCoordinator.invalidate()
+    }
+
+    public nonisolated var sessionEpoch: UInt64 {
+        cookieCoordinator.stamp.epoch
+    }
+
+    func rotateSession(
+        since observed: SessionCookieCoordinator.Stamp,
+        endpoint: Endpoint? = nil
+    ) async throws -> SessionRotationResult? {
+        try await cookieCoordinator.rotate(since: observed) { stamp in
+            try await self.performSessionRotation(stamp: stamp, endpoint: endpoint)
+        }
+    }
+
+    func performSessionRotation(
+        stamp: SessionCookieCoordinator.Stamp,
+        endpoint: Endpoint? = nil
+    ) async throws -> SessionRotationResult {
+        defer { try? cookieCoordinator.persist(stamp: stamp, action: checkedPersistence) }
+        let endpoint = try endpoint ?? Endpoint(
+            .PATCH,
+            path: "/api/v1/session",
+            body: cookieCoordinator.tokens(for: baseURL, stamp: stamp)
+        )
+        let raw = try buildRequest(endpoint)
+        let request = await applySigningIfNeeded(raw, method: endpoint.method.rawValue)
+        let (prepared, _) = try cookieCoordinator.prepare(request, origin: baseURL)
+        try cookieCoordinator.check(stamp)
+        let (data, response) = try await session.data(for: prepared)
+        try cookieCoordinator.check(stamp)
+        if let http = response as? HTTPURLResponse, http.statusCode == 401,
+           let code = APIErrorPayload.decode(from: data, logger: logger)?.code,
+           Self.terminalSessionFailures.contains(code) {
+            try cookieCoordinator.clear(ifCurrent: stamp, persist: checkedClearPersistence)
+        }
         try validate(response: response, data: data)
-        try persistSessionTokens(from: data)
+        try commitSessionTokens(from: data, response: response, stamp: stamp)
+        return SessionRotationResult(data: data, response: response)
     }
 
     private var hasDeviceCookie: Bool {
         cookieStorage.cookies(for: baseURL)?.contains { $0.name == "dt" && !$0.value.isEmpty } == true
     }
 
-    func persistSessionTokensIfPresent(from data: Data) throws {
-        guard let response = try? decoder.decode(SessionBootstrapResponse.self, from: data) else { return }
-        persistSessionTokens(response.session)
-    }
-
-    private func persistSessionTokens(from data: Data) throws {
-        let response = try decoder.decode(SessionBootstrapResponse.self, from: data)
-        persistSessionTokens(response.session)
-    }
-
-    private func persistSessionTokens(_ session: SessionBootstrapPayload) {
-        let cookies = [
-            ("dt", session.deviceToken, Date().addingTimeInterval(TimeInterval(session.deviceExpiration))),
-            ("st", session.sessionToken, Date().addingTimeInterval(TimeInterval(session.sessionExpiration)))
-        ]
-        for (name, value, expiration) in cookies {
-            var properties: [HTTPCookiePropertyKey: Any] = [
-                .name: name,
-                .value: value,
-                .path: "/",
-                .originURL: baseURL,
-                .expires: expiration
-            ]
-            if session.secure {
-                properties[.secure] = "TRUE"
+    func commitSessionTokens(
+        from data: Data, response: URLResponse, stamp: SessionCookieCoordinator.Stamp
+    ) throws {
+        let payload: NativeRefreshedSession
+        do {
+            payload = try decoder.decode(NativeSessionRefreshResponse.self, from: data).session
+            guard !payload.deviceToken.isEmpty, !payload.sessionToken.isEmpty,
+                  payload.deviceExpiration > 0, payload.sessionExpiration > 0,
+                  payload.uid == nil || payload.session.uid == nil || payload.uid == payload.session.uid else {
+                throw VouchaError.unauthorized
             }
-            if let cookie = HTTPCookie(properties: properties) {
-                cookieStorage.setCookie(cookie)
-            }
+        } catch {
+            try cookieCoordinator.clear(ifCurrent: stamp, persist: checkedClearPersistence)
+            throw VouchaError.unauthorized
         }
-        persistCookies?()
+        var cookies = responseCookies(response)
+        for (name, value, lifetime) in [
+            ("dt", payload.deviceToken, payload.deviceExpiration),
+            ("st", payload.sessionToken, payload.sessionExpiration)
+        ] {
+            let existing = cookies.first { $0.name == name }
+            var properties = existing?.properties ?? [
+                .originURL: baseURL, .path: "/", HTTPCookiePropertyKey("HttpOnly"): "TRUE"
+            ]
+            properties[.name] = name
+            properties[.value] = value
+            properties[.expires] = Date().addingTimeInterval(TimeInterval(lifetime))
+            properties.removeValue(forKey: .maximumAge)
+            properties[.secure] = payload.secure ? "TRUE" : nil
+            guard let cookie = HTTPCookie(properties: properties) else { throw VouchaError.unauthorized }
+            cookies.removeAll { $0.name == name }
+            cookies.append(cookie)
+        }
+        try cookieCoordinator.commit(
+            cookies,
+            stamp: stamp,
+            persist: checkedPersistence,
+            clearPersistence: checkedClearPersistence,
+            rotated: true,
+            authenticated: !(payload.uid ?? payload.session.uid ?? "").isEmpty
+        )
     }
+
+    static let terminalSessionFailures: Set<String> = [
+        "AUTH_REQUIRED", "SESSION_RELOGIN_REQUIRED", "SESSION_REFRESH_REUSED", "SESSION_USER_AGENT_MISMATCH",
+        "SESSION_JA4_MISMATCH"
+    ]
 
     static func makeSession(
         configuration: URLSessionConfiguration,
@@ -69,33 +125,17 @@ extension APIClient {
     ) -> URLSession {
         #if canImport(Security)
             guard pinningPolicy.requiresPinning(for: baseURL) else {
-                return URLSession(configuration: configuration)
+                return URLSession(
+                    configuration: configuration,
+                    delegate: FirstPartySessionDelegate(),
+                    delegateQueue: nil
+                )
             }
 
             let delegate = PublicKeyPinningURLSessionDelegate(policy: pinningPolicy)
             return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
         #else
-            return URLSession(configuration: configuration)
+            return URLSession(configuration: configuration, delegate: FirstPartySessionDelegate(), delegateQueue: nil)
         #endif
-    }
-}
-
-private struct SessionBootstrapResponse: Decodable {
-    let session: SessionBootstrapPayload
-}
-
-private struct SessionBootstrapPayload: Decodable {
-    let deviceToken: String
-    let sessionToken: String
-    let deviceExpiration: Int
-    let sessionExpiration: Int
-    let secure: Bool
-
-    private enum CodingKeys: String, CodingKey {
-        case deviceToken = "dt"
-        case sessionToken = "st"
-        case deviceExpiration = "dte"
-        case sessionExpiration = "ste"
-        case secure
     }
 }

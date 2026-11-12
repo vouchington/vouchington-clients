@@ -391,7 +391,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         return ProfileViewModel(
             client: apiClient,
             config: config,

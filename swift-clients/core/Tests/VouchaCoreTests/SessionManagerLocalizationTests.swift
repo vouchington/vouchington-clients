@@ -151,7 +151,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
             bootstrapSession: false, sessionConfiguration: configuration
         )
         let manager = SessionManager(
-            client: client, cookieStorage: separateJar, clearPersistedCookies: { recorder.snapshot() }
+            client: client, clearPersistedCookies: { recorder.snapshot() }
         )
         try manager.synchronize(with: identity(uiLocale: "en"))
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
@@ -233,7 +233,6 @@ final class SessionManagerLocalizationTests: XCTestCase {
         )
         return SessionManager(
             client: client,
-            cookieStorage: cookieStorage,
             clearPersistedCookies: clearPersistedCookies,
             beforeClearSessionCookies: beforeClearSessionCookies
         )

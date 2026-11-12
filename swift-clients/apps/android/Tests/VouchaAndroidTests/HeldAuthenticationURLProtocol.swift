@@ -64,6 +64,14 @@ final class HeldAuthenticationURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
+        if request.url?.path == "/api/v1/session" {
+            do {
+                _ = try deliver(statusCode: 200, body: androidSessionRefreshFixture())
+            } catch {
+                client?.urlProtocol(self, didFailWithError: error)
+            }
+            return
+        }
         guard let host = request.url?.host else { return }
         let waiting = Self.registryLock.withLock { () -> WaitingRequest? in
             guard let waiting = Self.requests[host], request.url?.path == waiting.path else { return nil }

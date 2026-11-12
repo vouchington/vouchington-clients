@@ -17,7 +17,7 @@
             )
             return ViewModelFactory(
                 apiClient: client,
-                sessionManager: SessionManager(client: client, cookieStorage: cookieStorage),
+                sessionManager: SessionManager(client: client),
                 cacheStore: MemoryDiskCacheStore(),
                 featureFlagOverrideStore: UITestingFeatureFlagOverrideStore(),
                 config: config,

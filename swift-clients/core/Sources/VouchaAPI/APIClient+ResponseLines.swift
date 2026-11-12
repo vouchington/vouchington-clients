@@ -15,17 +15,20 @@ private final class ResponseLinesTaskHolder: @unchecked Sendable {
 
 extension APIClient {
     func responseLines(for request: URLRequest) async throws -> ResponseLines {
-        let persistCookies = persistCookies
-        defer { persistCookies?() }
         #if canImport(FoundationNetworking)
             return try await responseLinesUsingURLSessionDataDelegate(for: request)
         #else
+            let (request, stamp) = try cookieCoordinator.prepare(request, origin: baseURL)
+            let coordinator = cookieCoordinator
+            let persist = checkedPersistence
+            let persistCookies: @Sendable () -> Void = { try? coordinator.persist(stamp: stamp, action: persist) }
             let (bytes, response) = try await session.bytes(for: request)
+            try acceptCookies(response, stamp: stamp)
             let holder = ResponseLinesTaskHolder()
             return ResponseLines(lines: AsyncThrowingStream { continuation in
                 holder.task = Task { [holder] in
                     defer {
-                        persistCookies?()
+                        persistCookies()
                         holder.task = nil
                     }
                     do {
@@ -38,7 +41,7 @@ extension APIClient {
                     }
                 }
                 continuation.onTermination = { [weak holder] _ in
-                    persistCookies?()
+                    persistCookies()
                     holder?.task?.cancel()
                 }
             }, response: response, body: Data())

@@ -25,7 +25,7 @@ final class CookiePersistenceURLProtocol: URLProtocol {
         let status = path.hasPrefix("/bootstrap-error") || path == "/error" ? 500 : path == "/not-modified" ? 304 : 200
         let body = switch path {
         case "/api/v1/session":
-            #"{"session":{"dt":"device-token","st":"session-token","dte":3600,"ste":3600,"secure":false}}"#
+            #"{"session":{"dt":"device-token","st":"session-token","dte":3600,"ste":3600,"secure":false,"did":"device","sid":"session","uid":"user","session":{"client":"web","did":"device","sid":"session","rca":1,"sca":1,"rol":[],"uid":"user"}}}"#
         case "/raw": "raw bytes"
         case "/lines": "first\nsecond\n"
         default: "{}"

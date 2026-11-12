@@ -123,6 +123,7 @@ private func assertAuthenticationRequests(_ requests: [URLRequest]) throws {
         "/api/v1/auth/email-address/tokens",
         "/api/v1/auth/email-address/login",
         "/api/v1/auth/mfa/totp/verification",
+        "/api/v1/session",
         "/api/v1/my/identity"
     ])
     XCTAssertTrue(try String(data: XCTUnwrap(requests.first?.httpBody), encoding: .utf8)?

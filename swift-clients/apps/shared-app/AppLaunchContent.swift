@@ -123,7 +123,7 @@ struct AppLaunchContent: View {
             )
             return ViewModelFactory(
                 apiClient: client,
-                sessionManager: SessionManager(client: client, cookieStorage: cookies),
+                sessionManager: SessionManager(client: client),
                 cacheStore: MemoryDiskCacheStore(),
                 nativeOAuthAuthorizationStore: NativeOAuthAuthorizationStore(
                     secureState: UITestingOAuthAuthorizationSecureState()

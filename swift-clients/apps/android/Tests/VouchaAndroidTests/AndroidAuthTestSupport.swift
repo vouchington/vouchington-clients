@@ -4,6 +4,7 @@ import Foundation
 #endif
 @testable import VouchaAndroid
 import VouchaTestSupport
+import XCTest
 
 final class AndroidAuthURLProtocol: URLProtocol {
     private static let lock = NSLock()
@@ -62,15 +63,23 @@ final class AndroidAuthURLProtocol: URLProtocol {
             }
             return (status, Self.identity)
         }
-        let data: Data = switch path {
+        let data: Data
+        switch path {
         case "/api/v1/auth/email-address/login":
-            Data(#"{"mfaRequired":true,"loginAttemptId":"mfa-attempt"}"#.utf8)
+            data = Data(#"{"mfaRequired":true,"loginAttemptId":"mfa-attempt"}"#.utf8)
         case "/api/v1/my/identity":
-            identity
+            data = identity
         case "/mutation":
-            Data(#"{"code":"BOT_CHALLENGE_REQUIRED","action":"bot-challenge.mutation","message":"Verify"}"#.utf8)
+            data = Data(#"{"code":"BOT_CHALLENGE_REQUIRED","action":"bot-challenge.mutation","message":"Verify"}"#.utf8)
+        case "/api/v1/session":
+            do {
+                data = try androidSessionRefreshFixture()
+            } catch {
+                client?.urlProtocol(self, didFailWithError: error)
+                return
+            }
         default:
-            Data("{}".utf8)
+            data = Data("{}".utf8)
         }
         guard let url = request.url,
               let response = HTTPURLResponse(
@@ -102,4 +111,10 @@ final class MemorySecrets: AndroidEndpointSecretStoring {
     func removeValue(forKey key: String) throws {
         values.removeValue(forKey: key)
     }
+}
+
+func androidSessionRefreshFixture() throws -> Data {
+    let path = "api-fixtures/v1/responses/native.auth.session.refresh.rotated.json"
+    let root = try ContractRoot.url(requiredPaths: [path])
+    return try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
 }

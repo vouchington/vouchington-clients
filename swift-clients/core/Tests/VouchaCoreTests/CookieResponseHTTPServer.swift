@@ -10,8 +10,11 @@ final class CookieResponseHTTPServer: @unchecked Sendable {
     private let requestLock = NSLock()
     private var capturedCookie: String?
     let port: Int
+    private let response: String
 
-    init() throws {
+    init(response: String =
+        "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\nSet-Cookie: response_session=updated; Path=/; HttpOnly\r\n\r\n{}") throws {
+        self.response = response
         #if canImport(Darwin)
             let socketFD = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
         #else
@@ -108,7 +111,7 @@ final class CookieResponseHTTPServer: @unchecked Sendable {
                 let cookie = headerLines.first { $0.lowercased().hasPrefix("cookie:") }
                     .map { String($0.dropFirst("cookie:".count)).trimmingCharacters(in: .whitespaces) }
                 self.requestLock.withLock { self.capturedCookie = cookie }
-                let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\nSet-Cookie: response_session=updated; Path=/; HttpOnly\r\n\r\n{}"
+                let response = self.response
                 response.withCString { bytes in
                     var offset = 0
                     while offset < response.utf8.count {

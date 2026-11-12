@@ -37,7 +37,7 @@ final class EmailOTPViewModelAppAttestationTests: XCTestCase {
             cookieStorage: HTTPCookieStorage(),
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: HTTPCookieStorage())
+        let sessionManager = SessionManager(client: apiClient)
         let appAttestationService = AppAttestationService(client: apiClient, provider: provider, keyStore: keyStore)
         let service = SignInService(
             client: apiClient,
