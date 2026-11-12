@@ -145,8 +145,11 @@ public sealed partial class FreshAccountConfirmationViewModel : ObservableObject
     catch (OperationCanceledException) { Cancel(); }
     catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException or NotSupportedException)
     {
-      SetError(emailVerification && exception is VouchaApiException { StatusCode: System.Net.HttpStatusCode.BadRequest or
-          System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Gone }
+      SetError(emailVerification && exception is VouchaApiException
+      {
+        StatusCode: System.Net.HttpStatusCode.BadRequest or
+          System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Gone
+      }
           ? UiMessageKey.ExtractedMyEmailManagerInvalidOrExpiredVerificationCode9b5b98fe
           : UiMessageKey.ExtractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96);
     }

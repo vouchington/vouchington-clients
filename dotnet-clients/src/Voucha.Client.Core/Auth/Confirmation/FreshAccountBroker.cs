@@ -3,8 +3,9 @@ using Voucha.Client.Core.Fediverse;
 
 namespace Voucha.Client.Core.Auth;
 
-public sealed class FreshAccountBroker(VouchaApiClient client, INativeExternalBrowser browser)
+public sealed class FreshAccountBroker(VouchaApiClient client, INativeExternalBrowser browser, TimeProvider? timeProvider = null)
 {
+  private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
   private readonly object gate = new();
   private Pending? pending;
 
@@ -19,13 +20,13 @@ public sealed class FreshAccountBroker(VouchaApiClient client, INativeExternalBr
         VouchaApiEndpoints.BeginReAuthProviderAuthorization(provider, proof.Challenge), cancellationToken)
         .ConfigureAwait(true);
     if (string.IsNullOrWhiteSpace(authorization.FlowId) || authorization.RedirectUrl.Scheme != Uri.UriSchemeHttps ||
-        authorization.ExpiresAt <= DateTimeOffset.UtcNow)
+        authorization.ExpiresAt <= clock.GetUtcNow())
       throw new InvalidOperationException();
     var flow = new Pending(provider, authorization, proof.Verifier,
         new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously));
-    var remaining = authorization.ExpiresAt - DateTimeOffset.UtcNow;
+    var remaining = authorization.ExpiresAt - clock.GetUtcNow();
     if (remaining <= TimeSpan.Zero || remaining.TotalMilliseconds > uint.MaxValue - 1) throw new InvalidOperationException();
-    using var expiration = new CancellationTokenSource(remaining);
+    using var expiration = new CancellationTokenSource(remaining, clock);
     using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, expiration.Token);
     flow.Cancellation = linked.Token;
     lock (gate)
@@ -63,7 +64,7 @@ public sealed class FreshAccountBroker(VouchaApiClient client, INativeExternalBr
     using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, flow.Cancellation);
     try
     {
-      while (DateTimeOffset.UtcNow < flow.Authorization.ExpiresAt)
+      while (clock.GetUtcNow() < flow.Authorization.ExpiresAt)
       {
         lock (gate)
           if (!ReferenceEquals(pending, flow)) return true;
@@ -71,7 +72,7 @@ public sealed class FreshAccountBroker(VouchaApiClient client, INativeExternalBr
             query["completion_token"], flow.Verifier, linked.Token).ConfigureAwait(false);
         if (completion.Kind == OAuthCompletionKind.Pending)
         {
-          await Task.Delay(TimeSpan.FromSeconds(1), linked.Token).ConfigureAwait(false);
+          await Task.Delay(TimeSpan.FromSeconds(1), clock, linked.Token).ConfigureAwait(false);
           continue;
         }
         linked.Token.ThrowIfCancellationRequested();

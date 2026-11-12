@@ -31,8 +31,10 @@ public sealed class FreshAccountProofService(
     VouchaApiClient client,
     IPasskeyAssertionProvider passkeys,
     IReAuthProviderAssertion sdk,
-    FreshAccountBroker broker) : IFreshAccountProofService
+    FreshAccountBroker broker, TimeProvider? timeProvider = null) : IFreshAccountProofService
 {
+  private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+
   public Task<ReAuthMethodsResponse> DiscoverAsync(CancellationToken cancellationToken) =>
       client.SendAsync<ReAuthMethodsResponse>(VouchaApiEndpoints.ReAuthMethods(), cancellationToken);
 
@@ -76,10 +78,10 @@ public sealed class FreshAccountProofService(
     var challenge = await client.SendAsync<ReAuthProviderChallengeResponse>(
         VouchaApiEndpoints.ReAuthProviderChallenge(provider), cancellationToken).ConfigureAwait(true);
     if (string.IsNullOrWhiteSpace(challenge.FlowId) || string.IsNullOrWhiteSpace(challenge.Nonce) ||
-        challenge.ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException();
+        challenge.ExpiresAt <= clock.GetUtcNow()) throw new InvalidOperationException();
     var credential = await sdk.GetCredentialAsync(provider, challenge.Nonce, cancellationToken).ConfigureAwait(false);
     cancellationToken.ThrowIfCancellationRequested();
-    if (challenge.ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException();
+    if (challenge.ExpiresAt <= clock.GetUtcNow()) throw new InvalidOperationException();
     return (await client.SendAsync<ReAuthTokenResponse>(VouchaApiEndpoints.VerifyReAuthProvider(
         provider, challenge.FlowId, credential), cancellationToken).ConfigureAwait(false)).ReAuthToken;
   }
