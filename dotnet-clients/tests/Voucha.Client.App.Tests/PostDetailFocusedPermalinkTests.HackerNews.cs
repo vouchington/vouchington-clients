@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Controls;
 using Voucha.Client.App.Pages;
+using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
@@ -22,6 +23,8 @@ public sealed partial class PostDetailFocusedPermalinkTests
     var app = new Application();
     foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" })
       app.Resources[key] = new Style(typeof(Label));
+    app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
     app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
     var root = Post("root", null);
