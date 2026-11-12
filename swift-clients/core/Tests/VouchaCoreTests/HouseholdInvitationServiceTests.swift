@@ -98,7 +98,7 @@ final class HouseholdInvitationServiceTests: XCTestCase {
     private func makeService() throws -> HouseholdInvitationService {
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
-            cookieStorage: HTTPCookieStorage(), protocolClasses: [InvitationURLProtocol.self]
+            cookieStorage: IsolatedHTTPCookieStorage.make(), protocolClasses: [InvitationURLProtocol.self]
         )
         return HouseholdInvitationService(client: client)
     }
