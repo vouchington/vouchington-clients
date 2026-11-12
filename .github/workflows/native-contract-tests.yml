@@ -2679,8 +2679,9 @@ jobs:
           export CATALYST_APP_PATH="$PWD/$app"
           export VOUCHA_CONTRACT_ROOT="$staged"
           export CATALYST_GUI_RESULT="$diagnostics/result.json"
+          export CATALYST_NATIVE_REVISION="${{ needs.verify.outputs.revision-sha }}"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
-          jq -e '.total == 3 and .passed == 3 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+          node scripts/catalyst-notification-evidence.mjs "$CATALYST_GUI_RESULT" "$CATALYST_NATIVE_REVISION"
       - name: Save Appium Mac2 from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
@@ -2688,6 +2689,15 @@ jobs:
         with:
           path: ${{ runner.temp }}/catalyst-appium
           key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
+      - name: Upload partial Catalyst notification evidence
+        if: ${{ success() }}
+        timeout-minutes: 1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-notification-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Upload failed Catalyst GUI diagnostics
         if: ${{ failure() }}
         timeout-minutes: 1

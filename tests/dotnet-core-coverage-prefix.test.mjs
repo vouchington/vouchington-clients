@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { copyFile, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readlink, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -15,15 +15,23 @@ const docsPath = 'docs/coverage-fixture.md'
 
 async function coverageFixture(t, { changedPath = corePath } = {}) {
   const parent = await mkdtemp(join(tmpdir(), 'voucha-coverage-prefix-'))
+  t.after(() => rm(parent, { recursive: true, force: true }))
   const candidate = join(parent, 'candidate-clients')
   const sourcePath = join(candidate, changedPath)
   await mkdir(join(candidate, 'dotnet-clients/TestResults/core'), { recursive: true })
-  await copyFile(join(repositoryRoot, 'package.json'), join(candidate, 'package.json'))
+  for (const name of ['package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml']) {
+    await copyFile(join(repositoryRoot, name), join(candidate, name))
+  }
   await copyFile(
     join(repositoryRoot, '.coverage-rules.yml'),
     join(candidate, '.coverage-rules.yml'),
   )
-  await symlink(join(repositoryRoot, 'node_modules'), join(candidate, 'node_modules'), 'dir')
+  // Shared node_modules retains the original workspace identity; give pnpm an isolated install
+  // so verifyDepsBeforeRun stays enforced without rewriting repository dependency links.
+  await execFileAsync('pnpm', ['install', '--offline', '--frozen-lockfile', '--ignore-scripts'], {
+    cwd: candidate,
+    timeout: 120_000,
+  })
   await mkdir(join(sourcePath, '..'), { recursive: true })
   await writeFile(
     sourcePath,
@@ -70,7 +78,6 @@ async function coverageFixture(t, { changedPath = corePath } = {}) {
     GITHUB_STEP_SUMMARY: join(parent, 'step-summary.md'),
     PWD: candidate,
   }
-  t.after(() => rm(parent, { recursive: true, force: true }))
   return { candidate, changedPath, environment, lcovPath, parent, sourcePath }
 }
 
@@ -82,6 +89,8 @@ async function writeCoverage(fixture, hitCount, sourcePath = fixture.sourcePath)
 }
 
 async function runCoverage(fixture, script = 'coverage:dotnet-core') {
+  const dependency = join(repositoryRoot, 'node_modules/coverage-check')
+  const before = await readlink(dependency)
   try {
     const result = await execFileAsync('pnpm', ['run', script], {
       cwd: fixture.candidate,
@@ -90,6 +99,12 @@ async function runCoverage(fixture, script = 'coverage:dotnet-core') {
     return { code: 0, ...result }
   } catch (error) {
     return { code: error.code, stdout: error.stdout, stderr: error.stderr }
+  } finally {
+    assert.equal(
+      await readlink(dependency),
+      before,
+      'fixture run must preserve repository dependencies',
+    )
   }
 }
 

@@ -69,8 +69,13 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /refusing to skip the Mac Catalyst GUI preflight/u)
     assert.match(
       job,
-      /jq -e '\.total == 3 and \.passed == 3 and \.failed == 0 and \.skipped == 0'/u,
+      /node scripts\/catalyst-notification-evidence\.mjs "\$CATALYST_GUI_RESULT" "\$CATALYST_NATIVE_REVISION"/u,
     )
+    assert.match(
+      job,
+      /Upload partial Catalyst notification evidence\n\s+if: \$\{\{ success\(\) \}\}/u,
+    )
+    assert.match(job, /result\.json\n\s+retention-days: 7\n\s+if-no-files-found: error/u)
     assert.match(needs, /^      - dotnet-catalyst-gui$/mu)
     assert.match(maui, /timeout-minutes: 30/u)
     assert.match(maui, /--configuration Release --framework net10\.0-maccatalyst/u)
@@ -89,12 +94,16 @@ describe('Mac Catalyst GUI preflight', () => {
       /#if DEBUG\n\s+transport = CatalystGuiFixtureHandler\.Wrap\(transport\);/u,
     )
     assert.match(sessionScript, /native\.my\.email-preferences\.default/u)
-    assert.match(sessionScript, /total: 3, passed: 3, failed: 0, skipped: 0/u)
+    assert.match(sessionScript, /notificationEvidence\(checks, nativeRevision, commit\)/u)
+    assert.match(
+      job,
+      /CATALYST_NATIVE_REVISION="\$\{\{ needs\.verify\.outputs\.revision-sha \}\}"/u,
+    )
     assert.doesNotMatch(sessionScript, /root-shell/u)
     assert.match(notificationScript, /notification-engagement/u)
     assert.match(notificationScript, /notification-moderation/u)
     assert.match(notificationScript, /notification-news-digest/u)
-    assert.equal(job.match(/timeout-minutes:/gu)?.length, 7)
+    assert.equal(job.match(/timeout-minutes:/gu)?.length, 8)
     assert.match(job, /timeout-minutes: 6\n/u)
     assert.match(job, /timeout-minutes: 3\n/u)
     assert.match(job, /timeout-minutes: 2\n/u)
