@@ -43,7 +43,7 @@ final class SessionCookieCoordinatorTests: XCTestCase {
         try coordinator.commit([cookie("fresh")], stamp: stamp, persist: nil, rotated: true)
         try coordinator.commit([cookie("late")], stamp: stamp, persist: nil)
         XCTAssertEqual(jar.cookies?.map(\.value), ["fresh"])
-        coordinator.invalidate()
+        coordinator.fenceRequests()
         XCTAssertThrowsError(try coordinator.commit([cookie("late")], stamp: stamp, persist: nil))
     }
 

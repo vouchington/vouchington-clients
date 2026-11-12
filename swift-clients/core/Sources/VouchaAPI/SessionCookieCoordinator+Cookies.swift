@@ -3,6 +3,11 @@ import Foundation
     import FoundationNetworking
 #endif
 
+/// A proof constructed only after this file has replaced or discarded the live credential snapshot.
+struct CommittedCredentialMutation {
+    fileprivate init() {}
+}
+
 extension SessionCookieCoordinator {
     func commit(
         _ cookies: [HTTPCookie], stamp: Stamp, persist: (() throws -> Void)?,
@@ -32,14 +37,9 @@ extension SessionCookieCoordinator {
                     preservingAuthentication: rotated
                 )
             }
-            if rotated { revision &+= 1
-                confirmedIdentityRevision = authenticated ? revision : nil
-            }
+            if rotated { confirmRotation(authenticated: authenticated) }
             if accountBoundary {
-                epoch &+= 1
-                authenticationOrder &+= 1
-                confirmedIdentityRevision = nil
-                rotation = nil
+                completeCredentialMutation(CommittedCredentialMutation(), preservingAuthentication: false)
             }
         }
     }
@@ -52,11 +52,13 @@ extension SessionCookieCoordinator {
                 try check(stamp)
                 guard stamp.revision == revision else { throw CancellationError() }
             }
-            epoch &+= 1
-            if !preservingAuthentication { authenticationOrder &+= 1 }
-            confirmedIdentityRevision = nil
-            rotation = nil
-            defer { emitInvalidation() }
+            defer {
+                completeCredentialMutation(
+                    CommittedCredentialMutation(),
+                    preservingAuthentication: preservingAuthentication
+                )
+                emitInvalidation()
+            }
             do {
                 if let transactional = storage as? any TransactionalSessionCookieStorage {
                     try transactional.replaceCookies([])
@@ -117,15 +119,15 @@ extension SessionCookieCoordinator {
             }
             try action?()
         } catch {
-            epoch &+= 1
-            if !preservingAuthentication { authenticationOrder &+= 1 }
-            confirmedIdentityRevision = nil
-            rotation = nil
-            defer { emitInvalidation() }
             for cookie in storage.cookies ?? [] {
                 storage.deleteCookie(cookie)
             }
             try? clear?()
+            completeCredentialMutation(
+                CommittedCredentialMutation(),
+                preservingAuthentication: preservingAuthentication
+            )
+            emitInvalidation()
             throw error
         }
     }

@@ -20,11 +20,11 @@ extension APIClient {
     public func refreshSession() async throws {
         let stamp = cookieCoordinator.stamp
         _ = try await rotateSession(since: stamp)
-        try requireAuthenticatedSession(epoch: stamp.epoch)
+        try requireAuthenticatedSession(epoch: stamp.epoch, credentialOwnership: stamp.credentialOwnership)
     }
 
-    public nonisolated func invalidateSessionRequests() {
-        cookieCoordinator.invalidate()
+    public nonisolated func fenceSessionRequests() {
+        cookieCoordinator.fenceRequests()
     }
 
     public nonisolated var sessionEpoch: UInt64 {

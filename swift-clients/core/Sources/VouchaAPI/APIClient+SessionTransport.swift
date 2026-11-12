@@ -48,7 +48,10 @@ extension APIClient {
             ) { stamp in
                 try await self.performSessionRotation(stamp: stamp, endpoint: endpoint)
             }
-            if requiresIdentity { try requireAuthenticatedSession(epoch: stamp.epoch) }
+            if requiresIdentity { try requireAuthenticatedSession(
+                epoch: stamp.epoch,
+                credentialOwnership: stamp.credentialOwnership
+            ) }
             return (result.data, result.response)
         }
         return try await mutationData(for: raw, endpoint: endpoint)
@@ -101,13 +104,13 @@ extension APIClient {
         _ = try await cookieCoordinator.rotate(since: stamp) { stamp in
             try await self.performRecoveryRotation(stamp)
         }
-        try requireAuthenticatedSession(epoch: stamp.epoch)
+        try requireAuthenticatedSession(epoch: stamp.epoch, credentialOwnership: stamp.credentialOwnership)
         return true
     }
 
-    func requireAuthenticatedSession(epoch: UInt64) throws {
+    func requireAuthenticatedSession(epoch: UInt64, credentialOwnership: UInt64) throws {
         let stamp = cookieCoordinator.stamp
-        guard stamp.epoch == epoch else { throw CancellationError() }
+        guard stamp.credentialOwnership == credentialOwnership else { throw CancellationError() }
         guard cookieCoordinator.hasConfirmedIdentity else {
             try cookieCoordinator.clear(
                 ifCurrent: stamp,
@@ -116,6 +119,7 @@ extension APIClient {
             )
             throw VouchaError.unauthorized
         }
+        guard stamp.epoch == epoch else { throw CancellationError() }
     }
 
     func clearDefinitiveSessionFailure(

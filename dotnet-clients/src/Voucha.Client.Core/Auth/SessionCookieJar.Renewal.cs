@@ -26,41 +26,41 @@ public sealed partial class SessionCookieJar
 
   private long AdvanceGeneration() => Interlocked.Increment(ref generation);
 
-  internal long BeginAuthentication()
+  private (long Intent, long Generation) FenceRequests()
   {
     lock (authenticationLock)
     {
       var intent = Interlocked.Increment(ref authenticationIntent);
-      AdvanceGeneration();
-      return intent;
+      return (intent, AdvanceGeneration());
     }
   }
+
+  internal long BeginAuthentication() => FenceRequests().Intent;
+
+  internal long BeginSessionTransition() => FenceRequests().Generation;
 
   private bool IsAuthenticationCurrent(long intent) => intent == Interlocked.Read(ref authenticationIntent);
 
-  public long Invalidate()
+  // Call only after replacing or removing credentials while holding sync.
+  private void CommitCredentialChange(bool preserveAuthentication)
   {
     lock (authenticationLock)
     {
-      Interlocked.Increment(ref authenticationIntent);
-      return InvalidateRenewal();
+      if (!preserveAuthentication) Interlocked.Increment(ref authenticationIntent);
+      Interlocked.Increment(ref credentialRevision);
+      Interlocked.Increment(ref renewalEpoch);
+      AdvanceGeneration();
+      SessionInvalidated?.Invoke(this, EventArgs.Empty);
     }
   }
 
-  private long InvalidateRenewal()
-  {
-    Interlocked.Increment(ref renewalEpoch);
-    var epoch = AdvanceGeneration();
-    SessionInvalidated?.Invoke(this, EventArgs.Empty);
-    return epoch;
-  }
-
-  public Task RenewAsync(
+  public async Task RenewAsync(
       Func<string?, string?, CancellationToken, Task<NativeSessionRefreshResponse>> renew,
       bool bootstrap = false,
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(renew);
+    await RestoreAsync(cancellationToken).ConfigureAwait(false);
     Task shared;
     lock (renewalLock)
     {
@@ -72,7 +72,7 @@ public sealed partial class SessionCookieJar
       }
       shared = renewalTask;
     }
-    return shared.WaitAsync(cancellationToken);
+    await shared.WaitAsync(cancellationToken).ConfigureAwait(false);
   }
 
   private async Task RenewInternalAsync(
@@ -82,7 +82,6 @@ public sealed partial class SessionCookieJar
   {
     using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30), renewalTimeProvider);
     var cancellationToken = deadline.Token;
-    await RestoreAsync(cancellationToken).ConfigureAwait(false);
     var (deviceToken, sessionToken, revision) = await ReadRenewalTokensAsync(epoch, cancellationToken).ConfigureAwait(false);
     if (!bootstrap && deviceToken is null)
       throw new UnauthorizedAccessException("Session tokens are unavailable.");
@@ -110,8 +109,7 @@ public sealed partial class SessionCookieJar
         }
         catch
         {
-          InvalidateRenewal();
-          await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
+          await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: CancellationToken.None).ConfigureAwait(false);
           throw;
         }
       }
@@ -151,8 +149,7 @@ public sealed partial class SessionCookieJar
     try
     {
       if (epoch != RenewalEpoch || revision != CredentialRevision) return;
-      InvalidateRenewal();
-      await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
+      await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: CancellationToken.None).ConfigureAwait(false);
     }
     finally
     {
@@ -166,8 +163,7 @@ public sealed partial class SessionCookieJar
     try
     {
       if (epoch != Generation || revision is not null && revision != CredentialRevision) return;
-      Invalidate();
-      await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
+      await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: CancellationToken.None).ConfigureAwait(false);
     }
     finally
     {

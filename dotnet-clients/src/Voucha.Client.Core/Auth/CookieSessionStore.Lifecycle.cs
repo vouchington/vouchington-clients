@@ -7,12 +7,13 @@ public sealed partial class CookieSessionStore
   public async Task SignOutAsync(CancellationToken cancellationToken = default)
   {
     lock (syncLock) { refreshGeneration++; signingOut = true; signOutGeneration = null; }
-    var epoch = cookieJar.Invalidate();
+    var epoch = cookieJar.BeginSessionTransition();
     lock (syncLock) signOutGeneration = epoch;
     try
     {
       var cookies = await cookieJar.ClearForSignOutAsync(epoch).ConfigureAwait(false);
       if (cookies is null) return;
+      lock (syncLock) signOutGeneration = cookieJar.Generation;
       await client
           .SendAsync(VouchaApiEndpoints.Logout() with
           {

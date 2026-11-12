@@ -182,7 +182,7 @@ public sealed partial class SessionRecoveryTests
   }
 
   [Fact]
-  public async Task CredentialSnapshotInvalidatedWhileWaitingCannotCallRenewalTransport()
+  public async Task CredentialSnapshotReplacementBeforeRenewalReadsTokensRemainsUsable()
   {
     GatedPersistence? gated = null;
     using var fixture = new RecoveryFixture(wrap: inner => gated = new(inner));
@@ -195,14 +195,13 @@ public sealed partial class SessionRecoveryTests
     var renewal = fixture.Jar.RenewAsync((_, _, _) =>
     {
       called = true;
-      return Task.FromException<NativeSessionRefreshResponse>(new InvalidOperationException());
+      return Task.FromResult(new NativeSessionRefreshResponse(new NativeRefreshedSession("device", "final-dt", 120, true,
+          new NativeRefreshedSessionClaims("web", "device", 0, [], 0, "session", "member"), "session", "final-st", 60, "member")));
     }, cancellationToken: TestContext.Current.CancellationToken);
-    fixture.Jar.Invalidate();
     gated.Release.SetResult();
-    await replacement;
-    await Assert.ThrowsAsync<UnauthorizedAccessException>(() => renewal);
-    Assert.False(called);
-    Assert.Contains("account-st", fixture.Persistence.Value!);
+    await Task.WhenAll(replacement, renewal);
+    Assert.True(called);
+    Assert.Contains("final-st", fixture.Persistence.Value!);
   }
 
   private sealed class CookieCheckingTerminal : HttpMessageHandler

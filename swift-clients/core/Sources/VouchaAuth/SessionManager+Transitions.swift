@@ -19,7 +19,7 @@ public extension SessionManager {
         generation &+= 1
         let signingOutGeneration = generation
         defer { if generation == signingOutGeneration { signingOut = false } }
-        client.invalidateSessionRequests()
+        client.fenceSessionRequests()
         let signingOutEpoch = client.sessionEpoch
         refreshTask = nil
         isRefreshing = false

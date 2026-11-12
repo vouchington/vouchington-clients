@@ -244,24 +244,37 @@ public sealed partial class SessionRecoveryTests
     Assert.Equal("new-account-st", fixture.Jar.CookieContainer.GetCookies(Origin)["st"]!.Value);
   }
 
-  [Fact]
-  public async Task LogoutInvalidationEventCannotStartForegroundRefreshBeforeEpochIsRecorded()
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task LogoutInvalidationEventCannotStartForegroundRefreshBeforeEpochIsRecorded(bool listenerBeforeStore)
   {
-    using var fixture = new RecoveryFixture();
-    await fixture.SeedAsync();
+    var persistence = new TestSessionCookiePersistence();
+    using var jar = new SessionCookieJar(new CookieContainer(), Origin, persistence);
+    await jar.StoreSessionTokensAsync("old-dt", "old-st", TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(1),
+        TestContext.Current.CancellationToken);
+    var terminal = new RecoveryTerminal(persistence);
+    using var http = new HttpClient(new ClientMetadataHandler(new(ClientPlatform.Windows, "test"), Origin, jar,
+        new SessionCookiePersistenceHandler(jar, terminal)))
+    { BaseAddress = Origin };
+    var client = new VouchaApiClient(http);
+    CookieSessionStore? store = null;
     Task? nestedRefresh = null;
-    fixture.Jar.SessionInvalidated += (_, _) => nestedRefresh = ((IForcedSessionRefreshStore)fixture.Store)
+    EventHandler listener = (_, _) => nestedRefresh = ((IForcedSessionRefreshStore)store!)
         .RefreshAsync(true, TestContext.Current.CancellationToken);
-    fixture.Terminal.Other = request =>
+    if (listenerBeforeStore) jar.SessionInvalidated += listener;
+    store = new CookieSessionStore(client, jar);
+    if (!listenerBeforeStore) jar.SessionInvalidated += listener;
+    terminal.Other = request =>
     {
       Assert.Equal("/api/v1/auth/logout", request.RequestUri!.AbsolutePath);
       return Task.FromResult(Json(HttpStatusCode.OK, new { }));
     };
-    await fixture.Store.SignOutAsync(TestContext.Current.CancellationToken);
+    await store.SignOutAsync(TestContext.Current.CancellationToken);
     await nestedRefresh!;
-    Assert.Equal(0, fixture.Terminal.RenewCount);
-    Assert.False(fixture.Store.Current.IsAuthenticated);
-    Assert.Null(fixture.Persistence.Value);
+    Assert.Equal(0, terminal.RenewCount);
+    Assert.False(store.Current.IsAuthenticated);
+    Assert.Null(persistence.Value);
   }
 
   [Fact]
@@ -271,8 +284,10 @@ public sealed partial class SessionRecoveryTests
     await fixture.SeedAsync();
     var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     Task? renewal = null;
+    var called = false;
     fixture.Jar.SessionInvalidated += (_, _) => renewal = fixture.Jar.RenewAsync(async (_, _, _) =>
     {
+      called = true;
       await release.Task;
       return new NativeSessionRefreshResponse(new NativeRefreshedSession("device", "late-dt", 120, true,
           new NativeRefreshedSessionClaims("web", "device", 1, [], 1, "session", "user-1"),
@@ -280,7 +295,8 @@ public sealed partial class SessionRecoveryTests
     }, cancellationToken: TestContext.Current.CancellationToken);
     await fixture.Jar.ClearAsync(TestContext.Current.CancellationToken);
     release.SetResult();
-    await renewal!;
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() => renewal!);
+    Assert.False(called);
     Assert.False(fixture.Jar.HasDeviceCookie);
     Assert.Null(fixture.Persistence.Value);
   }

@@ -191,7 +191,7 @@ public sealed partial class SessionRecoveryTests
     using var response = await older;
     renewRelease.SetResult();
     if (failure) await Assert.ThrowsAsync<VouchaApiException>(() => renewal);
-    else await renewal;
+    else await Assert.ThrowsAsync<UnauthorizedAccessException>(() => renewal);
     Assert.Equal("manual-st", fixture.Jar.CookieContainer.GetCookies(Origin)["st"]!.Value);
     Assert.Contains("manual-st", fixture.Persistence.Value!);
   }

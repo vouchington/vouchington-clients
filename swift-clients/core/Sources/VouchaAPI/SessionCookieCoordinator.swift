@@ -13,6 +13,8 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     struct Stamp: Equatable {
         let epoch: UInt64
         let revision: UInt64
+        let credentialOwnership: UInt64
+        var isRotation = false
         var authenticationOrder: UInt64?
     }
 
@@ -28,10 +30,11 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     let storage: HTTPCookieStorage
     let lock = NSRecursiveLock()
     var signingOut = false
-    var epoch: UInt64 = 0
-    var revision: UInt64 = 0
-    var authenticationOrder: UInt64 = 0
-    var confirmedIdentityRevision: UInt64?
+    private(set) var epoch: UInt64 = 0
+    private(set) var credentialOwnership: UInt64 = 0
+    private(set) var revision: UInt64 = 0
+    private(set) var authenticationOrder: UInt64 = 0
+    private(set) var confirmedIdentityRevision: UInt64?
     var invalidationObservers: [UUID: @Sendable (UInt64, UInt64) -> Void] = [:]
     var rotation: (UUID, Task<SessionRotationResult, Error>)?
 
@@ -55,16 +58,11 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     }
 
     var stamp: Stamp {
-        lock.withLock { Stamp(epoch: epoch, revision: revision) }
+        lock.withLock { Stamp(epoch: epoch, revision: revision, credentialOwnership: credentialOwnership) }
     }
 
     func beginSignOut() {
-        lock.withLock { signingOut = true
-            epoch &+= 1
-            authenticationOrder &+= 1
-            confirmedIdentityRevision = nil
-            rotation = nil
-        }
+        lock.withLock { signingOut = true }
     }
 
     func endSignOut() {
@@ -82,12 +80,29 @@ final class SessionCookieCoordinator: @unchecked Sendable {
         }
     }
 
-    func invalidate() {
+    /// Fences caller intent/publication without abandoning a credential replacement already in flight.
+    func fenceRequests() {
         lock.withLock {
             epoch &+= 1
             authenticationOrder &+= 1
+        }
+    }
+
+    /// Only the cookie mutation implementation can create the committed-mutation proof.
+    func completeCredentialMutation(_: CommittedCredentialMutation, preservingAuthentication: Bool) {
+        lock.withLock {
+            epoch &+= 1
+            credentialOwnership &+= 1
+            if !preservingAuthentication { authenticationOrder &+= 1 }
             confirmedIdentityRevision = nil
             rotation = nil
+        }
+    }
+
+    func confirmRotation(authenticated: Bool) {
+        lock.withLock {
+            revision &+= 1
+            confirmedIdentityRevision = authenticated ? revision : nil
         }
     }
 
@@ -95,7 +110,9 @@ final class SessionCookieCoordinator: @unchecked Sendable {
         try lock.withLock {
             // Implicit credential cleanup fences ordinary requests, while the latest
             // independent authentication remains eligible to establish replacement cookies.
-            if let order = stamp.authenticationOrder {
+            if stamp.isRotation {
+                guard stamp.credentialOwnership == credentialOwnership else { throw CancellationError() }
+            } else if let order = stamp.authenticationOrder {
                 guard order == authenticationOrder else { throw CancellationError() }
             } else {
                 guard epoch == stamp.epoch else { throw CancellationError() }
@@ -115,7 +132,7 @@ final class SessionCookieCoordinator: @unchecked Sendable {
                 request.setValue(HTTPCookie.requestHeaderFields(with: cookies)["Cookie"], forHTTPHeaderField: "Cookie")
             }
             request.httpShouldHandleCookies = false
-            var stamp = Stamp(epoch: epoch, revision: revision)
+            var stamp = Stamp(epoch: epoch, revision: revision, credentialOwnership: credentialOwnership)
             if establishingSession {
                 authenticationOrder &+= 1
                 stamp.authenticationOrder = authenticationOrder

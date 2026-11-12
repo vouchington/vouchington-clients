@@ -50,17 +50,12 @@ public sealed partial class SessionCookieJar
         if (authenticationIntent is { } intent && !IsAuthenticationCurrent(intent)) return;
         if ((!authenticationCommit || authenticationIntent is null) && epoch != Generation) return;
         if (!authenticationCommit && revision != CredentialRevision) return;
-        var before = (ReadCookie("dt"), ReadCookie("st"));
+        var before = (ReadCookie("dt")?.Value, ReadCookie("st")?.Value);
         StoreSetCookieHeaders(requestUri, headers);
-        if (before != (ReadCookie("dt"), ReadCookie("st")))
+        if (before != (ReadCookie("dt")?.Value, ReadCookie("st")?.Value))
         {
-          Interlocked.Increment(ref credentialRevision);
           authenticatedSession = null;
-          if (requestUri?.AbsolutePath.StartsWith("/api/v1/auth/", StringComparison.Ordinal) == true)
-          {
-            if (authenticationCommit && authenticationIntent is not null) InvalidateRenewal();
-            else Invalidate();
-          }
+          CommitCredentialChange(preserveAuthentication: authenticationCommit && authenticationIntent is not null);
         }
       }
       await PersistUnlockedAsync(cancellationToken).ConfigureAwait(false);
@@ -81,7 +76,7 @@ public sealed partial class SessionCookieJar
     {
       if (epoch != Generation) return null;
       var header = cookieContainer.GetCookieHeader(apiBaseUrl);
-      await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
+      await ClearUnlockedAsync(preserveAuthentication: false, cancellationToken: CancellationToken.None).ConfigureAwait(false);
       return header;
     }
     finally

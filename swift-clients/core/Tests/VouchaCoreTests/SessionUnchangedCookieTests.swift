@@ -86,7 +86,7 @@ final class SessionUnchangedCookieTests: XCTestCase {
         XCTAssertEqual(coordinator.stamp.epoch, original.epoch)
         XCTAssertEqual(coordinator.stamp.revision, original.revision + 1)
         XCTAssertTrue(coordinator.hasConfirmedIdentity)
-        coordinator.invalidate()
+        coordinator.fenceRequests()
         XCTAssertThrowsError(try coordinator.commit([], stamp: original, persist: nil))
         XCTAssertThrowsError(try coordinator.commit([cookie], stamp: original, persist: nil))
     }

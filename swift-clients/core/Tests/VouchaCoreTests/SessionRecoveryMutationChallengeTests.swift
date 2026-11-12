@@ -73,7 +73,7 @@ final class SessionRecoveryMutationChallengeTests: XCTestCase {
             defer { SessionRecoveryProtocol.remove(fixture.host) }
             fixture.transport.handler = { _, _ in Self.challenge }
             await fixture.client.setMutationChallengeHandler {
-                fixture.client.invalidateSessionRequests()
+                fixture.client.fenceSessionRequests()
                 return "proof"
             }
             do {

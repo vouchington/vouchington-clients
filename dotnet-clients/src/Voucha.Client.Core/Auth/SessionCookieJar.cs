@@ -52,13 +52,13 @@ public sealed partial class SessionCookieJar : IDisposable
       }
       catch (JsonException)
       {
-        await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+        await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         return;
       }
 
       if (state?.Cookies is null || !HasDeviceSession(state.Cookies))
       {
-        await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+        await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         return;
       }
 
@@ -92,11 +92,12 @@ public sealed partial class SessionCookieJar : IDisposable
 
   public async Task ClearAsync(CancellationToken cancellationToken = default)
   {
-    Invalidate();
+    var generation = BeginSessionTransition();
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
-      await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+      if (generation != Generation) throw new OperationCanceledException("Session clear was superseded.");
+      await ClearUnlockedAsync(preserveAuthentication: false, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
     finally
     {
@@ -124,10 +125,10 @@ public sealed partial class SessionCookieJar : IDisposable
 
   public void Dispose() => sync.Dispose();
 
-  private async Task ClearUnlockedAsync(CancellationToken cancellationToken)
+  private async Task ClearUnlockedAsync(bool preserveAuthentication, CancellationToken cancellationToken)
   {
     ClearMemoryUnlocked();
-    Interlocked.Increment(ref credentialRevision);
+    CommitCredentialChange(preserveAuthentication);
     authenticatedSession = null;
     await persistence.ClearAsync(cancellationToken).ConfigureAwait(false);
     lastSerializedCookies = null;
@@ -142,7 +143,7 @@ public sealed partial class SessionCookieJar : IDisposable
         .ToArray();
     if (!HasDeviceSession(cookies))
     {
-      await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+      await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: cancellationToken).ConfigureAwait(false);
       return;
     }
 

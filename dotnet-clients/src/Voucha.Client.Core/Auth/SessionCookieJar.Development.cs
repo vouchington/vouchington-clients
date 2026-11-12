@@ -11,15 +11,17 @@ public sealed partial class SessionCookieJar
     ArgumentException.ThrowIfNullOrWhiteSpace(deviceToken);
     ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
 
-    Invalidate();
+    var generation = BeginSessionTransition();
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
+      if (generation != Generation) throw new OperationCanceledException("Credential replacement was superseded.");
+      var before = (ReadCookie("dt")?.Value, ReadCookie("st")?.Value);
       SetCookie("dt", deviceToken);
       SetCookie("st", sessionToken);
-      Interlocked.Increment(ref credentialRevision);
       authenticatedSession = null;
-      Invalidate();
+      if (before != (ReadCookie("dt")?.Value, ReadCookie("st")?.Value))
+        CommitCredentialChange(preserveAuthentication: false);
       await PersistUnlockedAsync(cancellationToken).ConfigureAwait(false);
     }
     finally

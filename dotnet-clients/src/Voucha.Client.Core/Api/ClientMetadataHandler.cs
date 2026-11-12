@@ -32,7 +32,14 @@ public sealed partial class ClientMetadataHandler(
         !(request.RequestUri.AbsolutePath == "/api/v1/auth/logout" &&
           request.Options.TryGetValue(CoordinatedSignOut, out var locallyCleared) && locallyCleared))
     {
-      if (request.RequestUri.AbsolutePath == "/api/v1/auth/logout") cookieJar.Invalidate();
+      if (request.RequestUri.AbsolutePath == "/api/v1/auth/logout")
+      {
+        var cookies = await cookieJar.ClearForSignOutAsync(cookieJar.BeginSessionTransition()).ConfigureAwait(false);
+        if (cookies is null) throw new OperationCanceledException("Sign-out was superseded.");
+        request.Headers.Remove("Cookie");
+        if (!string.IsNullOrEmpty(cookies)) request.Headers.TryAddWithoutValidation("Cookie", cookies);
+        request.Options.Set(CoordinatedSignOut, true);
+      }
       else request.Options.Set(AuthenticationDispatch, cookieJar.BeginAuthentication());
     }
     ApplyMetadata(request);

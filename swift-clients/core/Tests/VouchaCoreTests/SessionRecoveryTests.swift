@@ -360,7 +360,7 @@ final class SessionRecoveryTests: XCTestCase {
         let fixture = try setup()
         defer { SessionRecoveryProtocol.remove(fixture.host) }
         let oldEpoch = fixture.client.sessionEpoch
-        fixture.client.invalidateSessionRequests()
+        fixture.client.fenceSessionRequests()
         do {
             _ = try await fixture.client.prepareSignOut(expectedEpoch: oldEpoch)
             XCTFail("Stale logout must not touch current credentials")

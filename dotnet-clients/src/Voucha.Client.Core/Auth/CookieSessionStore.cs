@@ -90,7 +90,7 @@ public sealed partial class CookieSessionStore :
   {
     lock (syncLock)
     {
-      if (signingOut && (signOutGeneration is null || signOutGeneration == cookieJar.Generation))
+      if (signingOut && (!cookieJar.HasDeviceCookie || signOutGeneration is null || signOutGeneration == cookieJar.Generation))
         return Task.CompletedTask.WaitAsync(cancellationToken);
       var active = refreshTask is not null && !refreshTask.IsCompleted && refreshCookieGeneration == cookieJar.Generation;
       var identityStarted = identityRequestGeneration == refreshGeneration;

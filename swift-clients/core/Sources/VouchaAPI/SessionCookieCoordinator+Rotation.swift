@@ -54,7 +54,8 @@ extension SessionCookieCoordinator {
         if signingOut { return Task { throw CancellationError() } }
         if let rotation { return rotation.1 }
         let id = UUID()
-        let started = stamp
+        var started = stamp
+        started.isRotation = true
         let task = Task {
             defer { self.finishRotation(id) }
             return try await operation(started)
