@@ -124,6 +124,7 @@ public sealed partial class SessionCookieJar : IDisposable
   private async Task ClearUnlockedAsync(CancellationToken cancellationToken)
   {
     ClearMemoryUnlocked();
+    Interlocked.Increment(ref credentialRevision);
     authenticatedSession = null;
     await persistence.ClearAsync(cancellationToken).ConfigureAwait(false);
     lastSerializedCookies = null;

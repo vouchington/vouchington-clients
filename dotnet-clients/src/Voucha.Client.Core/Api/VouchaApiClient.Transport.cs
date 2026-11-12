@@ -134,6 +134,7 @@ public sealed partial class VouchaApiClient
 
   private static void ApplyHeaders(HttpRequestMessage message, ApiRequest request)
   {
+    message.Options.Set(ClientMetadataHandler.CoordinatedSignOut, request.IsCoordinatedSignOut);
     foreach (var (name, value) in request.Headers)
     {
       message.Headers.TryAddWithoutValidation(name, value);

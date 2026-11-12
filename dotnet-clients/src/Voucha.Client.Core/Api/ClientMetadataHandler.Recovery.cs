@@ -4,6 +4,8 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class ClientMetadataHandler
 {
+  internal static readonly HttpRequestOptionsKey<bool> CoordinatedSignOut = new("Voucha.CoordinatedSignOut");
+
   internal static readonly HttpRequestOptionsKey<bool> CoordinatedRotation = new("Voucha.CoordinatedRotation");
 
   internal static readonly HttpRequestOptionsKey<bool> RepeatableJson = new("Voucha.RepeatableJson");
@@ -16,6 +18,7 @@ public sealed partial class ClientMetadataHandler
     var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     if (response.StatusCode != HttpStatusCode.Unauthorized ||
         !request.Options.TryGetValue(RepeatableJson, out var repeatable) || !repeatable ||
+        request.Headers.Contains("x-app-attest-challenge-id") || request.Headers.Contains("x-app-attest-assertion") ||
         IsRecoveryExcluded(request.RequestUri!.AbsolutePath)) return response;
     HttpResponseMessage? retried = null;
     try

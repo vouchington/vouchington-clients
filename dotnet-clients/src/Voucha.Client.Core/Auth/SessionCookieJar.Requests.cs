@@ -59,12 +59,21 @@ public sealed partial class SessionCookieJar
 
   internal bool IsFirstParty(Uri uri) => IsSameOrigin(uri);
 
-  internal async Task<string> ClearForSignOutAsync()
+  internal async Task<string?> ClearForSignOutAsync(long epoch)
   {
     await RestoreAsync().ConfigureAwait(false);
-    var header = cookieContainer.GetCookieHeader(apiBaseUrl);
-    await ClearAsync().ConfigureAwait(false);
-    return header;
+    await sync.WaitAsync().ConfigureAwait(false);
+    try
+    {
+      if (epoch != Generation) return null;
+      var header = cookieContainer.GetCookieHeader(apiBaseUrl);
+      await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
+      return header;
+    }
+    finally
+    {
+      sync.Release();
+    }
   }
 
   public string GetCookieHeader(Uri uri)

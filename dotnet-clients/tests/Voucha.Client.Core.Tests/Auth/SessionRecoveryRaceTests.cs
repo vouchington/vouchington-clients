@@ -161,6 +161,130 @@ public sealed partial class SessionRecoveryTests
     Assert.False(http.AllowAutoRedirect);
   }
 
+  [Fact]
+  public async Task LogoutCapturesCommittedPairAtomicallyWhileRotationPersistenceIsBlocked()
+  {
+    GatedPersistence? gated = null;
+    using var fixture = new RecoveryFixture(wrap: inner => gated = new(inner));
+    await fixture.SeedAsync();
+    gated!.Block = true;
+    var refresh = ((ISessionStore)fixture.Store).RefreshAsync(TestContext.Current.CancellationToken);
+    await gated.Entered.Task;
+    var logoutRequests = 0;
+    fixture.Terminal.Other = request =>
+    {
+      Assert.Equal("/api/v1/auth/logout", request.RequestUri!.AbsolutePath);
+      Assert.Equal("dt=new-dt; st=new-st", request.Headers.GetValues("Cookie").Single());
+      logoutRequests++;
+      return Task.FromResult(Json(HttpStatusCode.OK, new { }));
+    };
+    var logout = fixture.Store.SignOutAsync(TestContext.Current.CancellationToken);
+    Assert.False(logout.IsCompleted);
+    Assert.Equal(0, logoutRequests);
+    gated.Release.SetResult();
+    await Task.WhenAll(refresh, logout);
+    Assert.Equal(1, logoutRequests);
+    Assert.Null(fixture.Persistence.Value);
+    Assert.False(fixture.Jar.HasDeviceCookie);
+    Assert.False(fixture.Store.Current.IsAuthenticated);
+  }
+
+  [Fact]
+  public async Task NewAccountBeforeCriticalLogoutClearPreservesNewPairWithoutLogoutRequest()
+  {
+    GatedPersistence? gated = null;
+    using var fixture = new RecoveryFixture(wrap: inner => gated = new(inner));
+    await fixture.SeedAsync();
+    gated!.Block = true;
+    var pending = fixture.Jar.StoreSessionTokensAsync("pending-dt", "pending-st",
+        TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+    await gated.Entered.Task;
+    var requests = 0;
+    fixture.Terminal.Other = _ => { requests++; return Task.FromResult(Json(HttpStatusCode.OK, new { })); };
+    var logout = fixture.Store.SignOutAsync(TestContext.Current.CancellationToken);
+    var newer = fixture.Jar.StoreSessionTokensAsync("account-dt", "account-st",
+        TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+    gated.Release.SetResult();
+    await Task.WhenAll(pending, logout, newer);
+    Assert.Equal(0, requests);
+    Assert.Equal("account-dt", fixture.Jar.CookieContainer.GetCookies(Origin)["dt"]!.Value);
+    Assert.Equal("account-st", fixture.Jar.CookieContainer.GetCookies(Origin)["st"]!.Value);
+    Assert.Contains("account-st", fixture.Persistence.Value!);
+  }
+
+  [Fact]
+  public async Task NewAccountCanRefreshWhileEarlierLogoutResponseIsPending()
+  {
+    using var fixture = new RecoveryFixture();
+    await fixture.SeedAsync();
+    var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    fixture.Terminal.Other = async request =>
+    {
+      if (request.RequestUri!.AbsolutePath == "/api/v1/auth/logout")
+      {
+        entered.SetResult();
+        await release.Task;
+        return WithCookies("late-old-dt", "late-old-st");
+      }
+      if (request.RequestUri.AbsolutePath == "/api/v1/my/identity")
+        return Json(HttpStatusCode.OK, new { identity = new { id = "new-user", username = "new-account" } });
+      return WithCookies("account-dt", "account-st");
+    };
+    var logout = fixture.Store.SignOutAsync(TestContext.Current.CancellationToken);
+    await entered.Task;
+    await fixture.Client.SendAsync(new ApiRequest(HttpMethod.Post, "/api/v1/auth/email-address/login"),
+        TestContext.Current.CancellationToken);
+    fixture.Terminal.Renew = _ => Task.FromResult(Rotated(uid: "new-user", dt: "new-account-dt", st: "new-account-st"));
+    await ((IForcedSessionRefreshStore)fixture.Store).RefreshAsync(true, TestContext.Current.CancellationToken);
+    Assert.Equal("new-user", fixture.Store.Current.Identity!.Id);
+    release.SetResult();
+    await logout;
+    Assert.Equal("new-user", fixture.Store.Current.Identity!.Id);
+    Assert.Equal("new-account-st", fixture.Jar.CookieContainer.GetCookies(Origin)["st"]!.Value);
+  }
+
+  [Fact]
+  public async Task LogoutInvalidationEventCannotStartForegroundRefreshBeforeEpochIsRecorded()
+  {
+    using var fixture = new RecoveryFixture();
+    await fixture.SeedAsync();
+    Task? nestedRefresh = null;
+    fixture.Jar.SessionInvalidated += (_, _) => nestedRefresh = ((IForcedSessionRefreshStore)fixture.Store)
+        .RefreshAsync(true, TestContext.Current.CancellationToken);
+    fixture.Terminal.Other = request =>
+    {
+      Assert.Equal("/api/v1/auth/logout", request.RequestUri!.AbsolutePath);
+      return Task.FromResult(Json(HttpStatusCode.OK, new { }));
+    };
+    await fixture.Store.SignOutAsync(TestContext.Current.CancellationToken);
+    await nestedRefresh!;
+    Assert.Equal(0, fixture.Terminal.RenewCount);
+    Assert.False(fixture.Store.Current.IsAuthenticated);
+    Assert.Null(fixture.Persistence.Value);
+  }
+
+  [Fact]
+  public async Task RenewalStartedByClearInvalidationCannotRestoreClearedCredentials()
+  {
+    using var fixture = new RecoveryFixture();
+    await fixture.SeedAsync();
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    Task? renewal = null;
+    fixture.Jar.SessionInvalidated += (_, _) => renewal = fixture.Jar.RenewAsync(async (_, _) =>
+    {
+      await release.Task;
+      return new NativeSessionRefreshResponse(new NativeRefreshedSession("device", "late-dt", 120, true,
+          new NativeRefreshedSessionClaims("web", "device", 1, [], 1, "session", "user-1"),
+          "session", "late-st", 60, "user-1"));
+    }, cancellationToken: TestContext.Current.CancellationToken);
+    await fixture.Jar.ClearAsync(TestContext.Current.CancellationToken);
+    release.SetResult();
+    await renewal!;
+    Assert.False(fixture.Jar.HasDeviceCookie);
+    Assert.Null(fixture.Persistence.Value);
+  }
+
   private static HttpResponseMessage WithCookies(string dt, string st)
   {
     var response = Json(HttpStatusCode.OK, new { });

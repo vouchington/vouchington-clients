@@ -27,7 +27,9 @@ public sealed partial class ClientMetadataHandler(
       return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
     if (request.Method != HttpMethod.Get &&
-        IsSessionTransition(request.RequestUri.AbsolutePath))
+        IsSessionTransition(request.RequestUri.AbsolutePath) &&
+        !(request.RequestUri.AbsolutePath == "/api/v1/auth/logout" &&
+          request.Options.TryGetValue(CoordinatedSignOut, out var locallyCleared) && locallyCleared))
       cookieJar.Invalidate();
     ApplyMetadata(request);
     if (!IsSessionEndpoint(request.RequestUri) && request.RequestUri.AbsolutePath != "/api/v1/auth/logout")

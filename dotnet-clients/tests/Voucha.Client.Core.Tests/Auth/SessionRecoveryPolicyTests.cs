@@ -28,6 +28,33 @@ public sealed partial class SessionRecoveryTests
   }
 
   [Theory]
+  [InlineData("x-app-attest-challenge-id")]
+  [InlineData("x-app-attest-assertion")]
+  public async Task RequestsWithOneUseAttestationProofNeverRenewOrReplay(string header)
+  {
+    using var fixture = new RecoveryFixture();
+    await fixture.SeedAsync();
+    var requests = 0;
+    var persisted = fixture.Persistence.Value;
+    fixture.Terminal.Other = request =>
+    {
+      requests++;
+      Assert.Equal("one-use-proof", request.Headers.GetValues(header).Single());
+      return Task.FromResult(Json(HttpStatusCode.Unauthorized, new { code = "AUTH_REQUIRED" }));
+    };
+    var error = await Assert.ThrowsAsync<VouchaApiException>(() => fixture.Client.SendAsync(
+        new ApiRequest(HttpMethod.Post, "/api/v1/posts")
+        {
+          Body = new { message = "repeatable-json" },
+          Headers = new Dictionary<string, string> { [header] = "one-use-proof" },
+        }, TestContext.Current.CancellationToken));
+    Assert.Equal("AUTH_REQUIRED", error.ErrorCode);
+    Assert.Equal(1, requests);
+    Assert.Equal(0, fixture.Terminal.RenewCount);
+    Assert.Equal(persisted, fixture.Persistence.Value);
+  }
+
+  [Theory]
   [InlineData("OTHER")]
   [InlineData("auth_required")]
   public async Task OtherUnauthorizedCodesNeverReplayAndRetainErrorBody(string code)

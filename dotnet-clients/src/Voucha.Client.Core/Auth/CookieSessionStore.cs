@@ -26,6 +26,7 @@ public sealed partial class CookieSessionStore :
   private long refreshGeneration;
   private long refreshCookieGeneration;
   private bool signingOut;
+  private long? signOutGeneration;
 
   public CookieSessionStore(
       VouchaApiClient client,
@@ -88,7 +89,8 @@ public sealed partial class CookieSessionStore :
   {
     lock (syncLock)
     {
-      if (signingOut) return Task.CompletedTask.WaitAsync(cancellationToken);
+      if (signingOut && (signOutGeneration is null || signOutGeneration == cookieJar.Generation))
+        return Task.CompletedTask.WaitAsync(cancellationToken);
       if (refreshTask is not null && !refreshTask.IsCompleted && refreshCookieGeneration == cookieJar.Generation)
       {
         return ObserveRefreshAsync(refreshTask, reportTransientFailure, cancellationToken);
@@ -113,6 +115,7 @@ public sealed partial class CookieSessionStore :
         await cookieJar.RenewAsync((dt, st) => client.SendAsync<NativeSessionRefreshResponse>(
             VouchaApiEndpoints.RefreshSession(dt!, st) with { IsCoordinatedSessionRotation = true }, CancellationToken.None),
             cancellationToken: cancellationToken).ConfigureAwait(false);
+      if (cookieGeneration != cookieJar.Generation) return;
       var response = await client
           .FetchMyIdentityAsync(cancellationToken)
           .ConfigureAwait(false);
