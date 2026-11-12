@@ -341,7 +341,17 @@ describe('Catalyst auth/news CLI orchestration with a child fake (not GUI eviden
         timer,
         `
         const timeout = AbortSignal.timeout.bind(AbortSignal)
-        AbortSignal.timeout = ms => timeout(ms === 30000 ? 5 : ms)
+        const typingTimeout = new AbortController()
+        AbortSignal.timeout = ms => ms === 30000 ? typingTimeout.signal : timeout(ms)
+        const realFetch = globalThis.fetch
+        globalThis.fetch = async (url, options) => {
+          const response = await realFetch(url, options)
+          if (url.endsWith('/value') && options.method === 'POST') {
+            // Fake-server headers prove receipt before the timeout is injected.
+            typingTimeout.abort(new DOMException('Test typing timeout after receipt', 'TimeoutError'))
+          }
+          return response
+        }
       `,
       )
       await assert.rejects(

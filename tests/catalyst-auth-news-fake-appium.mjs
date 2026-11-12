@@ -41,7 +41,15 @@ const server = createServer(async (req, res) => {
     res.on('close', () => {
       if (!res.writableEnded) log({ typingRequestAborted: true })
     })
-    await delay(process.env.CATALYST_FAKE_DELAY === 'typing' ? 10_500 : 100)
+    if (process.env.CATALYST_FAKE_DELAY === 'typing-timeout') {
+      // The headers acknowledge the fully received body. Hold the response until abort.
+      const closed = new Promise(resolve => res.once('close', resolve))
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.flushHeaders()
+      await closed
+      return
+    }
+    await delay(10_500)
   }
   let value = null
   let status = 200
