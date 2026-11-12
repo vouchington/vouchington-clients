@@ -15,7 +15,7 @@ public sealed partial class SourceCreationViewModel
     if (create ? !CanCreate : !CanRetry) return;
     if (!create && service.ApiOrigin != origin)
     {
-      OnSessionChanged(null, new(session.Current));
+      ResetIdentity();
       return;
     }
     error = null;
@@ -61,14 +61,14 @@ public sealed partial class SourceCreationViewModel
         if (summary is { } previous && (status.Import.CompletedRows + status.Import.FailedRows <
             previous.CompletedRows + previous.FailedRows || status.Import.PendingRows > previous.PendingRows))
           throw new InvalidOperationException();
-        if (status.Import.IsTerminal() && (status.Import.PendingRows != 0 ||
+        if (status.Import.IsTerminal() && status.Rows[0].Status != Api.ImportResultStatus.Pending && (status.Import.PendingRows != 0 ||
             (status.Rows[0].IsTerminalFailure() ? status.Import.FailedRows != 1 :
               status.Import.FailedRows != 0 || status.Import.CompletedRows != 1)))
           throw new InvalidOperationException();
         summary = status.Import;
         result = status.Rows[0];
         Publish();
-        if (summary.IsTerminal())
+        if (summary.IsTerminal() && result.Status != Api.ImportResultStatus.Pending)
         {
           if (!result.IsTerminalFailure() && result.EntityId is { Length: > 0 } feedId && string.IsNullOrWhiteSpace(result.TopicSlug))
           {
@@ -77,8 +77,7 @@ public sealed partial class SourceCreationViewModel
             if (detail.Id != feedId || string.IsNullOrWhiteSpace(detail.TopicId)) throw new InvalidOperationException();
             resolvedTopic = detail.TopicId;
           }
-          if (result.Status == Api.ImportResultStatus.Pending ||
-              (!result.IsTerminalFailure() && !CanOpen)) throw new InvalidOperationException();
+          if (!result.IsTerminalFailure() && !CanOpen) throw new InvalidOperationException();
           return;
         }
         if (tick < 29) await delay(TimeSpan.FromSeconds(2), token).ConfigureAwait(true);

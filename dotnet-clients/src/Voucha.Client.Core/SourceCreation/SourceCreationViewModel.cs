@@ -26,6 +26,7 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
   private string? resolvedTopic;
   private bool validated;
   private bool submitted;
+  private string? accountId;
 
   public SourceCreationViewModel(ISourceCreationService service, ISessionStore session,
       IUiLocalization localization, Func<TimeSpan, CancellationToken, Task>? delay = null, IUiLocaleController? localeController = null)
@@ -33,6 +34,7 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
     ArgumentNullException.ThrowIfNull(session);
     this.service = service;
     this.session = session;
+    accountId = session.Current.Identity?.Id;
     this.localization = localization;
     this.delay = delay ?? Task.Delay;
     session.SessionChanged += OnSessionChanged;
@@ -52,7 +54,7 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
       : importId is null ? null : localization.Localize(UiMessageKey.NativeSwiftImportExportPending);
   public string? EntityId => result?.EntityId;
   public string? TopicSlug => result?.TopicSlug ?? resolvedTopic;
-  public bool CanOpen => summary?.IsTerminal() == true && result?.IsTerminalFailure() == false &&
+  public bool CanOpen => summary?.IsTerminal() == true && result is { Status: not ImportResultStatus.Pending } && !result.IsTerminalFailure() &&
       !string.IsNullOrWhiteSpace(EntityId) && !string.IsNullOrWhiteSpace(TopicSlug);
 
   public void Cancel()
@@ -66,6 +68,13 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
   }
 
   private void OnSessionChanged(object? sender, SessionChangedEventArgs args)
+  {
+    if (args.Snapshot.Identity?.Id == accountId) return;
+    accountId = args.Snapshot.Identity?.Id;
+    ResetIdentity();
+  }
+
+  private void ResetIdentity()
   {
     Cancel();
     importId = null;

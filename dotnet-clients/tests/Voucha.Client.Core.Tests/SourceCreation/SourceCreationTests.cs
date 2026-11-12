@@ -127,6 +127,24 @@ public sealed class SourceCreationTests
   }
 
   [Fact]
+  public async Task SameAccountRefreshDoesNotDiscardAcceptedOperation()
+  {
+    var accepted = new TaskCompletionSource<RssFeedImportSubmission>();
+    var service = new FakeService { Post = () => accepted.Task };
+    var session = new Session();
+    using var model = Model(service, session);
+    model.Input = "https://example.test/feed.xml";
+    var operation = model.CreateAsync();
+    await session.RefreshAsync();
+    Assert.True(model.IsBusy);
+    accepted.SetResult(Submission());
+    await operation;
+    Assert.True(model.CanOpen);
+    await model.CreateAsync();
+    Assert.Equal(1, service.Posts);
+  }
+
+  [Fact]
   public async Task AmbiguousPostFailureNeverAllowsDuplicateCreation()
   {
     var service = new FakeService { Post = () => throw new HttpRequestException() };
@@ -167,6 +185,24 @@ public sealed class SourceCreationTests
     await model.CreateAsync();
     Assert.NotNull(model.Error);
     Assert.Null(model.EntityId);
+    await model.RetryAsync();
+    Assert.True(model.CanOpen);
+    Assert.Equal(1, service.Posts);
+  }
+
+  [Fact]
+  public async Task TerminalSummaryCannotMakePendingRowNavigable()
+  {
+    var completed = Status("completed");
+    var service = new FakeService { DefaultStatus = completed with { Rows = [completed.Rows[0] with { Status = ImportResultStatus.Pending, TopicSlug = "source", ErrorCode = RssFeedImportErrorCode.ImportFailed }] } };
+    using var model = Model(service);
+    model.Input = "https://example.test/feed.xml";
+    await model.CreateAsync();
+    Assert.False(model.CanOpen);
+    Assert.Null(model.Error);
+    Assert.Contains("Retrying", model.Status, StringComparison.Ordinal);
+    Assert.True(model.CanRetry);
+    service.DefaultStatus = completed;
     await model.RetryAsync();
     Assert.True(model.CanOpen);
     Assert.Equal(1, service.Posts);
@@ -231,7 +267,7 @@ public sealed class SourceCreationTests
     public event EventHandler<SessionChangedEventArgs>? SessionChanged;
     public SessionSnapshot Current { get; private set; } = new(new User("member", "member"));
     public void Change() { Current = new(new User("other", "other")); SessionChanged?.Invoke(this, new(Current)); }
-    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task RefreshAsync(CancellationToken cancellationToken = default) { SessionChanged?.Invoke(this, new(Current)); return Task.CompletedTask; }
     public Task SignOutAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
   }
 
