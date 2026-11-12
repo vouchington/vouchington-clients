@@ -49,7 +49,7 @@ struct FreshAccountConfirmationView: View {
     private var codeControls: some View {
         if model.usingEmail, model.methods?.hasEmail == true {
             Text(UiMessages.string(
-                .extractedMfaReauthDialogVerificationPanesWeLlSendAVerificationCodeFc0ed3b9, locale: locale
+                .extractedMfaReauthDialogVerificationPanesWeLlSendAverificationCodeFc0ed3b9, locale: locale
             ))
             Button(UiMessages.string(
                 model.emailSent ? .extractedMfaReauthDialogVerificationPanesResend1f948437
