@@ -3,13 +3,18 @@ import { describe, it } from 'node:test'
 import { assertNotificationControls } from '../dotnet-clients/tooling/catalyst-gui-notification-session.mjs'
 
 const keys = {
-  engagement: 'is_engagement_emails_enabled', moderation: 'is_moderation_emails_enabled',
-  'news-digest': 'news_digest_frequency', 'community-digest': 'community_digest_frequency',
-  cadence: 'moderation_email_cadence', timezone: 'moderation_email_timezone',
+  engagement: 'is_engagement_emails_enabled',
+  moderation: 'is_moderation_emails_enabled',
+  'news-digest': 'news_digest_frequency',
+  'community-digest': 'community_digest_frequency',
+  cadence: 'moderation_email_cadence',
+  timezone: 'moderation_email_timezone',
 }
 const options = {
-  'news-digest': ['none', 'daily', 'weekly'], 'community-digest': ['none', 'daily', 'weekly'],
-  cadence: ['daily', 'selected_days', 'weekly'], timezone: ['UTC', 'America/Los_Angeles'],
+  'news-digest': ['none', 'daily', 'weekly'],
+  'community-digest': ['none', 'daily', 'weekly'],
+  cadence: ['daily', 'selected_days', 'weekly'],
+  timezone: ['UTC', 'America/Los_Angeles'],
 }
 function nativeSession(fault = {}) {
   let clock = 0
@@ -18,22 +23,40 @@ function nativeSession(fault = {}) {
   let departed = false
   const calls = []
   const initialPreferences = {
-    is_engagement_emails_enabled: true, is_moderation_emails_enabled: true,
-    news_digest_frequency: 'weekly', community_digest_frequency: 'none',
-    moderation_email_cadence: 'daily', moderation_email_days_of_week: [1, 3],
-    moderation_email_time_of_day: '08:00', moderation_email_timezone: 'UTC',
+    is_engagement_emails_enabled: true,
+    is_moderation_emails_enabled: true,
+    news_digest_frequency: 'weekly',
+    community_digest_frequency: 'none',
+    moderation_email_cadence: 'daily',
+    moderation_email_days_of_week: [1, 3],
+    moderation_email_time_of_day: '08:00',
+    moderation_email_timezone: 'UTC',
   }
   let state = structuredClone(initialPreferences)
-  const evidence = { schemaVersion: 1, initialPreferences, patches: [],
-    activations: [{ activationId: 1, canonicalPath: '/my/notification-settings' }], accessibilityDispatches: [
-      { activationId: 1, kind: 'focus', automationId: 'notification-preferences-heading', succeeded: true },
+  const evidence = {
+    schemaVersion: 1,
+    initialPreferences,
+    patches: [],
+    activations: [{ activationId: 1, canonicalPath: '/my/notification-settings' }],
+    accessibilityDispatches: [
+      {
+        activationId: 1,
+        kind: 'focus',
+        automationId: 'notification-preferences-heading',
+        succeeded: true,
+      },
       { activationId: 1, kind: 'announcement', text: 'Notification settings opened' },
-    ] }
+    ],
+  }
   function persist(field, value) {
     if (fault.noPatch) return
     const before = structuredClone(state)
     state = { ...state, [field]: value }
-    evidence.patches.push({ fields: fault.wrongField ? ['unrelated'] : [field], before, after: structuredClone(state) })
+    evidence.patches.push({
+      fields: fault.wrongField ? ['unrelated'] : [field],
+      before,
+      after: structuredClone(state),
+    })
     if (fault.corruptUnrelated) evidence.patches.at(-1).after.news_digest_frequency = 'none'
     if (fault.duplicate) evidence.patches.push(structuredClone(evidence.patches.at(-1)))
   }
@@ -43,7 +66,8 @@ function nativeSession(fault = {}) {
     const path = url.slice('/session/native'.length)
     if (fault.stale && path.endsWith('/click')) throw new Error('stale element reference')
     if (path === '/element') {
-      if (fault.missingOnce && calls.length === 1) return { value: { error: 'no such element', message: 'heading loading' } }
+      if (fault.missingOnce && calls.length === 1)
+        return { value: { error: 'no such element', message: 'heading loading' } }
       assert.equal(method, 'POST')
       assert.equal(body.using, 'accessibility id')
       return { value: { 'element-6066-11e4-a52e-4f735466cecf': body.value } }
@@ -62,12 +86,24 @@ function nativeSession(fault = {}) {
       const command = match[2]
       if (command === 'displayed') {
         if (field === 'preferences-heading') return { value: notificationRouteVisible }
-        if (field.startsWith('day-')) return { value: fault.hiddenDaysVisible || (state.is_moderation_emails_enabled && state.moderation_email_cadence === 'selected_days') }
-        return { value: !['cadence', 'time', 'timezone'].includes(field) || fault.hiddenScheduleVisible || state.is_moderation_emails_enabled }
+        if (field.startsWith('day-'))
+          return {
+            value:
+              fault.hiddenDaysVisible ||
+              (state.is_moderation_emails_enabled &&
+                state.moderation_email_cadence === 'selected_days'),
+          }
+        return {
+          value:
+            !['cadence', 'time', 'timezone'].includes(field) ||
+            fault.hiddenScheduleVisible ||
+            state.is_moderation_emails_enabled,
+        }
       }
       if (command === 'attribute/enabled') return { value: true }
       if (command === 'attribute/label') return { value: 'Notifications' }
-      if (command === 'attribute/amType') return { value: fault.timeType ?? 'XCUIElementTypeTextField' }
+      if (command === 'attribute/amType')
+        return { value: fault.timeType ?? 'XCUIElementTypeTextField' }
       if (command === 'attribute/value') return { value: state[keys[field]] }
       if (command === 'click') {
         if (id === 'timezone-option') {
@@ -79,13 +115,19 @@ function nativeSession(fault = {}) {
         else if (field.startsWith('day-')) {
           const day = Number(field.slice(4))
           const days = state.moderation_email_days_of_week
-          persist('moderation_email_days_of_week', days.includes(day) ? days.filter(value => value !== day) : [...days, day].sort((a, b) => a - b))
+          persist(
+            'moderation_email_days_of_week',
+            days.includes(day)
+              ? days.filter(value => value !== day)
+              : [...days, day].sort((a, b) => a - b),
+          )
         }
         return { value: null }
       }
     }
     if (path === '/execute/sync') {
-      if (fault.unsupported) return { value: { error: 'unknown command', message: 'keys unavailable' } }
+      if (fault.unsupported)
+        return { value: { error: 'unknown command', message: 'keys unavailable' } }
       const args = body.args[0]
       if (body.script === 'macos: keys') {
         assert.equal(args.keys.at(-1), 'XCUIKeyboardKeyReturn')
@@ -105,7 +147,10 @@ function nativeSession(fault = {}) {
         }
       } else if (body.script === 'macos: deepLink') {
         if (args.url === 'voucha://my/preferences') {
-          if (!fault.noDeparture) { notificationRouteVisible = false; departed = true }
+          if (!fault.noDeparture) {
+            notificationRouteVisible = false
+            departed = true
+          }
           return { value: null }
         }
         assert.equal(args.url, 'voucha://my/notification-settings')
@@ -113,31 +158,64 @@ function nativeSession(fault = {}) {
         notificationRouteVisible = true
         evidence.activations.push({ activationId: 2, canonicalPath: '/my/notification-settings' })
         evidence.accessibilityDispatches.push(
-          { activationId: 2, kind: 'focus', automationId: 'notification-preferences-heading', succeeded: !fault.focusFailure },
-          { activationId: 2, kind: 'announcement', text: fault.wrongAnnouncement ? 'Unrelated' : 'Notification settings opened' },
+          {
+            activationId: 2,
+            kind: 'focus',
+            automationId: 'notification-preferences-heading',
+            succeeded: !fault.focusFailure,
+          },
+          {
+            activationId: 2,
+            kind: 'announcement',
+            text: fault.wrongAnnouncement ? 'Unrelated' : 'Notification settings opened',
+          },
         )
-        if (fault.duplicateAnnouncement) evidence.accessibilityDispatches.push({ activationId: 2, kind: 'announcement', text: 'Notifications' })
+        if (fault.duplicateAnnouncement)
+          evidence.accessibilityDispatches.push({
+            activationId: 2,
+            kind: 'announcement',
+            text: 'Notifications',
+          })
       } else assert.fail(`unexpected native command ${body.script}`)
       return { value: null }
     }
     assert.fail(`unexpected protocol request ${method} ${path}`)
   }
-  return { calls, evidence, run: overrides => assertNotificationControls(request, 'native', {
-    readEvidence: async () => structuredClone(evidence), now: () => clock,
-    sleep: async ms => { clock += ms }, expectedAnnouncement: 'Notification settings opened', ...overrides,
-  }) }
+  return {
+    calls,
+    evidence,
+    run: overrides =>
+      assertNotificationControls(request, 'native', {
+        readEvidence: async () => structuredClone(evidence),
+        now: () => clock,
+        sleep: async ms => {
+          clock += ms
+        },
+        expectedAnnouncement: 'Notification settings opened',
+        ...overrides,
+      }),
+  }
 }
 
 describe('notification Mac2 native gestures and persisted acceptance', () => {
   it('drives every control through native gestures and audits each exact PATCH', async () => {
     const session = nativeSession()
     const checks = await session.run()
-    assert.deepEqual(checks.map(check => check.name), [
-      'heading-exposed', 'engagement-mutation-persisted', 'news-digest-mutation-persisted',
-      'community-digest-mutation-persisted', 'moderation-visibility-and-hidden-preservation',
-      'cadence-mutation-persisted', 'days-mutation-persisted', 'time-mutation-persisted',
-      'timezone-mutation-persisted', 'canonical-route-focus-and-announcement-dispatched',
-    ])
+    assert.deepEqual(
+      checks.map(check => check.name),
+      [
+        'heading-exposed',
+        'engagement-mutation-persisted',
+        'news-digest-mutation-persisted',
+        'community-digest-mutation-persisted',
+        'moderation-visibility-and-hidden-preservation',
+        'cadence-mutation-persisted',
+        'days-mutation-persisted',
+        'time-mutation-persisted',
+        'timezone-mutation-persisted',
+        'canonical-route-focus-and-announcement-dispatched',
+      ],
+    )
     assert.ok(checks.every(check => check.status === 'passed'))
     assert.equal(session.evidence.patches.length, 9)
     assert.ok(session.calls.some(call => call.url.endsWith('/notification-day-2/click')))
@@ -165,17 +243,34 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
   it('retries only a transient missing native element during initial load', async () => {
     const session = nativeSession({ missingOnce: true })
     assert.equal((await session.run()).length, 10)
-    assert.ok(session.calls.slice(0, 2).every(call => call.url === '/session/native/element' && call.body?.value === 'notification-preferences-heading'))
+    assert.ok(
+      session.calls
+        .slice(0, 2)
+        .every(
+          call =>
+            call.url === '/session/native/element' &&
+            call.body?.value === 'notification-preferences-heading',
+        ),
+    )
   })
   it('requires a persisted report instead of accepting clicks alone', async () => {
-    await assert.rejects(nativeSession().run({ readEvidence: undefined }), /readEvidence is required/u)
+    await assert.rejects(
+      nativeSession().run({ readEvidence: undefined }),
+      /readEvidence is required/u,
+    )
   })
   it('uses one session budget instead of adding startup waits for every control', async () => {
     await assert.rejects(nativeSession({ noPatch: true }).run({ timeoutMs: 500 }), /deadline/u)
   })
   it('rejects an unknown report schema before sending any mutation gesture', async () => {
     const session = nativeSession()
-    await assert.rejects(session.run({ readEvidence: async () => ({ schemaVersion: 2 }) }), /unsupported notification app report/u)
-    assert.equal(session.calls.some(call => call.url.endsWith('/click')), false)
+    await assert.rejects(
+      session.run({ readEvidence: async () => ({ schemaVersion: 2 }) }),
+      /unsupported notification app report/u,
+    )
+    assert.equal(
+      session.calls.some(call => call.url.endsWith('/click')),
+      false,
+    )
   })
 })

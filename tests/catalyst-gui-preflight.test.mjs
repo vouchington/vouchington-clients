@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { notificationLocalizationFile } from '../scripts/catalyst-notification-app-evidence.mjs'
 import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
@@ -75,9 +76,9 @@ describe('Mac Catalyst GUI preflight', () => {
     )
     assert.match(
       job,
-      /Upload partial Catalyst notification evidence\n\s+if: \$\{\{ success\(\) \}\}/u,
+      /Upload Catalyst control and dispatch evidence\n\s+if: \$\{\{ success\(\) \}\}/u,
     )
-    assert.match(job, /result\.json\n\s+retention-days: 7\n\s+if-no-files-found: error/u)
+    assert.match(job, /result\.json\.app\.json\n\s+retention-days: 7\n\s+if-no-files-found: error/u)
     assert.equal(
       job.match(/jq -e '\.total == 3 and \.passed == 3 and \.failed == 0 and \.skipped == 0'/gu)
         ?.length,
@@ -88,10 +89,11 @@ describe('Mac Catalyst GUI preflight', () => {
       job,
       /CATALYST_GUI_RESULT="\$diagnostics\/root-result\.json"\n\s+node dotnet-clients\/tooling\/catalyst-gui-preflight\.mjs --root-session\n\s+jq[^\n]+\n\s+export CATALYST_GUI_RESULT="\$diagnostics\/result\.json"\n\s+export CATALYST_NATIVE_REVISION="\$\{\{ needs\.verify\.outputs\.revision-sha \}\}"\n\s+node dotnet-clients\/tooling\/catalyst-gui-preflight\.mjs --session/u,
     )
+
     assert.match(needs, /^      - dotnet-catalyst-gui$/mu)
     assert.match(maui, /timeout-minutes: 30/u)
     assert.match(maui, /--configuration Release --framework net10\.0-maccatalyst/u)
-    assert.doesNotMatch(maui, /appium|catalyst-gui-preflight|--configuration Debug/u)
+    assert.doesNotMatch(maui, /appium|catalyst-gui-preflight/u)
     assert.match(preflightSource, /^#if DEBUG\n/u)
     assert.match(preflightSource, /swift\.my\.identity\.default/u)
     assert.match(preflightSource, /native\.my\.email-preferences\.default/u)
@@ -118,9 +120,10 @@ describe('Mac Catalyst GUI preflight', () => {
       /if \(rootShell\) await assertRootShellControls\(request, sessionId\)\n\s+else checks = await assertNotificationControls\(request, sessionId\)/u,
     )
     assert.match(preflightSource, /CatalystGuiLaunchOptions/u)
-    assert.match(notificationScript, /notification-engagement/u)
-    assert.match(notificationScript, /notification-moderation/u)
-    assert.match(notificationScript, /notification-news-digest/u)
+    assert.match(notificationScript, /toggle\('engagement'\)/u)
+    assert.match(notificationScript, /toggle\('moderation'\)/u)
+    assert.match(notificationScript, /select\('news'/u)
+
     assert.equal(job.match(/timeout-minutes:/gu)?.length, 8)
     assert.match(job, /timeout-minutes: 6\n/u)
     assert.match(job, /timeout-minutes: 3\n/u)
@@ -161,6 +164,9 @@ describe('Mac Catalyst GUI preflight', () => {
     execFileSync(process.execPath, [script, '--check-fixture'], {
       env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
     })
+    const resource = join(root, notificationLocalizationFile)
+    mkdirSync(join(resource, '..'), { recursive: true })
+    writeFileSync(resource, '<root/>')
     const staged = join(root, 'staged')
     execFileSync(process.execPath, [script, '--stage-fixture', staged], {
       env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
@@ -175,6 +181,7 @@ describe('Mac Catalyst GUI preflight', () => {
       ),
       true,
     )
+    assert.equal(readFileSync(join(staged, notificationLocalizationFile), 'utf8'), '<root/>')
     writeFileSync(
       join(fixtureRoot, 'manifest.json'),
       JSON.stringify({ fixtures: [identityFixture] }),

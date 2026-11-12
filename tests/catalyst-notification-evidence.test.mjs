@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
-import { assertNotificationControls } from '../dotnet-clients/tooling/catalyst-gui-notification-session.mjs'
+import { appReport, writeInputs } from './catalyst-notification-app-fixture.mjs'
 import {
   notificationChecks,
   notificationEvidence,
@@ -17,83 +17,18 @@ const producer = 'b'.repeat(40)
 const records = () => notificationChecks.map(name => ({ name, status: 'passed' }))
 const evidence = () => notificationEvidence(records(), revision, producer)
 
-function mockRequest({ moderation = true, engagement = false, failNews = false } = {}) {
-  let clicked = false
-  const operations = []
-  const request = async (method, path, body) => {
-    operations.push({ method, path, body })
-    if (body?.using === 'accessibility id') return { value: { ELEMENT: body.value } }
-    if (path.endsWith('/click')) {
-      clicked = true
-      return {}
-    }
-    if (failNews && path.includes('notification-news-digest'))
-      throw new Error('news request failed')
-    if (path.endsWith('/attribute/enabled')) return { value: true }
-    if (path.includes('notification-moderation')) return { value: moderation }
-    if (path.includes('notification-engagement'))
-      return { value: clicked ? !engagement : engagement }
-    throw new Error(`unexpected request ${method} ${path}`)
-  }
-  return { request, operations }
-}
-
-describe('current partial Catalyst notification assertions', () => {
-  for (const engagement of [true, false]) {
-    it(`records successful assertions after toggling engagement from ${engagement}`, async () => {
-      const { request, operations } = mockRequest({ engagement })
-      const checks = await assertNotificationControls(request, 'session')
-      assert.deepEqual(checks, records())
-      assert.equal(operations.filter(item => item.path.endsWith('/click')).length, 1)
-      assert.equal(
-        operations.filter(
-          item =>
-            item.path.endsWith('/attribute/value') && item.path.includes('notification-engagement'),
-        ).length,
-        3,
-      )
-      validateNotificationEvidence(
-        notificationEvidence(checks, revision, producer),
-        revision,
-        producer,
-      )
-    })
-  }
-
-  it('does not return records or continue after failed moderation', async () => {
-    const { request, operations } = mockRequest({ moderation: false })
-    let checks
-    await assert.rejects(async () => {
-      checks = await assertNotificationControls(request, 'session')
-    }, /expected on/u)
-    assert.equal(checks, undefined)
-    assert.equal(
-      operations.some(item => item.body?.value === 'notification-engagement'),
-      false,
-    )
-  })
-
-  it('does not return completion records when the final request fails', async () => {
-    let checks
-    await assert.rejects(async () => {
-      checks = await assertNotificationControls(mockRequest({ failNews: true }).request, 'session')
-    }, /news request failed/u)
-    assert.equal(checks, undefined)
-  })
-})
-
-describe('Catalyst partial evidence validation', () => {
+describe('Catalyst control and dispatch evidence validation', () => {
   it('derives aggregate counts from the named successful records', () => {
     assert.deepEqual(evidence(), {
-      schemaVersion: 1,
+      schemaVersion: 2,
       platform: 'Mac Catalyst',
       runtime: 'Debug Mac2',
-      scope: 'issue-91-partial-notification-controls',
+      scope: 'issue-60-controls-and-accessibility-dispatch',
       nativeRevision: revision,
       producerCommit: producer,
       checks: records(),
-      total: 4,
-      passed: 4,
+      total: 10,
+      passed: 10,
       failed: 0,
       skipped: 0,
     })
@@ -150,7 +85,7 @@ describe('Catalyst partial evidence validation', () => {
       value.skipped = 1
     },
     'wrong schema': value => {
-      value.schemaVersion = 2
+      value.schemaVersion = 1
     },
   }
   for (const [name, mutate] of Object.entries(cases)) {
@@ -177,7 +112,14 @@ describe('Catalyst evidence command line', () => {
     const { commit } = JSON.parse(
       readFileSync(new URL('../contracts/vouchington.json', import.meta.url), 'utf8'),
     )
-    const run = () => execFileSync(process.execPath, [script, result, revision], { stdio: 'pipe' })
+    const root = result + '-contract'
+    writeInputs(root)
+    writeFileSync(`${result}.app.json`, JSON.stringify(appReport()))
+    const run = () =>
+      execFileSync(process.execPath, [script, result, revision], {
+        stdio: 'pipe',
+        env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
+      })
     writeFileSync(result, JSON.stringify(notificationEvidence(records(), revision, commit)))
     run()
     writeFileSync(result, JSON.stringify(notificationEvidence(records(), 'c'.repeat(40), commit)))
@@ -191,6 +133,7 @@ describe('Catalyst evidence command line', () => {
   it('removes a previous success result before a failed session run', () => {
     const result = join(mkdtempSync(join(tmpdir(), 'catalyst-failed-')), 'result.json')
     writeFileSync(result, JSON.stringify(evidence()))
+    writeFileSync(`${result}.app.json`, JSON.stringify(appReport()))
     const script = fileURLToPath(
       new URL('../dotnet-clients/tooling/catalyst-gui-preflight.mjs', import.meta.url),
     )
@@ -206,5 +149,6 @@ describe('Catalyst evidence command line', () => {
       }),
     )
     assert.equal(existsSync(result), false)
+    assert.equal(existsSync(`${result}.app.json`), false)
   })
 })
