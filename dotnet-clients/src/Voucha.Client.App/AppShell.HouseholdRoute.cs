@@ -10,6 +10,9 @@ public sealed partial class AppShell
   {
     if (resolution.DestinationId != NativeRouteDestinationId.Household) return null;
     return MainThread.InvokeOnMainThreadAsync(() =>
-        Navigation.PushAsync(serviceProvider.GetRequiredService<HouseholdPage>()));
+    {
+      var page = HouseholdRoutePageFactory.Create(serviceProvider, resolution);
+      return page is null ? Task.CompletedTask : Navigation.PushAsync(page);
+    });
   }
 }

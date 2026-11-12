@@ -16,7 +16,7 @@ public sealed class HouseholdRouteSourceTests
     var genericIndex = appLinks.IndexOf("OpenIntentAsync(intentId, match: resolution.Match)", StringComparison.Ordinal);
     Assert.True(directIndex >= 0 && directIndex < genericIndex);
     Assert.Contains("NativeRouteDestinationId.Household", directRoute, StringComparison.Ordinal);
-    Assert.Contains("GetRequiredService<HouseholdPage>()", directRoute, StringComparison.Ordinal);
+    Assert.Contains("HouseholdRoutePageFactory.Create(serviceProvider, resolution)", directRoute, StringComparison.Ordinal);
   }
 
   [Fact]

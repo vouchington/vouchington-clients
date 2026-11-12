@@ -17,5 +17,8 @@ public static partial class MauiProgram
         sp.GetRequiredService<IUiLocalization>(),
         sp.GetRequiredService<IUiLocaleController>()));
     services.AddTransient<HouseholdPage>();
+    services.AddSingleton<IHouseholdInvitationService, ApiHouseholdInvitationService>();
+    services.AddTransient<HouseholdInvitationsViewModel>();
+    services.AddTransient<HouseholdInvitationsPage>();
   }
 }

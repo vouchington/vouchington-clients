@@ -133,6 +133,20 @@ public sealed class HouseholdInvitationApiTests
     Assert.Equal((HttpStatusCode)status, error.StatusCode);
   }
 
+  [Theory]
+  [InlineData("HOUSEHOLD_LIMIT_REACHED")]
+  [InlineData("HOUSEHOLD_MEMBER_LIMIT_REACHED")]
+  [InlineData("INDIVIDUAL_HOUSEHOLD_LIMIT_REACHED")]
+  public async Task AcceptancePreservesProducerConflictCode(string code)
+  {
+    using var handler = new InvitationHandler("accept", HttpStatusCode.Conflict, "{\"code\":\"" + code + "\"}");
+    using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
+    var service = new ApiHouseholdInvitationService(new VouchaApiClient(http));
+    var error = await Assert.ThrowsAsync<VouchaApiException>(() => service.AcceptAsync("invite", TestContext.Current.CancellationToken));
+    Assert.Equal(HttpStatusCode.Conflict, error.StatusCode);
+    Assert.Equal(code, error.ErrorCode);
+  }
+
   [Fact]
   public void ListsOmitUnspecifiedPaginationAndServiceRejectsMissingClient()
   {
@@ -195,7 +209,7 @@ public sealed class HouseholdInvitationApiTests
         "created_at":"2026-07-02T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}
       """;
 
-  private sealed class InvitationHandler(string action, HttpStatusCode status) : HttpMessageHandler
+  private sealed class InvitationHandler(string action, HttpStatusCode status, string errorBody = "{}") : HttpMessageHandler
   {
     public HttpMethod? Method { get; private set; }
     public string? Path { get; private set; }
@@ -210,7 +224,7 @@ public sealed class HouseholdInvitationApiTests
       return new HttpResponseMessage(status)
       {
         Content = status == HttpStatusCode.NoContent ? null : new StringContent(
-            (int)status >= 400 ? "{}" : Fixture(action), Encoding.UTF8, "application/json"),
+            (int)status >= 400 ? errorBody : Fixture(action), Encoding.UTF8, "application/json"),
       };
     }
   }

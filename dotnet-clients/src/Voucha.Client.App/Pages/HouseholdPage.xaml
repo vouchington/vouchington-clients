@@ -15,6 +15,7 @@
         <VerticalStackLayout x:Name="HouseholdContent" Padding="20" Spacing="16" SizeChanged="OnHouseholdViewportChanged">
             <Label Text="{DynamicResource native.swift.householdsBookmarks.household}" Style="{StaticResource Headline}" />
             <Label Text="{DynamicResource native.swift.householdsBookmarks.householdDescription}" Style="{StaticResource Metadata}" />
+            <Button Text="{DynamicResource settings.householdInvitations.receivedTitle}" Clicked="OnReceivedInvitationsClicked" />
             <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}" />
             <VerticalStackLayout IsVisible="{Binding HasError}" Spacing="8">
                 <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" />
@@ -26,6 +27,7 @@
                         <Border Padding="14" Stroke="#D8DEE9" StrokeThickness="1">
                             <VerticalStackLayout Spacing="8">
                                 <HorizontalStackLayout Spacing="8">
+                                    <Button Text="{DynamicResource settings.householdInvitations.sentTitle}" IsVisible="{Binding IsOwned}" Clicked="OnSentInvitationsClicked" CommandParameter="{Binding Id}" />
                                     <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Headline}" />
                                     <Label Text="{DynamicResource native.swift.householdsBookmarks.readOnly}" IsVisible="{Binding IsReadOnly}" Style="{StaticResource Metadata}" />
                                 </HorizontalStackLayout>

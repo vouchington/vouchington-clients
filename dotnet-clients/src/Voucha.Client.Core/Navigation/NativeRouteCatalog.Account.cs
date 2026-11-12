@@ -21,7 +21,7 @@ public static partial class NativeRouteCatalog
         "/my/rewards-program-statuses", ["/my/rewards-program-statuses"]),
     Included("Profile settings", NativeRouteDestinationId.ProfileSettings,
         "/my/profile", ["/my/profile"]),
-    Included("Household", NativeRouteDestinationId.Household, "/my/household", ["/my/household"]),
+    Included("Household", NativeRouteDestinationId.Household, "/my/household", ["/my/household", "/my/household-invitations"]),
     Included(
         "Advanced settings",
         NativeRouteDestinationId.AdvancedSettings,

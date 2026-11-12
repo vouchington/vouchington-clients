@@ -4,8 +4,6 @@ import VouchaAPI
 import VouchaCore
 import VouchaModels
 
-// MARK: - Response model
-
 private struct NotificationsPage: Decodable {
     struct ResultItem: Decodable {
         let id: String
@@ -147,6 +145,8 @@ public final class NotificationsListViewModel {
             } else {
                 "/my/notifications"
             }
+        } else if notification.targetEntity?.entityType == "household" {
+            "/my/household"
         } else if notification.targetIntent == .notificationsInbox {
             "/my/notifications"
         } else {
