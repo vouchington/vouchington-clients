@@ -26,7 +26,10 @@ const corruptions = {
     report.completeParity = true
   },
   'wrong schema': report => {
-    report.schemaVersion = 2
+    report.schemaVersion = 1
+  },
+  'inactive final notification route': report => {
+    report.notificationRouteActive = false
   },
   'noncanonical initial fixture': report => {
     report.initialPreferences = {}

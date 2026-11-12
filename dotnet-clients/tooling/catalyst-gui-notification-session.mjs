@@ -16,28 +16,48 @@ export async function assertNotificationControls(request, sessionId, options = {
   const now = options.now ?? Date.now
   const sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
   const deadline = now() + (options.timeoutMs ?? 140_000)
+  let phase = 'readiness'
+  let phaseDeadline = Math.min(deadline, now() + 75_000)
+  let operationDeadline = deadline
   const assertDeadline = () => {
     if (now() >= deadline) throw new Error('notification session exceeded its shared deadline')
+    if (now() >= phaseDeadline) throw new Error(`notification ${phase} phase exceeded its deadline`)
+  }
+  const beginPhase = (name, budget) => {
+    phase = name
+    phaseDeadline = Math.min(deadline, now() + budget)
+    assertDeadline()
   }
   const checks = []
   const passed = name => checks.push({ name, status: 'passed' })
   const command = async (method, path, body) => {
     assertDeadline()
+    const remaining = Math.min(deadline, phaseDeadline, operationDeadline) - now()
+    if (remaining <= 0) throw new Error(`notification ${phase} request deadline expired`)
     const response = await request(method, `/session/${sessionId}${path}`, body, {
-      signal: AbortSignal.timeout(Math.max(1, Math.ceil(deadline - now()))),
+      signal: AbortSignal.timeout(Math.max(1, Math.ceil(remaining))),
     })
     assertDeadline()
     if (response?.value?.error) throw new Error(`Mac2 ${response.value.error}: ${response.value.message ?? path}`)
     return response?.value
   }
   const poll = async (description, read, accept, budget = 10_000) => {
-    const end = Math.min(deadline, now() + budget)
-    while (now() < end) {
-      const result = await read()
-      if (accept(result)) return result
-      await sleep(Math.min(250, end - now()))
+    const end = Math.min(deadline, phaseDeadline, operationDeadline, now() + budget)
+    const previous = operationDeadline
+    operationDeadline = end
+    try {
+      while (now() < end) {
+        const result = await read()
+        if (now() >= end) break
+        if (accept(result)) return result
+        const remaining = Math.max(0, end - now())
+        if (remaining === 0) break
+        await sleep(Math.min(250, remaining))
+      }
+      throw new Error(`${description} did not settle before the deadline`)
+    } finally {
+      operationDeadline = previous
     }
-    throw new Error(`${description} did not settle before the deadline`)
   }
   const find = async (id, budget = 10_000) => poll(id, async () => {
     try {
@@ -68,7 +88,7 @@ export async function assertNotificationControls(request, sessionId, options = {
     assertDeadline()
     const value = await options.readEvidence()
     assertDeadline()
-    assert.equal(value?.schemaVersion, 1, 'unsupported notification app report')
+    assert.equal(value?.schemaVersion, 2, 'unsupported notification app report')
     assert.ok(value.initialPreferences && Array.isArray(value.patches), 'missing notification app report data')
     return value
   }
@@ -127,10 +147,12 @@ export async function assertNotificationControls(request, sessionId, options = {
   }
   const initial = await poll('initial notification accessibility dispatch', report, value => value.accessibilityDispatches?.some(item => item.kind === 'announcement'))
   assertDispatches(initial)
+  assert.equal(initial.notificationRouteActive, true, 'initial notification route must be active')
   assert.ok(typeof initial.initialPreferences.moderation_email_timezone === 'string' && initial.initialPreferences.moderation_email_timezone.length > 0, 'canonical fixture must provide a saved timezone')
   assert.equal(initial.patches.length, 0, 'notification load must not mutate saved preferences')
   state = initial.initialPreferences
   patchCount = 0
+  beginPhase('mutations', 45_000)
   await toggle('engagement')
   passed('engagement-mutation-persisted')
   if (!state.is_moderation_emails_enabled) await toggle('moderation')
@@ -140,16 +162,17 @@ export async function assertNotificationControls(request, sessionId, options = {
   await toggle('moderation')
   await schedule(true)
   passed('moderation-visibility-and-hidden-preservation')
+  beginPhase('departure', 10_000)
   await execute('deepLink', { url: 'voucha://my/preferences', ...(options.bundleId ? { bundleId: options.bundleId } : {}) })
-  await poll('departure from notification settings', async () => {
-    const values = await command('POST', '/elements', { using: 'accessibility id', value: headingId })
-    assert.ok(Array.isArray(values), 'Mac2 heading query must return an array')
-    return Promise.all(values.map(value => visible(value['element-6066-11e4-a52e-4f735466cecf'] ?? value.ELEMENT)))
-  }, values => values.every(value => !truth(value)))
+  // Settings routes share a native page: Mac2 displayed reports existence,
+  // not whether the notification section is logically active. Read the app's
+  // applied-route audit instead of repeatedly snapshotting a retained heading.
+  await poll('departure from notification settings', report, value => value.notificationRouteActive === false)
+  beginPhase('return', 10_000)
   await execute('deepLink', { url: 'voucha://my/notification-settings', ...(options.bundleId ? { bundleId: options.bundleId } : {}) })
   const activated = await poll('canonical notification route activation', report, value => {
     const latest = value.activations?.at(-1)
-    return value.activations.length > initial.activations.length && value.accessibilityDispatches?.some(item => item.activationId === latest.activationId && item.kind === 'announcement')
+    return value.notificationRouteActive === true && value.activations.length > initial.activations.length && value.accessibilityDispatches?.some(item => item.activationId === latest.activationId && item.kind === 'announcement')
   })
   assert.equal(truth(await visible(await find(headingId))), true, 'notification heading was not visible after return')
   assert.equal(activated.activations.length, initial.activations.length + 1, 'deep link must activate the canonical route exactly once')

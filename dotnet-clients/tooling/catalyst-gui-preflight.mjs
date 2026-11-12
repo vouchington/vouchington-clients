@@ -227,7 +227,7 @@ async function session(rootShell = false) {
         validateNotificationAppEvidence(JSON.parse(readFileSync(appEvidencePath, 'utf8')), inputs)
       }
     } catch (error) {
-      await writePageSource(request, sessionId)
+      if (rootShell) await writePageSource(request, sessionId)
       throw error
     }
     const result = rootShell

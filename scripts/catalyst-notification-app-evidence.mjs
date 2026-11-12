@@ -61,10 +61,18 @@ export function notificationInputs(root) {
 export function validateNotificationAppEvidence(report, { preferences, announcement }) {
   keys(
     report,
-    ['schemaVersion', 'initialPreferences', 'patches', 'activations', 'accessibilityDispatches'],
+    [
+      'schemaVersion',
+      'notificationRouteActive',
+      'initialPreferences',
+      'patches',
+      'activations',
+      'accessibilityDispatches',
+    ],
     'app evidence',
   )
-  assert.equal(report.schemaVersion, 1, 'unsupported app evidence schema')
+  assert.equal(report.schemaVersion, 2, 'unsupported app evidence schema')
+  assert.equal(report.notificationRouteActive, true, 'final notification route must be active')
   assert.deepEqual(
     report.initialPreferences,
     preferences,

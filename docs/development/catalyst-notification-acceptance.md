@@ -9,8 +9,7 @@ the six preferences not edited by the hosted session must remain unchanged, incl
 The session starts with the pinned identity and preference fixtures and never sends a fixture-only
 mutation command.
 
-The session leaves notification settings through the preferences deep link, waits for the heading
-to disappear, then reopens `/my/notification-settings` in the same application. Each activation must
+The session leaves notification settings through the preferences deep link, waits for the app audit to confirm that the non-notification route was applied, then reopens `/my/notification-settings` in the same application. Each activation must
 dispatch successful heading focus followed by exactly one announcement matching the generated
 localization key `native.dotnet.settings.notificationSettingsOpened`. Repeated route applications
 within one route epoch do not activate it again; stale loads cannot activate a departed route.
@@ -57,3 +56,23 @@ For local validation, run `pnpm run contracts:pull`, export its printed `VOUCHA_
 Release when validating the fixture audit. Native acceptance uses the pinned Xcode toolchain;
 retain page-source diagnostics for failed manual interactions. The app report proves semantic focus
 and announcement dispatch, not assistive-technology delivery.
+
+## Phase and departure budgets
+
+Run [43185497327](https://github.com/vouchington/vouchington-clients/actions/runs/43185497327)
+finished switch work in about 21 seconds, then exhausted the ten-second departure poll while Mac2
+continued reporting the retained shared-Settings heading as present. This was not exhaustion of
+the 140-second session budget: native state queries typically took 0.33–0.77 seconds.
+
+The app audit uses schema 2 with `notificationRouteActive`. Actual non-notification route
+application records `false`; a subsequent canonical activation records `true`. Departure polls
+that file instead of taking repeated native snapshots. Return still requires a new canonical
+activation, its focus/announcement dispatches, and an exposed heading. Notification failures
+retain the audit report without requesting another page-source snapshot; the independent root
+shell session keeps its own diagnostics.
+
+Readiness, mutation/visibility work, departure, and return have caps of 75, 45, 10, and 10 seconds
+respectively, all bounded by the existing shared 140-second deadline. Each request uses the smallest
+remaining phase, poll, and session budget. A read that exhausts its poll budget fails before another
+sleep; nonpositive remaining time is never passed to a timer. The final observation and evidence
+read must also complete within the return and shared budgets.

@@ -140,7 +140,7 @@ childProcess.spawn = (command, args) => {
   return { kill: signal => record({ signal }) }
 }
 syncBuiltinESMExports()
-const notification = nativeSession({}, inputs)
+const notification = nativeSession({ wrongField: process.env.CATALYST_TEST_FAIL_NOTIFICATION === 'true' }, inputs)
 let rootShell = false
 globalThis.fetch = async (url, options) => {
   const path = new URL(url).pathname
@@ -174,7 +174,7 @@ globalThis.fetch = async (url, options) => {
   }
 }
 
-function runSession(fixture, mode, hidden, revision = nativeRevision) {
+function runSession(fixture, mode, hidden, revision = nativeRevision, failNotification = false) {
   const script = fileURLToPath(
     new URL('../dotnet-clients/tooling/catalyst-gui-preflight.mjs', import.meta.url),
   )
@@ -186,6 +186,7 @@ function runSession(fixture, mode, hidden, revision = nativeRevision) {
       CATALYST_APPIUM_PREFIX: join(fixture.root, 'appium'),
       CATALYST_GUI_RESULT: fixture.result,
       CATALYST_TEST_LOG: fixture.log,
+      CATALYST_TEST_FAIL_NOTIFICATION: String(failNotification),
       CATALYST_NATIVE_REVISION: mode === '--root-session' ? '' : revision,
       ...(hidden ? { CATALYST_TEST_HIDDEN: hidden } : {}),
     },
@@ -275,6 +276,30 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
     try {
       assert.throws(() => runSession(fixture, '--unsupported-mode'), /or --root-session/u)
       assert.equal(existsSync(fixture.result), false)
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps notification audit diagnostics without taking a failure page-source snapshot', () => {
+    const fixture = stagedSession()
+    try {
+      assert.throws(
+        () => runSession(fixture, '--session', undefined, nativeRevision, true),
+        /exactly its API field/u,
+      )
+      assert.equal(existsSync(fixture.result), false)
+      assert.equal(existsSync(`${fixture.result}.app.json`), true)
+      assert.equal(existsSync(join(fixture.root, 'source.xml')), false)
+      const requests = readFileSync(fixture.log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.equal(
+        requests.some(request => request.path?.endsWith('/source')),
+        false,
+      )
+      assert.ok(requests.some(request => request.method === 'DELETE'))
     } finally {
       rmSync(fixture.root, { recursive: true, force: true })
     }

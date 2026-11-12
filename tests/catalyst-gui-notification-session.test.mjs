@@ -95,7 +95,7 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
   it('rejects an unknown report schema before sending any mutation gesture', async () => {
     const session = nativeSession()
     await assert.rejects(
-      session.run({ readEvidence: async () => ({ schemaVersion: 2 }) }),
+      session.run({ readEvidence: async () => ({ schemaVersion: 1 }) }),
       /unsupported notification app report/u,
     )
     assert.equal(
@@ -166,5 +166,76 @@ for (const phase of ['observation', 'final report']) {
       /shared deadline/u,
     )
     assert.equal(observing, true)
+  })
+}
+
+it('uses the applied-route audit when the shared Settings page retains its heading', async () => {
+  const session = nativeSession({ retainedHeading: true })
+  await session.run()
+  const departure = session.calls.findIndex(
+    call => call.body?.args?.[0]?.url === 'voucha://my/preferences',
+  )
+  const returning = session.calls.findIndex(
+    call => call.body?.args?.[0]?.url === 'voucha://my/notification-settings',
+  )
+  assert.ok(departure >= 0 && returning > departure)
+  assert.equal(
+    session.calls.slice(departure + 1, returning).length,
+    0,
+    'departure uses file audit only, without native snapshots',
+  )
+})
+
+it('never schedules a negative delay after an evidence read crosses its poll deadline', async () => {
+  const session = nativeSession({ noPatch: true })
+  let clock = 0
+  let reads = 0
+  const delays = []
+  await assert.rejects(
+    session.run({
+      now: () => clock,
+      readEvidence: async () => {
+        if (++reads === 3) clock = 10_045
+        return structuredClone(session.evidence)
+      },
+      sleep: async ms => {
+        delays.push(ms)
+        clock += ms
+      },
+    }),
+    /engagement persisted PATCH did not settle/u,
+  )
+  assert.deepEqual(delays, [])
+})
+
+for (const [phase, matches, duration] of [
+  ['readiness', call => call.url.endsWith('/element'), 75_001],
+  ['mutations', call => call.url.endsWith('/notification-engagement/click'), 45_001],
+  ['departure', call => call.body?.args?.[0]?.url === 'voucha://my/preferences', 10_001],
+  ['return', call => call.body?.args?.[0]?.url === 'voucha://my/notification-settings', 10_001],
+]) {
+  it(`enforces the ${phase} budget before the shared deadline`, async () => {
+    const session = nativeSession()
+    let clock = 0
+    await assert.rejects(
+      assertNotificationControls(
+        async (...args) => {
+          const response = await session.request(...args)
+          if (matches(session.calls.at(-1))) clock = duration
+          return response
+        },
+        'native',
+        {
+          now: () => clock,
+          sleep: async ms => {
+            assert.ok(ms > 0)
+            clock += ms
+          },
+          readEvidence: async () => structuredClone(session.evidence),
+          expectedAnnouncement: 'Notification settings opened',
+        },
+      ),
+      new RegExp(`${phase} phase exceeded its deadline`, 'u'),
+    )
   })
 }

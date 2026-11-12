@@ -18,7 +18,8 @@ export const inputs = {
 
 export function appReport() {
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    notificationRouteActive: true,
     initialPreferences: structuredClone(inputs.preferences),
     patches: [],
     activations: [],

@@ -15,7 +15,8 @@ export function nativeSession(fault = {}, fixture = {}) {
   const announcement = fixture.announcement ?? 'Notification settings opened'
   let state = structuredClone(initialPreferences)
   const evidence = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    notificationRouteActive: true,
     initialPreferences,
     patches: [],
     activations: [{ activationId: 1, canonicalPath: '/my/notification-settings' }],
@@ -113,14 +114,16 @@ export function nativeSession(fault = {}, fixture = {}) {
       const args = body.args[0]
       if (args.url === 'voucha://my/preferences') {
         if (!fault.noDeparture) {
-          notificationRouteVisible = false
+          notificationRouteVisible = Boolean(fault.retainedHeading)
           departed = true
+          evidence.notificationRouteActive = false
         }
         return { value: null }
       }
       assert.equal(args.url, 'voucha://my/notification-settings')
       assert.equal(departed, true, 'same focused route cannot create another activation')
       notificationRouteVisible = true
+      evidence.notificationRouteActive = true
       evidence.activations.push({ activationId: 2, canonicalPath: '/my/notification-settings' })
       evidence.accessibilityDispatches.push(
         {
