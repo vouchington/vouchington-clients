@@ -2,6 +2,7 @@ import Foundation
 
 extension NativeRouteSurfaceViewModel {
     var showsPostTimeRangePicker: Bool {
+        if topicPostCollection != nil { return true }
         if destination == .postsBrowse || destination == .storiesBrowse { return true }
         guard destination == .userProfile,
               let routeMatch,

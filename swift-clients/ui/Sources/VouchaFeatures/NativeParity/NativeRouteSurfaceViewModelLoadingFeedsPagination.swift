@@ -4,13 +4,14 @@ import VouchaLocalization
 
 extension NativeRouteSurfaceViewModel {
     func loadPostPage(client: APIClient, after: String?) async throws -> NativeForwardPage {
-        let postTypes = postTypesFilter(for: destination ?? .feedPosts)
+        let postTypes = topicPostType ?? postTypesFilter(for: destination ?? .feedPosts)
         let endpoint: Endpoint
-        if destination == .postsBrowse || destination == .storiesBrowse {
+        if destination == .postsBrowse || destination == .storiesBrowse || topicPostCollection != nil {
             var query = [
                 URLQueryItem(name: "limit", value: "10"),
-                URLQueryItem(name: "sort", value: "hot")
+                URLQueryItem(name: "sort", value: topicPostSort)
             ]
+            try await query.append(contentsOf: topicPostQueryItems(client: client))
             if let range = postTimeRangeQueryValue {
                 query.append(.init(name: "time_range", value: range))
             }
