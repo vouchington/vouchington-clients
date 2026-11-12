@@ -16,7 +16,7 @@ public partial class TopicManagementPage
         sessionStore is null ? null : () => sessionStore.Current.Identity?.Id);
     mergeViewModel.SetAccount(sessionStore?.Current.Identity?.Id);
     MergeCompletedLabel.BindingContext = mergeViewModel;
-    mergeViewModel.PropertyChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RenderMerge);
+    mergeViewModel.PropertyChanged += (_, _) => Dispatcher.Dispatch(RenderMerge);
   }
 
   private void OnMergeSessionChanged(object? sender, SessionChangedEventArgs args) =>
