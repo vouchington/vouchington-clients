@@ -11,7 +11,7 @@ public sealed partial class SessionRecoveryTests
   [InlineData("failed")]
   [InlineData("mfa")]
   [InlineData("pending")]
-  public async Task AuthenticationWithoutReplacementWaitsForAndRetainsPendingRenewal(string outcome)
+  public async Task AuthenticationWithoutReplacementRetainsPendingRenewalWithoutWaiting(string outcome)
   {
     using var fixture = new RecoveryFixture();
     await fixture.SeedAsync();
@@ -27,7 +27,7 @@ public sealed partial class SessionRecoveryTests
     fixture.Terminal.Other = request =>
     {
       Interlocked.Increment(ref authRequests);
-      Assert.Contains("st=new-st", request.Headers.GetValues("Cookie").Single());
+      Assert.Contains("st=old-st", request.Headers.GetValues("Cookie").Single());
       return Task.FromResult(UnchangedAuthentication(outcome));
     };
     var refresh = ((ISessionStore)fixture.Store).RefreshAsync(TestContext.Current.CancellationToken);
@@ -36,8 +36,9 @@ public sealed partial class SessionRecoveryTests
     {
       await renewing.Task.WaitAsync(TestContext.Current.CancellationToken);
       authentication = fixture.Client.SendAsync(AuthenticationRequest(outcome), TestContext.Current.CancellationToken);
-      Assert.False(authentication.IsCompleted);
-      Assert.Equal(0, authRequests);
+      Assert.Equal(1, authRequests);
+      if (outcome == "failed") await Assert.ThrowsAsync<VouchaApiException>(() => authentication);
+      else await authentication;
     }
     finally { releaseRenewal.TrySetResult(); }
     await refresh;
@@ -107,7 +108,7 @@ public sealed partial class SessionRecoveryTests
   [Theory]
   [InlineData(false)]
   [InlineData(true)]
-  public async Task NewerPendingAuthenticationFencesOlderSuccessWhenBothWaitedForRenewal(bool newerFirst)
+  public async Task NewerPendingAuthenticationFencesOlderSuccessWhileRenewalIsPending(bool newerFirst)
   {
     using var fixture = new RecoveryFixture();
     await fixture.SeedAsync();

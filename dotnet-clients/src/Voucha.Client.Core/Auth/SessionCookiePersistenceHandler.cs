@@ -31,7 +31,9 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
     var uri = request.RequestUri ?? throw new InvalidOperationException("Request URI is unavailable.");
     var sessionRequest = request.Method == HttpMethod.Patch && uri.AbsolutePath == "/api/v1/session" &&
         request.Options.TryGetValue(Voucha.Client.Core.Api.ClientMetadataHandler.CoordinatedRotation, out var coordinated) && coordinated;
-    var snapshot = await cookieJar.PrepareRequestAsync(uri, sessionRequest, cancellationToken).ConfigureAwait(false);
+    var authenticationIntent = request.Options.TryGetValue(
+        Voucha.Client.Core.Api.ClientMetadataHandler.AuthenticationDispatch, out var intent) ? intent : (long?)null;
+    var snapshot = await cookieJar.PrepareRequestAsync(uri, sessionRequest, cancellationToken, authenticationIntent).ConfigureAwait(false);
     var logout = uri.AbsolutePath == "/api/v1/auth/logout" && cookieJar.IsFirstParty(uri);
     var cookies = logout && request.Headers.TryGetValues("Cookie", out var captured)
         ? string.Join("; ", captured) : snapshot.Header;
@@ -50,11 +52,9 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
             request.Options.TryGetValue(Voucha.Client.Core.Api.ClientMetadataHandler.AuthenticationTransition, out var transition) &&
             transition && setCookieHeaders.Any(header =>
                 header.TrimStart().StartsWith("dt=", StringComparison.Ordinal) || header.TrimStart().StartsWith("st=", StringComparison.Ordinal));
-        var responseGeneration = request.Options.TryGetValue(
-            Voucha.Client.Core.Api.ClientMetadataHandler.AuthenticationDispatch, out var authenticationGeneration)
-            ? authenticationGeneration : snapshot.Generation;
         await cookieJar.ApplyResponseCookiesAsync(
-            request.RequestUri, setCookieHeaders, responseGeneration, snapshot.Revision, authenticationCommit, persistTimeout.Token).ConfigureAwait(false);
+            request.RequestUri, setCookieHeaders, snapshot.Generation, snapshot.Revision, authenticationCommit,
+            persistTimeout.Token, authenticationIntent).ConfigureAwait(false);
       }
       catch (TaskCanceledException)
       {

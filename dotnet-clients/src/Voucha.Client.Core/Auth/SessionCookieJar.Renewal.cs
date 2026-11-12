@@ -10,6 +10,8 @@ public sealed partial class SessionCookieJar
   // Authentication dispatch fences older responses without abandoning consumed renewal credentials.
   private long renewalEpoch;
   private long generation;
+  private readonly object authenticationLock = new();
+  private long authenticationIntent;
   private long credentialRevision;
 
   public bool CanRecoverAuthentication => authenticatedSession != false && HasDeviceCookie;
@@ -22,9 +24,30 @@ public sealed partial class SessionCookieJar
 
   public event EventHandler? SessionInvalidated;
 
-  internal long AdvanceGeneration() => Interlocked.Increment(ref generation);
+  private long AdvanceGeneration() => Interlocked.Increment(ref generation);
+
+  internal long BeginAuthentication()
+  {
+    lock (authenticationLock)
+    {
+      var intent = Interlocked.Increment(ref authenticationIntent);
+      AdvanceGeneration();
+      return intent;
+    }
+  }
+
+  private bool IsAuthenticationCurrent(long intent) => intent == Interlocked.Read(ref authenticationIntent);
 
   public long Invalidate()
+  {
+    lock (authenticationLock)
+    {
+      Interlocked.Increment(ref authenticationIntent);
+      return InvalidateRenewal();
+    }
+  }
+
+  private long InvalidateRenewal()
   {
     Interlocked.Increment(ref renewalEpoch);
     var epoch = AdvanceGeneration();
@@ -87,7 +110,7 @@ public sealed partial class SessionCookieJar
         }
         catch
         {
-          Invalidate();
+          InvalidateRenewal();
           await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
           throw;
         }
@@ -128,7 +151,7 @@ public sealed partial class SessionCookieJar
     try
     {
       if (epoch != RenewalEpoch || revision != CredentialRevision) return;
-      Invalidate();
+      InvalidateRenewal();
       await ClearUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
     }
     finally

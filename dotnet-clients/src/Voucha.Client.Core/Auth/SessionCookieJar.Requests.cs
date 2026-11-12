@@ -10,7 +10,7 @@ public sealed partial class SessionCookieJar
   }
 
   internal async Task<(long Generation, long Revision, string Header)> PrepareRequestAsync(
-      Uri uri, bool sessionRequest, CancellationToken cancellationToken)
+      Uri uri, bool sessionRequest, CancellationToken cancellationToken, long? authenticationIntent = null)
   {
     await RestoreAsync(cancellationToken).ConfigureAwait(false);
     while (true)
@@ -21,8 +21,13 @@ public sealed partial class SessionCookieJar
       {
         lock (renewalLock)
         {
-          pending = !sessionRequest && renewalTaskEpoch == RenewalEpoch && renewalTask is { IsCompleted: false } ? renewalTask : null;
-          if (pending is null) return (Generation, CredentialRevision, GetCookieHeader(uri));
+          pending = !sessionRequest && authenticationIntent is null && renewalTaskEpoch == RenewalEpoch && renewalTask is { IsCompleted: false } ? renewalTask : null;
+          if (pending is null)
+          {
+            if (authenticationIntent is { } intent && !IsAuthenticationCurrent(intent))
+              throw new OperationCanceledException("Authentication request was superseded.");
+            return (Generation, CredentialRevision, GetCookieHeader(uri));
+          }
         }
       }
       finally
@@ -35,20 +40,28 @@ public sealed partial class SessionCookieJar
 
   public async Task ApplyResponseCookiesAsync(
       Uri? requestUri, IEnumerable<string> headers, long epoch, long revision, bool authenticationCommit,
-      CancellationToken cancellationToken)
+      CancellationToken cancellationToken, long? authenticationIntent = null)
   {
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
-      if (epoch != Generation || !authenticationCommit && revision != CredentialRevision) return;
-      var before = (ReadCookie("dt"), ReadCookie("st"));
-      StoreSetCookieHeaders(requestUri, headers);
-      if (before != (ReadCookie("dt"), ReadCookie("st")))
+      lock (authenticationLock)
       {
-        Interlocked.Increment(ref credentialRevision);
-        authenticatedSession = null;
-        if (requestUri?.AbsolutePath.StartsWith("/api/v1/auth/", StringComparison.Ordinal) == true)
-          Invalidate();
+        if (authenticationIntent is { } intent && !IsAuthenticationCurrent(intent)) return;
+        if ((!authenticationCommit || authenticationIntent is null) && epoch != Generation) return;
+        if (!authenticationCommit && revision != CredentialRevision) return;
+        var before = (ReadCookie("dt"), ReadCookie("st"));
+        StoreSetCookieHeaders(requestUri, headers);
+        if (before != (ReadCookie("dt"), ReadCookie("st")))
+        {
+          Interlocked.Increment(ref credentialRevision);
+          authenticatedSession = null;
+          if (requestUri?.AbsolutePath.StartsWith("/api/v1/auth/", StringComparison.Ordinal) == true)
+          {
+            if (authenticationCommit && authenticationIntent is not null) InvalidateRenewal();
+            else Invalidate();
+          }
+        }
       }
       await PersistUnlockedAsync(cancellationToken).ConfigureAwait(false);
     }

@@ -33,7 +33,7 @@ public sealed partial class ClientMetadataHandler(
           request.Options.TryGetValue(CoordinatedSignOut, out var locallyCleared) && locallyCleared))
     {
       if (request.RequestUri.AbsolutePath == "/api/v1/auth/logout") cookieJar.Invalidate();
-      else request.Options.Set(AuthenticationDispatch, cookieJar.AdvanceGeneration());
+      else request.Options.Set(AuthenticationDispatch, cookieJar.BeginAuthentication());
     }
     ApplyMetadata(request);
     if (!IsSessionEndpoint(request.RequestUri) && request.RequestUri.AbsolutePath != "/api/v1/auth/logout")
@@ -44,7 +44,8 @@ public sealed partial class ClientMetadataHandler(
   private async Task EnsureSessionBootstrapAsync(HttpRequestMessage request, CancellationToken cancellationToken)
   {
     await cookieJar.RestoreAsync(cancellationToken).ConfigureAwait(false);
-    await cookieJar.WaitForRenewalAsync(cancellationToken).ConfigureAwait(false);
+    if (!request.Options.TryGetValue(AuthenticationDispatch, out _))
+      await cookieJar.WaitForRenewalAsync(cancellationToken).ConfigureAwait(false);
     if (cookieJar.HasDeviceCookie) return;
     var userAgent = ReadUserAgent(request);
     await cookieJar.RenewAsync((dt, st, renewalToken) => RotateAsync(dt, st, userAgent, renewalToken), bootstrap: true, cancellationToken).ConfigureAwait(false);
