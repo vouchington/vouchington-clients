@@ -59,7 +59,7 @@ public extension APIClient {
             ) {
                 try validate(response: response, data: errorData)
             }
-            try acceptCookies(response, stamp: stamp)
+            try acceptCookies(response, stamp: stamp, establishesSession: endpoint.establishesSession)
             try validate(response: response, data: errorData)
             return try ownDownloadedFile(temporaryURL, filename: filename)
         } catch let error as URLError {

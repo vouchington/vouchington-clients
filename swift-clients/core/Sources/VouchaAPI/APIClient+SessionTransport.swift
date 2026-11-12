@@ -23,12 +23,18 @@ extension APIClient {
         return HTTPCookie.cookies(withResponseHeaderFields: headers, for: url)
     }
 
-    func acceptCookies(_ response: URLResponse, stamp: SessionCookieCoordinator.Stamp) throws {
+    func acceptCookies(
+        _ response: URLResponse,
+        stamp: SessionCookieCoordinator.Stamp,
+        establishesSession: Bool = false
+    ) throws {
+        let successful = (response as? HTTPURLResponse).map { (200 ... 299).contains($0.statusCode) } == true
         try cookieCoordinator.commit(
             responseCookies(response),
             stamp: stamp,
             persist: checkedPersistence,
-            clearPersistence: checkedClearPersistence
+            clearPersistence: checkedClearPersistence,
+            establishingSession: establishesSession && successful
         )
     }
 
@@ -72,7 +78,7 @@ extension APIClient {
         if try clearDefinitiveSessionFailure(response: response, data: data, stamp: stamp, afterRecovery: !mayRecover) {
             return (data, response)
         }
-        try acceptCookies(response, stamp: stamp)
+        try acceptCookies(response, stamp: stamp, establishesSession: endpoint.establishesSession)
         return (data, response)
     }
 

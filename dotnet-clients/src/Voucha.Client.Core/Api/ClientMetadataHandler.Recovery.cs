@@ -4,6 +4,9 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class ClientMetadataHandler
 {
+  internal static readonly HttpRequestOptionsKey<bool> AuthenticationTransition = new("Voucha.AuthenticationTransition");
+  internal static readonly HttpRequestOptionsKey<(long Generation, long Revision)> SessionDispatch = new("Voucha.SessionDispatch");
+
   internal static readonly HttpRequestOptionsKey<bool> CoordinatedSignOut = new("Voucha.CoordinatedSignOut");
 
   internal static readonly HttpRequestOptionsKey<bool> CoordinatedRotation = new("Voucha.CoordinatedRotation");
@@ -13,13 +16,13 @@ public sealed partial class ClientMetadataHandler
   private async Task<HttpResponseMessage> SendWithRecoveryAsync(
       HttpRequestMessage request, CancellationToken cancellationToken)
   {
-    var generation = cookieJar.Generation;
-    var cookies = cookieJar.GetCookieHeader(request.RequestUri!);
     var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     if (response.StatusCode != HttpStatusCode.Unauthorized ||
         !request.Options.TryGetValue(RepeatableJson, out var repeatable) || !repeatable ||
         request.Headers.Contains("x-app-attest-challenge-id") || request.Headers.Contains("x-app-attest-assertion") ||
-        IsRecoveryExcluded(request.RequestUri!.AbsolutePath)) return response;
+        IsRecoveryExcluded(request.RequestUri!.AbsolutePath) ||
+        !request.Options.TryGetValue(SessionDispatch, out var dispatched)) return response;
+    var generation = dispatched.Generation;
     HttpResponseMessage? retried = null;
     try
     {
@@ -29,10 +32,10 @@ public sealed partial class ClientMetadataHandler
       if (new VouchaApiException(response.StatusCode, body).ErrorCode != "AUTH_REQUIRED") return response;
       if (generation != cookieJar.Generation || !cookieJar.CanRecoverAuthentication) return response;
       await cookieJar.WaitForRenewalAsync(cancellationToken).ConfigureAwait(false);
-      if (cookies == cookieJar.GetCookieHeader(request.RequestUri))
+      if (dispatched.Revision == cookieJar.CredentialRevision)
       {
         var userAgent = ReadUserAgent(request);
-        await cookieJar.RenewAsync((dt, st) => RotateAsync(dt, st, userAgent), cancellationToken: cancellationToken).ConfigureAwait(false);
+        await cookieJar.RenewAsync((dt, st, renewalToken) => RotateAsync(dt, st, userAgent, renewalToken), cancellationToken: cancellationToken).ConfigureAwait(false);
       }
       if (generation != cookieJar.Generation) return response;
       using var replay = new HttpRequestMessage(request.Method, request.RequestUri);
@@ -46,17 +49,17 @@ public sealed partial class ClientMetadataHandler
         foreach (var header in request.Content.Headers)
           replay.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
       }
-      var revision = cookieJar.CredentialRevision;
       retried = await base.SendAsync(replay, cancellationToken).ConfigureAwait(false);
       if (retried.StatusCode == HttpStatusCode.Unauthorized)
       {
         var retryBody = await VouchaApiClient.ReadErrorBodyAsync(retried.Content, cancellationToken).ConfigureAwait(false);
         retried.Content.Dispose();
         retried.Content = new StringContent(retryBody ?? "");
-        if (new VouchaApiException(retried.StatusCode, retryBody).ErrorCode is "AUTH_REQUIRED" or
-            "SESSION_RELOGIN_REQUIRED" or "SESSION_REFRESH_REUSED" or
-            "SESSION_USER_AGENT_MISMATCH" or "SESSION_JA4_MISMATCH")
-          await cookieJar.ClearIfCurrentAsync(generation, revision).ConfigureAwait(false);
+        if (replay.Options.TryGetValue(SessionDispatch, out var replayed) &&
+            new VouchaApiException(retried.StatusCode, retryBody).ErrorCode is "AUTH_REQUIRED" or
+                "SESSION_RELOGIN_REQUIRED" or "SESSION_REFRESH_REUSED" or
+                "SESSION_USER_AGENT_MISMATCH" or "SESSION_JA4_MISMATCH")
+          await cookieJar.ClearIfCurrentAsync(replayed.Generation, replayed.Revision).ConfigureAwait(false);
       }
       response.Dispose();
       return retried;

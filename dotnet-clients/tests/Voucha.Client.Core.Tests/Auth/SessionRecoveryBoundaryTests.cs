@@ -34,7 +34,7 @@ public sealed partial class SessionRecoveryTests
   {
     using var fixture = new RecoveryFixture();
     var called = false;
-    await Assert.ThrowsAsync<UnauthorizedAccessException>(() => fixture.Jar.RenewAsync((_, _) =>
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() => fixture.Jar.RenewAsync((_, _, _) =>
     {
       called = true;
       return Task.FromException<NativeSessionRefreshResponse>(new InvalidOperationException());
@@ -192,7 +192,7 @@ public sealed partial class SessionRecoveryTests
         TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
     await gated.Entered.Task;
     var called = false;
-    var renewal = fixture.Jar.RenewAsync((_, _) =>
+    var renewal = fixture.Jar.RenewAsync((_, _, _) =>
     {
       called = true;
       return Task.FromException<NativeSessionRefreshResponse>(new InvalidOperationException());

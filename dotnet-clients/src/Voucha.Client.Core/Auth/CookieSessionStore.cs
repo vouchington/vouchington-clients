@@ -112,8 +112,8 @@ public sealed partial class CookieSessionStore :
     {
       await cookieJar.RestoreAsync(cancellationToken).ConfigureAwait(false);
       if (cookieJar.CanRecoverAuthentication)
-        await cookieJar.RenewAsync((dt, st) => client.SendAsync<NativeSessionRefreshResponse>(
-            VouchaApiEndpoints.RefreshSession(dt!, st) with { IsCoordinatedSessionRotation = true }, CancellationToken.None),
+        await cookieJar.RenewAsync((dt, st, renewalToken) => client.SendAsync<NativeSessionRefreshResponse>(
+            VouchaApiEndpoints.RefreshSession(dt!, st) with { IsCoordinatedSessionRotation = true }, renewalToken),
             cancellationToken: cancellationToken).ConfigureAwait(false);
       if (cookieGeneration != cookieJar.Generation) return;
       var response = await client

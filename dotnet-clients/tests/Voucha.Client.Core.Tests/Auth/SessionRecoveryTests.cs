@@ -160,10 +160,10 @@ public sealed partial class SessionRecoveryTests
   {
     private readonly HttpClient http;
     public RecoveryFixture(TestSessionCookiePersistence? persistence = null,
-        Func<TestSessionCookiePersistence, ISessionCookiePersistence>? wrap = null)
+        Func<TestSessionCookiePersistence, ISessionCookiePersistence>? wrap = null, TimeProvider? timeProvider = null)
     {
       Persistence = persistence ?? new TestSessionCookiePersistence();
-      Jar = new(new CookieContainer(), Origin, wrap?.Invoke(Persistence) ?? Persistence);
+      Jar = new(new CookieContainer(), Origin, wrap?.Invoke(Persistence) ?? Persistence, timeProvider);
       Terminal = new(Persistence);
       http = new(new ClientMetadataHandler(new(ClientPlatform.Windows, "1.0"), Origin, Jar,
           new SessionCookiePersistenceHandler(Jar, Terminal)))
@@ -186,6 +186,7 @@ public sealed partial class SessionRecoveryTests
   private sealed class RecoveryTerminal(TestSessionCookiePersistence persistence) : HttpMessageHandler
   {
     public Func<HttpRequestMessage, Task<HttpResponseMessage>> Renew { get; set; } = _ => Task.FromResult(Rotated());
+    public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? RenewWithCancellation { get; set; }
     public Func<HttpRequestMessage, Task<HttpResponseMessage>>? Other { get; set; }
     public int RenewCount;
     public int SuccessfulReplays;
@@ -195,7 +196,7 @@ public sealed partial class SessionRecoveryTests
       if (request.RequestUri!.AbsolutePath == "/api/v1/session")
       {
         Interlocked.Increment(ref RenewCount);
-        return await Renew(request);
+        return RenewWithCancellation is null ? await Renew(request) : await RenewWithCancellation(request, cancellationToken);
       }
       if (Other is not null) return await Other(request);
       if (request.RequestUri.AbsolutePath == "/api/v1/my/identity")

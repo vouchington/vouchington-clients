@@ -9,6 +9,7 @@ public sealed partial class SessionCookieJar : IDisposable
   private readonly CookieContainer cookieContainer;
   private readonly Uri apiBaseUrl;
   private readonly ISessionCookiePersistence persistence;
+  private readonly TimeProvider renewalTimeProvider;
   private readonly SemaphoreSlim sync = new(1, 1);
   private volatile bool isRestored;
   private string? lastSerializedCookies;
@@ -17,11 +18,13 @@ public sealed partial class SessionCookieJar : IDisposable
   public SessionCookieJar(
       CookieContainer cookieContainer,
       Uri apiBaseUrl,
-      ISessionCookiePersistence persistence)
+      ISessionCookiePersistence persistence,
+      TimeProvider? timeProvider = null)
   {
     this.cookieContainer = cookieContainer ?? throw new ArgumentNullException(nameof(cookieContainer));
     this.apiBaseUrl = apiBaseUrl ?? throw new ArgumentNullException(nameof(apiBaseUrl));
     this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+    renewalTimeProvider = timeProvider ?? TimeProvider.System;
   }
 
   public CookieContainer CookieContainer => cookieContainer;

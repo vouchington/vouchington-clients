@@ -37,6 +37,7 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
         ? string.Join("; ", captured) : snapshot.Header;
     request.Headers.Remove("Cookie");
     if (!string.IsNullOrEmpty(cookies)) request.Headers.TryAddWithoutValidation("Cookie", cookies);
+    request.Options.Set(Voucha.Client.Core.Api.ClientMetadataHandler.SessionDispatch, (snapshot.Generation, snapshot.Revision));
     var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     if (request.RequestUri?.AbsolutePath != "/api/v1/auth/logout" &&
         !sessionRequest &&
@@ -45,8 +46,12 @@ public sealed class SessionCookiePersistenceHandler : DelegatingHandler
       try
       {
         using var persistTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var authenticationCommit = response.IsSuccessStatusCode &&
+            request.Options.TryGetValue(Voucha.Client.Core.Api.ClientMetadataHandler.AuthenticationTransition, out var transition) &&
+            transition && setCookieHeaders.Any(header =>
+                header.TrimStart().StartsWith("dt=", StringComparison.Ordinal) || header.TrimStart().StartsWith("st=", StringComparison.Ordinal));
         await cookieJar.ApplyResponseCookiesAsync(
-            request.RequestUri, setCookieHeaders, snapshot.Generation, snapshot.Revision, persistTimeout.Token).ConfigureAwait(false);
+            request.RequestUri, setCookieHeaders, snapshot.Generation, snapshot.Revision, authenticationCommit, persistTimeout.Token).ConfigureAwait(false);
       }
       catch (TaskCanceledException)
       {

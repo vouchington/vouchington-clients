@@ -15,7 +15,7 @@ final class SessionRecoveryTransport: @unchecked Sendable {
     private let lock = NSLock()
     private var requests: [URLRequest] = []
     var handler: ((URLRequest, Int) -> Reply?)?
-    private var held: SessionRecoveryProtocol?
+    private var held: [String: [SessionRecoveryProtocol]] = [:]
 
     var captured: [URLRequest] {
         lock.withLock { requests }
@@ -24,20 +24,42 @@ final class SessionRecoveryTransport: @unchecked Sendable {
     func receive(_ request: URLRequest, transport: SessionRecoveryProtocol) {
         var captured = request
         captured.httpBody = URLRequestHTTPBody.data(from: request)
+        let path = request.url!.path
         let count = lock.withLock {
             requests.append(captured)
+            held[path, default: []].append(transport)
             return requests.count
         }
-        if let reply = handler?(request, count) { transport.deliver(reply) }
-        else { lock.withLock { held = transport } }
+        if let reply = handler?(request, count) {
+            lock.withLock {
+                held[path]?.removeAll { $0 === transport }
+                if held[path]?.isEmpty == true { held[path] = nil }
+            }
+            transport.deliver(reply)
+        }
     }
 
-    func release(_ reply: Reply) {
-        let transport = lock.withLock { let current = held
-            held = nil
-            return current
+    func release(_ reply: Reply, path: String? = nil) {
+        takeHeld(path)?.deliver(reply)
+    }
+
+    func fail(_ error: URLError, path: String? = nil) {
+        takeHeld(path)?.fail(error)
+    }
+
+    func deliverHeaders(path: String) {
+        let transport = lock.withLock { held[path]?.first }
+        transport?.deliverHeaders()
+    }
+
+    private func takeHeld(_ path: String?) -> SessionRecoveryProtocol? {
+        lock.withLock {
+            guard let key = path ?? held.keys.sorted().first, var pending = held[key],
+                  !pending.isEmpty else { return nil }
+            let first = pending.removeFirst()
+            held[key] = pending.isEmpty ? nil : pending
+            return first
         }
-        transport?.deliver(reply)
     }
 
     static func tokens(_ token: String = "fresh", uid: String? = "user") -> Reply {
@@ -86,6 +108,26 @@ final class SessionRecoveryProtocol: URLProtocol {
 
     override func stopLoading() {
         lock.withLock { stopped = true }
+    }
+
+    func deliverHeaders() {
+        lock.withLock {
+            guard !stopped else { return }
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: "HTTP/1.1",
+                headerFields: [:]
+            )!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        }
+    }
+
+    func fail(_ error: URLError) {
+        lock.withLock {
+            guard !stopped else { return }
+            client?.urlProtocol(self, didFailWithError: error)
+        }
     }
 
     func deliver(_ reply: SessionRecoveryTransport.Reply) {

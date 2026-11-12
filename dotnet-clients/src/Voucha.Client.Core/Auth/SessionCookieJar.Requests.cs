@@ -34,12 +34,13 @@ public sealed partial class SessionCookieJar
   }
 
   public async Task ApplyResponseCookiesAsync(
-      Uri? requestUri, IEnumerable<string> headers, long epoch, long revision, CancellationToken cancellationToken)
+      Uri? requestUri, IEnumerable<string> headers, long epoch, long revision, bool authenticationCommit,
+      CancellationToken cancellationToken)
   {
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
-      if (epoch != Generation || revision != CredentialRevision) return;
+      if (epoch != Generation || !authenticationCommit && revision != CredentialRevision) return;
       var before = (ReadCookie("dt"), ReadCookie("st"));
       StoreSetCookieHeaders(requestUri, headers);
       if (before != (ReadCookie("dt"), ReadCookie("st")))

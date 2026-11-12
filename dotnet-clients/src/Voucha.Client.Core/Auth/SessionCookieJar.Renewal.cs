@@ -26,7 +26,7 @@ public sealed partial class SessionCookieJar
   }
 
   public Task RenewAsync(
-      Func<string?, string?, Task<NativeSessionRefreshResponse>> renew,
+      Func<string?, string?, CancellationToken, Task<NativeSessionRefreshResponse>> renew,
       bool bootstrap = false,
       CancellationToken cancellationToken = default)
   {
@@ -46,23 +46,25 @@ public sealed partial class SessionCookieJar
   }
 
   private async Task RenewInternalAsync(
-      Func<string?, string?, Task<NativeSessionRefreshResponse>> renew,
+      Func<string?, string?, CancellationToken, Task<NativeSessionRefreshResponse>> renew,
       bool bootstrap,
       long epoch)
   {
-    await RestoreAsync().ConfigureAwait(false);
-    var (deviceToken, sessionToken, revision) = await ReadRenewalTokensAsync(epoch).ConfigureAwait(false);
+    using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30), renewalTimeProvider);
+    var cancellationToken = deadline.Token;
+    await RestoreAsync(cancellationToken).ConfigureAwait(false);
+    var (deviceToken, sessionToken, revision) = await ReadRenewalTokensAsync(epoch, cancellationToken).ConfigureAwait(false);
     if (!bootstrap && deviceToken is null)
       throw new UnauthorizedAccessException("Session tokens are unavailable.");
     try
     {
-      var result = await renew(deviceToken, sessionToken).ConfigureAwait(false);
+      var result = await renew(deviceToken, sessionToken, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
       var replacement = result.Session;
       if (replacement is null || string.IsNullOrWhiteSpace(replacement.Dt) ||
           string.IsNullOrWhiteSpace(replacement.St) || replacement.Dte <= 0 || replacement.Ste <= 0 ||
           (!bootstrap && (string.IsNullOrEmpty(replacement.Uid) || replacement.Session?.Uid != replacement.Uid)))
         throw new UnauthorizedAccessException("Session renewal did not return an authenticated session.");
-      await sync.WaitAsync().ConfigureAwait(false);
+      await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
       try
       {
         if (epoch != Generation) throw new UnauthorizedAccessException("Session changed during renewal.");
@@ -73,7 +75,7 @@ public sealed partial class SessionCookieJar
         authenticatedSession = !string.IsNullOrEmpty(replacement.Uid);
         try
         {
-          await PersistUnlockedAsync(CancellationToken.None).ConfigureAwait(false);
+          await PersistUnlockedAsync(cancellationToken).ConfigureAwait(false);
           Interlocked.Increment(ref credentialRevision);
         }
         catch
@@ -96,12 +98,12 @@ public sealed partial class SessionCookieJar
   }
 
   private static bool IsUnusableRenewal(Exception exception) =>
-      exception is UnauthorizedAccessException or System.Text.Json.JsonException or InvalidDataException ||
+      exception is UnauthorizedAccessException or System.Text.Json.JsonException or InvalidDataException or VouchaApiDecodeException ||
       exception is VouchaApiException api && api.StatusCode == System.Net.HttpStatusCode.Unauthorized;
 
-  private async Task<(string? DeviceToken, string? SessionToken, long Revision)> ReadRenewalTokensAsync(long epoch)
+  private async Task<(string? DeviceToken, string? SessionToken, long Revision)> ReadRenewalTokensAsync(long epoch, CancellationToken cancellationToken)
   {
-    await sync.WaitAsync().ConfigureAwait(false);
+    await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
       if (epoch != Generation) throw new UnauthorizedAccessException("Session changed before renewal.");

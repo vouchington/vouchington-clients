@@ -7,11 +7,12 @@ extension SessionCookieCoordinator {
     func commit(
         _ cookies: [HTTPCookie], stamp: Stamp, persist: (() throws -> Void)?,
         clearPersistence: (() throws -> Void)? = nil, rotated: Bool = false,
-        authenticated: Bool = false
+        authenticated: Bool = false, establishingSession: Bool = false
     ) throws {
         try lock.withLock {
             guard epoch == stamp.epoch else { throw CancellationError() }
-            guard rotated || stamp.revision == revision else { return }
+            let establishesSession = establishingSession && cookies.contains { ["dt", "st"].contains($0.name) }
+            guard rotated || establishesSession || stamp.revision == revision else { return }
             let previous = storage.cookies ?? []
             let accountBoundary = !rotated && cookies.contains { cookie in
                 ["dt", "st"].contains(cookie.name) && previous.first {

@@ -177,7 +177,7 @@ public sealed partial class SessionRecoveryTests
     };
     var older = fixture.RawAsync("/credential-update");
     await responseEntered.Task;
-    var renewal = fixture.Jar.RenewAsync(async (_, _) =>
+    var renewal = fixture.Jar.RenewAsync(async (_, _, _) =>
     {
       renewEntered.SetResult();
       await renewRelease.Task;

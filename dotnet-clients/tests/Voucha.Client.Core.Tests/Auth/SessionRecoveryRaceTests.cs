@@ -271,7 +271,7 @@ public sealed partial class SessionRecoveryTests
     await fixture.SeedAsync();
     var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     Task? renewal = null;
-    fixture.Jar.SessionInvalidated += (_, _) => renewal = fixture.Jar.RenewAsync(async (_, _) =>
+    fixture.Jar.SessionInvalidated += (_, _) => renewal = fixture.Jar.RenewAsync(async (_, _, _) =>
     {
       await release.Task;
       return new NativeSessionRefreshResponse(new NativeRefreshedSession("device", "late-dt", 120, true,

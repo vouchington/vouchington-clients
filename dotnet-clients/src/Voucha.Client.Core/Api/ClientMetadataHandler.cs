@@ -26,8 +26,9 @@ public sealed partial class ClientMetadataHandler(
     {
       return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
-    if (request.Method != HttpMethod.Get &&
-        IsSessionTransition(request.RequestUri.AbsolutePath) &&
+    var transition = request.Method != HttpMethod.Get && IsSessionTransition(request.RequestUri.AbsolutePath);
+    request.Options.Set(AuthenticationTransition, transition && request.RequestUri.AbsolutePath != "/api/v1/auth/logout");
+    if (transition &&
         !(request.RequestUri.AbsolutePath == "/api/v1/auth/logout" &&
           request.Options.TryGetValue(CoordinatedSignOut, out var locallyCleared) && locallyCleared))
       cookieJar.Invalidate();
@@ -43,11 +44,11 @@ public sealed partial class ClientMetadataHandler(
     await cookieJar.WaitForRenewalAsync(cancellationToken).ConfigureAwait(false);
     if (cookieJar.HasDeviceCookie) return;
     var userAgent = ReadUserAgent(request);
-    await cookieJar.RenewAsync((dt, st) => RotateAsync(dt, st, userAgent), bootstrap: true, cancellationToken).ConfigureAwait(false);
+    await cookieJar.RenewAsync((dt, st, renewalToken) => RotateAsync(dt, st, userAgent, renewalToken), bootstrap: true, cancellationToken).ConfigureAwait(false);
   }
 
   private async Task<NativeSessionRefreshResponse> RotateAsync(
-      string? deviceToken, string? sessionToken, string[] userAgent)
+      string? deviceToken, string? sessionToken, string[] userAgent, CancellationToken cancellationToken)
   {
     using var renewal = new HttpRequestMessage(HttpMethod.Patch, new Uri(apiOrigin, "/api/v1/session"))
     {
@@ -57,11 +58,11 @@ public sealed partial class ClientMetadataHandler(
     if (userAgent.Length > 0) renewal.Headers.TryAddWithoutValidation("User-Agent", userAgent);
     renewal.Options.Set(CoordinatedRotation, true);
     ApplyMetadata(renewal);
-    using var response = await base.SendAsync(renewal, CancellationToken.None).ConfigureAwait(false);
+    using var response = await base.SendAsync(renewal, cancellationToken).ConfigureAwait(false);
     if (!response.IsSuccessStatusCode)
       throw new VouchaApiException(response.StatusCode,
-          await VouchaApiClient.ReadErrorBodyAsync(response.Content, CancellationToken.None).ConfigureAwait(false));
-    return await response.Content.ReadFromJsonAsync<NativeSessionRefreshResponse>(VouchaApiJson.Options)
+          await VouchaApiClient.ReadErrorBodyAsync(response.Content, cancellationToken).ConfigureAwait(false));
+    return await response.Content.ReadFromJsonAsync<NativeSessionRefreshResponse>(VouchaApiJson.Options, cancellationToken)
         .ConfigureAwait(false) ?? throw new InvalidDataException("Session renewal response was empty.");
   }
 
