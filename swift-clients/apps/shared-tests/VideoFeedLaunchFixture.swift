@@ -22,7 +22,7 @@ struct VideoFeedLaunchFixture {
             path: "/api/v1/feeds/rss_feed_items/any",
             query: ["limit": "20", "media_type": "video"], root: contract.root, fixtures: contract.fixtures
         )
-        return Self(feed: feed, identity: identity, title: try videoTitle(in: feed))
+        return try Self(feed: feed, identity: identity, title: videoTitle(in: feed))
     }
 
     static func videoTitle(in feed: Data) throws -> String {
