@@ -71,7 +71,7 @@
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
-            <Button x:Name="AddSourceButton" Text="{DynamicResource native.swift.importExport.addSource}"
+            <Button x:Name="AddSourceButton" Text="{DynamicResource native.swift.common.create}"
                     Clicked="OnAddSourceClicked" IsVisible="{Binding CanImportExport}" />
             <Button
                 Text="{Binding HackerNewsFilterLabel}"

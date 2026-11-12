@@ -4,11 +4,11 @@
              xmlns:creation="clr-namespace:Voucha.Client.Core.SourceCreation;assembly=Voucha.Client.Core"
              x:Class="Voucha.Client.App.Pages.SourceCreationPage"
              x:DataType="creation:SourceCreationViewModel"
-             Title="{DynamicResource native.swift.importExport.addSource}">
+             Title="{DynamicResource native.taxonomy.topics.rssFeed}">
     <VerticalStackLayout Padding="20" Spacing="12">
         <Entry x:Name="UrlEntry" Text="{Binding Input}" Keyboard="Url"
                Placeholder="{DynamicResource native.dotnet.residual.url}" />
-        <Button x:Name="CreateButton" Text="{DynamicResource native.swift.importExport.addSource}"
+        <Button x:Name="CreateButton" Text="{DynamicResource native.swift.common.create}"
                 IsEnabled="{Binding CanCreate}" Clicked="OnCreateClicked" />
         <ActivityIndicator x:Name="ProgressIndicator" IsRunning="{Binding IsBusy}" />
         <Label x:Name="StatusLabel" Text="{Binding Status}" />

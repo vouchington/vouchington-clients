@@ -20,12 +20,18 @@ public sealed class SourceCreationPageTests
   public async Task RenderedControlsShowPendingRetryAndFinalNavigation()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
-    _ = new Application();
+    var app = new Application();
+    InstallResources(app);
     var service = new Service();
     using var model = new SourceCreationViewModel(service, new Session(), UiLocalization.English,
         (_, _) => Task.CompletedTask);
     string? opened = null;
     using var page = new LifecyclePage(model, slug => { opened = slug; return Task.CompletedTask; });
+    Assert.Equal("RSS feed", page.Title);
+    Assert.Equal("URL", page.FindByName<Entry>("UrlEntry").Placeholder);
+    Assert.Equal("Create", page.FindByName<Button>("CreateButton").Text);
+    Assert.Equal("Try status again", page.FindByName<Button>("RetryButton").Text);
+    Assert.Equal("Open source", page.FindByName<Button>("OpenButton").Text);
     page.FindByName<Entry>("UrlEntry").Text = "bad";
     page.FindByName<Button>("CreateButton").SendClicked();
     Assert.NotEmpty(page.FindByName<Label>("ErrorLabel").Text);
@@ -68,6 +74,7 @@ public sealed class SourceCreationPageTests
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
+    InstallResources(app);
     foreach (var key in new[] { "Body", "Eyebrow", "Headline", "Metadata" }) app.Resources[key] = new Style(typeof(Label));
     using var http = new HttpClient(new CreateHandler()) { BaseAddress = new("https://api.test") };
     var client = new VouchaApiClient(http);
@@ -96,6 +103,13 @@ public sealed class SourceCreationPageTests
           : "{\"import\":{\"id\":\"import\",\"total_rows\":1,\"completed_rows\":1,\"pending_rows\":0},\"rows\":[{\"id\":\"row\",\"input\":\"https://example.test/feed.xml\",\"status\":\"source_created\",\"entity_id\":\"feed\",\"topic_slug\":\"source-topic\"}]}";
       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
     }
+  }
+
+  private static void InstallResources(Application app)
+  {
+    foreach (var key in new[] { UiMessageKey.NativeTaxonomyTopicsRssFeed, UiMessageKey.NativeSwiftCommonCreate,
+        UiMessageKey.NativeDotnetResidualUrl, UiMessageKey.NativeSwiftImportExportTryStatusAgain,
+        UiMessageKey.NativeSwiftPodcastPlaybackOpenSource }) app.Resources[key.Value] = UiLocalization.English.Localize(key);
   }
 
   private sealed class LifecyclePage(SourceCreationViewModel model, Func<string, Task> open)
