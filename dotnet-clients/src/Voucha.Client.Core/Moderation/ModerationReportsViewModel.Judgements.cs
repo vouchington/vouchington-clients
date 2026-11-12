@@ -1,5 +1,6 @@
 using System.Net;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Moderation;
 
@@ -12,8 +13,14 @@ public sealed partial class ModerationReportsViewModel
 
   public async Task<bool> RerunJudgementAsync(string reportId, CancellationToken cancellationToken = default)
   {
-    if (!IsStaff || FindStaffReport(reportId) is null || IsQueueInteractionBlocked ||
-        !judgementAdmissions.TryAdmit(judgementOwner, reportId, out var reserved)) return false;
+    if (!IsStaff || FindStaffReport(reportId) is null || IsQueueInteractionBlocked) return false;
+    if (judgementOwner is null)
+    {
+      rowErrors[reportId] = UiText.Localized(UiMessageKey.NativeSwiftModerationReportsActionUnavailable);
+      OnPropertyChanged(nameof(RowErrors));
+      return false;
+    }
+    if (!judgementAdmissions.TryAdmit(judgementOwner, reportId, out var reserved)) return false;
     return await RunActionAsync(reportId, async () =>
     {
       ModerationReportJudgementResponse admission;

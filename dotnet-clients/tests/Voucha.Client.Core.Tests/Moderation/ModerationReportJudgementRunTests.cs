@@ -203,6 +203,35 @@ public sealed class ModerationReportJudgementRunTests
     Assert.Empty(RunGets(handler));
   }
 
+  [Theory]
+  [InlineData(null, true)]
+  [InlineData("", true)]
+  [InlineData("  ", true)]
+  [InlineData("alice", false)]
+  public async Task SharedStoreWithoutOwnerSurfacesLocalizedFailureWithoutAdmission(string? identity, bool hasOrigin)
+  {
+    var handler = Handler(Fixture("native.moderation.reports.default"));
+    using var model = new ModerationReportsViewModel(
+        new ApiModerationService(new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") })),
+        new NavigationViewer(true, ["administrator"], IdentityId: identity),
+        judgementAdmissions: new ReportJudgementAdmissionStore(),
+        apiBaseUrl: hasOrigin ? new Uri("https://api.test") : null);
+    await LoadFlat(model);
+    var changedProperties = new List<string?>();
+    model.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
+
+    Assert.False(await model.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken));
+
+    Assert.Contains(nameof(model.RowErrors), changedProperties);
+    var error = Assert.Single(model.RowErrors).Value;
+    Assert.Equal(UiMessageKey.NativeSwiftModerationReportsActionUnavailable, error.Key);
+    Assert.Null(error.VerbatimValue);
+    Assert.False(model.IsJudgementPending(ReportId));
+    Assert.False(model.IsQueueMutationRunning);
+    Assert.Empty(Posts(handler));
+    Assert.Empty(RunGets(handler));
+  }
+
   [Fact]
   public async Task ReopenedOwnerRetainsExactRunWhileOtherOwnerCannotReadIt()
   {
@@ -241,7 +270,7 @@ public sealed class ModerationReportJudgementRunTests
     var original = ViewModel(handler, 2, _ => { paused.SetResult(); return resume.Task; }, store, "alice");
     await LoadFlat(original);
     var running = original.RerunJudgementAsync(ReportId, TestContext.Current.CancellationToken);
-    await paused.Task;
+    await paused.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     var other = ViewModel(Handler(Fixture("native.moderation.reports.default")), 1, _ => Task.CompletedTask, store, "bob");
     await LoadFlat(other);
     original.Dispose();

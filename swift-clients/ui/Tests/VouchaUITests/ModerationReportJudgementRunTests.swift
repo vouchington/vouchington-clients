@@ -223,6 +223,27 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertEqual(judgementRunGets, 0)
     }
 
+    func testSharedStoreWithoutIdentitySurfacesLocalizedFailureWithoutAdmission() async throws {
+        for identity in [nil, ""] as [String?] {
+            let viewModel = try await loadedStaff(reads: 1, userId: identity, store: ReportJudgementAdmissionStore())
+            await viewModel.perform(.rerunJudgement, reportId: reportId)
+            XCTAssertEqual(viewModel.actionErrors[reportId], .message(.nativeSwiftModerationReportsActionUnavailable))
+            XCTAssertFalse(viewModel.isJudgementPending(reportId))
+            XCTAssertFalse(viewModel.isQueueActionInProgress)
+            XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 0)
+            XCTAssertEqual(judgementRunGets, 0)
+            let report = try XCTUnwrap(viewModel.staffReports.first { $0.id == reportId })
+            let row = StaffModerationReportCard(
+                report: report, viewModel: viewModel, onNavigate: { _ in }, onConfirm: { _ in }
+            )
+            try await ViewHosting.host(row) {
+                XCTAssertNoThrow(try row.inspect().find(text: UiMessages.string(
+                    .nativeSwiftModerationReportsActionUnavailable, locale: Locale(identifier: "en")
+                )))
+            }
+        }
+    }
+
     func testReopenedOwnerRetainsExactRunWhileOtherOwnerCannotReadIt() async throws {
         let store = ReportJudgementAdmissionStore()
         let original = try await loadedStaff(reads: 1, userId: "alice", store: store)
