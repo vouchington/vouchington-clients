@@ -19,6 +19,8 @@ extension APIClient {
         guard !isProductSignal(endpoint), rawRequest.url?.scheme == baseURL.scheme,
               rawRequest.url?.host == baseURL.host, rawRequest.url?.port == baseURL.port,
               rawRequest.httpBodyStream == nil, ["POST", "PUT", "PATCH", "DELETE"].contains(method),
+              rawRequest.value(forHTTPHeaderField: RequestSignatureHeader.challengeId) == nil,
+              rawRequest.value(forHTTPHeaderField: RequestSignatureHeader.assertion) == nil,
               let response = first.1 as? HTTPURLResponse, response.statusCode == 403,
               response.url == rawRequest.url,
               let challenge = try? decoder.decode(BotChallengeRequiredResponse.self, from: first.0),
