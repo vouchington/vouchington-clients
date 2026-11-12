@@ -1,7 +1,4 @@
 import Foundation
-#if !canImport(Darwin)
-    import FoundationNetworking
-#endif
 import Observation
 import VouchaAPI
 import VouchaCore
@@ -22,19 +19,23 @@ public enum SessionState: Sendable {
 @Observable
 @MainActor
 public final class SessionManager {
-    public private(set) var state: SessionState = .anonymous
-    public private(set) var isRefreshing: Bool = false
-    public private(set) var uiLocale: String?
-    public private(set) var lastSignOutErrorMessage: String?
-    public private(set) var lastRefreshErrorMessage: String?
+    public internal(set) var state: SessionState = .anonymous
+    public internal(set) var isRefreshing: Bool = false
+    public internal(set) var uiLocale: String?
+    public internal(set) var lastSignOutErrorMessage: String?
+    public internal(set) var lastRefreshErrorMessage: String?
 
-    private let client: APIClient
-    private let cookieStorage: HTTPCookieStorage
-    private let beforeClearSessionCookies: (@Sendable () async throws -> Void)?
+    let client: APIClient
+    let beforeClearSessionCookies: (@Sendable () async throws -> Void)?
     private let beforePublishSignedIn: (@Sendable () async throws -> Void)?
-    private let clearPersistedCookies: (@Sendable () -> Void)?
-    private let logger = VouchaLogger(category: "SessionManager")
-    private var beforeSignOut: (@MainActor (String) async throws -> Void)?
+    let clearPersistedCookies: (@Sendable () -> Void)?
+    let logger = VouchaLogger(category: "SessionManager")
+    var signingOut = false
+    var refreshTask: (epoch: UInt64, task: Task<Bool, Never>)?
+    var generation: UInt64 = 0
+    var invalidationObservation: SessionInvalidationObservation?
+    var publishedSession: (epoch: UInt64, revision: UInt64)?
+    var beforeSignOut: (@MainActor (String) async throws -> Void)?
 
     public var isSignedIn: Bool {
         if case .signedIn = state {
@@ -77,16 +78,18 @@ public final class SessionManager {
     }
 
     public init(
-        client: APIClient, cookieStorage: HTTPCookieStorage,
+        client: APIClient,
         clearPersistedCookies: (@Sendable () -> Void)? = nil,
         beforeClearSessionCookies: (@Sendable () async throws -> Void)? = nil,
         beforePublishSignedIn: (@Sendable () async throws -> Void)? = nil
     ) {
         self.client = client
-        self.cookieStorage = cookieStorage
         self.clearPersistedCookies = clearPersistedCookies
         self.beforeClearSessionCookies = beforeClearSessionCookies
         self.beforePublishSignedIn = beforePublishSignedIn
+        invalidationObservation = client.observeSessionInvalidation { [weak self] epoch, revision in
+            Task { @MainActor [weak self] in self?.applySessionInvalidation(epoch: epoch, revision: revision) }
+        }
     }
 
     /// Install device-grant cleanup that must finish before the member identity is discarded.
@@ -99,91 +102,78 @@ public final class SessionManager {
         await refresh()
     }
 
-    /// Attempt to refresh the session via GET /api/v1/my/identity.
+    /// Renew first-party credentials, then resolve the current identity.
     @discardableResult
     public func refresh() async -> Bool {
-        guard !isRefreshing else { return false }
+        guard !signingOut else { return false }
+        let epoch = client.sessionEpoch
+        if let refreshTask, refreshTask.epoch == epoch { return await refreshTask.task.value }
+        generation &+= 1
+        let generation = generation
+        if let publishedSession, publishedSession.epoch != epoch {
+            state = .anonymous
+            uiLocale = nil
+            self.publishedSession = nil
+        }
+        let task = Task { await self.performRefresh(generation: generation, epoch: epoch) }
+        refreshTask = (epoch, task)
+        let result = await task.value
+        if self.generation == generation { refreshTask = nil }
+        return result
+    }
+
+    private func performRefresh(generation: UInt64, epoch: UInt64) async -> Bool {
+        guard generation == self.generation, epoch == client.sessionEpoch else { return false }
         lastRefreshErrorMessage = nil
         isRefreshing = true
-        defer { isRefreshing = false }
+        defer { if generation == self.generation { isRefreshing = false } }
         do {
+            try await client.refreshSession()
             struct IdentityResponse: Decodable { let identity: PrivateUser }
             let response: IdentityResponse = try await client.send(.myIdentity)
+            guard generation == self.generation, epoch == client.sessionEpoch else { return false }
             let identity = response.identity
-            do {
-                try await beforePublishSignedIn?()
-            } catch {
-                // The jar may now belong to the fetched account. Keep an existing
-                // identity only when it is the same owner as that jar.
-                if let currentUserId, currentUserId != identity.id {
-                    state = .anonymous
-                    uiLocale = nil
-                }
-                throw error
-            }
+            guard try await confirmPublication(identity, generation: generation, epoch: epoch) else { return false }
             state = .signedIn(
                 userId: identity.id, username: identity.username,
                 membershipPlan: identity.membershipPlan,
                 roles: identity.roles,
                 accountType: identity.accountType
             )
+            publishedSession = (client.sessionEpoch, client.sessionRevision)
             uiLocale = identity.uiLocale
             logger.info("Session restored: \(identity.username ?? "")")
             return true
         } catch VouchaError.unauthorized {
+            guard generation == self.generation else { return false }
             state = .anonymous
             uiLocale = nil
             return false
         } catch {
+            guard generation == self.generation else { return false }
+            if epoch != client.sessionEpoch { state = .anonymous
+                uiLocale = nil
+            }
             lastRefreshErrorMessage = error.localizedDescription
             logger.error("Session refresh failed: \(error.localizedDescription)")
             return false
         }
     }
 
-    public func signOut() async {
-        lastSignOutErrorMessage = nil
-        if let accountId = currentUserId, let beforeSignOut {
-            do {
-                try await beforeSignOut(accountId)
-            } catch {
-                logger.error("Device grant cleanup failed before sign-out: \(error.localizedDescription)")
-                lastSignOutErrorMessage = error.localizedDescription
-                return
+    private func confirmPublication(_ identity: PrivateUser, generation: UInt64, epoch: UInt64) async throws -> Bool {
+        do {
+            try await beforePublishSignedIn?()
+        } catch {
+            guard generation == self.generation, epoch == client.sessionEpoch else { return false }
+            if let currentUserId, currentUserId != identity.id {
+                state = .anonymous
+                uiLocale = nil
             }
+            throw error
         }
-        do {
-            try await beforeClearSessionCookies?()
-        } catch {
-            logger.error("Cookie cleanup failed before sign-out: \(error.localizedDescription)")
-            lastSignOutErrorMessage = error.localizedDescription
-            return
-        }
-        do {
-            let _: EmptyResponse = try await client.send(.logout)
-        } catch {
-            // ignore sign-out errors — clear locally regardless
-        }
-        await client.clearSessionCookies()
-        for cookie in cookieStorage.cookies ?? [] {
-            cookieStorage.deleteCookie(cookie)
-        }
-        clearPersistedCookies?()
-        state = .anonymous
-        uiLocale = nil
+        return generation == self.generation && epoch == client.sessionEpoch
     }
 
-    /// Applies a user returned by an authenticated mutation without another identity request.
-    public func synchronize(with user: PrivateUser) {
-        state = .signedIn(
-            userId: user.id,
-            username: user.username,
-            membershipPlan: user.membershipPlan,
-            roles: user.roles,
-            accountType: user.accountType
-        )
-        uiLocale = user.uiLocale
-    }
 }
 
 /// Used to decode empty JSON body responses `{}`.

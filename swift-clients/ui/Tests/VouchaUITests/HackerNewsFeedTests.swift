@@ -86,8 +86,7 @@ final class HackerNewsFeedTests: XCTestCase {
             let view = RSSFeedListView(
                 viewModel: viewModel,
                 playbackController: PodcastPlaybackController(client: client(), sessionManager: SessionManager(
-                    client: client(),
-                    cookieStorage: HTTPCookieStorage()
+                    client: client()
                 )),
                 isSignedIn: false
             )

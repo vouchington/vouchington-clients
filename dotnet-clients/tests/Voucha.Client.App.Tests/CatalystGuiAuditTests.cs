@@ -160,7 +160,9 @@ public sealed class CatalystGuiAuditTests : IDisposable
   private JsonObject Report() => JsonNode.Parse(File.ReadAllText(AuditPath))!.AsObject();
   private static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");
   private static HttpClient Client(JsonObject preferences, CatalystGuiAudit? audit) => new(
-      new CatalystGuiFixtureHandler(new RejectNetworkHandler(), "{}", preferences, audit)) { BaseAddress = new Uri("https://voucha.test") };
+      new CatalystGuiFixtureHandler(new RejectNetworkHandler(), ApiFixtureLoader.LoadResponse("swift.my.identity.default"),
+          preferences, ApiFixtureLoader.LoadResponse("native.auth.session.refresh.rotated"), audit))
+  { BaseAddress = new Uri("https://voucha.test") };
   public void Dispose() { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
 
   private sealed class RejectNetworkHandler : HttpMessageHandler

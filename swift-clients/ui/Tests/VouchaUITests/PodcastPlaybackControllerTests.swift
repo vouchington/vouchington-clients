@@ -27,7 +27,7 @@ final class PodcastPlaybackControllerTests: XCTestCase {
 
     private func makeSignedInSessionManager() async throws -> SessionManager {
         let client = makeClient()
-        let sessionManager = SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+        let sessionManager = SessionManager(client: client)
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             PrivateUserTestFixture.identityEnvelope(
                 username: "listener",
@@ -108,6 +108,7 @@ final class PodcastPlaybackControllerTests: XCTestCase {
         await controller.togglePlayback(for: item)
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+            "/api/v1/session",
             "/api/v1/my/identity",
             "/api/v1/podcast-episodes/item-1/playback-position"
         ])
@@ -139,8 +140,7 @@ final class PodcastPlaybackControllerTests: XCTestCase {
 
     func testDoesNotFetchPlaybackPositionWhenSignedOut() async {
         let controller = PodcastPlaybackController(client: makeClient(), sessionManager: SessionManager(
-            client: makeClient(),
-            cookieStorage: HTTPCookieStorage()
+            client: makeClient()
         ))
         let item = makeAudioItem()
 
@@ -176,8 +176,7 @@ final class PodcastPlaybackControllerTests: XCTestCase {
 
     func testCurrentExternalURLIsNilForEmbedOnlyVideo() {
         let controller = PodcastPlaybackController(client: makeClient(), sessionManager: SessionManager(
-            client: makeClient(),
-            cookieStorage: HTTPCookieStorage()
+            client: makeClient()
         ))
         controller.currentItem = RssFeedItem(
             id: "item-embed-only-video",
@@ -404,8 +403,7 @@ final class PodcastPlaybackControllerTests: XCTestCase {
 
     func testNormalizesHttpMediaURLsToHttpsBeforePlayback() {
         let controller = PodcastPlaybackController(client: makeClient(), sessionManager: SessionManager(
-            client: makeClient(),
-            cookieStorage: HTTPCookieStorage()
+            client: makeClient()
         ))
 
         XCTAssertEqual(

@@ -1742,15 +1742,15 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Run Sentry SDK boundary tests
+      - name: Run Sentry SDK boundary and launch transport tests
         timeout-minutes: 10
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
           SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
         run: |
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 2 and .passedTests == 2 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -only-testing:VouchaLaunchTransportTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
       - name: Run feed transport boundary tests
         timeout-minutes: 5
         working-directory: candidate-clients
@@ -2383,6 +2383,23 @@ jobs:
         run: >-
           dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
           --configuration Debug --no-restore
+      - name: Test Debug Catalyst fixtures and session isolation
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: |
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj \
+            --configuration Debug --no-restore --no-build \
+            --filter FullyQualifiedName~CatalystFixture \
+            --logger 'trx;LogFileName=catalyst-fixture.trx' \
+            --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+          python3 - "$RUNNER_TEMP/voucha-maui-test-results/catalyst-fixture.trx" <<'PYTHON'
+          import sys
+          import xml.etree.ElementTree as ET
+          counters = ET.parse(sys.argv[1]).find("{*}ResultSummary/{*}Counters")
+          assert counters is not None, "Missing Debug Catalyst fixture test counters"
+          expected = {"total": "4", "executed": "4", "passed": "4", "failed": "0", "notExecuted": "0"}
+          assert all(counters.get(key) == value for key, value in expected.items()), counters.attrib
+          PYTHON
       - name: Upload failed MAUI test diagnostics
         if: ${{ failure() || cancelled() }}
         timeout-minutes: 2

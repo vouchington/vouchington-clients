@@ -24,7 +24,7 @@ final class EmailOTPViewModelTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: protocolClasses
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         let service = SignInService(client: apiClient, sessionManager: sessionManager)
         return EmailOTPViewModel(signInService: service)
     }

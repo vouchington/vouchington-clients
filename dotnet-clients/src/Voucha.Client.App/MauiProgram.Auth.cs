@@ -27,9 +27,16 @@ public static partial class MauiProgram
     services.AddSingleton<CookieContainer>();
     services.AddSingleton(PublicKeyPinningPolicy.VouchaDefault);
     services.AddSingleton<ISessionCookiePersistence>(sp =>
-        new MauiSecureSessionCookiePersistence(
-            sp.GetRequiredService<AppConfig>().ApiBaseUrl,
-            sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>()));
+    {
+      ISessionCookiePersistence Production() => new MauiSecureSessionCookiePersistence(
+          sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+          sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>());
+#if DEBUG
+      return CatalystGuiSessionCookiePersistence.Select(CatalystGuiPreflight.IsActive(), Production);
+#else
+      return Production();
+#endif
+    });
     services.AddSingleton(sp => new SessionCookieJar(
         sp.GetRequiredService<CookieContainer>(),
         sp.GetRequiredService<AppConfig>().ApiBaseUrl,

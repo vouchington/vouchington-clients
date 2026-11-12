@@ -131,7 +131,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.load()
         let controller = PodcastPlaybackController(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: client)
         )
         let sut = NativeFocusedRssFeedItemSurface(viewModel: viewModel, playbackController: controller)
 
@@ -159,7 +159,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.load()
         let controller = PodcastPlaybackController(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: client)
         )
         let sut = NativeFocusedRssFeedItemSurface(viewModel: viewModel, playbackController: controller)
 
@@ -200,7 +200,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.load()
         let controller = PodcastPlaybackController(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: client)
         )
         let sut = NativeFocusedRssFeedItemSurface(viewModel: viewModel, playbackController: controller)
 
@@ -216,7 +216,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.load()
         let controller = PodcastPlaybackController(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: client)
         )
         let sut = NativeFocusedRssFeedItemSurface(viewModel: viewModel, playbackController: controller)
 
@@ -266,7 +266,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
             viewModel: viewModel,
             playbackController: PodcastPlaybackController(
                 client: client,
-                sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+                sessionManager: SessionManager(client: client)
             )
         )
 
@@ -287,7 +287,7 @@ final class NativeFocusedRssFeedItemTests: NativeRouteSurfaceViewModelTestCase {
             viewModel: viewModel,
             playbackController: PodcastPlaybackController(
                 client: client,
-                sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+                sessionManager: SessionManager(client: client)
             )
         )
 

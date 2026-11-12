@@ -51,6 +51,29 @@ public sealed class BotChallengeReplayTests
   }
 
   [Theory]
+  [InlineData("x-app-attest-challenge-id")]
+  [InlineData("X-App-Attest-Assertion")]
+  public async Task AttestedMutationsNeverPromptOrReplay(string header)
+  {
+    var handler = new Handler();
+    using var http = new HttpClient(handler) { BaseAddress = new("https://api.test") };
+    var prompts = 0;
+    var client = new VouchaApiClient(http, new BotChallengeReplay(() => new Session(), (_, _) =>
+    {
+      prompts++;
+      return Task.FromResult("proof");
+    }));
+    var request = Mutation() with { Headers = new Dictionary<string, string> { [header] = "single-use-value" } };
+
+    var error = await Assert.ThrowsAsync<VouchaApiException>(() =>
+        client.SendAsync(request, TestContext.Current.CancellationToken));
+
+    Assert.Equal(HttpStatusCode.Forbidden, error.StatusCode);
+    Assert.Equal(0, prompts);
+    Assert.Single(handler.Requests);
+  }
+
+  [Theory]
   [InlineData("ordinary")]
   [InlineData("wrong-action")]
   [InlineData("bad-json")]

@@ -342,7 +342,7 @@ final class ProfileViewModelTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         return ProfileViewModel(client: apiClient, config: config, sessionManager: sessionManager)
     }
 
@@ -467,7 +467,7 @@ final class ProfileViewModelTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [FailingURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         let vm = ProfileViewModel(client: apiClient, config: config, sessionManager: sessionManager)
         // Manually put session in signed-in state by simulating a successful identity response
         // (easiest: just verify signOut drives it to anonymous, starting from anonymous is fine too)

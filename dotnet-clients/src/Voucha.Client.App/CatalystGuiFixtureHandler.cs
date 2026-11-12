@@ -3,13 +3,13 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.App;
 
 internal sealed partial class CatalystGuiFixtureHandler : DelegatingHandler
 {
-  private const string SessionBody =
-      """{"session":{"dt":"catalyst-gui-device","st":"catalyst-gui-session","dte":3600,"ste":3600}}""";
+  private readonly string sessionBody;
   private const string FeatureFlagsBody = """{"flags":{},"overrides":{}}""";
   private readonly string identityBody;
   private readonly JsonObject preferences;
@@ -17,20 +17,29 @@ internal sealed partial class CatalystGuiFixtureHandler : DelegatingHandler
   private readonly CatalystGuiAudit? audit;
 
   internal CatalystGuiFixtureHandler(
-      HttpMessageHandler inner, string identityBody, JsonObject preferences, CatalystGuiAudit? audit = null)
+      HttpMessageHandler inner, string identityBody, JsonObject preferences, string sessionBody, CatalystGuiAudit? audit = null)
       : base(inner)
   {
     this.identityBody = identityBody;
     this.preferences = preferences;
     this.audit = audit;
+    var uid = JsonSerializer.Deserialize<MyIdentityResponse>(identityBody, VouchaApiJson.Options)?.Identity?.Id;
+    if (string.IsNullOrWhiteSpace(uid)) throw new JsonException("The GUI identity fixture requires an account id.");
+    var replacement = JsonSerializer.Deserialize<NativeSessionRefreshResponse>(sessionBody, VouchaApiJson.Options)?.Session
+        ?? throw new JsonException("The GUI session fixture requires replacement credentials.");
+    var claims = replacement.Session ?? throw new JsonException("The GUI session fixture requires session claims.");
+    this.sessionBody = JsonSerializer.Serialize(new NativeSessionRefreshResponse(replacement with
+    {
+      Uid = uid,
+      Session = claims with { Uid = uid },
+    }), VouchaApiJson.Options);
   }
-
 
   protected override async Task<HttpResponseMessage> SendAsync(
       HttpRequestMessage request, CancellationToken cancellationToken)
   {
     var path = request.RequestUri?.AbsolutePath ?? string.Empty;
-    if (request.Method == HttpMethod.Patch && path == "/api/v1/session") return Json(SessionBody);
+    if (request.Method == HttpMethod.Patch && path == "/api/v1/session") return Json(sessionBody);
     if (request.Method == HttpMethod.Get && path == "/api/v1/my/identity") return Json(identityBody);
     if (request.Method == HttpMethod.Get && path == "/api/v1/feature-flags") return Json(FeatureFlagsBody);
     if (request.Method == HttpMethod.Get && path == "/api/v1/localization")

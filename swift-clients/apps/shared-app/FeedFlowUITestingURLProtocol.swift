@@ -67,6 +67,7 @@
         }
 
         private func canonicalResponseData() -> Data? {
+            if request.url?.path == "/api/v1/session" { return sessionResponseData() }
             if ProcessInfo.processInfo.environment["VOUCHA_UI_TESTING_SOURCE_CREATION_RESPONSES"] != nil {
                 return SourceCreationUITestingResponses.data(for: request)
             }
@@ -80,25 +81,35 @@
                   url.host == "ui-testing.voucha.invalid",
                   let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             else { return nil }
-            let key: String
+            return responseEnvironmentKey(url: url, components: components)
+        }
+
+        private func responseEnvironmentKey(url: URL, components: URLComponents) -> String? {
             switch url.path {
             case "/api/v1/my/identity":
                 guard components.queryItems?.isEmpty != false else { return nil }
-                key = "VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"
+                return "VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"
             case "/api/v1/feeds/rss_feed_items/any":
-                guard let responseKey = feedResponseEnvironmentKey(components) else { return nil }
-                key = responseKey
+                return feedResponseEnvironmentKey(components)
             case "/api/v1/feeds/posts/any":
-                guard components.queryItems?.count == 3,
-                      components.queryItems?.contains(URLQueryItem(name: "limit", value: "20")) == true,
-                      components.queryItems?.contains(URLQueryItem(name: "sort", value: "hot")) == true,
-                      components.queryItems?.contains(URLQueryItem(name: "time_range", value: "1w")) == true
-                else { return nil }
-                key = "VOUCHA_UI_TESTING_POSTS_FEED_RESPONSE_BASE64"
+                return isPostsQuery(components) ? "VOUCHA_UI_TESTING_POSTS_FEED_RESPONSE_BASE64" : nil
             default:
                 return nil
             }
-            return key
+        }
+
+        private func isPostsQuery(_ components: URLComponents) -> Bool {
+            components.queryItems?.count == 3
+                && components.queryItems?.contains(URLQueryItem(name: "limit", value: "20")) == true
+                && components.queryItems?.contains(URLQueryItem(name: "sort", value: "hot")) == true
+                && components.queryItems?.contains(URLQueryItem(name: "time_range", value: "1w")) == true
+        }
+
+        private func sessionResponseData() -> Data? {
+            guard request.httpMethod == "PATCH", request.url?.host == "ui-testing.voucha.invalid",
+                  let encoded = scenario.environment["VOUCHA_UI_TESTING_SESSION_RESPONSE_BASE64"]
+            else { return nil }
+            return Data(base64Encoded: encoded)
         }
 
         private func feedResponseEnvironmentKey(_ components: URLComponents) -> String? {

@@ -12,13 +12,15 @@ public actor APIClient {
     let persistCookies: (@Sendable () -> Void)?
     let decoder: JSONDecoder
     let encoder: JSONEncoder
-    private let logger = VouchaLogger(category: "APIClient")
+    let logger = VouchaLogger(category: "APIClient")
     public nonisolated let baseURL: URL
     var mutationChallengeHandler: (@Sendable () async throws -> String?)?
     private let signer: (any RequestSigning)?
     private let metadata: ClientMetadata
     let sessionBootstrapEnabled: Bool
-    var sessionBootstrapTask: Task<Void, Error>?
+    let cookieCoordinator: SessionCookieCoordinator
+    let clearCookiesChecked: (@Sendable () throws -> Void)?
+    let persistCookiesChecked: (@Sendable () throws -> Void)?
 
     /// Bootstrap defaults retain the legacy `protocolClasses` policy. When supplying a
     /// configuration with a custom test transport, explicitly pass `bootstrapSession: false`.
@@ -33,13 +35,17 @@ public actor APIClient {
         metadata: ClientMetadata = ClientMetadata(platform: .macos, appVersion: "development"),
         pinningPolicy: PublicKeyPinningPolicy = .vouchaDefault,
         sessionConfiguration: URLSessionConfiguration? = nil,
-        persistCookies: (@Sendable () -> Void)? = nil
+        persistCookies: (@Sendable () -> Void)? = nil,
+        persistCookiesChecked: (@Sendable () throws -> Void)? = nil,
+        clearCookiesChecked: (@Sendable () throws -> Void)? = nil
     ) {
         self.signer = signer
         self.metadata = metadata
         imageBaseURL = config.imageBaseURL
         sessionBootstrapEnabled = bootstrapSession ?? (protocolClasses == nil)
         self.persistCookies = persistCookies
+        self.persistCookiesChecked = persistCookiesChecked
+        self.clearCookiesChecked = clearCookiesChecked
         self.config = config
         baseURL = config.baseURL
         let sessionConfig = Self.cookieSessionConfiguration(sessionConfiguration, cookieStorage: cookieStorage)
@@ -47,6 +53,10 @@ public actor APIClient {
             preconditionFailure("API session configuration requires an explicit cookie storage")
         }
         self.cookieStorage = configuredCookies
+        cookieCoordinator = .shared(for: configuredCookies)
+        // The coordinator owns cookie writes. FoundationNetworking can mutate a
+        // configured jar despite disabled automatic-cookie flags, bypassing persistence.
+        sessionConfig.httpCookieStorage = nil
         if let protocolClasses {
             sessionConfig.protocolClasses = protocolClasses
         }
@@ -167,23 +177,12 @@ public extension APIClient {
         _ endpoint: Endpoint,
         allowingStatusCodes allowedStatusCodes: Set<Int>
     ) async throws -> T {
-        if endpoint.path != "/api/v1/session" {
+        if endpoint.path != "/api/v1/session", endpoint.path != "/api/v1/auth/logout" {
             try await ensureSessionBootstrap()
         }
-        defer { persistCookies?() }
-        let rawRequest = try buildRequest(endpoint)
-        logger.debug("→ \(endpoint.method.rawValue) \(endpoint.path)")
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await mutationData(for: rawRequest, endpoint: endpoint)
-        } catch let error as URLError {
-            throw VouchaError.network(error)
-        }
-        if let http = response as? HTTPURLResponse, allowedStatusCodes.contains(http.statusCode) == false {
+        let (data, response) = try await executeBuffered(endpoint)
+        if let http = response as? HTTPURLResponse, !allowedStatusCodes.contains(http.statusCode) {
             try validate(response: response, data: data)
-        }
-        if endpoint.path == "/api/v1/session" {
-            try persistSessionTokensIfPresent(from: data)
         }
         let decodeData = data.isEmpty ? Data("{}".utf8) : data
         do {
