@@ -22,6 +22,13 @@ final class SessionRefreshTransport: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         paths.append(request.url?.path ?? "")
+        if request.url?.path == "/api/v1/session", let next = responses.first {
+            switch next {
+            case .failure: return responses.removeFirst()
+            case let .http(status, _) where status >= 400: return responses.removeFirst()
+            default: return .http(200, ApiFixtureLoader.data("native.auth.session.refresh.rotated"))
+            }
+        }
         guard request.url?.path == "/api/v1/my/identity", !responses.isEmpty else {
             return .failure(.unsupportedURL)
         }

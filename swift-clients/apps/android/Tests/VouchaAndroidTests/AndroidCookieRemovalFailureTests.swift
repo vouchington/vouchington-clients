@@ -39,8 +39,8 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
         XCTAssertEqual(AndroidAuthURLProtocol.requestSnapshot().count, requestsBeforeSignOut)
         XCTAssertTrue(AndroidSessionCookieStorage(secrets: secrets).cookies?.isEmpty ?? true)
         XCTAssertEqual(
-            AndroidSessionCookieStorage(secrets: secrets.reconstructProcess()).cookies?.map(\.value),
-            ["original-session"]
+            AndroidSessionCookieStorage(secrets: secrets.reconstructProcess()).cookies?.map(\.value).sorted(),
+            try androidRotatedCookieValues()
         )
 
         secrets.failDeletionCommit = false
@@ -90,7 +90,7 @@ final class AndroidCookieRemovalFailureTests: XCTestCase {
                 .snapshotValue(forKey: XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))),
             originalValue
         )
-        XCTAssertEqual(storage.cookies?.map(\.value), ["original-session"])
+        XCTAssertEqual(storage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
         XCTAssertEqual(AndroidAuthURLProtocol.requestSnapshot().count, requestsBeforeSignOut)
 
         secrets.setRemovalFailure(false)

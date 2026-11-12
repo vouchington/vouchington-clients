@@ -22,6 +22,11 @@ const requiredFixtures = [
     method: 'GET',
     path: '/api/v1/my/email-preferences',
   },
+  {
+    id: 'native.auth.session.refresh.rotated',
+    method: 'PATCH',
+    path: '/api/v1/session',
+  },
 ]
 
 export function sharedIdentityFixture(root) {
@@ -36,7 +41,7 @@ function requiredFixture(root, expected) {
   const fixture = manifest.fixtures?.find(item => item.id === expected.id)
   if (!fixture) throw new Error(`missing shared fixture ${expected.id}`)
   if (fixture.method !== expected.method || fixture.path !== expected.path || fixture.status !== 200)
-    throw new Error(`shared fixture ${expected.id} is not the canonical GET`)
+    throw new Error(`shared fixture ${expected.id} is not the canonical ${expected.method}`)
   const bodyFile = fixture.bodyFile
   if (typeof bodyFile !== 'string' || !bodyFile.startsWith('responses/') || bodyFile.includes('..'))
     throw new Error(`shared fixture ${expected.id} body is not a responses file`)

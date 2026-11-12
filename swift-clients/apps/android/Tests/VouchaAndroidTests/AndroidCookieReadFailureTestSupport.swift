@@ -124,20 +124,31 @@ final class CookieReadRetryURLProtocol: URLProtocol {
             return
         }
         let identity = probe.record(request)
-        guard request.url?.path == "/api/v1/my/identity" else {
+        let data: Data
+        let status: Int
+        if request.url?.path == "/api/v1/session", isCredentialedSessionRefresh(request) {
+            do { data = try androidSessionRefreshFixture() } catch {
+                deliver { $0.urlProtocol(self, didFailWithError: error) }
+                return
+            }
+            status = 200
+        } else if request.url?.path == "/api/v1/my/identity" {
+            data = identity
+            status = 200
+        } else {
             deliver { $0.urlProtocol(self, didFailWithError: URLError(.unsupportedURL)) }
             return
         }
         guard let url = request.url,
               let response = HTTPURLResponse(
                   url: url,
-                  statusCode: 200,
+                  statusCode: status,
                   httpVersion: "HTTP/1.1",
                   headerFields: ["Content-Type": "application/json"]
               )
         else { return }
         deliver { $0.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
-        deliver { $0.urlProtocol(self, didLoad: identity) }
+        deliver { $0.urlProtocol(self, didLoad: data) }
         deliver { $0.urlProtocolDidFinishLoading(self) }
     }
 
@@ -175,21 +186,5 @@ final class CookieReadRetryProtocolRegistry: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return probes[host.lowercased()]
-    }
-}
-
-enum CookieReadFailureTestFixture {
-    static func cookieSnapshot(value: String, domain: String = "voucha.ai") throws -> String {
-        let record = try XCTUnwrap(
-            AndroidSessionCookieStorage.CookieRecord(cookie: sessionCookie(value: value, domain: domain))
-        )
-        let data = try JSONEncoder().encode([record])
-        return try XCTUnwrap(String(data: data, encoding: .utf8))
-    }
-
-    static func sessionCookie(value: String, domain: String = "voucha.ai") throws -> HTTPCookie {
-        try XCTUnwrap(HTTPCookie(properties: [
-            .name: "st", .value: value, .domain: domain, .path: "/", .secure: "TRUE"
-        ]))
     }
 }

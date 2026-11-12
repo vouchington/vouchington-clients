@@ -12,7 +12,7 @@ final class NativeTurnstileFallbackCallSiteTests: NativeRouteSurfaceViewModelTes
         let client = try makeClient()
         let service = SignInService(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: client)
         )
         let model = EmailOTPViewModel(signInService: service)
         var presented = true
@@ -135,7 +135,7 @@ final class NativeTurnstileFallbackCallSiteTests: NativeRouteSurfaceViewModelTes
             let client = try makeClient()
             let service = SignInService(
                 client: client,
-                sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+                sessionManager: SessionManager(client: client)
             )
             let email = emailOTPTurnstileChallenge(
                 siteKey: nil,

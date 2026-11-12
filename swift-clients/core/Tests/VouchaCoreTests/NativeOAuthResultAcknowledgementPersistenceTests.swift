@@ -53,7 +53,7 @@ final class NativeOAuthResultAcknowledgementPersistenceTests: XCTestCase {
         )
         return NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
+            sessionManager: SessionManager(client: client),
             store: store
         )
     }

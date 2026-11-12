@@ -31,13 +31,14 @@ final class LaunchSmokeTests: XCTestCase {
     }
 
     #if os(macOS)
-        func testNotificationSettingsRouteFocusesHeadingAndAnnouncesLocalizedOpenMessageOnEachActivation() {
+        func testNotificationSettingsRouteFocusesHeadingAndAnnouncesLocalizedOpenMessageOnEachActivation() throws {
             let app = makeApplication()
             app.launchArguments = [
                 "--ui-testing-notification-settings",
                 "-AppleLanguages", "(en)",
                 "-AppleLocale", "en_US"
             ]
+            try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
             XCTAssertTrue(

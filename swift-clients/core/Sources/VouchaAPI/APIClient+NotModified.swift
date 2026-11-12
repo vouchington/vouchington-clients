@@ -9,15 +9,7 @@ public extension APIClient {
         if endpoint.path != "/api/v1/session" {
             try await ensureSessionBootstrap()
         }
-        defer { persistCookies?() }
-        let rawRequest = try buildRequest(endpoint)
-        let request = await applySigningIfNeeded(rawRequest, method: endpoint.method.rawValue)
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch let error as URLError {
-            throw VouchaError.network(error)
-        }
+        let (data, response) = try await executeBuffered(endpoint)
         if let http = response as? HTTPURLResponse, http.statusCode == 304 {
             return nil
         }
