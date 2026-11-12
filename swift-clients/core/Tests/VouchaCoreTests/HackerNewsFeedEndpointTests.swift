@@ -14,7 +14,7 @@ final class HackerNewsFeedEndpointTests: XCTestCase {
                     limit: 9
                 ),
                 .rssFeedItems(
-                    feedType: "audio",
+                    feedType: "follow_users",
                     after: "opaque==",
                     limit: 9,
                     mediaType: "audio",
@@ -24,7 +24,7 @@ final class HackerNewsFeedEndpointTests: XCTestCase {
             ]
             XCTAssertEqual(endpoints.map(\.path), [
                 "/api/v1/posts",
-                "/api/v1/feeds/rss_feed_items/audio",
+                "/api/v1/feeds/rss_feed_items/follow_users",
                 "/api/v1/rss-feed-items"
             ])
             for endpoint in endpoints {
