@@ -137,11 +137,12 @@ checks. Pull requests never publish persistent snapshots.
 A missing compatible cache or changed configuration still requires a cold build. The observed
 failed run spent 3 minutes 36 seconds in setup and was cancelled after 6 minutes 24 seconds of cold
 Kotlin compilation under the former 10-minute job limit; the default-branch cache catalog had no
-Gradle task-output entries. Kotlin therefore has a 20-minute job budget with a 10-minute build step
+Gradle task-output entries. Kotlin therefore has a 23-minute job budget with a 10-minute build step
 (the existing 600-second command wrapper remains), two minutes each for exact-run packing and
 upload, and bounded main-only cache inspection/publication steps. Its successful main snapshot can
-seed later runs independently of the downstream APK result. These budgets accommodate bootstrap
-work; native performance and warm-cache timing still require hosted-run validation.
+seed later runs independently of the downstream APK result. The observed setup plus the 17
+minutes of bounded build/handoff/publication totals 20 minutes 36 seconds; the job leaves another
+2 minutes 24 seconds for transfer variance and cleanup. These budgets accommodate bootstrap work; native performance and warm-cache timing still require hosted-run validation.
 
 The prior pinned Gradle profile baseline measured task overlap and bounded generated-state
 sizes. This experiment measures compression, artifact transfer, rehydration, and repeated Gradle

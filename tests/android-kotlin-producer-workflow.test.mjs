@@ -14,7 +14,7 @@ const step = (job, name) => stepBlock(job, name)
 
 test('Kotlin libraries run beside native production with pinned host tools and main-only persistent writes', () => {
   assert.match(library, /needs: \[verify, build-swift-android-dependency\]/u)
-  assert.match(library, /timeout-minutes: 20/u)
+  assert.match(library, /^    timeout-minutes: 23$/mu)
   assert.match(library, /ANDROID_BUILD_PHASE: app-kotlin-libraries/u)
   assert.match(library, /tool: swift/u)
   assert.match(library, /select-xcode\.sh 26\.6/u)
