@@ -54,8 +54,11 @@ struct NativeRouteDestinationSurface: View {
                 NativeEngineeringQueuesSurface(entry: entry, client: viewModel.client)
                     .id(viewModel.client != nil)
             } else if entry.destinationIdentifier == .engineeringPostgresql {
-                NativeEngineeringPostgresqlSurface(entry: entry, client: viewModel.client)
-                    .id(viewModel.client != nil)
+                NativeEngineeringPostgresqlSurface(
+                    entry: entry, client: viewModel.client,
+                    accountId: currentUserId, isAdministrator: isAdministrator
+                )
+                .id(viewModel.client != nil)
             } else if entry.destinationIdentifier == .engineeringValkey {
                 NativeEngineeringValkeySurface(entry: entry, client: viewModel.client)
                     .id(viewModel.client != nil)

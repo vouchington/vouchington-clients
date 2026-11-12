@@ -100,6 +100,8 @@
     <Compile Include="../../src/Voucha.Client.App/FeatureFlagOverridesPageFactory.cs" Link="FeatureFlagOverridesPageFactory.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/ReviewQueuePage.xaml" Link="Pages/ReviewQueuePage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ReviewQueuePage.xaml.cs" Link="Pages/ReviewQueuePage.xaml.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/EngineeringPostgreSqlPage.xaml" Link="Pages/EngineeringPostgreSqlPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/EngineeringPostgreSqlPage.xaml.cs" Link="Pages/EngineeringPostgreSqlPage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml" Link="Pages/AiCostsPage.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/AiCostsPage.xaml.cs" Link="Pages/AiCostsPage.xaml.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/EngineeringQueuesPage.xaml" Link="Pages/EngineeringQueuesPage.xaml" />

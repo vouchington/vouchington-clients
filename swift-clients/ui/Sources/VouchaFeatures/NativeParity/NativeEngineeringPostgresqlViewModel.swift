@@ -20,7 +20,15 @@ final class NativeEngineeringPostgresqlViewModel: NativeEngineeringActionPerform
     var pendingAction: NativeEngineeringPostgresqlPendingAction?
     var actionErrorMessage: UiVerbatimText?
 
-    private let client: APIClient
+    var rangeConfirmation: NativePostgresqlRangeConfirmation?
+    var rangeQueued = false
+    var rangeError: NativePostgresqlRangeError?
+    var rangeAccountId: String?
+    var rangeIsAdministrator = false
+    var rangeGeneration = UUID()
+    var rangeRequest: Task<EngineeringSuccessResponse, Error>?
+
+    let client: APIClient
     var actionLoadingKeys: Set<String> = []
 
     init(client: APIClient) {
@@ -51,6 +59,7 @@ final class NativeEngineeringPostgresqlViewModel: NativeEngineeringActionPerform
     }
 
     func runJob(_ type: EngineeringPsqlJobType) async {
+        guard !actionLoadingKeys.contains("partition-range") else { return }
         await performAction(key: "job|\(type.rawValue)") {
             let _: EngineeringSuccessResponse = try await self.client.send(.psqlJobs(type: type))
         }
