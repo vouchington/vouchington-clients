@@ -83,6 +83,7 @@
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml" Link="Pages/EmailAddressManagerView.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml.cs" Link="Pages/EmailAddressManagerView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml.cs" Link="Pages/PostsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.TimeRange.cs" Link="Pages/PostsPage.TimeRange.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.EmbedPreview.cs" Link="Pages/PostsPage.EmbedPreview.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml" Link="Pages/PostsPage.xaml" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostDetailPage.xaml" Link="Pages/PostDetailPage.xaml" />

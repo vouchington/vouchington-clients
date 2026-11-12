@@ -20,7 +20,7 @@ public static partial class VouchaApiEndpoints
             ("limit", request.Limit),
             ("after", request.After),
             ("semantic_search_query", request.SemanticSearchQuery),
-            ("time_range", request.TimeRange ?? PostTimeRanges.Last30Days),
+            ("time_range", request.TimeRange),
             ("has_hacker_news_references", Bool(request.HasHackerNewsReferences))));
   }
 

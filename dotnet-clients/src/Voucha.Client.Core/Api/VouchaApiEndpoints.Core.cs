@@ -77,7 +77,7 @@ public static partial class VouchaApiEndpoints
               ("sort", "hot"),
               ("after", after),
               ("post_types", postTypes),
-              ("time_range", timeRange ?? PostTimeRanges.LastWeek)));
+              ("time_range", timeRange)));
 
   public static ApiRequest Notifications(string? after = null, int limit = 20) =>
       Get("/api/v1/my/notifications", Query(("limit", limit), ("after", after)));

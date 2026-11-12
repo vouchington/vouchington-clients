@@ -262,16 +262,70 @@ public sealed class PostsListViewModelBoundedWindowTests
   }
 
   [Fact]
-  public async Task NullBrowseRangeCannotAccidentallyRequestAnUnboundedList()
+  public async Task NativeBrowseNormalizesNullWhileLowLevelRequestsCanRepresentUnboundedFixtures()
   {
-    Assert.Equal("1m", VouchaApiEndpoints.AllPosts(new FetchPostsRequest(TimeRange: null)).Query["time_range"]);
-    Assert.Equal("1m", VouchaApiEndpoints.SearchPosts("search", timeRange: null).Query["time_range"]);
+    Assert.False(VouchaApiEndpoints.AllPosts(new FetchPostsRequest(TimeRange: null)).Query.ContainsKey("time_range"));
+    Assert.False(VouchaApiEndpoints.SearchPosts("search", timeRange: null).Query.ContainsKey("time_range"));
     var service = new ScriptedPostsService(Page(["month"], "cursor"), Page(["more"], null));
     using var model = new PostsListViewModel(service);
     await model.LoadBrowseAsync(timeRange: null, cancellationToken: TestContext.Current.CancellationToken);
     await model.LoadMoreAsync(TestContext.Current.CancellationToken);
     Assert.All(service.BrowseRequests, request => Assert.Equal("1m", request.TimeRange));
     Assert.Equal(new[] { "month", "more" }, model.Items.Select(row => row.Id));
+  }
+
+  [Theory]
+  [InlineData(null, "1y")]
+  [InlineData("all", "1y")]
+  [InlineData("1m", "1m")]
+  [InlineData("1w", "1w")]
+  public async Task HackerNewsLoadsClampMissingOrAllAndRetainExplicitFiniteRanges(string? requested, string expected)
+  {
+    var service = new ScriptedPostsService(Page(["first"], "cursor"), Page(["more"], null));
+    using var model = new PostsListViewModel(service);
+    await model.LoadBrowseAsync("review", requested, true, TestContext.Current.CancellationToken);
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { "1w", "1m", "1y" }, model.TimeRange.Options.Select(option => option.Value));
+    Assert.Equal(expected, model.TimeRange.RequestValue);
+    Assert.All(service.BrowseRequests, request =>
+    {
+      Assert.True(request.HasHackerNewsReferences);
+      Assert.Equal(expected, request.TimeRange);
+      Assert.Equal("review", request.PostTypes);
+    });
+    Assert.Equal(new string?[] { null, "cursor" }, service.BrowseRequests.Select(request => request.After));
+  }
+
+  [Fact]
+  public async Task HackerNewsPickerKeepsTopicScopeAndFilterResetsCursorThenFeedClearsFilter()
+  {
+    var service = new ScriptedPostsService(Page(["year"], "old"), Page(["month"], "month-cursor"),
+        Page(["more"], null), Page(["ordinary"], null), Page(["feed"], null));
+    using var model = new PostsListViewModel(service);
+    var scope = new TopicPostsRoute("travel", "data-points").RequestForTopic("canonical-topic");
+    await model.LoadBrowseAsync("data_point", hasHackerNewsReferences: true,
+        cancellationToken: TestContext.Current.CancellationToken, scope: scope);
+    await model.SelectBrowseTimeRangeAsync("1m", TestContext.Current.CancellationToken);
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { "month", "more" }, model.Items.Select(row => row.Id));
+    Assert.All(service.BrowseRequests, request =>
+    {
+      Assert.True(request.HasHackerNewsReferences);
+      Assert.Equal("canonical-topic", request.DataPointTopic);
+      Assert.Equal("data_point", request.PostTypes);
+      Assert.Equal("new", request.Sort);
+    });
+    Assert.Equal(new[] { "1y", "1m", "1m" }, service.BrowseRequests.Select(request => request.TimeRange));
+    Assert.Equal(new string?[] { null, null, "month-cursor" }, service.BrowseRequests.Select(request => request.After));
+    await model.LoadBrowseAsync("data_point", model.TimeRange.RequestValue,
+        cancellationToken: TestContext.Current.CancellationToken, scope: scope);
+    Assert.Null(service.BrowseRequests.Last().HasHackerNewsReferences);
+    Assert.Equal("1m", service.BrowseRequests.Last().TimeRange);
+    Assert.Equal("all", model.TimeRange.Options.Last().Value);
+    await model.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
+    Assert.Null(model.HackerNewsFilter);
+    Assert.False(model.IsHackerNewsFilterVisible);
+    Assert.Equal("1w", Assert.Single(service.FeedRequests).TimeRange);
   }
 
   private static Task<PostsFeedResponse> Page(string[] ids, string? endCursor, bool? hasNext = null) =>

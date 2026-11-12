@@ -125,12 +125,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public async Task LoadBrowseAsync(
       string? postTypes = null,
-      string? timeRange = PostTimeRanges.Last30Days,
+      string? timeRange = null,
       bool? hasHackerNewsReferences = null,
       CancellationToken cancellationToken = default,
       FetchPostsRequest? scope = null)
   {
-    timeRange ??= PostTimeRanges.Last30Days;
+    timeRange = ConfigureBrowseTimeRange(timeRange, hasHackerNewsReferences);
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
     HackerNewsFilter = hasHackerNewsReferences;

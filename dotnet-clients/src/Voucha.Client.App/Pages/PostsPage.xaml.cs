@@ -77,6 +77,7 @@ public partial class PostsPage : ContentPage
   {
     mode = "browse";
     hasHackerNewsReferences = hasHackerNewsReferences == true ? null : true;
+    if (hasHackerNewsReferences == true) viewModel.TimeRange.Select(PostTimeRanges.LastYear);
     await LoadCurrentAsync();
   }
 
