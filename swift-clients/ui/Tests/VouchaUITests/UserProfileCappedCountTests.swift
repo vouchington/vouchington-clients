@@ -78,10 +78,93 @@ final class UserProfileCappedCountTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertThrowsError(try counts.inspect().find(text: "7+ followers"))
     }
 
+    func testEveryPrivateCollectionRendersItsOwnLocalizedLabelAndCapFlag() throws {
+        let expected: [(String, UiMessageKey)] = [
+            ("posts_saved", .nativeSwiftRouteSurfaceSavedPosts),
+            ("communities_saved", .nativeSwiftRouteSurfaceSavedCommunities),
+            ("rss_feed_items_saved", .nativeSwiftRouteSurfaceSavedFeedItems),
+            ("urls_saved", .nativeSwiftRouteSurfaceSavedUrls),
+            ("posts_hidden", .nativeDotnetBookmarksHiddenPosts),
+            ("posts_following", .nativeDotnetBookmarksFollowedPosts),
+            ("topics_blocked", .nativeDotnetBookmarksBlockedTopics),
+            ("topics_muted", .nativeDotnetBookmarksMutedTopics),
+            ("topics_viewed", .nativeDotnetBookmarksViewedTopics),
+            ("topics_dismissed_recommendations", .nativeDotnetBookmarksDismissedTopicRecommendations),
+            ("users_blocked", .nativeDotnetBookmarksBlockedUsers),
+            ("users_muted", .nativeDotnetBookmarksMutedUsers),
+            ("users_subscribed_posts", .nativeDotnetBookmarksSubscribedToPosts),
+            ("users_dismissed_recommendations", .nativeDotnetBookmarksDismissedFriendRecommendations),
+            ("rss_feed_items_hidden", .extractedUsersUserRssFeedItemRoutesHiddenRssItems28d66515),
+            ("domains_blocked", .nativeDotnetBookmarksBlockedDomains),
+            ("domains_muted", .nativeDotnetBookmarksMutedDomains),
+            ("communities_proxy_following", .nativeDotnetBookmarksProxyFollowedCommunities),
+            ("communities_proxy_muted", .nativeDotnetBookmarksProxyMutedCommunities)
+        ]
+        let counts = Dictionary(uniqueKeysWithValues: expected.enumerated().map { ($1.0, 1_000 + $0) })
+        let caps = Dictionary(uniqueKeysWithValues: expected.enumerated().map { ($1.0, $0.isMultiple(of: 2)) })
+        let profile = try makeProfile(capped: false, suppliedPrivateCounts: counts, suppliedCaps: caps)
+        for locale in [Locale(identifier: "en"), Locale(identifier: "fr")] {
+            let surface = try makeSurface(currentUserId: "user-abc")
+            surface.viewModel.userProfile.header = profile
+            let rendered = try surface.environment(\.locale, locale).inspect()
+            for (index, entry) in expected.enumerated() {
+                let row = try rendered.find(ViewType.HStack.self, where: {
+                    try $0.accessibilityIdentifier() == "private-collection-count-\(entry.0)"
+                })
+                XCTAssertNoThrow(try row.find(text: UiMessages.string(entry.1, locale: locale)), entry.0)
+                XCTAssertNoThrow(try row.find(text: UiMessages.cappedNumber(
+                    Double(1_000 + index), capped: index.isMultiple(of: 2), locale: locale
+                )), entry.0)
+            }
+        }
+    }
+
+    func testSparsePrivateMetricsRenderZeroIgnoreUnknownAndDefaultMissingCapToExact() throws {
+        let profile = try makeProfile(
+            capped: false,
+            suppliedPrivateCounts: ["posts_hidden": 0, "topics_muted": 1_000, "future_metric": 5],
+            suppliedCaps: ["future_metric": true, "rss_feed_items_hidden": true]
+        )
+        let surface = try makeSurface(currentUserId: "user-abc")
+        let rows = surface.privateCollectionCounts(profile)
+        XCTAssertEqual(rows.map(\.id), ["posts_hidden", "topics_muted"])
+        let rendered = try surface.privateCollectionCountsView(profile).inspect()
+        let hidden = try rendered.find(ViewType.HStack.self, where: {
+            try $0.accessibilityIdentifier() == "private-collection-count-posts_hidden"
+        })
+        XCTAssertNoThrow(try hidden.find(text: "0"))
+        let muted = try rendered.find(ViewType.HStack.self, where: {
+            try $0.accessibilityIdentifier() == "private-collection-count-topics_muted"
+        })
+        XCTAssertNoThrow(try muted.find(text: "1,000"))
+        XCTAssertThrowsError(try rendered.find(text: "5+"))
+        XCTAssertThrowsError(try rendered.find(text: "1,000+"))
+    }
+
+    func testPrivateMetricRowsDoNotRenderOutsideOwnerOverview() throws {
+        let profile = try makeProfile(
+            capped: false,
+            suppliedPrivateCounts: ["posts_hidden": 1, "users_muted": 2, "rss_feed_items_hidden": 3]
+        )
+        for (viewer, signedIn, overview) in [
+            ("another-user", true, true), ("user-abc", false, true), ("user-abc", true, false)
+        ] {
+            let surface = try makeSurface(currentUserId: viewer, signedIn: signedIn)
+            if !overview { surface.viewModel.userProfile.scope = .posts(.all) }
+            let rendered = try surface.privateCollectionCountsView(profile).inspect()
+            XCTAssertThrowsError(try rendered.find(ViewType.HStack.self, where: {
+                try $0.accessibilityIdentifier() == "private-collection-count-posts_hidden"
+            }))
+            XCTAssertTrue(surface.privateCollectionCounts(profile).isEmpty)
+        }
+    }
+
     private func makeProfile(
         capped: Bool,
         privateCounts: Bool = false,
-        exactViewerCounts: Bool = false
+        exactViewerCounts: Bool = false,
+        suppliedPrivateCounts: [String: Int]? = nil,
+        suppliedCaps: [String: Bool]? = nil
     ) throws -> UserProfileResponse {
         var root = try XCTUnwrap(JSONSerialization.jsonObject(
             with: ApiFixtureLoader.data("native.users.profile.default")
@@ -127,6 +210,12 @@ final class UserProfileCappedCountTests: NativeRouteSurfaceViewModelTestCase {
                 "communities_saved": false,
                 "rss_feed_items_saved": true
             ]
+            root["user_metrics"] = metrics
+        }
+        if let suppliedPrivateCounts {
+            var metrics = try XCTUnwrap(root["user_metrics"] as? [String: Any])
+            metrics["private_count"] = suppliedPrivateCounts
+            metrics["private_count_capped"] = suppliedCaps ?? [:]
             root["user_metrics"] = metrics
         }
         let decoder = JSONDecoder()

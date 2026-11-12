@@ -20,10 +20,13 @@ namespace Voucha.Client.App.Tests;
 public sealed class ProfilePrivateMetricRenderingTests
 {
   [Theory]
-  [InlineData(true, "1,000+")]
-  [InlineData(false, "1,000")]
-  [InlineData(null, "1,000")]
-  public async Task OwnRowsRenderCapFlagsAndDisappearOnPublicNavigation(bool? capped, string count)
+  [InlineData("posts_saved", true, "1,000+")]
+  [InlineData("posts_saved", false, "1,000")]
+  [InlineData("posts_saved", null, "1,000")]
+  [InlineData("rss_feed_items_hidden", true, "1,000+")]
+  [InlineData("rss_feed_items_hidden", false, "1,000")]
+  [InlineData("rss_feed_items_hidden", null, "1,000")]
+  public async Task OwnRowsRenderCapFlagsAndDisappearOnPublicNavigation(string key, bool? capped, string count)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
@@ -37,8 +40,8 @@ public sealed class ProfilePrivateMetricRenderingTests
         new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
     var settings = DispatchProxy.Create<ISettingsService, MetricSettingsProxy>();
     ((MetricSettingsProxy)(object)settings).Metrics = new UserMetrics("user_metrics", "user-1", new UserMetricsCount(),
-        PrivateCount: new Dictionary<string, int> { ["posts_saved"] = 1000 },
-        PrivateCountCapped: capped is bool value ? new Dictionary<string, bool> { ["posts_saved"] = value } : null);
+        PrivateCount: new Dictionary<string, int> { [key] = 1000 },
+        PrivateCountCapped: capped is bool value ? new Dictionary<string, bool> { [key] = value } : null);
     using var model = new ProfileViewModel(settings,
         DispatchProxy.Create<ILandingPagesService, ProfilePageLocalAvatarPreviewTests.UnusedService>(),
         DispatchProxy.Create<IPostsService, ProfilePageLocalAvatarPreviewTests.PostsProxy>(),
@@ -53,7 +56,7 @@ public sealed class ProfilePrivateMetricRenderingTests
 
     Assert.True(rows.IsVisible);
     var row = Assert.IsType<Grid>(Assert.Single(rows.Children));
-    Assert.Equal("Saved Posts", row.Children.OfType<Label>().First().Text);
+    Assert.Equal(Assert.Single(model.PrivateMetricRows).Label, row.Children.OfType<Label>().First().Text);
     Assert.Equal(count, row.Children.OfType<Label>().Last().Text);
     controller.ApplySavedLocale("es");
     row = Assert.IsType<Grid>(Assert.Single(rows.Children));
@@ -80,7 +83,7 @@ public sealed class ProfilePrivateMetricRenderingTests
         new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
     var settings = DispatchProxy.Create<ISettingsService, MetricSettingsProxy>();
     ((MetricSettingsProxy)(object)settings).Metrics = new UserMetrics("user_metrics", "user-1", new UserMetricsCount(),
-        PrivateCount: new Dictionary<string, int> { ["posts_saved"] = 1000 });
+        PrivateCount: new Dictionary<string, int> { ["rss_feed_items_hidden"] = 1000 });
     using var model = new ProfileViewModel(settings,
         DispatchProxy.Create<ILandingPagesService, ProfilePageLocalAvatarPreviewTests.UnusedService>(),
         DispatchProxy.Create<IPostsService, ProfilePageLocalAvatarPreviewTests.PostsProxy>(),
