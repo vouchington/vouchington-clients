@@ -18,13 +18,15 @@ public sealed class PostAuthorAvatarRenderingTests
   private static readonly TopicImagePlacement Placement =
       new("00000000-0000-7000-8000-000000000201", "00000000-0000-7000-8000-000000000301", 2);
 
-  private static readonly Uri ExpectedUrl = new(
-      "https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96");
+  private static Uri ExpectedUrl(string imageHost) => new(
+      $"{imageHost}/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96");
 
-  [Fact]
-  public void RootAuthorImageUsesPlacementAndHidesForLegacyAnonymousAndDeletedAuthors()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void RootAuthorImageUsesPlacementAndHidesForLegacyAnonymousAndDeletedAuthors(string imageHost)
   {
-    InstallPageResources();
+    InstallPageResources(imageHost);
     var page = new PostDetailPage();
     var binding = Binding();
     var rootProperty = typeof(PostDetailPageBinding).GetProperty(nameof(PostDetailPageBinding.RootRow))!;
@@ -32,7 +34,7 @@ public sealed class PostAuthorAvatarRenderingTests
     var image = Named<Image>(page, "post-author-avatar-root");
 
     rootProperty.SetValue(binding, Row(Post(Author(Placement))));
-    Assert.Equal(ExpectedUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.Equal(ExpectedUrl(imageHost), Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.True(image.IsVisible);
     AssertDecorative(image);
     AssertCircular(image, 14);
@@ -51,10 +53,12 @@ public sealed class PostAuthorAvatarRenderingTests
     }
   }
 
-  [Fact]
-  public void AncestorAndCommentTemplatesRenderPlacementAndClearItForRestrictedAuthors()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void AncestorAndCommentTemplatesRenderPlacementAndClearItForRestrictedAuthors(string imageHost)
   {
-    InstallPageResources();
+    InstallPageResources(imageHost);
     var page = new PostDetailPage();
     var binding = Binding();
     page.BindingContext = binding;
@@ -63,7 +67,7 @@ public sealed class PostAuthorAvatarRenderingTests
         ReferenceEquals(view.ItemsSource, binding.AncestorRows));
     var ancestor = Assert.IsAssignableFrom<View>(ancestorCollection.ItemTemplate.CreateContent());
     var ancestorImage = Named<Image>(ancestor, "post-author-avatar-ancestor");
-    AssertAvatar(ancestor, ancestorImage);
+    AssertAvatar(ancestor, ancestorImage, imageHost);
     ancestor.BindingContext = Row(Post(Author(null, legacyImageId: "legacy-image")));
     AssertNoAvatar(ancestorImage);
 
@@ -71,17 +75,17 @@ public sealed class PostAuthorAvatarRenderingTests
         ReferenceEquals(view.ItemsSource, binding.CommentRows));
     var comment = Assert.IsAssignableFrom<View>(commentCollection.ItemTemplate.CreateContent());
     var commentImage = Named<Image>(comment, "post-author-avatar-comment");
-    AssertAvatar(comment, commentImage);
+    AssertAvatar(comment, commentImage, imageHost);
     comment.BindingContext = Row(Post(Author(Placement)) with { IsAnonymous = true });
     AssertNoAvatar(commentImage);
     comment.BindingContext = Row(Post(Author(Placement)) with { DeletedAt = DateTimeOffset.UnixEpoch });
     AssertNoAvatar(commentImage);
   }
 
-  private static void AssertAvatar(View template, Image image)
+  private static void AssertAvatar(View template, Image image, string imageHost)
   {
     template.BindingContext = Row(Post(Author(Placement)));
-    Assert.Equal(ExpectedUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.Equal(ExpectedUrl(imageHost), Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.True(image.IsVisible);
     AssertDecorative(image);
     AssertCircular(image, 12);
@@ -130,7 +134,7 @@ public sealed class PostAuthorAvatarRenderingTests
   private static T Named<T>(Element root, string automationId) where T : Element =>
       Assert.Single(Descendants<T>(root), element => element.AutomationId == automationId);
 
-  private static void InstallPageResources()
+  private static void InstallPageResources(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
@@ -139,7 +143,7 @@ public sealed class PostAuthorAvatarRenderingTests
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
     app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
     app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
-        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost)), 96);
   }
 
   public class UnusedProxy : DispatchProxy

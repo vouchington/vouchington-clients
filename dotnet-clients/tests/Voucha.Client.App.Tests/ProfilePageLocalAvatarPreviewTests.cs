@@ -127,7 +127,79 @@ public sealed class ProfilePageLocalAvatarPreviewTests
     }
   }
 
-  private static async Task<PageFixture> CreatePageAsync(byte[] bytes, bool holdUpload)
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task ProfileAvatarUsesReturnedPlacementAndClearsForWithheldOrMissingImage(string imageHost)
+  {
+    var user = new User("user-1", "alice", ProfileImageId: "avatar-image",
+        ProfileImagePlacement: new TopicImagePlacement("avatar-image", "avatar-placement", 4));
+    var fixture = await CreatePageAsync([1, 2, 3], holdUpload: false, user: user, imageHost: imageHost);
+    try
+    {
+      var expected = new Uri($"{imageHost}/images/placements/avatar-placement/4/avatar-image?w=144");
+      var image = Assert.Single(fixture.Page.GetVisualTreeDescendants().OfType<Image>(),
+          candidate => candidate.Source is UriImageSource source && source.Uri == expected);
+      fixture.Settings.User = user with { ProfileImagePlacement = null };
+      await fixture.ViewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
+      Assert.Null(image.Source);
+      Assert.Contains(fixture.Page.GetVisualTreeDescendants().OfType<Label>(), label => label.Text == "alice");
+      fixture.Settings.User = user with { ProfileImagePlacement = null, ProfileImageId = null };
+      await fixture.ViewModel.LoadOwnAsync(TestContext.Current.CancellationToken);
+      Assert.Null(image.Source);
+    }
+    finally
+    {
+      fixture.Dispose();
+    }
+  }
+
+  [Fact]
+  public async Task CancelledPickerLeavesNoPreviewOrIdentityMutation()
+  {
+    var fixture = await CreatePageAsync([1, 2, 3], holdUpload: false,
+        pickFile: () => Task.FromResult<FileResult?>(null));
+    try
+    {
+      await InvokeTask(fixture.Page, "UploadAvatarSelectionAsync");
+      Assert.Null(fixture.Page.FindByName<Image>("AvatarLocalPreviewImage").Source);
+      Assert.False(fixture.Page.FindByName<Image>("AvatarLocalPreviewImage").IsVisible);
+      Assert.False(fixture.Page.FindByName<Label>("AvatarPreviewUnavailableLabel").IsVisible);
+      Assert.False(fixture.Upload.CreateStarted.Task.IsCompleted);
+      Assert.Equal(0, fixture.Settings.IdentityUpdates);
+      Assert.Null(fixture.ViewModel.ErrorMessage);
+    }
+    finally
+    {
+      fixture.Dispose();
+    }
+  }
+
+  [Fact]
+  public async Task UnavailableSelectedFileClearsPreviewAndReportsFailureWithoutUploading()
+  {
+    var fixture = await CreatePageAsync([1, 2, 3], holdUpload: false,
+        openFile: _ => Task.FromException<Stream>(new IOException("Unavailable selected file")));
+    try
+    {
+      await InvokeTask(fixture.Page, "UploadAvatarSelectionAsync");
+      Assert.Null(fixture.Page.FindByName<Image>("AvatarLocalPreviewImage").Source);
+      Assert.False(fixture.Page.FindByName<Image>("AvatarLocalPreviewImage").IsVisible);
+      Assert.False(fixture.Page.FindByName<Label>("AvatarPreviewUnavailableLabel").IsVisible);
+      Assert.False(fixture.Upload.CreateStarted.Task.IsCompleted);
+      Assert.Equal(0, fixture.Settings.IdentityUpdates);
+      Assert.Equal(UiLocalization.English.Localize(UiMessageKey.NativeDotnetCsharpAvatarUploadFailed),
+          fixture.ViewModel.ErrorMessage);
+    }
+    finally
+    {
+      fixture.Dispose();
+    }
+  }
+
+  private static async Task<PageFixture> CreatePageAsync(byte[] bytes, bool holdUpload,
+      Func<Task<FileResult?>>? pickFile = null, Func<FileResult, Task<Stream>>? openFile = null,
+      User? user = null, string imageHost = "https://images.test")
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
@@ -146,19 +218,20 @@ public sealed class ProfilePageLocalAvatarPreviewTests
 
     var settings = DispatchProxy.Create<ISettingsService, SettingsProxy>();
     var settingsProxy = (SettingsProxy)(object)settings;
+    if (user is not null) settingsProxy.User = user;
     var upload = new HeldAvatarUploadService(holdUpload);
     var model = new ProfileViewModel(
         settings,
         DispatchProxy.Create<ILandingPagesService, UnusedService>(),
         DispatchProxy.Create<IPostsService, PostsProxy>(),
         upload,
-        new AppConfig(new Uri("https://api.test")));
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost)));
     await model.LoadOwnAsync(TestContext.Current.CancellationToken);
     var picker = new TestFilePicker(new FileResult(path, "image/png"));
     var page = new ProfilePage(
         model,
-        picker.PickAsync,
-        file => Task.FromResult<Stream>(File.OpenRead(file.FullPath)));
+        pickFile ?? picker.PickAsync,
+        openFile ?? (file => Task.FromResult<Stream>(File.OpenRead(file.FullPath))));
     return new PageFixture(page, model, settingsProxy, upload, path);
   }
 
@@ -237,14 +310,14 @@ public sealed class ProfilePageLocalAvatarPreviewTests
 
   public class SettingsProxy : DispatchProxy
   {
-    private static readonly User InitialUser = new("user-1", "alice");
+    public User User { get; set; } = new("user-1", "alice");
     public int IdentityUpdates { get; private set; }
     public UpdateMyIdentityBody? LastIdentityUpdateBody { get; private set; }
 
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => targetMethod?.Name switch
     {
-      nameof(ISettingsService.FetchMyIdentityAsync) => Task.FromResult(new MyIdentityResponse(InitialUser)),
-      nameof(ISettingsService.FetchUserAsync) => Task.FromResult(new UserResponse(InitialUser)),
+      nameof(ISettingsService.FetchMyIdentityAsync) => Task.FromResult(new MyIdentityResponse(User)),
+      nameof(ISettingsService.FetchUserAsync) => Task.FromResult(new UserResponse(User)),
       nameof(ISettingsService.UpdateMyIdentityAsync) => UpdateIdentity((UpdateMyIdentityBody)args![0]!),
       _ => throw new InvalidOperationException($"Unexpected settings call: {targetMethod?.Name}"),
     };
@@ -253,7 +326,7 @@ public sealed class ProfilePageLocalAvatarPreviewTests
     {
       IdentityUpdates++;
       LastIdentityUpdateBody = body;
-      return Task.FromResult(new MyIdentityResponse(InitialUser with
+      return Task.FromResult(new MyIdentityResponse(User with
       {
         ProfileImageId = body.ProfileImageId?.Value,
       }));

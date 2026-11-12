@@ -13,10 +13,12 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class ProfileTopicImageRenderingTests
 {
-  [Fact]
-  public void ProfileTopicRowUsesCanonicalPlacementAndKeepsFallbackAndNavigation()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void ProfileTopicRowUsesCanonicalPlacementAndKeepsFallbackAndNavigation(string imageHost)
   {
-    InstallPageResources();
+    InstallPageResources(imageHost);
     var page = new ProfilePage();
     var collection = Assert.Single(Descendants<CollectionView>(page), view =>
         view.AutomationId == "profile-topic-collection");
@@ -30,7 +32,7 @@ public sealed class ProfileTopicImageRenderingTests
         button.AutomationId == "public-profile-topic-navigation");
     var logoButton = Assert.Single(Descendants<Button>(row), button =>
         button.AutomationId == "public-profile-topic-logo-button");
-    Assert.Equal(new Uri("https://images.test/images/placements/placement-1/3/image-1?w=96"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/placement-1/3/image-1?w=96"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.Equal("Following topic", navigation.Text);
     Assert.Same(topic, navigation.CommandParameter);
@@ -62,7 +64,7 @@ public sealed class ProfileTopicImageRenderingTests
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
 
-  private static void InstallPageResources()
+  private static void InstallPageResources(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
@@ -71,7 +73,7 @@ public sealed class ProfileTopicImageRenderingTests
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
     app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
     app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
-        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost)), 96);
   }
 
 }
