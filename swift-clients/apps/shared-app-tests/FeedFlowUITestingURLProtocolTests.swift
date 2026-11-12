@@ -8,29 +8,7 @@ final class FeedFlowUITestingURLProtocolTests: XCTestCase {
     func testVideoResponseAndOneShotFailureAreSharedAcrossRequests() throws {
         let fixture = try VideoFeedLaunchFixture.load()
         XCTAssertFalse(fixture.title.isEmpty)
-        let canonical = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture.feed) as? [String: Any])
-        let results = try XCTUnwrap(canonical["results"] as? [[String: Any]])
-        let itemID = try XCTUnwrap(results.first?["id"] as? String)
-        let items = try XCTUnwrap(canonical["rss_feed_items"] as? [String: [String: Any]])
-        let item = try XCTUnwrap(items[itemID])
-        let media = try XCTUnwrap(item["media_content"] as? [String: Any])
-        for (field, invalidValue) in [
-            ("medium", "audio"), ("medium", nil), ("type", "audio/mpeg"),
-            ("type", nil), ("type", "video/")
-        ] as [(String, String?)] {
-            var invalidMedia = media
-            invalidMedia[field] = invalidValue
-            var invalidItem = item
-            invalidItem["media_content"] = invalidMedia
-            var invalidItems = items
-            invalidItems[itemID] = invalidItem
-            var invalidFeed = canonical
-            invalidFeed["rss_feed_items"] = invalidItems
-            let invalidData = try JSONSerialization.data(withJSONObject: invalidFeed)
-            XCTAssertThrowsError(try VideoFeedLaunchFixture.videoTitle(in: invalidData)) { error in
-                XCTAssertTrue(error is VideoFeedLaunchFixture.ValidationError)
-            }
-        }
+        try assertInvalidVideoMediaRejected(in: fixture.feed)
         let scenario = makeScenario(body: fixture.feed)
         let first = load("/api/v1/feeds/rss_feed_items/any?limit=20&media_type=video", scenario: scenario)
         XCTAssertEqual((first.error as? URLError)?.code, .notConnectedToInternet)
@@ -178,5 +156,33 @@ final class FeedFlowUITestingURLProtocolTests: XCTestCase {
 
         func urlProtocol(_: URLProtocol, didReceive _: URLAuthenticationChallenge) {}
         func urlProtocol(_: URLProtocol, didCancel _: URLAuthenticationChallenge) {}
+    }
+}
+
+private extension FeedFlowUITestingURLProtocolTests {
+    func assertInvalidVideoMediaRejected(in feed: Data) throws {
+        let canonical = try XCTUnwrap(JSONSerialization.jsonObject(with: feed) as? [String: Any])
+        let results = try XCTUnwrap(canonical["results"] as? [[String: Any]])
+        let itemID = try XCTUnwrap(results.first?["id"] as? String)
+        let items = try XCTUnwrap(canonical["rss_feed_items"] as? [String: [String: Any]])
+        let item = try XCTUnwrap(items[itemID])
+        let media = try XCTUnwrap(item["media_content"] as? [String: Any])
+        for (field, invalidValue) in [
+            ("medium", "audio"), ("medium", nil), ("type", "audio/mpeg"),
+            ("type", nil), ("type", "video/")
+        ] as [(String, String?)] {
+            var invalidMedia = media
+            invalidMedia[field] = invalidValue
+            var invalidItem = item
+            invalidItem["media_content"] = invalidMedia
+            var invalidItems = items
+            invalidItems[itemID] = invalidItem
+            var invalidFeed = canonical
+            invalidFeed["rss_feed_items"] = invalidItems
+            let invalidData = try JSONSerialization.data(withJSONObject: invalidFeed)
+            XCTAssertThrowsError(try VideoFeedLaunchFixture.videoTitle(in: invalidData)) { error in
+                XCTAssertTrue(error is VideoFeedLaunchFixture.ValidationError)
+            }
+        }
     }
 }
