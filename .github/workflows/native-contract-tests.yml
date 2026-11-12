@@ -2369,6 +2369,9 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     env:
+      VOUCHA_SENTRY_DSN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VOUCHA_SENTRY_DSN_DOTNET || '' }}
+      VOUCHA_SENTRY_RELEASE: voucha-dotnet@${{ github.sha }}
+      VOUCHA_SENTRY_ENVIRONMENT: production
       UseArtifactsOutput: 'true'
     steps:
       - name: Check out consumer tooling
@@ -2465,7 +2468,7 @@ jobs:
           --configuration Release --framework net10.0-maccatalyst
           -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
-          --no-restore -clp:PerformanceSummary
+          -p:DebugType=portable -p:DebugSymbols=true --no-restore -clp:PerformanceSummary
       - name: Save NuGet packages from main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.maui-nuget-cache.outputs.cache-hit != 'true' }}
         timeout-minutes: 3
@@ -2478,6 +2481,46 @@ jobs:
             ${{ github.workspace }}/candidate-clients/.nuget/http-cache
             ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
           key: ${{ steps.maui-nuget-cache.outputs.cache-primary-key }}
+
+      - name: Collect trusted app PDBs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: candidate-clients
+        env:
+          SYMBOL_ROOT: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/sentry-dotnet"
+          for assembly in Voucha.Client.App Voucha.Client.Core; do
+            mapfile_path="$RUNNER_TEMP/$assembly-pdb-paths.txt"
+            find "$SYMBOL_ROOT/bin" -type f -name "$assembly.pdb" -print > "$mapfile_path"
+            test -s "$mapfile_path"
+            while IFS= read -r pdb; do
+              cmp_target="$RUNNER_TEMP/sentry-dotnet/$assembly.pdb"
+              if [[ -f "$cmp_target" ]]; then
+                cmp "$pdb" "$cmp_target"
+              else
+                cp "$pdb" "$cmp_target"
+              fi
+            done < "$mapfile_path"
+          done
+      - name: Retain trusted app PDBs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: sentry-dotnet-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sentry-dotnet/
+          if-no-files-found: error
+          retention-days: 1
+
+  sentry-dotnet-symbols:
+    permissions:
+      contents: read
+      actions: read
+    needs: dotnet-maui
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/sentry-symbols.yml
+    with:
+      artifact: sentry-dotnet-${{ github.run_id }}-${{ github.run_attempt }}
+      project: ${{ vars.SENTRY_PROJECT_DOTNET }}
 
   dotnet-catalyst-gui:
     name: Mac Catalyst GUI preflight

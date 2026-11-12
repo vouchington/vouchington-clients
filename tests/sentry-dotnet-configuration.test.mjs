@@ -6,6 +6,21 @@ import { describe, it } from 'node:test'
 const root = resolve(import.meta.dirname, '..')
 
 describe('dotnet Sentry configuration', () => {
+  it('packages release and environment build inputs for the installed SDK', async () => {
+    const appRoot = join(root, 'dotnet-clients/src/Voucha.Client.App')
+    const project = await readFile(join(appRoot, 'Voucha.Client.App.csproj'), 'utf8')
+    const targets = await readFile(join(appRoot, 'SentryDsn.targets'), 'utf8')
+    const startup = await readFile(join(appRoot, 'MauiProgram.Sentry.cs'), 'utf8')
+    for (const [key, property] of [
+      ['VOUCHA_SENTRY_RELEASE', 'VouchaSentryRelease'],
+      ['VOUCHA_SENTRY_ENVIRONMENT', 'VouchaSentryEnvironment'],
+    ]) {
+      assert.ok(project.includes(`<AssemblyMetadata Include="${key}" Value="$(${property})" />`))
+      assert.ok(targets.includes(`>$(${key})</${property}>`))
+      assert.ok(startup.includes(`"${key}"`))
+    }
+  })
+
   it('scrubs performance transactions before send', async () => {
     const options = await readFile(
       join(root, 'dotnet-clients/src/Voucha.Client.App/MauiProgram.Sentry.cs'),

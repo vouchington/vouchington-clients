@@ -3,6 +3,8 @@ name: iOS unsigned release archive
 on:
   pull_request:
     paths:
+      - .github/workflows/sentry-symbols.yml
+      - tests/sentry-symbol-upload.test.mjs
       - .github/workflows/release-ios-testflight.yml
       - swift-clients/apps/iOS/Info.plist
       - swift-clients/apps/iOS/project.yml
@@ -42,6 +44,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Verify trusted symbol source
+        if: github.event_name != 'pull_request'
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
       - name: Resolve release version
@@ -81,6 +87,7 @@ jobs:
         timeout-minutes: 23
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          VOUCHA_SENTRY_DSN: ${{ ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ios-v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) && vars.VOUCHA_SENTRY_DSN_IOS || '' }}
           RELEASE_BUILD: ${{ steps.version.outputs.build }}
         run: |
           diagnostics="$RUNNER_TEMP/ios-archive-diagnostics.txt"
@@ -89,7 +96,7 @@ jobs:
           ./swift-clients/tooling/generate.sh iOS
           # Explicit non-production site key. Release rejects an empty value and Cloudflare test keys.
           release_site_key=0x4AAAAAAAAexample
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/ios-release-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/ios-release-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive MARKETING_VERSION="$RELEASE_VERSION" CURRENT_PROJECT_VERSION="$RELEASE_BUILD" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/ios-release-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/ios-release-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache archive DEBUG_INFORMATION_FORMAT=dwarf-with-dsym MARKETING_VERSION="$RELEASE_VERSION" CURRENT_PROJECT_VERSION="$RELEASE_BUILD" VOUCHA_SENTRY_DSN="$VOUCHA_SENTRY_DSN" VOUCHA_SENTRY_RELEASE="voucha-ios@$GITHUB_SHA" VOUCHA_SENTRY_ENVIRONMENT=production VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           if [[ ! -d "$app" ]]; then
             echo "::error::Archive succeeded but $app is absent"
             find "$RUNNER_TEMP/Voucha.xcarchive/Products" -maxdepth 3 -type d -print | tee -a "$diagnostics"
@@ -145,3 +152,25 @@ jobs:
           path: ${{ runner.temp }}/ios-unsigned-export/
           if-no-files-found: error
           retention-days: 7
+      - name: Validate trusted app dSYM
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ios-v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
+        run: test -s "$RUNNER_TEMP/Voucha.xcarchive/dSYMs/Voucha.app.dSYM/Contents/Resources/DWARF/Voucha"
+      - name: Retain trusted dSYMs
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ios-v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: sentry-ios-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/Voucha.xcarchive/dSYMs/
+          if-no-files-found: error
+          retention-days: 1
+
+  sentry-symbols:
+    permissions:
+      contents: read
+      actions: read
+    needs: archive
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ios-v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
+    uses: ./.github/workflows/sentry-symbols.yml
+    with:
+      artifact: sentry-ios-${{ github.run_id }}-${{ github.run_attempt }}
+      project: ${{ vars.SENTRY_PROJECT_IOS }}

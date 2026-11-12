@@ -22,6 +22,11 @@ describe('Swift Sentry configuration', () => {
       assert.match(project, /product: Sentry/u)
       assert.doesNotMatch(project, /sentry-release-dsn/u)
       assert.match(info, /<key>VOUCHA_SENTRY_DSN<\/key>/u)
+      for (const key of ['VOUCHA_SENTRY_RELEASE', 'VOUCHA_SENTRY_ENVIRONMENT']) {
+        assert.ok(project.includes(`${key}: ''`))
+        assert.ok(project.includes(`${key}: '$(${key})'`))
+        assert.ok(info.includes(`<key>${key}</key>\n\t<string>$(${key})</string>`))
+      }
       for (const dataType of ['CrashData', 'PerformanceData']) {
         const start = privacy.indexOf(`<string>NSPrivacyCollectedDataType${dataType}</string>`)
         assert.notEqual(start, -1)

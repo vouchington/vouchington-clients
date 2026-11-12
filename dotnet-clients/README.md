@@ -191,8 +191,8 @@ signing pipeline.
 `VOUCHA_SENTRY_DSN` overrides the packaged `VouchaSentryDsn` assembly metadata. Both Debug and
 Release leave that value empty, and an empty value does not start Sentry, does not fail the
 Release build, and does not send events. A configured DSN reports crashes and performance with
-the opaque account id only. Debug symbol upload stays out of the app build until a Sentry auth
-token exists.
+the opaque account id only. Release/environment overrides and trusted debug-symbol upload are
+described in [Native Sentry releases](../docs/development/native-sentry-releases.md).
 
 ## Agent rules
 

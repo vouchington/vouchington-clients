@@ -3,6 +3,8 @@ name: macOS unsigned archive and DMG
 on:
   pull_request:
     paths:
+      - .github/workflows/sentry-symbols.yml
+      - tests/sentry-symbol-upload.test.mjs
       - .github/workflows/release-macos-unsigned.yml
       - swift-clients/apps/macOS/**
       - swift-clients/apps/shared-app/**
@@ -32,7 +34,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - name: Verify trusted symbol source
+        if: github.event_name != 'pull_request'
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
       - name: Install pinned XcodeGen
@@ -62,6 +69,7 @@ jobs:
         timeout-minutes: 24
         env:
           BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}.0
+          VOUCHA_SENTRY_DSN: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') && vars.VOUCHA_SENTRY_DSN_MACOS || '' }}
         run: |
           if (( GITHUB_RUN_NUMBER < 1 || GITHUB_RUN_NUMBER > 9999 || GITHUB_RUN_ATTEMPT < 1 || GITHUB_RUN_ATTEMPT > 99 )); then
             echo '::error::GitHub run number or attempt exceeds CFBundleVersion segment limits'
@@ -69,7 +77,7 @@ jobs:
           fi
           # Explicit non-production site key. Release rejects an empty value and Cloudflare test keys.
           release_site_key=0x4AAAAAAAAexample
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -showBuildTimingSummary archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 CURRENT_PROJECT_VERSION="$BUILD_NUMBER" VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -configuration Release -destination 'generic/platform=macOS' -archivePath "$RUNNER_TEMP/Voucha.xcarchive" -derivedDataPath "$RUNNER_TEMP/xcode-derived-data" -clonedSourcePackagesDirPath "$RUNNER_TEMP/swift-package-clones" -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -showBuildTimingSummary archive ARCHS=arm64 EXCLUDED_ARCHS=x86_64 DEBUG_INFORMATION_FORMAT=dwarf-with-dsym CURRENT_PROJECT_VERSION="$BUILD_NUMBER" VOUCHA_SENTRY_DSN="$VOUCHA_SENTRY_DSN" VOUCHA_SENTRY_RELEASE="voucha-macos@$GITHUB_SHA" VOUCHA_SENTRY_ENVIRONMENT=production VOUCHA_TURNSTILE_SITE_KEY="$release_site_key" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           app="$RUNNER_TEMP/Voucha.xcarchive/Products/Applications/Voucha.app"
           test -d "$app"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")" = "$BUILD_NUMBER"
@@ -114,3 +122,25 @@ jobs:
           path: ${{ runner.temp }}/unsigned-artifacts/
           if-no-files-found: error
           retention-days: 7
+      - name: Validate trusted app dSYM
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+        run: test -s "$RUNNER_TEMP/Voucha.xcarchive/dSYMs/Voucha.app.dSYM/Contents/Resources/DWARF/Voucha"
+      - name: Retain trusted dSYMs
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: sentry-macos-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/Voucha.xcarchive/dSYMs/
+          if-no-files-found: error
+          retention-days: 1
+
+  sentry-symbols:
+    permissions:
+      contents: read
+      actions: read
+    needs: archive-and-assemble
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/sentry-symbols.yml
+    with:
+      artifact: sentry-macos-${{ github.run_id }}-${{ github.run_attempt }}
+      project: ${{ vars.SENTRY_PROJECT_MACOS }}
