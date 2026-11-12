@@ -1,5 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
-using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Topics;
 
@@ -7,61 +6,43 @@ namespace Voucha.Client.App.Pages;
 
 public partial class TopicManagementPage
 {
-  private TopicMergeDetails? mergeOperation;
-  private bool isCheckingMerge;
+  private TopicMergeViewModel mergeViewModel = null!;
+  private ISessionStore? mergeSessionStore;
+
+  private void InitializeMerge(ISessionStore? sessionStore)
+  {
+    mergeSessionStore = sessionStore;
+    mergeViewModel = new TopicMergeViewModel(topicsService,
+        sessionStore is null ? null : () => sessionStore.Current.Identity?.Id);
+    mergeViewModel.SetAccount(sessionStore?.Current.Identity?.Id);
+    MergeCompletedLabel.BindingContext = mergeViewModel;
+    mergeViewModel.PropertyChanged += (_, _) => Dispatcher.Dispatch(RenderMerge);
+  }
+
+  private void OnMergeSessionChanged(object? sender, SessionChangedEventArgs args) =>
+      mergeViewModel.SetAccount(args.Snapshot.Identity?.Id);
 
   private async void OnMergeClicked(object? sender, EventArgs e) => await MergeAsync().ConfigureAwait(true);
 
   private async void OnCheckMergeStatusClicked(object? sender, EventArgs e) =>
       await CheckMergeStatusAsync().ConfigureAwait(true);
 
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI merge failures are displayed inline.")]
   internal async Task MergeAsync()
   {
-    if (mergeOperation is not null || !TryTopicId(out var topicId) ||
-        string.IsNullOrWhiteSpace(MergeDestinationEntry.Text)) return;
-    try
-    {
-      var response = await topicsService.MergeTopicAliasesAsync(topicId, MergeDestinationEntry.Text.Trim()).ConfigureAwait(true);
-      // The producer queues merges (202): keep the operation, never claim the merge is done yet.
-      ApplyMergeOperation(response.TopicMerge);
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-      StatusLabel.Text = ex.Message;
-    }
+    if (!TryTopicId(out var topicId) || string.IsNullOrWhiteSpace(MergeDestinationEntry.Text)) return;
+    await mergeViewModel.SubmitAsync(topicId, MergeDestinationEntry.Text.Trim()).ConfigureAwait(true);
   }
 
-  /// <summary>One status read per call; there is no background polling.</summary>
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI status failures are displayed inline.")]
-  internal async Task CheckMergeStatusAsync()
-  {
-    if (mergeOperation is not { } operation || isCheckingMerge) return;
-    isCheckingMerge = true;
-    CheckMergeStatusButton.IsEnabled = false;
-    try
-    {
-      var response = await topicsService
-          .FetchTopicMergeStatusAsync(operation.SourceTopicId, operation.Id)
-          .ConfigureAwait(true);
-      ApplyMergeOperation(response.TopicMerge);
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-      StatusLabel.Text = UiCopy.Localize(UiMessageKey.SettingsTopicsMergeStatusFailed);
-    }
-    finally
-    {
-      isCheckingMerge = false;
-      CheckMergeStatusButton.IsEnabled = true;
-    }
-  }
+  internal Task CheckMergeStatusAsync() => mergeViewModel.CheckAsync();
 
-  private void ApplyMergeOperation(TopicMergeDetails operation)
+  private void RenderMerge()
   {
-    mergeOperation = operation;
-    StatusLabel.Text = UiCopy.Localize(TopicMergeProgress.MessageFor(operation));
-    MergeButton.IsEnabled = false;
-    CheckMergeStatusButton.IsVisible = TopicMergeProgress.CanCheckStatus(operation);
+    StatusLabel.Text = mergeViewModel.Message is { } message ? UiCopy.Resolve(message) : string.Empty;
+    MergeButton.IsEnabled = mergeViewModel.CanSubmit;
+    CheckMergeStatusButton.IsEnabled = mergeViewModel.CanCheck;
+    CheckMergeStatusButton.IsVisible = mergeViewModel.Operation is { } operation && TopicMergeProgress.CanCheckStatus(operation);
+    MergeStatusLabel.Text = UiCopy.Resolve(UiText.ProtocolValue(mergeViewModel.Operation?.Status));
+    MergeStageLabel.Text = UiCopy.Resolve(UiText.ProtocolValue(mergeViewModel.Operation?.Stage));
+    MergeErrorLabel.Text = UiCopy.Resolve(UiText.ProtocolValue(mergeViewModel.Operation?.ErrorCode));
   }
 }

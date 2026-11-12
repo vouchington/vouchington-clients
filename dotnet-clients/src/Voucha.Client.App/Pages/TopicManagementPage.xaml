@@ -3,6 +3,7 @@
     x:Class="Voucha.Client.App.Pages.TopicManagementPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:app="clr-namespace:Voucha.Client.App"
     xmlns:controls="clr-namespace:Voucha.Client.App.Controls"
     Title="{DynamicResource native.dotnet.topicManagement.title}">
     <ScrollView>
@@ -63,6 +64,10 @@
             <Entry x:Name="MergeDestinationEntry" Placeholder="{DynamicResource native.dotnet.topicManagement.mergeDestination}" />
             <Button x:Name="MergeButton" Text="{DynamicResource native.dotnet.topicManagement.mergeTopic}" Clicked="OnMergeClicked" />
             <Button x:Name="CheckMergeStatusButton" IsVisible="False" Text="{DynamicResource settings.topics.merge.checkStatus}" Clicked="OnCheckMergeStatusClicked" />
+            <Label x:Name="MergeStatusLabel" Style="{StaticResource Metadata}" />
+            <Label x:Name="MergeStageLabel" Style="{StaticResource Metadata}" />
+            <Label x:Name="MergeCompletedLabel" Text="{app:UiLocalizedValue Path=Operation.CompletedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
+            <Label x:Name="MergeErrorLabel" Style="{StaticResource Metadata}" />
             <HorizontalStackLayout Spacing="8">
                 <Button Text="{DynamicResource native.dotnet.topicManagement.toggleSourceEnabled}" Clicked="OnToggleSourceEnabledClicked" />
                 <Button Text="{DynamicResource native.dotnet.topicManagement.toggleSourceDiscoverable}" Clicked="OnToggleSourceDiscoverableClicked" />

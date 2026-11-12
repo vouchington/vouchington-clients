@@ -88,5 +88,6 @@ public sealed partial class AppShell
           serviceProvider.GetRequiredService<IImageUploadService>(),
           serviceProvider.GetRequiredService<VouchaApiClient>(),
           match?.Param("idOrSlug", "id"),
-          serviceProvider.GetRequiredService<AppConfig>());
+          serviceProvider.GetRequiredService<AppConfig>(),
+          serviceProvider.GetRequiredService<ISessionStore>());
 }

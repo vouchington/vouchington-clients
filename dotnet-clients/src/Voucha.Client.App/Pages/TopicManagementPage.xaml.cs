@@ -30,7 +30,8 @@ public partial class TopicManagementPage : ContentPage
       IImageUploadService imageUploadService,
       VouchaApiClient apiClient,
       string? topicIdOrSlug = null,
-      AppConfig? config = null)
+      AppConfig? config = null,
+      Voucha.Client.Core.Auth.ISessionStore? sessionStore = null)
   {
     InitializeComponent();
     this.topicsService = topicsService ?? throw new ArgumentNullException(nameof(topicsService));
@@ -38,12 +39,14 @@ public partial class TopicManagementPage : ContentPage
     this.config = config ?? AppConfig.FromAssembly(typeof(TopicManagementPage).Assembly);
     MarkdownEditor.ApiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
     this.topicIdOrSlug = topicIdOrSlug;
+    InitializeMerge(sessionStore);
     SyncAliasesPaginationControl();
     SyncHostnamesPaginationControl();
   }
 
   protected override void OnDisappearing()
   {
+    if (mergeSessionStore is not null) mergeSessionStore.SessionChanged -= OnMergeSessionChanged;
     logoPreviewGeneration++;
     heroPreviewGeneration++;
     CancelImageUpload(isLogo: true);
@@ -61,6 +64,11 @@ public partial class TopicManagementPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    if (mergeSessionStore is not null)
+    {
+      mergeViewModel.SetAccount(mergeSessionStore.Current.Identity?.Id);
+      mergeSessionStore.SessionChanged += OnMergeSessionChanged;
+    }
     if (topicIdOrSlug is null) return;
     try
     {
