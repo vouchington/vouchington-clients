@@ -24,7 +24,7 @@
                   let data = canonicalResponseData(),
                   let response = HTTPURLResponse(
                       url: url,
-                      statusCode: request.httpMethod == "POST" ? 201 : 200,
+                      statusCode: request.httpMethod == "POST" ? 202 : 200,
                       httpVersion: "HTTP/1.1",
                       headerFields: ["Content-Type": "application/json"]
                   )
