@@ -140,30 +140,6 @@ public struct PostsListView: View {
         .listStyle(.plain)
     }
 
-    private var postFilters: some View {
-        VStack {
-            filterPicker
-            if !viewModel.isFeed, !timeRangeOptions.isEmpty {
-                PostTimeRangePicker(
-                    range: viewModel.selectedTimeRange,
-                    options: timeRangeOptions.filter { viewModel.timeRangeOptions.contains($0) }
-                ) { range in
-                    Task { await viewModel.selectTimeRange(range) }
-                }
-            }
-        }
-    }
-
-    private var filterPicker: some View {
-        Picker(UiMessages.string(.nativeSwiftListsFilter, locale: nativeUiLocale), selection: $viewModel.filter) {
-            ForEach(PostFilter.allCases) { filter in
-                Text(UiMessages.string(filter.titleKey, locale: nativeUiLocale)).tag(filter)
-            }
-        }
-        .pickerStyle(.segmented)
-        .padding(.horizontal, Spacing.md)
-    }
-
     private func canDistribute(_ post: Post) -> Bool {
         canDistributeToFollowers(post, currentUserId: currentUserId, isSignedIn: isSignedIn)
     }

@@ -147,24 +147,6 @@ public final class PostsListViewModel {
         }
     }
 
-    /// Reset all pagination state.
-    public func reset() {
-        pagination.reset()
-        myVotesByPostId = [:]
-        savedPostIds = []
-        hiddenPostIds = []
-        postEmbedsByPostId = [:]
-        hackerNewsReferencesByPostId = [:]
-        inFlightVotePostIds = []
-        inFlightBookmarkKeys = []
-    }
-
-    /// Clear and reload from the first page.
-    public func reload() async {
-        reset()
-        await loadNextPage()
-    }
-
     var timeRangeOptions: [PostTimeRange] {
         PostTimeRange.listOptions.filter { !hasHackerNewsReferences || $0 != .allTime }
     }

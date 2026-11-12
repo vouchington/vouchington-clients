@@ -127,7 +127,9 @@ public final class NativeRouteSurfaceViewModel {
         self.client = client
         self.routeMatch = routeMatch
         self.routeQuery = routeQuery
-        hasHackerNewsReferences = nativeRouteQueryItems(fromEncodedQuery: routeQuery)["has_hacker_news_references"] == "true"
+        hasHackerNewsReferences = nativeRouteQueryItems(fromEncodedQuery: routeQuery)[
+            "has_hacker_news_references"
+        ] == "true"
         self.isAdministrator = isAdministrator
         isStaffViewer = isAdministrator || isSiteModerator
         self.isSignedIn = isSignedIn
