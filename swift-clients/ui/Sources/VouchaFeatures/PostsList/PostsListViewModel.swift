@@ -159,6 +159,23 @@ public final class PostsListViewModel {
         await loadNextPage()
     }
 
+    func feedEndpoint(after cursor: String?) -> Endpoint {
+        if isFeed {
+            return .posts(
+                feedType: feedType,
+                after: cursor,
+                postTypes: filter.postTypes,
+                timeRange: PostTimeRange.lastWeek.rawValue
+            )
+        }
+        return .postsFeed(
+            postTypes: filter.postTypes,
+            timeRange: (timeRange ?? .last30Days).rawValue,
+            sort: "hot",
+            after: cursor
+        )
+    }
+
     private func applyBookmarkState(for postId: String, from bookmarks: [String: [String: Bool]]?) {
         guard let predicates = bookmarks?[postId] else { return }
         if predicates["save"] == true {

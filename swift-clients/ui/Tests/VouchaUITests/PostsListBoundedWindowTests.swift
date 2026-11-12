@@ -8,7 +8,7 @@ import XCTest
 
 @MainActor
 final class PostsListBoundedWindowTests: XCTestCase {
-    private let path = "/api/v1/feeds/posts/all"
+    private let path = "/api/v1/posts"
 
     override func setUp() {
         super.setUp()
@@ -56,6 +56,8 @@ final class PostsListBoundedWindowTests: XCTestCase {
 
         let urls = CannedFeedURLProtocol.capturedURLs
         XCTAssertEqual(urls.count, 1)
+        XCTAssertEqual(urls[0].path, "/api/v1/posts")
+        XCTAssertEqual(queryItem("sort", in: urls[0]), "hot")
         XCTAssertEqual(queryItem("time_range", in: urls[0]), "1m")
         XCTAssertNil(vm.timeRange)
     }
