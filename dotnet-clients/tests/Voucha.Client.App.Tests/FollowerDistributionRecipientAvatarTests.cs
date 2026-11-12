@@ -15,24 +15,19 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class FollowerDistributionRecipientAvatarTests
 {
-  [Fact]
-  public async Task SendPageRendersCanonicalPlacementAndRetainsAvatarInSelectedRecipients()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task SendPageRendersCanonicalPlacementAndRetainsAvatarInSelectedRecipients(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var fixture = JsonSerializer.Deserialize<UserFollowersResponse>(
         File.ReadAllText(ContractPaths.ApiFixture("responses/swift.users.followers.default.json")),
         VouchaApiJson.Options)!;
-    // The claimed follower fixture currently has no placement. Add the optional API field
-    // locally to one fixture-derived user to exercise the rendered placement path.
-    var fixtureUsers = fixture.Results.ToArray();
-    fixtureUsers[0] = fixtureUsers[0] with
-    {
-      ProfileImagePlacement = new TopicImagePlacement(
-        "00000000-0000-7000-8000-000000000201",
-        "00000000-0000-7000-8000-000000000301",
-        2)
-    };
-    var users = fixtureUsers.Concat([
+    var follower = Assert.Single(fixture.Results);
+    Assert.Equal("00000000-0000-7000-8000-000000000301", follower.ProfileImagePlacement?.PlacementId);
+    Assert.Equal(2, follower.ProfileImagePlacement?.PlacementRevision);
+    var users = fixture.Results.Concat([
       new User("01900000-0000-7000-8000-000000000002", "bob", Name: "🌱 Bob", ProfileImageId: "legacy-only")
     ]).ToArray();
     using var state = new FollowerDistributionViewModel(
@@ -42,7 +37,7 @@ public sealed class FollowerDistributionRecipientAvatarTests
         "post-1");
     state.SetAudience(true);
     const string viewerId = "01900000-0000-7000-8000-000000000099";
-    var config = new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
+    var config = new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost));
     var page = new FollowerDistributionSendPage(state, viewerId, new SessionStore(), config);
 
     await state.SearchFollowersAsync(viewerId, "", TestContext.Current.CancellationToken);
@@ -53,7 +48,7 @@ public sealed class FollowerDistributionRecipientAvatarTests
     var images = Descendants<Image>(page).Where(image => image.AutomationId == "follower-recipient-avatar-image").ToArray();
     Assert.Equal(2, images.Length);
     Assert.Equal(
-        new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
+        new Uri($"{imageHost}/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(images[0].Source).Uri);
     Assert.Null(images[1].Source);
     Assert.Contains(Descendants<Label>(page), label => label.Text == "friend");
@@ -71,7 +66,7 @@ public sealed class FollowerDistributionRecipientAvatarTests
         layout.AutomationId == "follower-distribution-selected-recipients");
     var selectedImage = Assert.Single(Descendants<Image>(selected));
     Assert.Equal(
-        new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
+        new Uri($"{imageHost}/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(selectedImage.Source).Uri);
     var results = Assert.Single(Descendants<VerticalStackLayout>(page), layout =>
         layout.AutomationId == "follower-distribution-recipient-results");

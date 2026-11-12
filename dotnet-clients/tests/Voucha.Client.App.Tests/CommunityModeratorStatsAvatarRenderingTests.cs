@@ -17,8 +17,10 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class CommunityModeratorStatsAvatarRenderingTests
 {
-  [Fact]
-  public async Task ModeratorStatsRowsRenderOnlyTheResolvedPublicUserPlacement()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task ModeratorStatsRowsRenderOnlyTheResolvedPublicUserPlacement(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
@@ -32,7 +34,7 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
         model,
         new AnonymousSessionStore(),
         new ServiceCollection().BuildServiceProvider(),
-        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")));
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost)));
 
     await model.LoadSurfaceAsync(
         "test-community",
@@ -58,7 +60,7 @@ public sealed class CommunityModeratorStatsAvatarRenderingTests
     Assert.Equal(new GridLength(40), template.ColumnDefinitions[0].Width);
     Assert.Equal(GridLength.Star, template.ColumnDefinitions[1].Width);
     Assert.Equal(8d, template.ColumnSpacing);
-    Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
 
     template.BindingContext = stat with { ProfileImagePlacement = null };
