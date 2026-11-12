@@ -53,6 +53,14 @@ public sealed class SourceCreationPageTests
     Assert.Equal(1, service.Posts);
     page.Disappear();
     Assert.False(model.IsBusy);
+    opened = null;
+    service.ApiOrigin = new("https://other.test");
+    await page.OpenAsync();
+    Assert.Null(opened);
+    service.ApiOrigin = new("https://api.test");
+    page.Dispose();
+    await page.OpenAsync();
+    Assert.Null(opened);
   }
 
   [Fact]
@@ -98,7 +106,7 @@ public sealed class SourceCreationPageTests
 
   private sealed class Service : ISourceCreationService
   {
-    public Uri ApiOrigin { get; } = new("https://api.test");
+    public Uri ApiOrigin { get; set; } = new("https://api.test");
     public TaskCompletionSource<RssFeedImportStatus> Pending { get; } = new();
     public int Posts { get; private set; }
     private int reads;

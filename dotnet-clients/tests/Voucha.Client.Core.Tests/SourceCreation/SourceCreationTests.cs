@@ -74,15 +74,16 @@ public sealed class SourceCreationTests
   }
 
   [Theory]
+  [InlineData(null)]
   [InlineData("")]
   [InlineData("bad")]
   [InlineData("ftp://example.test/feed")]
   [InlineData("https://u:p@example.test/feed")]
-  public async Task InvalidInputDoesNotSubmit(string input)
+  public async Task InvalidInputDoesNotSubmit(string? input)
   {
     var service = new FakeService();
     using var model = Model(service);
-    model.Input = input;
+    model.Input = input!;
     await model.CreateAsync();
     Assert.NotNull(model.Error);
     Assert.True(model.CanCreate);
@@ -111,6 +112,29 @@ public sealed class SourceCreationTests
     Assert.Equal(1, service.Posts);
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task AccountChangeFencesLateStatusSuccessAndFailure(bool failure)
+  {
+    var pending = new TaskCompletionSource<RssFeedImportStatus>();
+    var service = new FakeService();
+    service.Reads.Enqueue(() => pending.Task);
+    var session = new Session();
+    using var model = Model(service, session);
+    model.Input = "https://example.test/feed.xml";
+    var operation = model.CreateAsync();
+    session.Change();
+    if (failure) pending.SetException(new HttpRequestException());
+    else pending.SetResult(Status("completed"));
+    await operation;
+    Assert.Null(model.EntityId);
+    Assert.Null(model.Error);
+    Assert.True(model.CanCreate);
+    Assert.False(model.CanOpen);
+    Assert.Equal(1, service.Posts);
+  }
+
   [Fact]
   public async Task PollingStopsAtBudgetAndResumesWithoutPost()
   {
@@ -124,6 +148,22 @@ public sealed class SourceCreationTests
     await model.RetryAsync();
     Assert.True(model.CanOpen);
     Assert.Equal(1, service.Posts);
+  }
+
+  [Fact]
+  public async Task CompletedOutcomeCannotOpenAfterApiChangesOrDisposal()
+  {
+    var service = new FakeService();
+    using var model = Model(service);
+    model.Input = "https://example.test/feed.xml";
+    await model.CreateAsync();
+    Assert.True(model.CanOpen);
+    service.ApiOrigin = new("https://other.test");
+    Assert.False(model.CanOpen);
+    service.ApiOrigin = new("https://api.test");
+    Assert.True(model.CanOpen);
+    model.Dispose();
+    Assert.False(model.CanOpen);
   }
 
   [Fact]

@@ -18,6 +18,7 @@ public sealed class SourceCreationServiceTests
     {
       methods.Add(request.Method);
       Assert.Equal("api.test", request.RequestUri!.Host);
+      Assert.Contains("st=session", request.Headers.GetValues("Cookie"));
       if (request.Method == HttpMethod.Post)
       {
         Assert.Equal("/api/v1/rss-feeds", request.RequestUri.AbsolutePath);
@@ -31,6 +32,7 @@ public sealed class SourceCreationServiceTests
       return new(HttpStatusCode.OK) { Content = new StringContent("{\"rss_feed\":{\"id\":\"" + SourceCreationTests.Status("completed").Rows[0].EntityId + "\",\"topic_id\":\"topic\"}}") };
     });
     using var http = new HttpClient(handler) { BaseAddress = new("https://api.test") };
+    http.DefaultRequestHeaders.Add("Cookie", "st=session");
     var service = new SourceCreationService(new(http), http);
     using var model = new SourceCreationViewModel(service, new SourceCreationTests.Session(), UiLocalization.English);
     model.Input = "https://example.test/feed.xml";

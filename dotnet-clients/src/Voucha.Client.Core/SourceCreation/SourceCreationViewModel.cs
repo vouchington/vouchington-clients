@@ -41,7 +41,7 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public string Input { get => input; set => SetProperty(ref input, value); }
+  public string Input { get => input; set => SetProperty(ref input, value ?? string.Empty); }
   public bool IsBusy => busy;
   public bool CanCreate => !disposed && session.Current.IsAuthenticated && !busy && !submitted;
   public bool CanRetry => !disposed && !busy && validated && importId is not null && !CanOpen && result?.IsTerminalFailure() != true;
@@ -54,7 +54,8 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
       : importId is null ? null : localization.Localize(UiMessageKey.NativeSwiftImportExportPending);
   public string? EntityId => result?.EntityId;
   public string? TopicSlug => result?.TopicSlug ?? resolvedTopic;
-  public bool CanOpen => summary?.IsTerminal() == true && result is { Status: not ImportResultStatus.Pending } && !result.IsTerminalFailure() &&
+  public bool CanOpen => !disposed && origin == service.ApiOrigin &&
+      accountId == session.Current.Identity?.Id && summary?.IsTerminal() == true && result is { Status: not ImportResultStatus.Pending } && !result.IsTerminalFailure() &&
       !string.IsNullOrWhiteSpace(EntityId) && !string.IsNullOrWhiteSpace(TopicSlug);
 
   public void Cancel()
