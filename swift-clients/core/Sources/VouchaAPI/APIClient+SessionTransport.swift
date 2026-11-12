@@ -57,7 +57,11 @@ extension APIClient {
     func executeBuffered(
         _ raw: URLRequest, endpoint: Endpoint, mayRecover: Bool, expectedEpoch: UInt64? = nil
     ) async throws -> (Data, URLResponse) {
-        let (prepared, stamp) = try cookieCoordinator.prepare(raw, origin: baseURL)
+        let (prepared, stamp) = try cookieCoordinator.prepare(
+            raw,
+            origin: baseURL,
+            establishingSession: endpoint.establishesSession
+        )
         if let expectedEpoch, expectedEpoch != stamp.epoch { throw CancellationError() }
         defer { try? cookieCoordinator.persist(stamp: stamp, action: checkedPersistence) }
         let request = await applySigningIfNeeded(prepared, method: endpoint.method.rawValue)

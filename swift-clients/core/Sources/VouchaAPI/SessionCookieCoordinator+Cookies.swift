@@ -10,7 +10,7 @@ extension SessionCookieCoordinator {
         authenticated: Bool = false, establishingSession: Bool = false
     ) throws {
         try lock.withLock {
-            guard epoch == stamp.epoch else { throw CancellationError() }
+            try check(stamp)
             let establishesSession = establishingSession && cookies.contains { ["dt", "st"].contains($0.name) }
             guard rotated || establishesSession || stamp.revision == revision else { return }
             let previous = storage.cookies ?? []
@@ -45,7 +45,10 @@ extension SessionCookieCoordinator {
 
     func clear(ifCurrent stamp: Stamp? = nil, persist: (() throws -> Void)?) throws {
         try lock.withLock {
-            if let stamp, stamp != Stamp(epoch: epoch, revision: revision) { throw CancellationError() }
+            if let stamp {
+                try check(stamp)
+                guard stamp.revision == revision else { throw CancellationError() }
+            }
             epoch &+= 1
             confirmedIdentityRevision = nil
             rotation = nil

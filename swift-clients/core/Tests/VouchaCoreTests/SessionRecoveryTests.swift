@@ -3,7 +3,6 @@ import Foundation
     import FoundationNetworking
 #endif
 @testable import VouchaAPI
-import VouchaAuth
 import VouchaCore
 import XCTest
 

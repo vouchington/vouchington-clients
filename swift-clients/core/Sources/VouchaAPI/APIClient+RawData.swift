@@ -30,7 +30,9 @@ public extension APIClient {
             try await ensureSessionBootstrap()
         }
         let rawRequest = try buildRequest(endpoint)
-        let (prepared, stamp) = try cookieCoordinator.prepare(rawRequest, origin: baseURL)
+        let (prepared, stamp) = try cookieCoordinator.prepare(
+            rawRequest, origin: baseURL, establishingSession: endpoint.establishesSession
+        )
         if let expectedEpoch, expectedEpoch != stamp.epoch { throw CancellationError() }
         let request = await applySigningIfNeeded(prepared, method: endpoint.method.rawValue)
         try cookieCoordinator.check(stamp)

@@ -101,30 +101,91 @@ final class SessionRenewalReviewTests: XCTestCase {
         XCTAssertEqual(fixture.jar.cookies?.first { $0.name == "st" }?.value, "s-renewed")
     }
 
-    func testOlderOverlappingLoginCannotReplaceNewerCompletedAuthentication() async throws {
+    func testOverlappingLoginsHonorNewestDispatchInBothCompletionOrders() async throws {
+        for olderFirst in [true, false] {
+            let fixture = try setup()
+            let newerPath = "/api/v1/auth/native/email-address/login"
+            let olderEntered = expectation(description: "older authentication pending")
+            let newerEntered = expectation(description: "newer authentication pending")
+            fixture.transport.handler = { request, _ in
+                if request.url!.path == "/api/v1/session" { return SessionRecoveryTransport.tokens("renewed") }
+                if request.url!.path == self.login { olderEntered.fulfill() } else { newerEntered.fulfill() }
+                return nil
+            }
+            let older = Task { () -> Empty in try await fixture.client.send(Endpoint(.POST, path: login)) }
+            await fulfillment(of: [olderEntered], timeout: 5)
+            let newer = Task { () -> Empty in try await fixture.client.send(Endpoint(.POST, path: newerPath)) }
+            await fulfillment(of: [newerEntered], timeout: 5)
+            try await fixture.client.refreshSession()
+            if olderFirst {
+                fixture.transport.release(loginResponse("older-account"), path: login)
+                do { _ = try await older.value
+                    XCTFail("A newer authentication dispatch must fence the older response")
+                } catch is CancellationError {}
+                XCTAssertEqual(fixture.jar.cookies?.first { $0.name == "st" }?.value, "s-renewed")
+            }
+            fixture.transport.release(loginResponse("newer-account"), path: newerPath)
+            do { _ = try await newer.value } catch { XCTFail("Newest authentication must succeed: \(error)") }
+            if !olderFirst {
+                fixture.transport.release(loginResponse("older-account"), path: login)
+                do { _ = try await older.value
+                    XCTFail("Completed account boundary must fence the older response")
+                } catch is CancellationError {}
+            }
+            XCTAssertEqual(fixture.jar.cookies?.first { $0.name == "st" }?.value, "newer-account")
+            SessionRecoveryProtocol.remove(fixture.host)
+        }
+    }
+
+    func testPendingAndFailedOAuthCompletionPreservePublishedMemberAndInFlightIdentity() async throws {
+        let path = "/api/v1/auth/oauth/authorizations/connect-flow/complete"
+        for status in [200, 503] {
+            let fixture = try setup()
+            let data = ApiFixtureLoader.data("swift.my.identity.default")
+            let identity = try APIClient.makeDecoder().decode(Identity.self, from: data).identity
+            let manager = SessionManager(client: fixture.client)
+            manager.synchronize(with: identity)
+            let identityEntered = expectation(description: "existing identity request pending")
+            let completionEntered = expectation(description: "OAuth completion pending")
+            fixture.transport.handler = { request, _ in
+                switch request.url!.path {
+                case "/api/v1/session": return SessionRecoveryTransport.tokens("renewed")
+                case "/api/v1/my/identity": identityEntered.fulfill()
+                default: completionEntered.fulfill()
+                }
+                return nil
+            }
+            let refresh = Task { await manager.refresh() }
+            await fulfillment(of: [identityEntered], timeout: 5)
+            let completion = Task { () -> Empty in try await fixture.client.send(Endpoint(.POST, path: path)) }
+            await fulfillment(of: [completionEntered], timeout: 5)
+            XCTAssertEqual(manager.currentUserId, identity.id)
+            fixture.transport.release(.init(status: status, body: Data("{\"status\":\"pending\"}".utf8)), path: path)
+            if status == 200 { _ = try await completion.value } else {
+                do { _ = try await completion.value
+                    XCTFail("Expected the original OAuth failure")
+                } catch { XCTAssertFalse(error is CancellationError) }
+            }
+            XCTAssertEqual(manager.currentUserId, identity.id)
+            fixture.transport.release(.init(status: 200, body: data), path: "/api/v1/my/identity")
+            let refreshed = await refresh.value
+            XCTAssertTrue(refreshed)
+            XCTAssertEqual(manager.currentUserId, identity.id)
+            XCTAssertEqual(fixture.jar.cookies?.first { $0.name == "st" }?.value, "s-renewed")
+            SessionRecoveryProtocol.remove(fixture.host)
+        }
+    }
+
+    func testCurrentAuthenticationTerminalFailureClearsItsExactSessionStamp() async throws {
         let fixture = try setup()
         defer { SessionRecoveryProtocol.remove(fixture.host) }
-        let olderPath = login
-        let newerPath = "/api/v1/auth/native/email-address/login"
-        let olderEntered = expectation(description: "older authentication pending")
-        let newerEntered = expectation(description: "newer authentication pending")
-        fixture.transport.handler = { request, _ in
-            if request.url!.path == "/api/v1/session" { return SessionRecoveryTransport.tokens("renewed") }
-            if request.url!.path == olderPath { olderEntered.fulfill() } else { newerEntered.fulfill() }
-            return nil
+        fixture.transport.handler = { _, _ in
+            .init(status: 401, body: Data("{\"code\":\"SESSION_RELOGIN_REQUIRED\"}".utf8))
         }
-        let older = Task { () -> Empty in try await fixture.client.send(Endpoint(.POST, path: login)) }
-        await fulfillment(of: [olderEntered], timeout: 5)
-        let newer = Task { () -> Empty in try await fixture.client.send(Endpoint(.POST, path: newerPath)) }
-        await fulfillment(of: [newerEntered], timeout: 5)
-        try await fixture.client.refreshSession()
-        fixture.transport.release(loginResponse("newer-account"), path: newerPath)
-        _ = try await newer.value
-        fixture.transport.release(loginResponse("older-account"), path: login)
-        do { _ = try await older.value
-            XCTFail("Completed account boundary must fence the older response")
-        } catch is CancellationError {}
-        XCTAssertEqual(fixture.jar.cookies?.first { $0.name == "st" }?.value, "newer-account")
+        do { let _: Empty = try await fixture.client.send(Endpoint(.POST, path: login))
+            XCTFail("Expected terminal authentication failure")
+        } catch VouchaError.unauthorized {}
+        XCTAssertTrue(fixture.jar.cookies?.isEmpty == true)
     }
 
     func testSignOutStillFencesEligiblePendingLoginAfterRenewal() async throws {

@@ -13,6 +13,7 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     struct Stamp: Equatable {
         let epoch: UInt64
         let revision: UInt64
+        var authenticationOrder: UInt64?
     }
 
     private static let registryLock = NSLock()
@@ -29,6 +30,7 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     var signingOut = false
     var epoch: UInt64 = 0
     var revision: UInt64 = 0
+    var authenticationOrder: UInt64 = 0
     var confirmedIdentityRevision: UInt64?
     var invalidationObservers: [UUID: @Sendable (UInt64, UInt64) -> Void] = [:]
     var rotation: (UUID, Task<SessionRotationResult, Error>)?
@@ -89,11 +91,15 @@ final class SessionCookieCoordinator: @unchecked Sendable {
 
     func check(_ stamp: Stamp) throws {
         try lock.withLock {
-            guard epoch == stamp.epoch else { throw CancellationError() }
+            guard epoch == stamp.epoch,
+                  stamp.authenticationOrder.map({ $0 == authenticationOrder }) ?? true
+            else { throw CancellationError() }
         }
     }
 
-    func prepare(_ request: URLRequest, origin: URL) throws -> (URLRequest, Stamp) {
+    func prepare(
+        _ request: URLRequest, origin: URL, establishingSession: Bool = false
+    ) throws -> (URLRequest, Stamp) {
         try lock.withLock {
             guard !signingOut || request.url?.path == "/api/v1/auth/logout" else { throw CancellationError() }
             var request = request
@@ -103,7 +109,12 @@ final class SessionCookieCoordinator: @unchecked Sendable {
                 request.setValue(HTTPCookie.requestHeaderFields(with: cookies)["Cookie"], forHTTPHeaderField: "Cookie")
             }
             request.httpShouldHandleCookies = false
-            return (request, Stamp(epoch: epoch, revision: revision))
+            var stamp = Stamp(epoch: epoch, revision: revision)
+            if establishingSession {
+                authenticationOrder &+= 1
+                stamp.authenticationOrder = authenticationOrder
+            }
+            return (request, stamp)
         }
     }
 

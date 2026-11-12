@@ -114,11 +114,10 @@ final class SessionRefreshEpochReviewTests: XCTestCase {
         )
         let manager = SessionManager(client: client)
         let service = SignInService(client: client, sessionManager: manager)
-        return Fixture(client: client, manager: manager, service: service, jar: jar, host: host, transport: transport)
+        return Fixture(manager: manager, service: service, jar: jar, host: host, transport: transport)
     }
 
     private struct Fixture {
-        let client: APIClient
         let manager: SessionManager
         let service: SignInService
         let jar: HTTPCookieStorage
