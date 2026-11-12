@@ -4,6 +4,8 @@ namespace Voucha.Client.Core.Auth;
 
 public sealed partial class SessionCookieJar
 {
+  private static readonly TimeSpan PersistenceDeadline = TimeSpan.FromSeconds(30);
+
   /// <summary>
   /// Installs the <c>dt</c>/<c>st</c> body tokens a native email login returns, through the same
   /// persisted cookie path as renewal. Tokens already in the jar (for example from <c>Set-Cookie</c>)
@@ -39,9 +41,12 @@ public sealed partial class SessionCookieJar
         authenticatedSession = null;
         CommitCredentialChange(preserveAuthentication: true);
       }
+      // A stalled secure-storage write must not hold `sync`; bound it like renewal and clear on failure.
+      using var deadline = new CancellationTokenSource(PersistenceDeadline, renewalTimeProvider);
+      using var bounded = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
       try
       {
-        await PersistUnlockedAsync(cancellationToken).ConfigureAwait(false);
+        await PersistUnlockedAsync(bounded.Token).ConfigureAwait(false);
       }
       catch
       {

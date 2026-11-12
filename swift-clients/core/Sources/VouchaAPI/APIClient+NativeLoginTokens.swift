@@ -39,7 +39,10 @@ extension APIClient {
             var properties: [HTTPCookiePropertyKey: Any] = current?.properties ?? [
                 .originURL: baseURL, .path: "/", HTTPCookiePropertyKey("HttpOnly"): "TRUE"
             ]
-            if current == nil, baseURL.scheme == "https" { properties[.secure] = "TRUE" }
+            // Credentials are always HttpOnly, and Secure over HTTPS, even when replacing a cookie that
+            // an earlier response stored with weaker attributes.
+            properties[HTTPCookiePropertyKey("HttpOnly")] = "TRUE"
+            if baseURL.scheme == "https" { properties[.secure] = "TRUE" }
             properties[.name] = name
             properties[.value] = value
             properties[.expires] = expires

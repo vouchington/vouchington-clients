@@ -8,16 +8,13 @@ namespace Voucha.Client.App;
 
 internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
 {
-  private readonly string identity = CatalystAuthNewsLaunch.ReadFixture(
-      "swift.my.identity.default", "GET", "/api/v1/my/identity");
+  private readonly string identity;
   // Deliberate unchanged UI replay: producer fixture uses limit=25 and video items
   // within an article feed. This is not an article-filter or response-contract parity test.
-  private readonly string news = CatalystAuthNewsLaunch.ReadFixture(
-      "web.rss-feed-items.feed.default", "GET", "/api/v1/feeds/rss_feed_items/any");
+  private readonly string news;
   // Native login fixture shape; the two body tokens are re-minted as JWT-shaped credentials with a
   // future exp because the client refuses an installed token it cannot read an expiry from.
-  private readonly JsonObject nativeLogin = (JsonObject)JsonNode.Parse(CatalystAuthNewsLaunch.ReadFixture(
-      "native.auth.email-address.login.authenticated", "POST", "/api/v1/auth/native/email-address/login"))!;
+  private readonly JsonObject nativeLogin;
   private readonly string deviceToken = Jwt();
   private readonly string sessionToken = Jwt();
   private readonly string userId;
@@ -25,8 +22,15 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
   private bool authenticated;
   private readonly object gate = new();
 
-  public CatalystAuthNewsHandler()
+  public CatalystAuthNewsHandler(string? contractRoot = null)
   {
+    identity = CatalystAuthNewsLaunch.ReadFixture(
+        "swift.my.identity.default", "GET", "/api/v1/my/identity", contractRoot);
+    news = CatalystAuthNewsLaunch.ReadFixture(
+        "web.rss-feed-items.feed.default", "GET", "/api/v1/feeds/rss_feed_items/any", contractRoot);
+    nativeLogin = (JsonObject)JsonNode.Parse(CatalystAuthNewsLaunch.ReadFixture(
+        "native.auth.email-address.login.authenticated", "POST", "/api/v1/auth/native/email-address/login",
+        contractRoot))!;
     using var document = JsonDocument.Parse(identity);
     userId = document.RootElement.GetProperty("identity").GetProperty("id").GetString()
         ?? throw new InvalidOperationException("Identity fixture has no user id.");

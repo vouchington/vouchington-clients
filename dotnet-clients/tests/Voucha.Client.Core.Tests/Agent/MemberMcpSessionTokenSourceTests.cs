@@ -134,6 +134,47 @@ public sealed class MemberMcpSessionTokenSourceTests
         () => source.AccessTokenAsync(TestContext.Current.CancellationToken));
   }
 
+  [Fact]
+  public async Task SessionBackedMintSendsTheSharedClientSessionCookiesOverTheWire()
+  {
+    using var listener = new HttpListener();
+    var port = FreePort();
+    var origin = new Uri($"http://127.0.0.1:{port}");
+    listener.Prefixes.Add(origin + "");
+    listener.Start();
+    var seen = Task.Run(async () =>
+    {
+      var context = await listener.GetContextAsync();
+      var cookie = context.Request.Headers["Cookie"];
+      var json = $$"""{"access_token":"t","expires_in":3600,"resource":"{{origin}}api/v1/mcp","scope":"mcp.user:read","token_type":"Bearer"}""";
+      var bytes = Encoding.UTF8.GetBytes(json);
+      context.Response.ContentType = "application/json";
+      await context.Response.OutputStream.WriteAsync(bytes);
+      context.Response.Close();
+      return cookie;
+    });
+    var container = new CookieContainer();
+    container.Add(origin, new Cookie("dt", "device-secret", "/"));
+    container.Add(origin, new Cookie("st", "session-secret", "/"));
+    using var http = new HttpClient(new SocketsHttpHandler { CookieContainer = container, UseCookies = true })
+    { BaseAddress = origin };
+    using var source = new MemberMcpSessionTokenSource(
+        new VouchaApiClient(http), new Uri(origin, "/api/v1/mcp"), "windows");
+
+    await source.AccessTokenAsync(TestContext.Current.CancellationToken);
+
+    var cookie = await seen.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    Assert.Contains("dt=device-secret", cookie, StringComparison.Ordinal);
+    Assert.Contains("st=session-secret", cookie, StringComparison.Ordinal);
+  }
+
+  private static int FreePort()
+  {
+    using var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+    probe.Start();
+    return ((IPEndPoint)probe.LocalEndpoint).Port;
+  }
+
   private static MemberMcpSessionTokenSource Source(
       MintHandler handler, TestClock? clock = null, Func<bool>? stillCurrent = null) =>
       new(new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),

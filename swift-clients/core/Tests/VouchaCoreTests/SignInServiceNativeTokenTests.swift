@@ -21,13 +21,37 @@ final class SignInServiceNativeTokenTests: XCTestCase {
         return Data(json.utf8)
     }
 
-    private func setup() throws -> (APIClient, SignInService, HTTPCookieStorage, String, SessionRecoveryTransport) {
+    private func refreshTokens(
+        storing snapshot: CookieSnapshot, from jar: HTTPCookieStorage
+    ) -> SessionRecoveryTransport.Reply {
+        snapshot.store(jar.cookies ?? [])
+        return SessionRecoveryTransport.tokens("fresh", uid: "user")
+    }
+
+    private final class CookieSnapshot: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: [HTTPCookie] = []
+        func store(_ cookies: [HTTPCookie]) {
+            lock.lock()
+            stored = cookies
+            lock.unlock()
+        }
+
+        var cookies: [HTTPCookie] {
+            lock.lock()
+            defer { lock.unlock() }
+            return stored
+        }
+    }
+
+    private func setup(scheme: String = "http")
+        throws -> (APIClient, SignInService, HTTPCookieStorage, String, SessionRecoveryTransport) {
         let host = "native-login-\(UUID().uuidString.lowercased()).test"
         let jar = try XCTUnwrap(URLSessionConfiguration.ephemeral.httpCookieStorage)
         let transport = SessionRecoveryTransport()
         SessionRecoveryProtocol.register(transport, host: host)
         let client = APIClient(
-            config: AppConfig(baseURL: URL(string: "http://\(host)")!),
+            config: AppConfig(baseURL: URL(string: "\(scheme)://\(host)")!),
             cookieStorage: jar,
             protocolClasses: [SessionRecoveryProtocol.self],
             bootstrapSession: false
@@ -55,6 +79,36 @@ final class SignInServiceNativeTokenTests: XCTestCase {
         XCTAssertTrue(cookieHeader.contains("dt=\(device)"))
         XCTAssertTrue(cookieHeader.contains("st=\(session)"))
         XCTAssertNotNil(jar.cookies?.first { $0.name == "st" }?.expiresDate)
+    }
+
+    func testReplacingAWeakerExistingCookieStillSetsSecureAndHttpOnly() async throws {
+        let (_, service, jar, host, transport) = try setup(scheme: "https")
+        defer { SessionRecoveryProtocol.remove(host) }
+        for name in ["dt", "st"] {
+            let weak = try XCTUnwrap(HTTPCookie(properties: [
+                .name: name, .value: "old-\(name)", .domain: host, .path: "/"
+            ]))
+            jar.setCookie(weak)
+        }
+        let device = Self.jwt("device"), session = Self.jwt("session")
+        let atRefresh = CookieSnapshot()
+        transport.handler = { request, _ in
+            switch request.url!.path {
+            case "/api/v1/auth/native/email-address/login":
+                .init(status: 200, body: self.loginBody(dt: device, st: session))
+            case "/api/v1/session":
+                self.refreshTokens(storing: atRefresh, from: jar)
+            default: .init(status: 200, body: ApiFixtureLoader.data("swift.my.identity.default"))
+            }
+        }
+
+        _ = try await service.verifyEmailOTP(email: "a@example.test", code: "ABCDEFGH23")
+
+        for (name, value) in [("dt", device), ("st", session)] {
+            let installed = try XCTUnwrap(atRefresh.cookies.first { $0.name == name && $0.value == value })
+            XCTAssertTrue(installed.isSecure, "\(name) must be Secure")
+            XCTAssertTrue(installed.isHTTPOnly, "\(name) must be HttpOnly")
+        }
     }
 
     func testMFAResponseDoesNotInstallCredentials() async throws {

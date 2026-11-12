@@ -32,11 +32,27 @@ public actor MemberMCPSessionAuthorizedClient {
         let client = client
         return Task {
             guard let access else { return }
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask { try? await client.close(accessToken: access) }
-                group.addTask { try? await Task.sleep(nanoseconds: UInt64(max(closeTimeout, 0) * 1_000_000_000)) }
-                _ = await group.next()
-                group.cancelAll()
+            await Self.boundedBy(seconds: closeTimeout) { try? await client.close(accessToken: access) }
+        }
+    }
+
+    /// Returns when `work` finishes or after `seconds`, whichever comes first. The work is cancelled on
+    /// timeout but never joined, so a close stalled behind MCP initialization cannot outlive the bound.
+    private static func boundedBy(seconds: TimeInterval, _ work: @escaping @Sendable () async -> Void) async {
+        let gate = ResumeOnce()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let timer = Task {
+                try? await Task.sleep(nanoseconds: UInt64(max(seconds, 0) * 1_000_000_000))
+                if gate.claim() { continuation.resume() }
+            }
+            let worker = Task {
+                await work()
+                timer.cancel()
+                if gate.claim() { continuation.resume() }
+            }
+            Task {
+                _ = await timer.result
+                worker.cancel()
             }
         }
     }
@@ -53,5 +69,18 @@ public actor MemberMCPSessionAuthorizedClient {
                 throw MemberMCPTokenManager.Failure.notAuthorized
             }
         }
+    }
+}
+
+private final class ResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var claimed = false
+
+    func claim() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if claimed { return false }
+        claimed = true
+        return true
     }
 }

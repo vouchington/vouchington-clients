@@ -87,6 +87,49 @@ public sealed class NativeLoginTokenInstallTests
             Jwt("device", TimeSpan.FromSeconds(-30)), Jwt("session"), cancellationToken: TestContext.Current.CancellationToken));
   }
 
+  [Fact]
+  public async Task StalledPersistenceIsBoundedClearsTheTokensAndReleasesTheJar()
+  {
+    var container = new CookieContainer();
+    var persistence = new StalledPersistence();
+    var jar = new SessionCookieJar(container, ApiBaseUrl, persistence, new ExpiredDeadlines());
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => jar.InstallNativeLoginTokensAsync(
+        Jwt("device"), Jwt("session"), cancellationToken: TestContext.Current.CancellationToken));
+
+    Assert.Empty(container.GetCookies(ApiBaseUrl));
+    persistence.Stall = false;
+    await jar.InstallNativeLoginTokensAsync(
+        Jwt("device2"), Jwt("session2"), cancellationToken: TestContext.Current.CancellationToken);
+    Assert.NotNull(container.GetCookies(ApiBaseUrl)["st"]);
+  }
+
+  private sealed class StalledPersistence : ISessionCookiePersistence
+  {
+    public bool Stall { get; set; } = true;
+    public Task<string?> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+    public Task ClearAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task WriteAsync(string serializedCookies, CancellationToken cancellationToken = default) =>
+        Stall ? Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken) : Task.CompletedTask;
+  }
+
+  /// <summary>Time source whose timers fire as soon as they are created, so every deadline is already over.</summary>
+  private sealed class ExpiredDeadlines : TimeProvider
+  {
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+      callback(state);
+      return new NoTimer();
+    }
+
+    private sealed class NoTimer : ITimer
+    {
+      public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+      public void Dispose() { }
+      public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+  }
+
   private sealed class Stack : IDisposable
   {
     private const string RefreshBody =

@@ -9,6 +9,7 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
     private static var requests: [String] = []
     private static var bearers: [String] = []
     private static var stallDeletes = false
+    private static var mintCookies: [String] = []
     private let deliveryLock = NSLock()
     private var stopped = false
 
@@ -20,6 +21,14 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
         rejectedBearers = rejected
         requests = []
         bearers = []
+        mintCookies = []
+    }
+
+    /// `Cookie` header of each mint request; the fixture refuses a mint without both session cookies.
+    static var mintCookieHeaders: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return mintCookies
     }
 
     static var paths: [String] {
@@ -59,7 +68,8 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
         let id = rpc?["id"] as? String ?? "1"
         let bearer = request.value(forHTTPHeaderField: "Authorization") ?? ""
         let (status, payload) = Self.answer(
-            path: url.path, httpMethod: request.httpMethod ?? "", method: method, id: id, bearer: bearer
+            path: url.path, httpMethod: request.httpMethod ?? "", method: method, id: id, bearer: bearer,
+            cookie: request.value(forHTTPHeaderField: "Cookie") ?? ""
         )
         var headers = ["Content-Type": "application/json"]
         if method == "initialize" { headers["Mcp-Session-Id"] = "fixture-session" }
@@ -79,12 +89,16 @@ final class SessionBoundMCPURLProtocol: URLProtocol {
     }
 
     private static func answer(
-        path: String, httpMethod: String, method: String?, id: String, bearer: String
+        path: String, httpMethod: String, method: String?, id: String, bearer: String, cookie: String
     ) -> (Int, String) {
         lock.lock()
         defer { lock.unlock() }
         requests.append("\(httpMethod) \(path)")
         if path == "/api/v1/oauth/native-session-tokens" {
+            mintCookies.append(cookie)
+            guard cookie.contains("dt=device-secret"), cookie.contains("st=session-secret") else {
+                return (401, #"{"error":"not authenticated"}"#)
+            }
             mints += 1
             return (
                 200,

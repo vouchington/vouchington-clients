@@ -54,9 +54,9 @@ final class MemberMCPSessionTokenSourceTests: XCTestCase {
     }
 
     private func source(
-        signer: (any RequestSigning)? = nil, clock: Clock = Clock(), current: Flag = Flag()
+        signer: (any RequestSigning)? = nil, clock: Clock = Clock(), current: Flag = Flag(),
+        storage: HTTPCookieStorage = IsolatedHTTPCookieStorage.make()
     ) -> MemberMCPSessionTokenSource {
-        let storage = IsolatedHTTPCookieStorage.make()
         let client = APIClient(
             config: AppConfig(baseURL: URL(string: "https://api.test")!, turnstileSiteKey: "key"),
             cookieStorage: storage, protocolClasses: [SessionMCPMintProtocol.self], signer: signer
@@ -65,6 +65,27 @@ final class MemberMCPSessionTokenSourceTests: XCTestCase {
             client: client, app: .macos, resource: resource,
             isCurrent: { current.get() }, now: { clock.now() }
         )
+    }
+
+    func testMintCarriesTheNativeSessionCookies() async throws {
+        #if canImport(Darwin)
+            let storage = try XCTUnwrap(URLSessionConfiguration.ephemeral.httpCookieStorage)
+        #else
+            let storage = IsolatedHTTPCookieStorage.make()
+        #endif
+        for (name, value) in [("dt", "device-secret"), ("st", "session-secret")] {
+            let cookie = try XCTUnwrap(HTTPCookie(properties: [
+                .name: name, .value: value, .domain: host, .path: "/", .secure: "TRUE"
+            ]))
+            storage.setCookie(cookie)
+        }
+
+        _ = try await source(storage: storage).accessToken()
+
+        let request = try XCTUnwrap(SessionMCPMintProtocol.seen(host: host).first)
+        let cookieHeader = try XCTUnwrap(request.headers["cookie"])
+        XCTAssertTrue(cookieHeader.contains("dt=device-secret"))
+        XCTAssertTrue(cookieHeader.contains("st=session-secret"))
     }
 
     func testMintsOnceWithNativeHeaderAndNoBrowserMetadata() async throws {
@@ -179,6 +200,7 @@ final class MemberMCPSessionTokenSourceTests: XCTestCase {
         for (resource, tokenType, expiresIn) in [
             ("https://other.test/api/v1/mcp", "Bearer", 3_600), (nil, "MAC", 3_600), (nil, "Bearer", 0)
         ] {
+            SessionMCPMintProtocol.reset(host: host)
             SessionMCPMintProtocol.configure(
                 host: host, resource: resource, tokenType: tokenType, expiresIn: expiresIn
             )

@@ -14,9 +14,15 @@ final class NativeChatMCPSessionBoundServiceTests: XCTestCase {
         cleanedAccounts: CleanedAccounts = CleanedAccounts(),
         remoteCloseTimeout: TimeInterval = 5
     ) -> NativeChatMCPSessionBoundService {
+        let storage = URLSessionConfiguration.ephemeral.httpCookieStorage ?? HTTPCookieStorage()
+        for (name, value) in [("dt", "device-secret"), ("st", "session-secret")] {
+            if let cookie = HTTPCookie(properties: [
+                .name: name, .value: value, .domain: "example.test", .path: "/", .secure: "TRUE"
+            ]) { storage.setCookie(cookie) }
+        }
         let client = APIClient(
             config: AppConfig(baseURL: site, turnstileSiteKey: "key"),
-            cookieStorage: HTTPCookieStorage(),
+            cookieStorage: storage,
             protocolClasses: [SessionBoundMCPURLProtocol.self]
         )
         return NativeChatMCPSessionBoundService(
@@ -59,6 +65,9 @@ final class NativeChatMCPSessionBoundServiceTests: XCTestCase {
 
         XCTAssertEqual(toolNames(catalog), ["server_tool"])
         XCTAssertEqual(SessionBoundMCPURLProtocol.mintCount, 1)
+        let mintCookie = try XCTUnwrap(SessionBoundMCPURLProtocol.mintCookieHeaders.first)
+        XCTAssertTrue(mintCookie.contains("dt=device-secret"))
+        XCTAssertTrue(mintCookie.contains("st=session-secret"))
         XCTAssertTrue(SessionBoundMCPURLProtocol.mcpBearers.allSatisfy { $0 == "Bearer token-1" })
         XCTAssertFalse(SessionBoundMCPURLProtocol.paths.contains { $0.contains(".well-known") })
     }

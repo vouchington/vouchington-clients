@@ -8,16 +8,20 @@ import { pathToFileURL } from 'node:url'
 import { assertAuthNewsControls } from './catalyst-gui-auth-news-session.mjs'
 import { authNewsBudgetMs, authNewsCleanupMs, createDeadline } from './catalyst-gui-deadline.mjs'
 
+// Every fixture CatalystAuthNewsHandler reads at construction; the staged app bundle ships exactly these.
+export const authNewsFixtures = [
+  ['swift.my.identity.default', 'GET', '/api/v1/my/identity'],
+  ['web.rss-feed-items.feed.default', 'GET', '/api/v1/feeds/rss_feed_items/any'],
+  ['native.auth.email-address.login.authenticated', 'POST', '/api/v1/auth/native/email-address/login'],
+]
+
 export function requireAuthNewsFixtures(root) {
   if (!root?.startsWith('/') || root.includes('..') || root.includes('$(')) throw new Error('Absolute contract root required')
   const fixtureRoot = join(root, 'api-fixtures', 'v1')
   const manifest = JSON.parse(readFileSync(join(fixtureRoot, 'manifest.json'), 'utf8'))
-  for (const [id, path] of [
-    ['swift.my.identity.default', '/api/v1/my/identity'],
-    ['web.rss-feed-items.feed.default', '/api/v1/feeds/rss_feed_items/any'],
-  ]) {
+  for (const [id, method, path] of authNewsFixtures) {
     const fixture = manifest.fixtures.find(item => item.id === id)
-    if (fixture?.method !== 'GET' || fixture.path !== path || fixture.status !== 200 ||
+    if (fixture?.method !== method || fixture.path !== path || fixture.status !== 200 ||
       !fixture.bodyFile?.startsWith('responses/') || fixture.bodyFile.includes('..')) throw new Error(`Invalid fixture ${id}`)
     JSON.parse(readFileSync(join(fixtureRoot, fixture.bodyFile), 'utf8'))
   }
@@ -29,7 +33,7 @@ function stageFixture(destination) {
   requireAuthNewsFixtures(root)
   const source = join(root, 'api-fixtures', 'v1')
   const manifest = JSON.parse(readFileSync(join(source, 'manifest.json'), 'utf8'))
-  const fixtures = manifest.fixtures.filter(item => ['swift.my.identity.default', 'web.rss-feed-items.feed.default'].includes(item.id))
+  const fixtures = manifest.fixtures.filter(item => authNewsFixtures.some(([id]) => id === item.id))
   const target = join(destination, 'api-fixtures', 'v1')
   mkdirSync(target, { recursive: true })
   writeFileSync(join(target, 'manifest.json'), JSON.stringify({ ...manifest, fixtures }))

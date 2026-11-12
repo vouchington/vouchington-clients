@@ -74,6 +74,7 @@ public sealed class MemberMcpSessionBoundConnectionTests
     await connection.DisconnectAsync(TestContext.Current.CancellationToken);
 
     Assert.Contains("DELETE", mcp.Methods);
+    Assert.Equal("Bearer token-1", Assert.Single(mcp.DeleteBearers));
     Assert.Single(mint.Requests);
     await Assert.ThrowsAsync<McpUnauthorizedException>(
         () => connection.ListToolsAsync(TestContext.Current.CancellationToken));
@@ -97,7 +98,7 @@ public sealed class MemberMcpSessionBoundConnectionTests
     var mint = new MintHandler();
     var api = new VouchaApiClient(new HttpClient(mint) { BaseAddress = Site });
     var factory = new MemberMcpSessionBoundConnectionFactory(
-        Site, api, new FixedSession(() => account), () => new McpHandler());
+        Site, api, new FixedSession(() => account), new NoLegacyFactory(), () => new McpHandler());
     await using var connection = await factory.CreateAsync("account-a", TestContext.Current.CancellationToken);
     await connection.ListToolsAsync(TestContext.Current.CancellationToken);
 
@@ -106,6 +107,24 @@ public sealed class MemberMcpSessionBoundConnectionTests
     await Assert.ThrowsAsync<McpUnauthorizedException>(
         () => connection.CallToolAsync("server_tool", JsonDocument.Parse("{}").RootElement,
             TestContext.Current.CancellationToken));
+  }
+
+  [Fact]
+  public void FactoryRequiresALegacyGrantRevocationFactory()
+  {
+    var api = new VouchaApiClient(new HttpClient(new MintHandler()) { BaseAddress = Site });
+
+    Assert.Throws<ArgumentNullException>(() => new MemberMcpSessionBoundConnectionFactory(
+        Site, api, new FixedSession(() => "account-a"), null!));
+    var legacy = new NoLegacyFactory();
+    Assert.Same(legacy, new MemberMcpSessionBoundConnectionFactory(
+        Site, api, new FixedSession(() => "account-a"), legacy).LegacyGrantRevocationFactory);
+  }
+
+  private sealed class NoLegacyFactory : IMemberMcpSessionConnectionFactory
+  {
+    public Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
   }
 
   private static MemberMcpSessionBoundConnection Connection(MintHandler mint, McpHandler mcp) =>
@@ -127,6 +146,7 @@ public sealed class MemberMcpSessionBoundConnectionTests
   {
     public List<string?> Bearers { get; } = [];
     public List<string> Methods { get; } = [];
+    public List<string?> DeleteBearers { get; } = [];
     public bool RejectFirstToken { get; init; }
     public bool RejectAll { get; init; }
 
@@ -136,6 +156,7 @@ public sealed class MemberMcpSessionBoundConnectionTests
       if (request.Method == HttpMethod.Delete)
       {
         Methods.Add("DELETE");
+        DeleteBearers.Add(request.Headers.Authorization?.ToString());
         return new HttpResponseMessage(HttpStatusCode.NoContent);
       }
       var bearer = request.Headers.Authorization?.ToString();

@@ -23,12 +23,12 @@ public static partial class MauiProgram
             sp.GetRequiredService<AppConfig>().ApiBaseUrl,
             sp.GetRequiredService<VouchaApiClient>(),
             sp.GetRequiredService<ISessionStore>(),
-            sp.GetRequiredService<MemberMcpHttpHandlerFactory>().Create,
-            legacyGrantRevocationFactory: new MemberMcpSessionConnectionFactory(
+            new MemberMcpSessionConnectionFactory(
                 sp.GetRequiredService<AppConfig>().ApiBaseUrl,
                 sp.GetRequiredService<IMemberMcpAccountTokenStore>(),
                 new MemberMcpRevocationOnlyBrowser(),
-                sp.GetRequiredService<MemberMcpHttpHandlerFactory>().Create)));
+                sp.GetRequiredService<MemberMcpHttpHandlerFactory>().Create),
+            sp.GetRequiredService<MemberMcpHttpHandlerFactory>().Create));
     services.AddSingleton<MemberMcpSession>();
     services.AddSingleton<MemberMcpAutoConnector>();
 #endif
