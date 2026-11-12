@@ -75,7 +75,7 @@ public static partial class MauiProgram
 
   private static Dictionary<string, string?> PackagedSentryConfiguration() =>
       typeof(MauiProgram).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-          .Where(attribute => attribute.Key == "VOUCHA_SENTRY_DSN")
+          .Where(attribute => attribute.Key is "VOUCHA_SENTRY_DSN" or "VOUCHA_SENTRY_RELEASE" or "VOUCHA_SENTRY_ENVIRONMENT")
           .ToDictionary(attribute => attribute.Key, attribute => (string?)attribute.Value, StringComparer.Ordinal);
 
   private static string ReleaseName()

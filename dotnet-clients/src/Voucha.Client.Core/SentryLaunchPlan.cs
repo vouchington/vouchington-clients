@@ -25,12 +25,18 @@ public sealed record SentryLaunchPlan(
         Read(environment, "VOUCHA_SENTRY_DSN") ?? Read(packagedConfiguration, "VOUCHA_SENTRY_DSN")));
     return new SentryLaunchPlan(
         dsn,
-        releaseName,
-        releaseConfiguration ? "release" : "debug",
+        ConfiguredText("VOUCHA_SENTRY_RELEASE", environment, packagedConfiguration) ?? releaseName,
+        ConfiguredText("VOUCHA_SENTRY_ENVIRONMENT", environment, packagedConfiguration) ?? (releaseConfiguration ? "release" : "debug"),
         TrimmedText.NonEmpty(accountId),
         SendDefaultPii: false,
         dsn is null ? 0 : EnabledTracesSampleRate);
   }
+
+  private static string? ConfiguredText(
+      string key,
+      IReadOnlyDictionary<string, string?>? environment,
+      IReadOnlyDictionary<string, string?>? packagedConfiguration) =>
+      TrimmedText.NonEmpty(Read(environment, key)) ?? TrimmedText.NonEmpty(Read(packagedConfiguration, key));
 
   private static string? Read(IReadOnlyDictionary<string, string?>? values, string key)
   {

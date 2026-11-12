@@ -42,12 +42,22 @@ public struct SentryLaunchPlan: Equatable, Sendable {
         )
         return SentryLaunchPlan(
             dsn: dsn,
-            releaseName: releaseName,
-            environmentName: configuration.environmentName,
+            releaseName: configuredText("VOUCHA_SENTRY_RELEASE", environment, packagedConfiguration) ?? releaseName,
+            environmentName: configuredText("VOUCHA_SENTRY_ENVIRONMENT", environment, packagedConfiguration)
+                ?? configuration.environmentName,
             accountId: SentryTrimmedText.nonEmpty(accountId),
             sendDefaultPii: false,
             tracesSampleRate: dsn == nil ? 0 : enabledTracesSampleRate
         )
+    }
+
+    private static func configuredText(
+        _ key: String,
+        _ environment: [String: String],
+        _ packagedConfiguration: [String: String]
+    ) -> String? {
+        SentryTrimmedText.nonEmpty(environment[key])
+            ?? SentryTrimmedText.nonEmpty(packagedConfiguration[key])
     }
 
     private static func validDSN(_ value: String?) -> String? {

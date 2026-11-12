@@ -37,6 +37,32 @@ final class SentryLaunchPlanTests: XCTestCase {
         XCTAssertNil(plan.accountId)
     }
 
+    func testReleaseMetadataUsesRuntimeThenPackagedThenBuildDefaults() {
+        for runtime in [" runtime ", " "] {
+            let plan = SentryLaunchPlan.resolve(
+                environment: ["VOUCHA_SENTRY_RELEASE": runtime, "VOUCHA_SENTRY_ENVIRONMENT": runtime],
+                packagedConfiguration: [
+                    "VOUCHA_SENTRY_RELEASE": " voucha@revision ",
+                    "VOUCHA_SENTRY_ENVIRONMENT": " production "
+                ],
+                configuration: .release,
+                releaseName: "0.1.0+1",
+                accountId: nil
+            )
+            XCTAssertEqual(plan.releaseName, runtime == " " ? "voucha@revision" : "runtime")
+            XCTAssertEqual(plan.environmentName, runtime == " " ? "production" : "runtime")
+            XCTAssertFalse(plan.startsSDK)
+        }
+        let fallback = SentryLaunchPlan.resolve(
+            packagedConfiguration: ["VOUCHA_SENTRY_RELEASE": " ", "VOUCHA_SENTRY_ENVIRONMENT": " "],
+            configuration: .debug,
+            releaseName: "0.1.0+1",
+            accountId: nil
+        )
+        XCTAssertEqual(fallback.releaseName, "0.1.0+1")
+        XCTAssertEqual(fallback.environmentName, "debug")
+    }
+
     func testAccountBindingSetsClearsAndSwitchesTheOpaqueId() {
         XCTAssertEqual(SentryAccountBinding.update(from: nil, to: " account-a "), .set("account-a"))
         XCTAssertEqual(SentryAccountBinding.update(from: "account-a", to: "account-a"), .unchanged)

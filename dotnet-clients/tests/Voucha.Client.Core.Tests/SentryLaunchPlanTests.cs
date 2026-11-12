@@ -37,6 +37,37 @@ public sealed class SentryLaunchPlanTests
     Assert.False(plan.SendDefaultPii);
   }
 
+  [Theory]
+  [InlineData(" runtime ", "runtime", "runtime")]
+  [InlineData(" ", "voucha@revision", "production")]
+  public void ReleaseMetadataUsesRuntimeThenPackagedValues(string runtime, string release, string environment)
+  {
+    var plan = SentryLaunchPlan.Resolve(
+        new Dictionary<string, string?> { ["VOUCHA_SENTRY_RELEASE"] = runtime, ["VOUCHA_SENTRY_ENVIRONMENT"] = runtime },
+        new Dictionary<string, string?> { ["VOUCHA_SENTRY_RELEASE"] = " voucha@revision ", ["VOUCHA_SENTRY_ENVIRONMENT"] = " production " },
+        releaseConfiguration: true,
+        "1.0+1",
+        null);
+
+    Assert.Equal(release, plan.ReleaseName);
+    Assert.Equal(environment, plan.EnvironmentName);
+    Assert.False(plan.StartsSdk);
+  }
+
+  [Fact]
+  public void EmptyPackagedReleaseMetadataUsesBuildDefaults()
+  {
+    var plan = SentryLaunchPlan.Resolve(
+        null,
+        new Dictionary<string, string?> { ["VOUCHA_SENTRY_RELEASE"] = " ", ["VOUCHA_SENTRY_ENVIRONMENT"] = " " },
+        releaseConfiguration: false,
+        "1.0+1",
+        null);
+
+    Assert.Equal("1.0+1", plan.ReleaseName);
+    Assert.Equal("debug", plan.EnvironmentName);
+  }
+
   [Fact]
   public void AccountBindingSetsSwitchesAndClearsTheOpaqueId()
   {
