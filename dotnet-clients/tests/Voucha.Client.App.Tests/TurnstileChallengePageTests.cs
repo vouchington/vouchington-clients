@@ -19,17 +19,22 @@ public sealed class TurnstileChallengePageTests
         },
       };
 
-  [Fact]
-  public void WidgetReceivesMappedActionAndConfiguredWebOrigin()
+  [Theory]
+  [InlineData("https://voucha.ai/settings?tab=security#challenge", "https://voucha.ai/")]
+  [InlineData("https://user:secret@staging.example.test:8443/custom/?q=1#fragment", "https://staging.example.test:8443/")]
+  [InlineData("http://localhost:3000/development?q=1#fragment", "http://localhost:3000/")]
+  [InlineData("http://[::1]:3000/development", "http://[::1]:3000/")]
+  [InlineData(null, "https://voucha.ai/")]
+  public void WidgetReceivesMappedActionAndConfiguredWebOrigin(string? configuredUrl, string expectedOrigin)
   {
-    var origin = new Uri("https://web.example.test/custom/");
+    var origin = configuredUrl is null ? null : new Uri(configuredUrl);
     var page = new TurnstileChallengePage(
         new AppConfig(new Uri("https://api.example.test"), "public-site-key", WebBaseUrl: origin),
         "communities.create-post");
     var webView = page.GetVisualTreeDescendants().OfType<WebView>().Single();
     var source = Assert.IsType<HtmlWebViewSource>(webView.Source);
 
-    Assert.Equal(origin.ToString(), source.BaseUrl);
+    Assert.Equal(expectedOrigin, source.BaseUrl);
     Assert.Contains("action: \"communities-create-post\"", source.Html, StringComparison.Ordinal);
     Assert.Contains("sitekey: siteKey", source.Html, StringComparison.Ordinal);
     Assert.Contains("\"expired-callback\"", source.Html, StringComparison.Ordinal);

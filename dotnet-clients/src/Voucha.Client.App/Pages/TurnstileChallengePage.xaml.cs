@@ -11,10 +11,12 @@ public partial class TurnstileChallengePage : ContentPage
   public TurnstileChallengePage(AppConfig appConfig, string routeAction)
   {
     var action = TurnstileAction.FromRouteAction(routeAction);
+    var webBaseUrl = appConfig.WebBaseUrl ?? new Uri(AppConfig.DefaultWebBaseUrl);
+    var origin = new UriBuilder(webBaseUrl.Scheme, webBaseUrl.Host, webBaseUrl.Port).Uri;
     InitializeComponent();
     TurnstileWebView.Source = new HtmlWebViewSource
     {
-      BaseUrl = (appConfig.WebBaseUrl ?? new Uri(AppConfig.DefaultWebBaseUrl)).ToString(),
+      BaseUrl = origin.AbsoluteUri,
       Html = BuildHtml(appConfig.RequiredTurnstileSiteKey, action),
     };
   }
