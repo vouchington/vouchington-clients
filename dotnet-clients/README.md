@@ -54,8 +54,10 @@ mise exec -- ./dotnet-clients/tooling/harness.sh --checks resx-path
 
 The harness restores the portable solution in locked mode, verifies formatting, runs the ast-grep
 presentation and Core-boundary scans, proves generated RESX satellite resources still load when the
-MSBuild artifacts path contains an apostrophe, and builds in Release. It ignores an ambient
-`ArtifactsPath` so concurrent worktrees keep build outputs isolated, including when the checkout
+MSBuild artifacts path contains an apostrophe, and builds in Release. Selecting `--checks fmt`
+also restores first, so it works in a fresh worktree. Restore runs once when both checks are
+selected; a failed restore skips formatting and reports the original restore diagnostics. It ignores
+an ambient `ArtifactsPath` so concurrent worktrees keep build outputs isolated, including when the checkout
 path contains spaces or apostrophes. Full portable tests, rendered MAUI page tests, and MAUI smoke
 builds remain in CI. The rendered page tests require the pinned MAUI workload, run separately from
 the portable solution, and do not require the exact Xcode version used by the Mac Catalyst smoke
