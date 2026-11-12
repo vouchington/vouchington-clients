@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import VouchaAPI
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -21,6 +22,7 @@ public struct SourcesListView: View {
     public let canVote: Bool
     public let isStaffViewer: Bool
     public let showSignIn: (() -> Void)?
+    let creationClient: APIClient
     let creationIdentity: @MainActor () -> String?
     let navigateToSource: (String) -> Void
     @State var creationModel: SourceCreationViewModel
@@ -34,6 +36,7 @@ public struct SourcesListView: View {
         canVote: Bool? = nil,
         isStaffViewer: Bool = false,
         showSignIn: (() -> Void)? = nil,
+        creationClient: APIClient? = nil,
         creationIdentity: (@MainActor () -> String?)? = nil,
         navigateToSource: @escaping (String) -> Void = { _ in }
     ) {
@@ -44,11 +47,13 @@ public struct SourcesListView: View {
         self.canVote = canVote ?? isSignedIn
         self.isStaffViewer = isStaffViewer
         self.showSignIn = showSignIn
+        let client = creationClient ?? viewModel.client
+        self.creationClient = client
         let identity = creationIdentity ?? { viewModel.userId }
         self.creationIdentity = identity
         self.navigateToSource = navigateToSource
         _creationModel = State(initialValue: SourceCreationViewModel(
-            service: .live(client: viewModel.client), baseURL: viewModel.client.baseURL, identity: identity
+            service: .live(client: client), baseURL: client.baseURL, identity: identity
         ))
     }
 
@@ -77,17 +82,27 @@ public struct SourcesListView: View {
             }
         }
         .sheet(isPresented: $showCreation) {
-            SourceCreationView(model: creationModel, navigate: navigateToSource)
+            SourceCreationView(model: creationModel) { path in
+                showCreation = false
+                navigateToSource(path)
+            }
         }
         .onChange(of: creationIdentity()) { _, _ in
-            creationModel.reset()
-            showCreation = false
+            replaceCreationContext()
         }
         .task(id: "\(scope.rawValue)|\(isStaffViewer)") {
             viewModel.scope = scope
             await viewModel.reload()
         }
         .refreshable { await viewModel.reload() }
+    }
+
+    func replaceCreationContext() {
+        creationModel.reset()
+        creationModel = SourceCreationViewModel(
+            service: .live(client: creationClient), baseURL: creationClient.baseURL, identity: creationIdentity
+        )
+        showCreation = false
     }
 
     @ViewBuilder

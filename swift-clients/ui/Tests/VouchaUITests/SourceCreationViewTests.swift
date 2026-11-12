@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import SwiftUI
 import ViewInspector
 @testable import VouchaFeatures
@@ -65,7 +66,7 @@ final class SourceCreationViewTests: XCTestCase {
             await Task.yield()
         }
         XCTAssertEqual(model.destination, "/source/topic")
-        try view.inspect().callOnDisappear()
+        try view.inspect().form().callOnDisappear()
         XCTAssertFalse(model.isWorking)
     }
 

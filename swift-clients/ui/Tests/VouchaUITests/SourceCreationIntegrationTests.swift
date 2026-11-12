@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
 import ViewInspector
+@testable import VouchaAPI
+@testable import VouchaCore
 @testable import VouchaFeatures
 import XCTest
 
@@ -11,13 +13,38 @@ final class SourceCreationIntegrationTests: NativeRouteSurfaceViewModelTestCase 
         let view = SourcesListView(viewModel: list, scope: .your, navigationTitle: "Sources")
         let creation = view.creationModel
         XCTAssertEqual(view.creationIdentity(), "account")
+        view.navigateToSource("/source/topic")
         creation.url = "https://example.com/feed"
-        try await ViewHosting.host(view) {
+        try await ViewHosting.host(NavigationStack { view }.frame(width: 600, height: 500)) {
             try view.inspect().group().toolbar().item().button().tap()
             try view.inspect().group().callOnChange(oldValue: "account" as String?, newValue: nil as String?)
             XCTAssertEqual(creation.url, "")
             XCTAssertFalse(creation.submitted)
         }
+    }
+
+    func testExplicitCurrentAPIOverridesRetainedListClient() throws {
+        let oldClient = try makeClient()
+        let current = try APIClient(
+            config: AppConfig(
+                baseURL: XCTUnwrap(URL(string: "http://localhost:3999")),
+                turnstileSiteKey: "test"
+            ),
+            cookieStorage: HTTPCookieStorage(),
+            protocolClasses: [CannedFeedURLProtocol.self]
+        )
+        let list = SourcesListViewModel(client: oldClient, userId: "old-account", feedType: "article")
+        let view = SourcesListView(
+            viewModel: list,
+            scope: .your,
+            navigationTitle: "Sources",
+            creationClient: current,
+            creationIdentity: { "current-account" }
+        )
+        XCTAssertTrue(view.creationClient === current)
+        XCTAssertEqual(view.creationModel.baseURL, current.baseURL)
+        XCTAssertEqual(view.creationModel.identity(), "current-account")
+        XCTAssertNotEqual(view.creationModel.baseURL, oldClient.baseURL)
     }
 
     func testSignedOutSourceListHasNoCreationControl() throws {

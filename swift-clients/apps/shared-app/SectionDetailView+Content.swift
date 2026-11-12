@@ -50,6 +50,7 @@ extension SectionDetailView {
                 isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
                     factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn,
+                creationClient: factory.apiClient,
                 creationIdentity: {
                     factory.sessionManager.currentUserId.map { "\($0)|\(ObjectIdentifier(factory.apiClient))" }
                 },
@@ -90,6 +91,7 @@ extension SectionDetailView {
                 isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
                     factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn,
+                creationClient: factory.apiClient,
                 creationIdentity: {
                     factory.sessionManager.currentUserId.map { "\($0)|\(ObjectIdentifier(factory.apiClient))" }
                 },
@@ -130,6 +132,7 @@ extension SectionDetailView {
                 isStaffViewer: factory.sessionManager.currentUserRoles.contains("administrator") ||
                     factory.sessionManager.currentUserRoles.contains("moderator"),
                 showSignIn: showSignIn,
+                creationClient: factory.apiClient,
                 creationIdentity: {
                     factory.sessionManager.currentUserId.map { "\($0)|\(ObjectIdentifier(factory.apiClient))" }
                 },
