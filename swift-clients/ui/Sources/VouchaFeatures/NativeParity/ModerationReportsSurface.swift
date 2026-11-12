@@ -16,13 +16,16 @@ struct ModerationReportsSurface: View {
         client: APIClient?,
         isSignedIn: Bool,
         viewerTier: ModerationReportsViewerTier,
+        currentUserId: String? = nil,
         onNavigate: @escaping (String) -> Void,
         showSignIn: @escaping () -> Void
     ) {
         self.isSignedIn = isSignedIn
         self.onNavigate = onNavigate
         self.showSignIn = showSignIn
-        _viewModel = State(initialValue: ModerationReportsViewModel(client: client, viewerTier: viewerTier))
+        _viewModel = State(initialValue: ModerationReportsViewModel(
+            client: client, viewerTier: viewerTier, currentUserId: currentUserId
+        ))
     }
 
     init(

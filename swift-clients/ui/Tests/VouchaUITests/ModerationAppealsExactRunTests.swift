@@ -1,6 +1,7 @@
 import Foundation
 import ViewInspector
 @testable import VouchaFeatures
+import VouchaLocalization
 import VouchaModels
 import XCTest
 
@@ -92,12 +93,28 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
 
     func testKnownFailureAndExpiryReleaseAdmissionWithError() async throws {
         for status in ["failed", "expired"] {
+            let admissionCount = CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts")
             let (model, appeal) = try await setup()
             CannedFeedURLProtocol.handlers[runPath] = (run(status), 200)
             await model.rerunAI(for: appeal)
             XCTAssertNil(model.pendingAIReruns[appeal.id], status)
             XCTAssertTrue(model.canRerun(appeal), status)
             XCTAssertNotNil(model.errorMessage, status)
+            let card = try ModerationAppealCard(viewModel: model, appeal: appeal).inspect()
+            XCTAssertFalse(try card.find(button: UiMessages.string(
+                .nativeSwiftModerationAppealsRerunAi, locale: Locale(identifier: "en")
+            )).isDisabled(), status)
+            XCTAssertThrowsError(try card.find(button: UiMessages.string(
+                .nativeSwiftReviewDisputesRefreshStatus, locale: Locale(identifier: "en")
+            )), status)
+            XCTAssertNoThrow(try ModerationAppealsSurface(viewModel: model).inspect().find(text: UiMessages.string(
+                .nativeSwiftModerationAppealsGenericError, locale: Locale(identifier: "en")
+            )), status)
+            XCTAssertEqual(
+                CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"),
+                admissionCount + 1,
+                status
+            )
         }
     }
 
@@ -130,8 +147,22 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
         let (other, otherAppeal) = try await setup(store: store, userId: "staff-2")
         XCTAssertTrue(other.canRerun(otherAppeal))
         XCTAssertFalse(other.canRefreshAIRerun(otherAppeal))
+        let otherCard = try ModerationAppealCard(viewModel: other, appeal: otherAppeal).inspect()
+        XCTAssertFalse(try otherCard.find(button: UiMessages.string(
+            .nativeSwiftModerationAppealsRerunAi, locale: Locale(identifier: "en")
+        )).isDisabled())
+        XCTAssertThrowsError(try otherCard.find(button: UiMessages.string(
+            .nativeSwiftReviewDisputesRefreshStatus, locale: Locale(identifier: "en")
+        )))
         let (reopened, reopenedAppeal) = try await setup(store: store, userId: "staff-1")
         XCTAssertFalse(reopened.canRerun(reopenedAppeal))
+        let reopenedCard = try ModerationAppealCard(viewModel: reopened, appeal: reopenedAppeal).inspect()
+        XCTAssertTrue(try reopenedCard.find(button: UiMessages.string(
+            .nativeSwiftModerationAppealsRerunAi, locale: Locale(identifier: "en")
+        )).isDisabled())
+        XCTAssertFalse(try reopenedCard.find(button: UiMessages.string(
+            .nativeSwiftReviewDisputesRefreshStatus, locale: Locale(identifier: "en")
+        )).isDisabled())
         CannedFeedURLProtocol.handlers[runPath] = (run("succeeded"), 200)
         await reopened.refreshPendingAIRerun(for: reopenedAppeal)
         XCTAssertNil(reopened.pendingAIReruns[appeal.id])

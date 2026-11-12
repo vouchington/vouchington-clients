@@ -26,6 +26,14 @@ struct ModerationReportActionButtons: View {
             Button(UiMessages.string(.nativeSwiftModerationReportsRerunJudgement, locale: nativeUiLocale)) {
                 Task { await viewModel.perform(.rerunJudgement, reportId: report.id) }
             }
+            .disabled(viewModel.isJudgementPending(report.id))
+            if viewModel.isJudgementPending(report.id) {
+                Text(UiMessages.string(.nativeSwiftModerationReportsPending, locale: nativeUiLocale))
+                Button(UiMessages.string(.nativeSwiftModerationReportsReviewQueueRefresh, locale: nativeUiLocale)) {
+                    Task { await viewModel.refreshPendingJudgement(report.id) }
+                }
+                .disabled(!viewModel.hasAdmittedJudgementRun(report.id))
+            }
             if viewModel.actionIsAllowed(.warn(reason: "warning", publicMessage: nil), for: report) {
                 Button(
                     UiMessages.string(.nativeSwiftModerationReportsWarnUser, locale: nativeUiLocale),
