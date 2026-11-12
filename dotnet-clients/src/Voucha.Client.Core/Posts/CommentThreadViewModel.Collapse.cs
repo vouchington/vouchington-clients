@@ -15,7 +15,11 @@ public sealed partial class CommentThreadViewModel
 
   public bool IsCollapseBusy(string postId) => collapseMutations.Contains(postId) ||
       subtreePages.GetValueOrDefault(postId)?.IsLoading == true;
-  public bool HasMoreSubtree(string postId) => subtreePages.GetValueOrDefault(postId) is { HasMore: true };
+  public bool HasMoreSubtree(string postId) =>
+      descendantsResponse?.Posts.ContainsKey(postId) == true &&
+      (subtreePages.TryGetValue(postId, out var pages)
+          ? pages.HasMore
+          : DirectReplyCount(postId) > descendantsResponse.Posts.Values.Count(post => post.ParentId == postId));
   public bool HasSubtreeError(string postId) => subtreePages.GetValueOrDefault(postId)?.LastError is not null;
 
   public bool SetViewer(string? viewerId)
@@ -75,7 +79,7 @@ public sealed partial class CommentThreadViewModel
 
   public async Task LoadMoreSubtreeAsync(string postId, CancellationToken cancellationToken = default)
   {
-    if (currentUserId is null || collapsedCommentIds.Contains(postId) || descendantsResponse?.Posts.ContainsKey(postId) != true) return;
+    if (collapsedCommentIds.Contains(postId) || descendantsResponse?.Posts.ContainsKey(postId) != true) return;
     if (!subtreePages.TryGetValue(postId, out var pages))
     {
       pages = new(reference => EntityId(reference) ?? throw new InvalidOperationException("Comment reference requires an id."));

@@ -134,6 +134,32 @@ public sealed partial class PostDetailFocusedPermalinkTests
     Assert.Equal("second", binding.ViewModel.CurrentUserId);
   }
 
+  [Theory]
+  [InlineData(null)]
+  [InlineData("viewer")]
+  public async Task ReturnedPlaceholderOffersSubtreeExpansionBeforeAnySubtreeRequest(string? viewer)
+  {
+    PrepareCollapseResources();
+    var root = Post("root", null);
+    var head = Post("head", root.Id) with { PlaceholderState = "deleted" };
+    var response = Response([head]) with
+    {
+      PostsMetrics = new Dictionary<string, PostMetrics> { [head.Id] = new(Count: new(1, Children: 1)) },
+    };
+    var service = new ThreadService(new PostResponse(root), response, Response([]));
+    var session = viewer is null ? new SessionStore(new(null)) : new SessionStore(new(new User(viewer, viewer)));
+    var binding = new PostDetailPageBinding(new CommentThreadViewModel(service, root.Id, viewer), session);
+    await binding.LoadAsync(cancellationToken: TestContext.Current.CancellationToken);
+    var row = Assert.Single(binding.CommentRows);
+    Assert.False(binding.RootRow!.HasMoreSubtree);
+    var card = CommentCard(binding, row);
+    var button = Assert.Single(card.GetVisualTreeDescendants().OfType<Button>(), value => value.AutomationId == "comment-subtree-next");
+    Assert.True(button.IsVisible);
+    Assert.True(button.IsEnabled);
+    await binding.LoadMoreSubtreeAsync(head.Id, TestContext.Current.CancellationToken);
+    Assert.False(Assert.Single(binding.CommentRows).HasMoreSubtree);
+  }
+
   private sealed partial class ThreadService
   {
     public Func<Task<PostResponse>>? RootHandler { get; set; }
