@@ -209,6 +209,41 @@ async function cliFixture(action) {
 }
 
 describe('Catalyst auth/news CLI orchestration with a child fake (not GUI evidence)', () => {
+  it('allows Mac2 session startup beyond ten seconds', async () => {
+    await cliFixture(async ({ result, log, env }) => {
+      await exec(process.execPath, [cli, '--session'], {
+        env: { ...env, CATALYST_FAKE_DELAY: 'session' },
+        timeout: 25_000,
+      })
+      assert.equal(JSON.parse(readFileSync(result, 'utf8')).passed, 6)
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.equal(
+        calls.find(call => call.path === '/session').body.capabilities.alwaysMatch[
+          'appium:serverStartupTimeout'
+        ],
+        100_000,
+      )
+    })
+  })
+
+  it('still aborts ordinary element requests after ten seconds', async () => {
+    await cliFixture(async ({ result, log, env }) => {
+      await exec(process.execPath, [cli, '--session'], {
+        env: { ...env, CATALYST_FAKE_DELAY: 'element' },
+        timeout: 25_000,
+      })
+      assert.equal(JSON.parse(readFileSync(result, 'utf8')).passed, 6)
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.ok(calls.some(call => call.elementRequestAborted === true))
+    })
+  })
+
   it('starts a fresh app on its own port and tears down the session/server before writing evidence', async () => {
     await cliFixture(async ({ result, log, env }) => {
       await exec(process.execPath, [cli, '--session'], { env, timeout: 15000 })

@@ -1,9 +1,11 @@
 // Child-process fake for the CLI orchestrator; this never counts as GUI evidence.
 import { createServer } from 'node:http'
 import { appendFileSync } from 'node:fs'
+import { setTimeout as delay } from 'node:timers/promises'
 let requested = false
 let authenticated = false
 let expanded = false
+let delayedElement = false
 const values = {}
 const log = value => appendFileSync(process.env.CATALYST_FAKE_LOG, `${JSON.stringify(value)}\n`)
 if (process.argv[2] === '--open') {
@@ -16,6 +18,18 @@ const server = createServer(async (req, res) => {
   for await (const chunk of req) text += chunk
   const body = text ? JSON.parse(text) : {}
   log({ method: req.method, path: req.url, body })
+  if (req.url === '/session' && process.env.CATALYST_FAKE_DELAY === 'session') await delay(10_500)
+  if (
+    req.url.endsWith('/element') &&
+    process.env.CATALYST_FAKE_DELAY === 'element' &&
+    !delayedElement
+  ) {
+    delayedElement = true
+    res.on('close', () => {
+      if (!res.writableEnded) log({ elementRequestAborted: true })
+    })
+    await delay(10_500)
+  }
   let value = null
   let status = 200
   if (req.url === '/status') value = { ready: true }

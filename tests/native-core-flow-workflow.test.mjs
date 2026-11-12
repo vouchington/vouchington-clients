@@ -10,6 +10,14 @@ const workflow = readFileSync(
 
 describe('native sign-in and News CI selection (not runtime evidence)', () => {
   it('builds and independently requires News UI and iOS-only transport cases', () => {
+    const project = readFileSync(
+      new URL('../swift-clients/apps/iOS/project.yml', import.meta.url),
+      'utf8',
+    )
+    assert.match(
+      project,
+      /VouchaFlowTransportTests:[\s\S]*?path: \.\.\/shared-app\/SourceCreationUITestingResponses\.swift/u,
+    )
     const build = jobBlock(workflow, 'build-ios-tests')
     const run = jobBlock(workflow, 'build-ios-app')
     assert.match(

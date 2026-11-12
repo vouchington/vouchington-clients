@@ -8,7 +8,10 @@ final class NewsFlowTransportTests: XCTestCase {
     func testNewsModeAcceptsOnlyNativeArticleQueryAndIdentity() throws {
         let news = Data("news-response".utf8)
         let identity = Data("identity-response".utf8)
-        let environment = [newsKey: news.base64EncodedString(), identityKey: identity.base64EncodedString()]
+        let environment = [
+            newsKey: news.base64EncodedString(), identityKey: identity.base64EncodedString(),
+            "VOUCHA_UI_TESTING_SOURCE_CREATION_RESPONSES": "{}"
+        ]
         XCTAssertEqual(try response("/api/v1/feeds/rss_feed_items/any?limit=20&media_type=article", environment), news)
         XCTAssertEqual(try response("/api/v1/my/identity", environment), identity)
         for query in [

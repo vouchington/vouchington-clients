@@ -65,8 +65,9 @@ async function session() {
     server.once('exit', resolve)
     server.once('error', error => { startupError = error; resolve() })
   })
-  async function request(method, path, body) {
-    const response = await fetch(`http://127.0.0.1:4727${path}`, { method, signal: AbortSignal.timeout(10_000),
+  const sessionStartupTimeout = 100_000
+  async function request(method, path, body, timeout = 10_000) {
+    const response = await fetch(`http://127.0.0.1:4727${path}`, { method, signal: AbortSignal.timeout(timeout),
       ...(body ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {}) })
     const payload = await response.json()
     if (!response.ok || payload.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(payload).slice(0, 500)}`)
@@ -89,8 +90,8 @@ async function session() {
       'appium:arguments': ['--ui-testing-auth-news-flows'],
       'appium:environment': { VOUCHA_CONTRACT_ROOT: process.env.VOUCHA_CONTRACT_ROOT,
         VOUCHA_API_BASE_URL: 'https://ui-testing.voucha.invalid', VOUCHA_WEB_BASE_URL: 'https://ui-testing.voucha.invalid' },
-      'appium:showServerLogs': true, 'appium:serverStartupTimeout': 100000,
-    } } })
+      'appium:showServerLogs': true, 'appium:serverStartupTimeout': sessionStartupTimeout,
+    } } }, sessionStartupTimeout + 10_000)
     sessionId = created.value?.sessionId ?? created.sessionId
     if (!sessionId) throw new Error('Mac2 returned no session id')
     checks = await assertAuthNewsControls(request, sessionId, () =>
