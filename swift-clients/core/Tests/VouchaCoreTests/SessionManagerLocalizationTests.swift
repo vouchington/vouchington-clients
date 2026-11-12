@@ -144,6 +144,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
         let configuration = URLSessionConfiguration.ephemeral
         let activeJar = try XCTUnwrap(configuration.httpCookieStorage)
         let separateJar = IsolatedHTTPCookieStorage.make()
+        XCTAssertFalse(activeJar === separateJar)
         let recorder = CookiePersistenceRecorder(jar: activeJar)
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
@@ -164,7 +165,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
         await manager.signOut()
 
         XCTAssertTrue(activeJar.cookies?.isEmpty ?? true)
-        XCTAssertTrue(separateJar.cookies?.isEmpty ?? true)
+        XCTAssertEqual(separateJar.cookies?.map(\.value), ["private-session"])
         XCTAssertEqual(recorder.snapshots, [[:]])
         XCTAssertFalse(manager.isSignedIn)
     }

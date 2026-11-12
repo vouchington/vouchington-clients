@@ -341,12 +341,19 @@ final class SessionRecoveryTests: XCTestCase {
             if request.url!.path == "/api/v1/session" { return SessionRecoveryTransport.tokens() }
             return count == 1 ? SessionRecoveryTransport.unauthorized : SessionRecoveryTransport.empty
         }
+        let initialHeaders = await client.session.configuration.httpAdditionalHeaders
+        XCTAssertEqual(initialHeaders?["User-Agent"] as? String, "ProvidedNative/1.2 (existing client)")
         let _: Empty = try await client.send(Endpoint(path: "/work"))
         XCTAssertEqual(fixture.transport.captured.count, 3)
-        XCTAssertEqual(
-            fixture.transport.captured.map { $0.value(forHTTPHeaderField: "User-Agent") },
-            Array(repeating: "ProvidedNative/1.2 (existing client)", count: 3)
-        )
+        let replayHeaders = await client.session.configuration.httpAdditionalHeaders
+        XCTAssertEqual(replayHeaders?["User-Agent"] as? String, "ProvidedNative/1.2 (existing client)")
+        #if canImport(Darwin)
+            // FoundationNetworking applies configuration headers after the custom URLProtocol boundary.
+            XCTAssertEqual(
+                fixture.transport.captured.map { $0.value(forHTTPHeaderField: "User-Agent") },
+                Array(repeating: "ProvidedNative/1.2 (existing client)", count: 3)
+            )
+        #endif
     }
 
     func testStaleSignOutPreparationCannotClearCurrentJar() async throws {
