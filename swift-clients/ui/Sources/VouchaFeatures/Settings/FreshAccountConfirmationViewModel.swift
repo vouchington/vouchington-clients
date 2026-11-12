@@ -90,6 +90,7 @@ public final class FreshAccountConfirmationViewModel {
         isWorking = false
         code = ""
         context = nil
+        methods = nil
         appleChallenge = nil
         brokerFlowID = nil
         passkeyPagination.reset(items: [])
@@ -98,24 +99,27 @@ public final class FreshAccountConfirmationViewModel {
         waiting?.resume(throwing: CancellationError())
     }
 
+    func hasCurrentContext(_ request: UUID) async -> Bool {
+        guard generation == request, isPresented, let context else { return false }
+        let current = await service.client.accountConfirmationContext()
+        guard generation == request, isPresented else { return false }
+        guard current == context else {
+            cancel(request: request)
+            return false
+        }
+        return true
+    }
+
     public func sendEmail() async {
         guard methods?.hasEmail == true else { return }
         let owner = generation
         await verifyOperation {
             try await self.service.sendEmail()
-            guard self.generation == owner, self.isPresented else { throw CancellationError() }
+            guard await self.hasCurrentContext(owner) else { throw CancellationError() }
             self.emailSent = true
             self.code = ""
             return nil
         }
-    }
-
-    public var canVerifyCode: Bool {
-        guard !isWorking else { return false }
-        if usingEmail {
-            return methods?.hasEmail == true && emailSent && EmailVerificationCode.normalized(code) != nil
-        }
-        return methods?.hasTotp == true && code.utf8.count == 6 && code.utf8.allSatisfy { (48 ... 57).contains($0) }
     }
 
     public func verifyCode() async {
@@ -134,20 +138,15 @@ public final class FreshAccountConfirmationViewModel {
     }
 
     func verifyOperation(emailCode: Bool = false, _ operation: () async throws -> String?) async {
-        guard !isWorking, isPresented, let context else { return }
+        guard !isWorking, isPresented, context != nil else { return }
         let request = generation
         isWorking = true
         errorMessage = nil
         defer { if generation == request { isWorking = false } }
         do {
-            guard await service.client.accountConfirmationContext() == context else {
-                throw AccountConfirmationError.contextChanged
-            }
+            guard await hasCurrentContext(request) else { return }
             let token = try await operation()
-            guard generation == request, isPresented else { return }
-            guard await service.client.accountConfirmationContext() == context else {
-                throw AccountConfirmationError.contextChanged
-            }
+            guard await hasCurrentContext(request) else { return }
             if let token {
                 guard !token.isEmpty else { throw AccountConfirmationError.invalidProof }
                 let waiting = continuation
@@ -159,8 +158,19 @@ public final class FreshAccountConfirmationViewModel {
         } catch is CancellationError {
             cancel(request: request)
         } catch {
-            guard generation == request, isPresented else { return }
+            guard await hasCurrentContext(request) else { return }
             errorMessage = failureMessage(error, emailCode: emailCode)
         }
     }
+}
+
+public extension FreshAccountConfirmationViewModel {
+    var canVerifyCode: Bool {
+        guard !isWorking else { return false }
+        if usingEmail {
+            return methods?.hasEmail == true && emailSent && EmailVerificationCode.normalized(code) != nil
+        }
+        return methods?.hasTotp == true && code.utf8.count == 6 && code.utf8.allSatisfy { (48 ... 57).contains($0) }
+    }
+
 }

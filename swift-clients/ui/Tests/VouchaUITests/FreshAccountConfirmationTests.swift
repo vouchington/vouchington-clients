@@ -91,9 +91,8 @@ final class FreshAccountConfirmationTests: XCTestCase {
             try setCookie(cookieName, value: "another-context", storage: fixture.cookies)
             CannedFeedURLProtocol.releaseResponse(path: path)
             await verifying.value
-            XCTAssertNotNil(fixture.model.errorMessage)
-            XCTAssertTrue(fixture.model.isPresented)
-            fixture.model.cancel()
+            XCTAssertFalse(fixture.model.isPresented)
+            XCTAssertNil(fixture.model.methods)
             do { _ = try await waiting.value
                 XCTFail("Changed context must fail")
             } catch is CancellationError {}
@@ -197,7 +196,7 @@ final class FreshAccountConfirmationTests: XCTestCase {
         )
     }
 
-    private func setCookie(_ name: String, value: String, storage: HTTPCookieStorage) throws {
+    func setCookie(_ name: String, value: String, storage: HTTPCookieStorage) throws {
         try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
             .name: name, .value: value, .domain: "localhost", .path: "/"
         ])))

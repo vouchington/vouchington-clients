@@ -72,6 +72,39 @@ extension FreshAccountConfirmationTests {
         XCTAssertFalse(paths.contains("/api/v1/auth/re-auth/providers/github/proofs"))
     }
 
+    func testFailedBrokerCompletionIsVisibleAndOnlyExplicitRetryStartsANewFlow() async throws {
+        let fixture = try makeFixture(brokerEnabled: true)
+        let broker = try XCTUnwrap(fixture.broker)
+        seedFreshBroker()
+        CannedFeedURLProtocol.handlers["/api/v1/auth/oauth/authorizations/broker-flow/complete"] = (
+            Data(#"{"message":"Provider subject rejected"}"#.utf8), 403
+        )
+        let waiting = Task { try await fixture.model.authorize() }
+        await waitForMethods(fixture.model)
+        await fixture.model.beginBroker(provider: .github) { _ in }
+        _ = try broker.handleIncomingURL(XCTUnwrap(URL(
+            string: "voucha://auth/oauth/callback?flow_id=broker-flow&completion_token=completion"
+        )))
+        await waitForAccountConfirmationState { broker.errorMessage != nil && !broker.isWorking }
+        await fixture.model.consumeBrokerResult(broker.result)
+        XCTAssertNotNil(fixture.model.errorMessage)
+        XCTAssertFalse(paths.contains("/api/v1/auth/re-auth/providers/github/proofs"))
+        XCTAssertEqual(paths.filter { $0.hasSuffix("broker-flow/complete") }.count, 1)
+        CannedFeedURLProtocol.handlers["/api/v1/auth/re-auth/providers/github/authorizations"] = (
+            Data(
+                #"{"flow_id":"retry-flow","redirect_url":"https://github.com/authorize","expires_at":"2027-01-01T00:00:00Z"}"#
+                    .utf8
+            ), 200
+        )
+        await fixture.model.beginBroker(provider: .github) { _ in }
+        XCTAssertEqual(broker.pending?.flowId, "retry-flow")
+        XCTAssertNil(fixture.model.errorMessage)
+        fixture.model.cancel()
+        do { _ = try await waiting.value
+            XCTFail("Canceled retry must fail")
+        } catch is CancellationError {}
+    }
+
     func testOwnedPasskeyChooserForwardsAndAppendsOpaqueCursor() async throws {
         let fixture = try makeFixture()
         CannedFeedURLProtocol.handlers["/api/v1/auth/re-auth/methods"] = (

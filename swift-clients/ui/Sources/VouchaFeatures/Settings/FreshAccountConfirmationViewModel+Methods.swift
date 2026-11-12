@@ -22,15 +22,16 @@ extension FreshAccountConfirmationViewModel {
 
     func loadMethods(request: UUID) async {
         do {
+            guard await hasCurrentContext(request) else { return }
             let methods = try await service.methods()
-            guard generation == request, isPresented else { return }
+            guard await hasCurrentContext(request) else { return }
             self.methods = methods
             usingEmail = methods.hasEmail
             if methods.hasPasskey {
                 let page: Page<AccountConfirmationPasskey> = try await service.client.send(
                     Endpoint(.GET, path: "/api/v1/auth/passkeys", queryItems: [.init(name: "limit", value: "25")])
                 )
-                guard generation == request, isPresented else { return }
+                guard await hasCurrentContext(request) else { return }
                 passkeyPagination.reset(items: page.results)
                 passkeyPagination.restoreContinuation(
                     endCursor: page.pageInfo.endCursor,
@@ -38,7 +39,7 @@ extension FreshAccountConfirmationViewModel {
                 )
             }
         } catch {
-            guard generation == request, isPresented else { return }
+            guard await hasCurrentContext(request) else { return }
             errorMessage = UiMessage(.extractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96)
         }
     }
@@ -47,11 +48,12 @@ extension FreshAccountConfirmationViewModel {
         guard isPresented, let request = passkeyPagination.beginNextPage() else { return }
         let owner = generation
         do {
+            guard await hasCurrentContext(owner) else { return }
             let page: Page<AccountConfirmationPasskey> = try await service.client.send(Endpoint(
                 .GET, path: "/api/v1/auth/passkeys",
                 queryItems: [.init(name: "limit", value: "25"), .init(name: "after", value: request.cursor)]
             ))
-            guard generation == owner, isPresented else { return }
+            guard await hasCurrentContext(owner) else { return }
             passkeyPagination.complete(
                 request,
                 items: page.results,
@@ -59,7 +61,7 @@ extension FreshAccountConfirmationViewModel {
                 hasNextPage: page.pageInfo.hasNextPage
             )
         } catch {
-            guard generation == owner, isPresented else { return }
+            guard await hasCurrentContext(owner) else { return }
             passkeyPagination.fail(request, error: .unexpected(error.localizedDescription))
         }
     }
@@ -71,7 +73,7 @@ extension FreshAccountConfirmationViewModel {
             let challenge: ReAuthProviderChallengeResponse = try await self.service.client.send(
                 .reAuthProviderChallenge(provider: "apple")
             )
-            guard self.generation == owner, self.isPresented else { throw CancellationError() }
+            guard await self.hasCurrentContext(owner) else { throw CancellationError() }
             self.appleChallenge = challenge
             return nil
         }
@@ -94,9 +96,9 @@ extension FreshAccountConfirmationViewModel {
             let challenge: ReAuthProviderChallengeResponse = try await self.service.client.send(
                 .reAuthProviderChallenge(provider: "google")
             )
-            guard self.generation == owner, self.isPresented else { throw CancellationError() }
+            guard await self.hasCurrentContext(owner) else { throw CancellationError() }
             let credential = try await googleAssertion.assertion(nonce: challenge.nonce)
-            guard self.generation == owner, self.isPresented else { throw CancellationError() }
+            guard await self.hasCurrentContext(owner) else { throw CancellationError() }
             let result: ReAuthTokenResponse = try await self.service.client.send(.verifyReAuthProvider(
                 provider: "google", flowId: challenge.flowId, credential: credential
             ))
@@ -119,8 +121,11 @@ extension FreshAccountConfirmationViewModel {
         guard methods?.providers.contains(provider.rawValue) == true, provider != .google, let broker else { return }
         let owner = generation
         await verifyOperation {
+            if broker.errorMessage != nil, broker.pending?.flowId == self.brokerFlowID {
+                broker.cancelFreshAccountConfirmation()
+            }
             await broker.begin(provider: provider, purpose: .reauthenticate, openAuthorizationURL: openURL)
-            guard self.generation == owner, self.isPresented else { throw CancellationError() }
+            guard await self.hasCurrentContext(owner) else { throw CancellationError() }
             guard let pending = broker.pending, pending.purpose == .reauthenticate else {
                 throw AccountConfirmationError.unavailableMethod
             }
@@ -130,6 +135,10 @@ extension FreshAccountConfirmationViewModel {
     }
 
     func consumeBrokerResult(_ result: NativeOAuthAuthorizationResult?) async {
+        if result == nil, brokerFlowID != nil, broker?.errorMessage != nil {
+            errorMessage = .init(.extractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96)
+            return
+        }
         if case .expired(_, .reauthenticate) = result, brokerFlowID != nil {
             brokerFlowID = nil
             errorMessage = .init(.extractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96)

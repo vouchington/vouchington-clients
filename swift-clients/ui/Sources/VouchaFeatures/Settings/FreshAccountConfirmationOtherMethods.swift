@@ -1,6 +1,7 @@
 import SwiftUI
 import VouchaAuth
 import VouchaCore
+import VouchaDesignSystem
 import VouchaLocalization
 #if canImport(AuthenticationServices)
     import AuthenticationServices
@@ -28,8 +29,7 @@ struct FreshAccountConfirmationOtherMethods: View {
                             Task { await model.verifyPasskey(id: passkey.id, anchor: anchor) }
                         } label: {
                             Text(UiMessages.string(
-                                passkey.name.flatMap { $0.isEmpty ? nil : $0 }.map(UiVerbatimText.userContent)
-                                    ?? .message(.nativeAuthVerify), locale: locale
+                                passkeyTitle(passkey.name), locale: locale
                             ))
                         }
                     }
@@ -68,6 +68,14 @@ struct FreshAccountConfirmationOtherMethods: View {
         .onChange(of: model.broker?.result) { _, result in
             Task { await model.consumeBrokerResult(result) }
         }
+        .onChange(of: model.broker?.errorMessage) { _, _ in
+            Task { await model.consumeBrokerResult(model.broker?.result) }
+        }
+    }
+
+    private func passkeyTitle(_ name: String?) -> UiVerbatimText {
+        guard let name, !name.isEmpty else { return .message(.nativeAuthVerify) }
+        return .userContent(name)
     }
 
     #if canImport(AuthenticationServices)
