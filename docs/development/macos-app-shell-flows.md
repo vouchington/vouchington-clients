@@ -20,7 +20,8 @@ It injects a local connection failure once, rather than publishing a synthetic b
 Retry must use the real feed error action and load the unchanged
 `swift.rss-feed-items.feed.default` payload. A source check or mocked transport test cannot count
 as execution of this app-shell case. Protocol tests establish deterministic request matching,
-one-shot failure and cancellation behavior separately.
+one-shot failure, stopping before delivery, and reentrant stopping during the response callback
+separately. They do not establish arbitrary in-flight cancellation from another thread.
 
 The email scenario proves the sign-in seam; feed scenarios restore the canonical identity through
 the shared fixture setup. They are separate app launches and do not claim a single live-backend
