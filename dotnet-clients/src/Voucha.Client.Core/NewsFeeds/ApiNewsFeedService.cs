@@ -48,11 +48,20 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
       string? after = null,
       int limit = 20,
       CancellationToken cancellationToken = default) =>
+      GetNewsFeedPageAsync(scope, after, limit, null, cancellationToken);
+
+  public Task<NewsFeedPage> GetNewsFeedPageAsync(
+      NewsFeedScope scope,
+      string? after,
+      int limit,
+      bool? hasHackerNewsReferences,
+      CancellationToken cancellationToken = default) =>
       GetNewsFeedPageAsync(
           scope,
           scope.IsSourcesScope() ? scope.GetDefaultSourceFeedType() : NewsFeedSourceType.Article,
           after,
           limit,
+          hasHackerNewsReferences,
           cancellationToken);
 
   public async Task<NewsFeedPage> GetNewsFeedPageAsync(
@@ -60,6 +69,15 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
       NewsFeedSourceType sourceFeedType,
       string? after = null,
       int limit = 20,
+      CancellationToken cancellationToken = default)
+      => await GetNewsFeedPageAsync(scope, sourceFeedType, after, limit, null, cancellationToken).ConfigureAwait(false);
+
+  public async Task<NewsFeedPage> GetNewsFeedPageAsync(
+      NewsFeedScope scope,
+      NewsFeedSourceType sourceFeedType,
+      string? after,
+      int limit,
+      bool? hasHackerNewsReferences,
       CancellationToken cancellationToken = default)
   {
     if (scope.IsSourcesScope())
@@ -72,8 +90,8 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
     var mediaType = scope.GetMediaType();
     var kind = scope.GetKind() == NewsFeedKind.News ? NewsFeedItemKind.Article : NewsFeedItemKind.Media;
     return IsAllItemsScope(scope)
-        ? await FetchAllNewsPageAsync(mediaType, kind, after, limit, cancellationToken).ConfigureAwait(false)
-        : await FetchFeedPageAsync("any", mediaType, kind, after, limit, cancellationToken).ConfigureAwait(false);
+        ? await FetchAllNewsPageAsync(mediaType, kind, after, limit, hasHackerNewsReferences, cancellationToken).ConfigureAwait(false)
+        : await FetchFeedPageAsync("any", mediaType, kind, after, limit, hasHackerNewsReferences, cancellationToken).ConfigureAwait(false);
   }
 
   public Task SetSourceFollowAsync(
@@ -129,12 +147,14 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
       NewsFeedItemKind kind,
       string? after,
       int limit,
+      bool? hasHackerNewsReferences,
       CancellationToken cancellationToken)
   {
     var response = await client.FetchAllRssFeedItemsAsync(
         after,
         limit,
         mediaType: mediaType,
+        hasHackerNewsReferences: hasHackerNewsReferences,
         cancellationToken: cancellationToken).ConfigureAwait(false);
     return new(MapItems(response, kind), response.PageInfo);
   }
@@ -145,10 +165,12 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
       NewsFeedItemKind kind,
       string? after,
       int limit,
+      bool? hasHackerNewsReferences,
       CancellationToken cancellationToken)
   {
     var response = await client.FetchRssFeedItemsAsync(
-        new FetchRssFeedItemsRequest(feedType, MediaType: mediaType, After: after, Limit: limit),
+        new FetchRssFeedItemsRequest(feedType, MediaType: mediaType, After: after, Limit: limit,
+            HasHackerNewsReferences: hasHackerNewsReferences),
         cancellationToken).ConfigureAwait(false);
     return new(MapItems(response, kind), response.PageInfo);
   }

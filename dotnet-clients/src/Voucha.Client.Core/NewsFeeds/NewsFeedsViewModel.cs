@@ -24,6 +24,7 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
   private readonly HashSet<string> startingStoryDiscussionStoryIds = new(StringComparer.Ordinal);
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
+  private bool? hasHackerNewsReferences;
 
   public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();
 
@@ -75,6 +76,7 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
       OnPropertyChanged(nameof(IsYourSourcesSelected));
       OnPropertyChanged(nameof(IsAllSourcesSelected));
       OnPropertyChanged(nameof(IsSourceScopeSelected));
+      OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
     }
   }
 
@@ -96,6 +98,19 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
   public string SourcesScopeLabel => feedKind.GetSourcesScopeLabel(localization);
 
   public string AllSourcesScopeLabel => feedKind.GetAllSourcesScopeLabel(localization);
+
+  public string HackerNewsFilterLabel => localization.Localize(UiMessageKey.SharedHackerNewsFilterLabel);
+
+  public bool IsHackerNewsFilterSelected => hasHackerNewsReferences == true;
+
+  public bool IsHackerNewsFilterVisible => !SelectedScope.IsSourcesScope();
+
+  public async Task ToggleHackerNewsFilterAsync(CancellationToken cancellationToken = default)
+  {
+    hasHackerNewsReferences = IsHackerNewsFilterSelected ? null : true;
+    OnPropertyChanged(nameof(IsHackerNewsFilterSelected));
+    await LoadAsync(cancellationToken).ConfigureAwait(true);
+  }
 
   public IReadOnlyList<NewsFeedItem> Items
   {
@@ -148,6 +163,7 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
 
   public void OnUiLocaleChanged()
   {
+    OnPropertyChanged(nameof(HackerNewsFilterLabel));
     foreach (var related in Items.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>()) related.Notify();
     SetItems(Items.Select(Localized).ToArray(), synchronizeFeedPages: feedPages.HasLoadedPage || !feedPages.IsLoading);
   }

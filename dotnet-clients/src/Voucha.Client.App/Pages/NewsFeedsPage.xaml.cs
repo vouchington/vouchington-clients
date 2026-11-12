@@ -62,6 +62,11 @@ public partial class NewsFeedsPage : ContentPage
     await viewModel.SelectScopeAsync(GetAllSourcesScope());
   }
 
+  private async void OnHackerNewsFilterClicked(object? sender, EventArgs e)
+  {
+    await viewModel.ToggleHackerNewsFilterAsync();
+  }
+
   private async void OnArticleSourceFeedTypeClicked(object? sender, EventArgs e)
   {
     await viewModel.SelectSourceFeedTypeAsync(NewsFeedSourceType.Article);

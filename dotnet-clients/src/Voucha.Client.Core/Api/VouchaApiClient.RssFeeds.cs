@@ -12,7 +12,8 @@ public sealed partial class VouchaApiClient
               requiredRequest.FeedType,
               requiredRequest.After,
               requiredRequest.Limit,
-              requiredRequest.MediaType),
+              requiredRequest.MediaType,
+              hasHackerNewsReferences: requiredRequest.HasHackerNewsReferences),
           cancellationToken);
   }
 
@@ -20,9 +21,10 @@ public sealed partial class VouchaApiClient
       string? after = null,
       int limit = 20,
       string? mediaType = null,
-      CancellationToken cancellationToken = default) =>
+      CancellationToken cancellationToken = default,
+      bool? hasHackerNewsReferences = null) =>
       SendAsync<RssFeedItemsFeedResponse>(
-          VouchaApiEndpoints.AllRssFeedItems(after, limit, mediaType),
+          VouchaApiEndpoints.AllRssFeedItems(after, limit, mediaType, hasHackerNewsReferences),
           cancellationToken);
 
   public Task<RssFeedsResponse> FetchRssFeedsAsync(

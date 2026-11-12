@@ -238,6 +238,27 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public async Task FetchPostsAndPodcastRssRequestsForwardHackerNewsFilter()
+  {
+    var postHandler = new RecordingHandler("{}");
+    var postClient = new VouchaApiClient(new HttpClient(postHandler) { BaseAddress = new Uri("https://api.test") });
+    await postClient.FetchPostsAsync(
+        new FetchPostsRequest(HasHackerNewsReferences: true),
+        TestContext.Current.CancellationToken);
+    AssertRequest(postHandler, HttpMethod.Get,
+        "/api/v1/posts?sort=hot&limit=25&has_hacker_news_references=true");
+
+    var rssHandler = new RecordingHandler("{}");
+    var rssClient = new VouchaApiClient(new HttpClient(rssHandler) { BaseAddress = new Uri("https://api.test") });
+    await rssClient.FetchAllRssFeedItemsAsync(
+        mediaType: "audio",
+        cancellationToken: TestContext.Current.CancellationToken,
+        hasHackerNewsReferences: false);
+    AssertRequest(rssHandler, HttpMethod.Get,
+        "/api/v1/rss-feed-items?limit=20&media_type=audio&has_hacker_news_references=false");
+  }
+
+  [Fact]
   public async Task FetchPostThreadAsyncUsesSharedFixtures()
   {
     const string rootId = "70000000-0000-7000-8000-000000005400";

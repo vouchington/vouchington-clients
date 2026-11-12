@@ -33,7 +33,8 @@ public sealed record FetchRssFeedItemsRequest(
     string FeedType = "any",
     string? MediaType = null,
     string? After = null,
-    int Limit = 20);
+    int Limit = 20,
+    bool? HasHackerNewsReferences = null);
 
 public sealed record FetchReferralLinksFeedRequest(
     string FeedType = "follow_users",
@@ -53,7 +54,8 @@ public sealed record FetchPostsFeedRequest(
     string? After = null,
     int Limit = 20,
     string? PostTypes = null,
-    string? TimeRange = null);
+    string? TimeRange = null,
+    bool? HasHackerNewsReferences = null);
 
 public sealed record EntityRelationsRequest(
     string EntityType,

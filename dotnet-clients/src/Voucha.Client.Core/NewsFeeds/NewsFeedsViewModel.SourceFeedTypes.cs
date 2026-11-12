@@ -15,6 +15,7 @@ public sealed partial class NewsFeedsViewModel
       OnPropertyChanged(nameof(IsArticleSourceFeedTypeSelected));
       OnPropertyChanged(nameof(IsPodcastSourceFeedTypeSelected));
       OnPropertyChanged(nameof(IsVideoSourceFeedTypeSelected));
+      OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
     }
   }
 
@@ -48,9 +49,11 @@ public sealed partial class NewsFeedsViewModel
       NewsFeedScope scope,
       NewsFeedSourceType sourceFeedType,
       string? after,
+      bool? hasHackerNewsReferences,
       CancellationToken cancellationToken) =>
       scope.IsSourcesScope()
           ? newsFeedService.GetNewsFeedPageAsync(
               scope, sourceFeedType, after, limit: 25, cancellationToken: cancellationToken)
-          : newsFeedService.GetNewsFeedPageAsync(scope, after, cancellationToken: cancellationToken);
+          : newsFeedService.GetNewsFeedPageAsync(scope, after, limit: 20,
+              hasHackerNewsReferences: hasHackerNewsReferences, cancellationToken: cancellationToken);
 }

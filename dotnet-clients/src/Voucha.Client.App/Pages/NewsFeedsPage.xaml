@@ -72,6 +72,19 @@
                 </Button.Triggers>
             </Button>
             <Button
+                Text="{Binding HackerNewsFilterLabel}"
+                Clicked="OnHackerNewsFilterClicked"
+                IsVisible="{Binding IsHackerNewsFilterVisible}"
+                BackgroundColor="#E5E7EB"
+                TextColor="#111827">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsHackerNewsFilterSelected}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            <Button
                 Text="{DynamicResource native.swift.importExport.title}"
                 Clicked="OnImportExportClicked"
                 IsVisible="{Binding CanImportExport}" />

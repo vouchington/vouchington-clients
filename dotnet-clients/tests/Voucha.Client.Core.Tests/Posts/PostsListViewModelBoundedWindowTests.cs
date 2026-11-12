@@ -51,6 +51,32 @@ public sealed class PostsListViewModelBoundedWindowTests
   }
 
   [Fact]
+  public void PostAndRssEndpointsPreserveTrueFalseAndOmitUnsetHackerNewsFilter()
+  {
+    Assert.False(VouchaApiEndpoints.AllPosts(new FetchPostsRequest()).Query.ContainsKey("has_hacker_news_references"));
+    Assert.Equal("true", VouchaApiEndpoints.AllPosts(new FetchPostsRequest(HasHackerNewsReferences: true)).Query["has_hacker_news_references"]);
+    Assert.Equal("false", VouchaApiEndpoints.AllPosts(new FetchPostsRequest(HasHackerNewsReferences: false)).Query["has_hacker_news_references"]);
+    Assert.Equal("false", VouchaApiEndpoints.Posts(hasHackerNewsReferences: false).Query["has_hacker_news_references"]);
+    Assert.Equal("true", VouchaApiEndpoints.RssFeedItems(hasHackerNewsReferences: true).Query["has_hacker_news_references"]);
+    Assert.Equal("false", VouchaApiEndpoints.AllRssFeedItems(hasHackerNewsReferences: false).Query["has_hacker_news_references"]);
+  }
+
+  [Fact]
+  public async Task HackerNewsFilterReloadsFromFirstPageAndContinuesWithSameFilter()
+  {
+    var service = new ScriptedPostsService(Page(["old"], "old-cursor"), Page(["new"], "new-cursor"), Page(["next"], null));
+    var viewModel = new PostsListViewModel(service);
+
+    await viewModel.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
+    await viewModel.LoadFeedAsync(hasHackerNewsReferences: true, cancellationToken: TestContext.Current.CancellationToken);
+    await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(new bool?[] { null, true, true }, service.FeedRequests.Select(request => request.HasHackerNewsReferences));
+    Assert.Equal(new string?[] { null, null, "new-cursor" }, service.FeedRequests.Select(request => request.After));
+    Assert.Equal(new[] { "new", "next" }, viewModel.Items.Select(row => row.Id));
+  }
+
+  [Fact]
   public async Task DefaultRequestOmitsTimeRangeAndLast30DaysSendsOneMonthFromTheFirstPage()
   {
     var service = new ScriptedPostsService(Page(["a"], null), Page(["b"], null));

@@ -16,6 +16,7 @@ public partial class PostsPage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private string mode;
   private string? postTypes;
+  private bool? hasHackerNewsReferences;
 
   public PostsPage(
       PostsListViewModel viewModel,
@@ -65,8 +66,14 @@ public partial class PostsPage : ContentPage
 
   private Task LoadCurrentAsync() =>
       mode == "browse" || !sessionStore.Current.IsAuthenticated
-          ? viewModel.LoadBrowseAsync(postTypes)
-          : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek);
+          ? viewModel.LoadBrowseAsync(postTypes, hasHackerNewsReferences: hasHackerNewsReferences)
+          : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek, hasHackerNewsReferences: hasHackerNewsReferences);
+
+  private async void OnHackerNewsClicked(object? sender, EventArgs e)
+  {
+    hasHackerNewsReferences = hasHackerNewsReferences == true ? null : true;
+    await LoadCurrentAsync();
+  }
 
   private async void OnFeedClicked(object? sender, EventArgs e)
   {
