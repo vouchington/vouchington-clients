@@ -8,11 +8,16 @@ namespace Voucha.Client.Core.Tests.Auth;
 public sealed partial class SessionRecoveryTests
 {
   [Theory]
-  [InlineData("expired", false)]
-  [InlineData("expired", true)]
-  [InlineData("malformed", false)]
-  [InlineData("malformed", true)]
-  public async Task ValidLoginCanReplaceAnUnusableRenewalInBothCompletionOrders(string failure, bool renewalFirst)
+  [InlineData("expired", false, false)]
+  [InlineData("expired", true, false)]
+  [InlineData("malformed", false, false)]
+  [InlineData("malformed", true, false)]
+  [InlineData("expired", false, true)]
+  [InlineData("expired", true, true)]
+  [InlineData("malformed", false, true)]
+  [InlineData("malformed", true, true)]
+  public async Task ValidLoginCanReplaceAnUnusableRenewalInBothCompletionOrders(
+      string failure, bool renewalFirst, bool authenticationDispatchedFirst)
   {
     using var fixture = new RecoveryFixture();
     await fixture.SeedAsync();
@@ -34,13 +39,24 @@ public sealed partial class SessionRecoveryTests
       await releaseAuthentication.Task.WaitAsync(TestContext.Current.CancellationToken);
       return WithCookies("valid-dt", "valid-st");
     };
-    var refresh = ((ISessionStore)fixture.Store).RefreshAsync(TestContext.Current.CancellationToken);
+    Task? refresh = null;
     Task? authentication = null;
     try
     {
-      await renewing.Task.WaitAsync(TestContext.Current.CancellationToken);
-      authentication = fixture.Client.SendAsync(AuthenticationRequest("failed"), TestContext.Current.CancellationToken);
-      await authenticating.Task.WaitAsync(TestContext.Current.CancellationToken);
+      if (authenticationDispatchedFirst)
+      {
+        authentication = fixture.Client.SendAsync(AuthenticationRequest("failed"), TestContext.Current.CancellationToken);
+        await authenticating.Task.WaitAsync(TestContext.Current.CancellationToken);
+        refresh = ((ISessionStore)fixture.Store).RefreshAsync(TestContext.Current.CancellationToken);
+        await renewing.Task.WaitAsync(TestContext.Current.CancellationToken);
+      }
+      else
+      {
+        refresh = ((ISessionStore)fixture.Store).RefreshAsync(TestContext.Current.CancellationToken);
+        await renewing.Task.WaitAsync(TestContext.Current.CancellationToken);
+        authentication = fixture.Client.SendAsync(AuthenticationRequest("failed"), TestContext.Current.CancellationToken);
+        await authenticating.Task.WaitAsync(TestContext.Current.CancellationToken);
+      }
       if (renewalFirst)
       {
         releaseRenewal.TrySetResult();
@@ -57,7 +73,7 @@ public sealed partial class SessionRecoveryTests
       }
     }
     finally { releaseRenewal.TrySetResult(); releaseAuthentication.TrySetResult(); }
-    await Task.WhenAll(refresh, authentication!);
+    await Task.WhenAll(refresh!, authentication!);
     Assert.Equal(1, fixture.Terminal.RenewCount);
     Assert.Equal("valid-st", fixture.Jar.CookieContainer.GetCookies(Origin)["st"]!.Value);
     Assert.Contains("valid-st", fixture.Persistence.Value!);

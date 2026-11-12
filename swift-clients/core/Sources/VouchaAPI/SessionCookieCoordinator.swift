@@ -61,6 +61,7 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     func beginSignOut() {
         lock.withLock { signingOut = true
             epoch &+= 1
+            authenticationOrder &+= 1
             confirmedIdentityRevision = nil
             rotation = nil
         }
@@ -84,6 +85,7 @@ final class SessionCookieCoordinator: @unchecked Sendable {
     func invalidate() {
         lock.withLock {
             epoch &+= 1
+            authenticationOrder &+= 1
             confirmedIdentityRevision = nil
             rotation = nil
         }
@@ -91,9 +93,13 @@ final class SessionCookieCoordinator: @unchecked Sendable {
 
     func check(_ stamp: Stamp) throws {
         try lock.withLock {
-            guard epoch == stamp.epoch,
-                  stamp.authenticationOrder.map({ $0 == authenticationOrder }) ?? true
-            else { throw CancellationError() }
+            // Implicit credential cleanup fences ordinary requests, while the latest
+            // independent authentication remains eligible to establish replacement cookies.
+            if let order = stamp.authenticationOrder {
+                guard order == authenticationOrder else { throw CancellationError() }
+            } else {
+                guard epoch == stamp.epoch else { throw CancellationError() }
+            }
         }
     }
 

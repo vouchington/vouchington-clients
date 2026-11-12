@@ -109,7 +109,11 @@ extension APIClient {
         let stamp = cookieCoordinator.stamp
         guard stamp.epoch == epoch else { throw CancellationError() }
         guard cookieCoordinator.hasConfirmedIdentity else {
-            try cookieCoordinator.clear(ifCurrent: stamp, persist: checkedClearPersistence)
+            try cookieCoordinator.clear(
+                ifCurrent: stamp,
+                preservingAuthentication: true,
+                persist: checkedClearPersistence
+            )
             throw VouchaError.unauthorized
         }
     }
@@ -121,7 +125,10 @@ extension APIClient {
               let code = APIErrorPayload.decode(from: data, logger: logger)?.code,
               Self.terminalSessionFailures.contains(code),
               code != "AUTH_REQUIRED" || afterRecovery else { return false }
-        try cookieCoordinator.clear(ifCurrent: stamp, persist: checkedClearPersistence)
+        try cookieCoordinator.clear(
+            ifCurrent: stamp, preservingAuthentication: stamp.authenticationOrder == nil,
+            persist: checkedClearPersistence
+        )
         return true
     }
 

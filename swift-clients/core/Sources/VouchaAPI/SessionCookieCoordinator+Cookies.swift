@@ -12,7 +12,7 @@ extension SessionCookieCoordinator {
         try lock.withLock {
             try check(stamp)
             let establishesSession = establishingSession && cookies.contains { ["dt", "st"].contains($0.name) }
-            guard rotated || establishesSession || stamp.revision == revision else { return }
+            guard rotated || establishesSession || (stamp.epoch == epoch && stamp.revision == revision) else { return }
             let previous = storage.cookies ?? []
             let accountBoundary = !rotated && cookies.contains { cookie in
                 ["dt", "st"].contains(cookie.name) && previous.first {
@@ -25,26 +25,35 @@ extension SessionCookieCoordinator {
                 if cookie.expiresDate.map({ $0 > Date() }) ?? true { snapshot.append(cookie) }
             }
             if !Self.sameSnapshot(previous, snapshot) {
-                try persistSnapshot(snapshot, action: persist, clear: clearPersistence ?? persist)
+                try persistSnapshot(
+                    snapshot,
+                    action: persist,
+                    clear: clearPersistence ?? persist,
+                    preservingAuthentication: rotated
+                )
             }
             if rotated { revision &+= 1
                 confirmedIdentityRevision = authenticated ? revision : nil
             }
             if accountBoundary {
                 epoch &+= 1
+                authenticationOrder &+= 1
                 confirmedIdentityRevision = nil
                 rotation = nil
             }
         }
     }
 
-    func clear(ifCurrent stamp: Stamp? = nil, persist: (() throws -> Void)?) throws {
+    func clear(
+        ifCurrent stamp: Stamp? = nil, preservingAuthentication: Bool = false, persist: (() throws -> Void)?
+    ) throws {
         try lock.withLock {
             if let stamp {
                 try check(stamp)
                 guard stamp.revision == revision else { throw CancellationError() }
             }
             epoch &+= 1
+            if !preservingAuthentication { authenticationOrder &+= 1 }
             confirmedIdentityRevision = nil
             rotation = nil
             defer { emitInvalidation() }
@@ -92,7 +101,8 @@ extension SessionCookieCoordinator {
     private func persistSnapshot(
         _ snapshot: [HTTPCookie],
         action: (() throws -> Void)?,
-        clear: (() throws -> Void)?
+        clear: (() throws -> Void)?,
+        preservingAuthentication: Bool
     ) throws {
         do {
             if let transactional = storage as? any TransactionalSessionCookieStorage {
@@ -108,6 +118,7 @@ extension SessionCookieCoordinator {
             try action?()
         } catch {
             epoch &+= 1
+            if !preservingAuthentication { authenticationOrder &+= 1 }
             confirmedIdentityRevision = nil
             rotation = nil
             defer { emitInvalidation() }

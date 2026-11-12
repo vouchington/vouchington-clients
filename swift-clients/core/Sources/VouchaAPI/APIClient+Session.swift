@@ -58,7 +58,11 @@ extension APIClient {
         if let http = response as? HTTPURLResponse, http.statusCode == 401,
            let code = APIErrorPayload.decode(from: data, logger: logger)?.code,
            Self.terminalSessionFailures.contains(code) {
-            try cookieCoordinator.clear(ifCurrent: stamp, persist: checkedClearPersistence)
+            try cookieCoordinator.clear(
+                ifCurrent: stamp,
+                preservingAuthentication: true,
+                persist: checkedClearPersistence
+            )
         }
         try validate(response: response, data: data)
         try commitSessionTokens(from: data, response: response, stamp: stamp)
@@ -81,7 +85,11 @@ extension APIClient {
                 throw VouchaError.unauthorized
             }
         } catch {
-            try cookieCoordinator.clear(ifCurrent: stamp, persist: checkedClearPersistence)
+            try cookieCoordinator.clear(
+                ifCurrent: stamp,
+                preservingAuthentication: true,
+                persist: checkedClearPersistence
+            )
             throw VouchaError.unauthorized
         }
         var cookies = responseCookies(response)
