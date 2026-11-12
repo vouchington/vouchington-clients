@@ -117,7 +117,7 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(sessionScript, /--ui-testing-root-shell-smoke/u)
     assert.match(
       sessionScript,
-      /if \(rootShell\) await assertRootShellControls\(request, sessionId\)\n\s+else checks = await assertNotificationControls\(request, sessionId\)/u,
+      /if \(rootShell\) await assertRootShellControls\(request, sessionId\)\n\s+else \{\n\s+const inputs = notificationInputs\(process\.env\.VOUCHA_CONTRACT_ROOT\)\n\s+checks = await assertNotificationControls\(request, sessionId, \{/u,
     )
     assert.match(preflightSource, /CatalystGuiLaunchOptions/u)
     assert.match(notificationScript, /toggle\('engagement'\)/u)
