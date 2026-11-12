@@ -45,7 +45,7 @@ final class MutationChallengePresentationTests: XCTestCase {
 
         await fulfillment(of: [completed], timeout: 2)
         XCTAssertEqual(proof, "provider-proof")
-        await waitUntil { sheet.presentedViewController == nil }
+        try await waitUntil { sheet.presentedViewController == nil }
         XCTAssertTrue(root.presentedViewController === sheet)
         XCTAssertNil(broker.pendingID)
     }
@@ -67,7 +67,7 @@ final class MutationChallengePresentationTests: XCTestCase {
         _ = try await presentedChallenge(above: sheet)
         request.cancel()
         await fulfillment(of: [completed], timeout: 2)
-        await waitUntil { sheet.presentedViewController == nil }
+        try await waitUntil { sheet.presentedViewController == nil }
         try XCTUnwrap(provider.onToken)("late-proof")
         XCTAssertNil(proof)
         XCTAssertNil(broker.pendingID)
@@ -100,7 +100,7 @@ final class MutationChallengePresentationTests: XCTestCase {
         try XCTUnwrap(provider.onToken)("cover-proof")
         await fulfillment(of: [completed], timeout: 2)
         XCTAssertEqual(proof, "cover-proof")
-        await waitUntil { sheet.presentedViewController == nil }
+        try await waitUntil { sheet.presentedViewController == nil }
     }
 
     func testAdaptiveDismissalResumesWithoutProofAndLeavesEditorOpen() async throws {
@@ -121,9 +121,14 @@ final class MutationChallengePresentationTests: XCTestCase {
         let presentation = try XCTUnwrap(challenge.presentationController)
         let delegate = try XCTUnwrap(presentation.delegate)
         let lateProof = try XCTUnwrap(provider.onToken)
-        let dismissed = expectation(description: "Adaptive challenge dismissed")
-        challenge.dismiss(animated: false) { dismissed.fulfill() }
-        await fulfillment(of: [dismissed], timeout: 5)
+        challenge.dismiss(animated: false)
+        try await waitUntil {
+            challenge.presentingViewController == nil && sheet.presentedViewController == nil
+                && challenge.viewIfLoaded?.window == nil && challenge.transitionCoordinator == nil
+                && sheet.transitionCoordinator == nil && !challenge.isBeingPresented
+                && !challenge.isBeingDismissed && !sheet.isBeingDismissed
+        }
+        XCTAssertNil(challenge.presentingViewController)
         delegate.presentationControllerDidDismiss?(presentation)
         await fulfillment(of: [completed], timeout: 2)
         lateProof("late-dismissed-proof")

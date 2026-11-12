@@ -8,18 +8,20 @@ using Voucha.Client.Core.Navigation;
 
 namespace Voucha.Client.App;
 
-internal static class CatalystGuiPreflight
+internal static partial class CatalystGuiPreflight
 {
   internal const string SharedIdentityFixtureId = "swift.my.identity.default";
   internal const string EmailPreferencesFixtureId = "native.my.email-preferences.default";
+  internal const string SessionFixtureId = "native.auth.session.refresh.rotated";
   private const string NotificationSettingsPath = "/my/notification-settings";
 
-  internal static bool IsActive() => TryReadFixtures(out _, out _);
+  internal static bool IsActive() => TryReadFixtures(out _, out _, out _);
 
-  internal static bool TryReadFixtures(out string identityBody, out string emailPreferencesBody)
+  internal static bool TryReadFixtures(out string identityBody, out string emailPreferencesBody, out string sessionBody)
   {
     identityBody = string.Empty;
     emailPreferencesBody = string.Empty;
+    sessionBody = string.Empty;
     if (!CatalystGuiLaunchOptions.FromArguments(Environment.GetCommandLineArgs()).IsActive) return false;
     var root = Environment.GetEnvironmentVariable("VOUCHA_CONTRACT_ROOT");
     if (!IsAbsoluteFixtureRoot(root)) return false;
@@ -29,7 +31,8 @@ internal static class CatalystGuiPreflight
       using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
       if (!document.RootElement.TryGetProperty("fixtures", out var fixtures)) return false;
       return TryReadFixtureBody(fixtures, fixtureRoot, SharedIdentityFixtureId, "/api/v1/my/identity", out identityBody) &&
-          TryReadFixtureBody(fixtures, fixtureRoot, EmailPreferencesFixtureId, "/api/v1/my/email-preferences", out emailPreferencesBody);
+          TryReadFixtureBody(fixtures, fixtureRoot, EmailPreferencesFixtureId, "/api/v1/my/email-preferences", out emailPreferencesBody) &&
+          TryReadFixtureBody(fixtures, fixtureRoot, SessionFixtureId, "/api/v1/session", out sessionBody, "PATCH");
     }
     catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
     {
@@ -148,30 +151,14 @@ internal static class CatalystGuiPreflight
   private static bool IsSettingsLocation(string location) =>
       location.Contains("settings", StringComparison.OrdinalIgnoreCase);
 
-  private static void Log(string message)
-  {
-    Console.Error.WriteLine($"catalyst-gui {message}");
-    var result = Environment.GetEnvironmentVariable("CATALYST_GUI_RESULT");
-    if (string.IsNullOrEmpty(result)) return;
-    try
-    {
-      var directory = Path.GetDirectoryName(result);
-      if (string.IsNullOrEmpty(directory)) return;
-      File.AppendAllText(Path.Combine(directory, "nav.log"), message + Environment.NewLine);
-    }
-    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-    {
-    }
-  }
-
   private static bool TryReadFixtureBody(
-      JsonElement fixtures, string fixtureRoot, string id, string path, out string body)
+      JsonElement fixtures, string fixtureRoot, string id, string path, out string body, string method = "GET")
   {
     body = string.Empty;
     foreach (var fixture in fixtures.EnumerateArray())
     {
       if (Text(fixture, "id") != id) continue;
-      if (Text(fixture, "method") != "GET" || Text(fixture, "path") != path) return false;
+      if (Text(fixture, "method") != method || Text(fixture, "path") != path) return false;
       if (!fixture.TryGetProperty("status", out var status) || !status.TryGetInt32(out var code) || code != 200)
         return false;
       var relative = Text(fixture, "bodyFile");

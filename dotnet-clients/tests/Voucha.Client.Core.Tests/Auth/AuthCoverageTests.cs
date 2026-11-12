@@ -129,6 +129,7 @@ public sealed class AuthCoverageTests
     var store = NewStore(
         CreateClient(new QueueHandler(
             ("""{"error":"unauthorized"}""", HttpStatusCode.Unauthorized),
+            (RenewalJson, HttpStatusCode.OK),
             (IdentityJson("dev"), HttpStatusCode.OK))),
         cookieContainer);
     var events = 0;
@@ -141,8 +142,8 @@ public sealed class AuthCoverageTests
     await ((ISessionStore)store).RefreshAsync(TestContext.Current.CancellationToken);
     Assert.True(store.Current.IsAuthenticated);
     var cookieHeader = cookieContainer.GetCookieHeader(new Uri("https://api.test"));
-    Assert.Contains("dt=device", cookieHeader, StringComparison.Ordinal);
-    Assert.Contains("st=session", cookieHeader, StringComparison.Ordinal);
+    Assert.Contains("dt=new-device", cookieHeader, StringComparison.Ordinal);
+    Assert.Contains("st=new-session", cookieHeader, StringComparison.Ordinal);
     Assert.Equal(1, events);
   }
 
@@ -172,7 +173,7 @@ public sealed class AuthCoverageTests
   }
 
   [Fact]
-  public async Task CookieSessionStoreForceRefreshIgnoresStaleStartupRefresh()
+  public async Task CookieSessionStoreForceRefreshReplacesAlreadyStartedStartupIdentity()
   {
     var handler = new DelayedIdentityHandler();
     var store = NewStore(CreateClient(handler), new CookieContainer());
@@ -180,14 +181,13 @@ public sealed class AuthCoverageTests
     var staleRefresh = ((ISessionStore)store).RefreshAsync(TestContext.Current.CancellationToken);
     await handler.FirstRequestStarted.WaitAsync(TestContext.Current.CancellationToken);
 
-    await ((IForcedSessionRefreshStore)store)
+    var forcedRefresh = ((IForcedSessionRefreshStore)store)
         .RefreshAsync(force: true, TestContext.Current.CancellationToken);
-
-    Assert.True(store.Current.IsAuthenticated);
-    handler.CompleteFirstRequestAsUnauthorized();
+    await forcedRefresh;
+    Assert.Equal("fresh", store.Current.Identity!.Username);
+    handler.CompleteFirstRequestAsIdentity();
     await staleRefresh;
-
-    Assert.True(store.Current.IsAuthenticated);
+    Assert.Equal("fresh", store.Current.Identity!.Username);
     Assert.Equal(2, handler.RequestCount);
   }
 
@@ -345,6 +345,8 @@ public sealed class AuthCoverageTests
     });
   }
 
+  private const string RenewalJson = """{"session":{"dt":"new-device","st":"new-session","dte":120,"ste":60,"uid":"user-1","session":{"uid":"user-1"}}}""";
+
   private static string IdentityJson(string username) =>
       $$"""
         {
@@ -423,6 +425,8 @@ public sealed class AuthCoverageTests
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+      if (request.RequestUri!.AbsolutePath == "/api/v1/session")
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(RenewalJson) });
       if (!responded)
       {
         responded = true;

@@ -1,17 +1,22 @@
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import {
+  notificationInputs,
+  validateNotificationAppEvidence,
+} from './catalyst-notification-app-evidence.mjs'
 
 export const notificationChecks = [
   'heading-exposed',
-  'moderation-on-and-enabled',
-  'engagement-mutation-settled',
-  'news-digest-enabled',
+  'engagement-mutation-persisted',
+  'moderation-visibility-and-hidden-preservation',
+  'canonical-route-focus-and-announcement-dispatched',
 ]
 const context = {
-  schemaVersion: 1,
+  schemaVersion: 3,
   platform: 'Mac Catalyst',
   runtime: 'Debug Mac2',
-  scope: 'issue-91-partial-notification-controls',
+  scope: 'issue-60-hosted-switches-and-accessibility-dispatch',
+  manualAcceptanceRequired: true,
 }
 
 export function notificationEvidence(checks, nativeRevision, producerCommit) {
@@ -50,7 +55,7 @@ export function validateNotificationEvidence(evidence, nativeRevision, producerC
     if (evidence[key] !== value) throw new Error(`notification evidence ${key} mismatch`)
   }
   if (!Array.isArray(evidence.checks) || evidence.checks.length !== notificationChecks.length)
-    throw new Error('notification evidence requires the current partial assertion set')
+    throw new Error('notification evidence requires the current control and dispatch assertion set')
   const seen = new Set()
   for (const check of evidence.checks) {
     if (
@@ -76,6 +81,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const [, , result, nativeRevision] = process.argv
     const { commit } = JSON.parse(readFileSync('contracts/vouchington.json', 'utf8'))
     validateNotificationEvidence(JSON.parse(readFileSync(result, 'utf8')), nativeRevision, commit)
+    validateNotificationAppEvidence(
+      JSON.parse(readFileSync(`${result}.app.json`, 'utf8')),
+      notificationInputs(process.env.VOUCHA_CONTRACT_ROOT),
+    )
   } catch (error) {
     console.error(error instanceof Error ? error.message : error)
     process.exitCode = 1

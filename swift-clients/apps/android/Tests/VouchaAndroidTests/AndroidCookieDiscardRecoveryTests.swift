@@ -108,7 +108,8 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         await freshAccount.restore()
 
         XCTAssertFalse(freshAccount.isRestoring)
-        XCTAssertEqual(probe.observations().paths, ["/api/v1/my/identity"])
+        XCTAssertEqual(probe.observations().paths, ["/api/v1/session"])
+        XCTAssertFalse(freshAccount.session.isSignedIn)
         XCTAssertEqual(probe.observations().snapshots, [nil])
     }
 

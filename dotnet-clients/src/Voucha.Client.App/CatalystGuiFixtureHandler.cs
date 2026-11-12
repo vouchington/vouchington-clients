@@ -3,45 +3,43 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.App;
 
-internal sealed class CatalystGuiFixtureHandler : DelegatingHandler
+internal sealed partial class CatalystGuiFixtureHandler : DelegatingHandler
 {
-  private const string SessionBody =
-      """{"session":{"dt":"catalyst-gui-device","st":"catalyst-gui-session","dte":3600,"ste":3600}}""";
+  private readonly string sessionBody;
   private const string FeatureFlagsBody = """{"flags":{},"overrides":{}}""";
   private readonly string identityBody;
   private readonly JsonObject preferences;
   private readonly object gate = new();
+  private readonly CatalystGuiAudit? audit;
 
-  private CatalystGuiFixtureHandler(HttpMessageHandler inner, string identityBody, JsonObject preferences)
+  internal CatalystGuiFixtureHandler(
+      HttpMessageHandler inner, string identityBody, JsonObject preferences, string sessionBody, CatalystGuiAudit? audit = null)
       : base(inner)
   {
     this.identityBody = identityBody;
     this.preferences = preferences;
-  }
-
-  internal static HttpMessageHandler Wrap(HttpMessageHandler inner)
-  {
-    if (!CatalystGuiPreflight.TryReadFixtures(out var identity, out var preferences)) return inner;
-    try
+    this.audit = audit;
+    var uid = JsonSerializer.Deserialize<MyIdentityResponse>(identityBody, VouchaApiJson.Options)?.Identity?.Id;
+    if (string.IsNullOrWhiteSpace(uid)) throw new JsonException("The GUI identity fixture requires an account id.");
+    var replacement = JsonSerializer.Deserialize<NativeSessionRefreshResponse>(sessionBody, VouchaApiJson.Options)?.Session
+        ?? throw new JsonException("The GUI session fixture requires replacement credentials.");
+    var claims = replacement.Session ?? throw new JsonException("The GUI session fixture requires session claims.");
+    this.sessionBody = JsonSerializer.Serialize(new NativeSessionRefreshResponse(replacement with
     {
-      if (JsonNode.Parse(preferences) is not JsonObject document || document["email_preferences"] is not JsonObject)
-        return inner;
-      return new CatalystGuiFixtureHandler(inner, identity, document);
-    }
-    catch (JsonException)
-    {
-      return inner;
-    }
+      Uid = uid,
+      Session = claims with { Uid = uid },
+    }), VouchaApiJson.Options);
   }
 
   protected override async Task<HttpResponseMessage> SendAsync(
       HttpRequestMessage request, CancellationToken cancellationToken)
   {
     var path = request.RequestUri?.AbsolutePath ?? string.Empty;
-    if (request.Method == HttpMethod.Patch && path == "/api/v1/session") return Json(SessionBody);
+    if (request.Method == HttpMethod.Patch && path == "/api/v1/session") return Json(sessionBody);
     if (request.Method == HttpMethod.Get && path == "/api/v1/my/identity") return Json(identityBody);
     if (request.Method == HttpMethod.Get && path == "/api/v1/feature-flags") return Json(FeatureFlagsBody);
     if (request.Method == HttpMethod.Get && path == "/api/v1/localization")
@@ -74,7 +72,10 @@ internal sealed class CatalystGuiFixtureHandler : DelegatingHandler
     lock (gate)
     {
       if (preferences["email_preferences"] is not JsonObject current) return;
-      foreach (var property in patch) current[property.Key] = property.Value?.DeepClone();
+      var after = current.DeepClone().AsObject();
+      foreach (var property in patch) after[property.Key] = property.Value?.DeepClone();
+      audit?.Patch(patch, current, after);
+      preferences["email_preferences"] = after;
     }
   }
 

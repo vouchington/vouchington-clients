@@ -9,12 +9,12 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
 
     let sessionConfiguration: URLSessionConfiguration
     let cookieStorage: HTTPCookieStorage
-    private let secrets: any AndroidEndpointSecretStoring
-    private let key: String
+    let secrets: any AndroidEndpointSecretStoring
+    let key: String
     private let captureRecords: (HTTPCookieStorage) -> [CookieRecord]
     private let snapshotRecovery: AndroidCookieSnapshotRecovery
-    private let queue = DispatchQueue(label: "ai.voucha.android.session-cookies")
-    private let notificationQueue = DispatchQueue(label: "ai.voucha.android.session-cookie-notices")
+    let queue = DispatchQueue(label: "ai.voucha.android.session-cookies")
+    let notificationQueue = DispatchQueue(label: "ai.voucha.android.session-cookie-notices")
     private let captureLock = NSLock()
 
     private var persistenceEnabled = true
@@ -87,14 +87,6 @@ final class AndroidSessionCookieStorage: @unchecked Sendable {
             // Keep the persistence queue available to the observer's own storage calls.
             if let observer { notificationQueue.async { observer(status) } }
         }
-    }
-
-    /// Wait for queued cookie writes without running their disk I/O on the caller's actor.
-    func flushPendingPersistence() async {
-        await Task.detached {
-            self.queue.sync {}
-            self.notificationQueue.sync {}
-        }.value
     }
 
     /// Permanently fences this client's callbacks before logout or account replacement.

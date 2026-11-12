@@ -26,4 +26,4 @@ public sealed record ReAuthProviderProofBody([property: JsonPropertyName("flow_i
 
 public sealed record RefreshSessionBody(
     [property: JsonPropertyName("dt")] string Dt,
-    [property: JsonPropertyName("st")] string St);
+    [property: JsonPropertyName("st"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? St);

@@ -32,14 +32,14 @@ final class AndroidSessionRestoreRetryTests: XCTestCase {
             XCTAssertTrue(account.isRestoring)
             XCTAssertNotNil(account.sessionRestoreError)
             XCTAssertFalse(account.session.isSignedIn)
-            XCTAssertEqual(storage.cookies?.map(\.value), ["saved-session"])
+            XCTAssertEqual(storage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
             await finishIdentityRequest(host: host, status: finalStatus, body: identity) {
                 await account.retryCookiePersistenceOrRestoration()
             }
             XCTAssertFalse(account.isRestoring)
             XCTAssertNil(account.sessionRestoreError)
             XCTAssertEqual(account.session.isSignedIn, finalStatus == 200)
-            XCTAssertEqual(storage.cookies?.map(\.value), ["saved-session"])
+            XCTAssertEqual(storage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
         }
     }
 

@@ -721,6 +721,7 @@ jobs:
         id: android-task-cache-path
         shell: bash
         env:
+          TASK_CACHE_KIND: app
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
           PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
           PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
@@ -736,12 +737,9 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
-      - name: Restore prior main Gradle task-output cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.android-task-cache-path.outputs.path }}
-          key: ${{ steps.android-task-cache-path.outputs.previous-key }}
+          restore-keys: |
+            ${{ steps.android-task-cache-path.outputs.previous-key }}
+            ${{ steps.android-task-cache-path.outputs.compatible-prefix }}
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
@@ -773,7 +771,7 @@ jobs:
     name: Swift Android Kotlin libraries
     needs: [verify, build-swift-android-dependency]
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 23
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -879,6 +877,7 @@ jobs:
         id: android-task-cache-path
         shell: bash
         env:
+          TASK_CACHE_KIND: kotlin-libraries
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
           PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
           PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
@@ -894,13 +893,11 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
-      - name: Restore prior main Gradle task-output cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.android-task-cache-path.outputs.path }}
-          key: ${{ steps.android-task-cache-path.outputs.previous-key }}
+          restore-keys: |
+            ${{ steps.android-task-cache-path.outputs.previous-key }}
+            ${{ steps.android-task-cache-path.outputs.compatible-prefix }}
       - name: Build the selected Android validation phase
+        timeout-minutes: 10
         working-directory: candidate-clients
         env:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
@@ -929,6 +926,26 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 1
+      - name: Bound Gradle task-output cache save
+        timeout-minutes: 1
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' }}
+        id: android-task-cache-save
+        shell: bash
+        env:
+          RESTORED_CACHE_PATH: ${{ steps.android-task-cache-path.outputs.path }}
+        run: |
+          set -euo pipefail
+          selected="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
+          [[ "$selected" == "$RESTORED_CACHE_PATH" ]]
+          node candidate-clients/swift-clients/apps/android/tooling/check-gradle-build-cache.mjs \
+            "$selected" "$GITHUB_OUTPUT"
+      - name: Save Gradle task-output cache from successful main Kotlin libraries build
+        timeout-minutes: 2
+        if: ${{ steps.android-task-cache-save.outputs.save == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
   build-swift-android:
     name: Swift Android app
     needs: [verify, build-swift-android-native, build-swift-android-kotlin-libraries]
@@ -1035,6 +1052,7 @@ jobs:
         id: android-task-cache-path
         shell: bash
         env:
+          TASK_CACHE_KIND: app
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
           PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
           PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
@@ -1050,12 +1068,9 @@ jobs:
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
-      - name: Restore prior main Gradle task-output cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' && steps.android-task-cache-path.outputs.previous-key != '' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.android-task-cache-path.outputs.path }}
-          key: ${{ steps.android-task-cache-path.outputs.previous-key }}
+          restore-keys: |
+            ${{ steps.android-task-cache-path.outputs.previous-key }}
+            ${{ steps.android-task-cache-path.outputs.compatible-prefix }}
       - name: Download exact-run Kotlin library cache
         timeout-minutes: 2
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
@@ -1727,15 +1742,15 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Run Sentry SDK boundary tests
+      - name: Run Sentry SDK boundary and launch transport tests
         timeout-minutes: 10
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
           SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
         run: |
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 2 and .passedTests == 2 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -only-testing:VouchaLaunchTransportTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
       - name: Run feed transport boundary tests
         timeout-minutes: 5
         working-directory: candidate-clients
@@ -2363,6 +2378,28 @@ jobs:
             --logger "console;verbosity=detailed" \
             --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini \
             --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+      - name: Test Debug notification fixture support
+        working-directory: candidate-clients
+        run: >-
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          --configuration Debug --no-restore
+      - name: Test Debug Catalyst fixtures and session isolation
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: |
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj \
+            --configuration Debug --no-restore --no-build \
+            --filter FullyQualifiedName~CatalystFixture \
+            --logger 'trx;LogFileName=catalyst-fixture.trx' \
+            --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+          python3 - "$RUNNER_TEMP/voucha-maui-test-results/catalyst-fixture.trx" <<'PYTHON'
+          import sys
+          import xml.etree.ElementTree as ET
+          counters = ET.parse(sys.argv[1]).find("{*}ResultSummary/{*}Counters")
+          assert counters is not None, "Missing Debug Catalyst fixture test counters"
+          expected = {"total": "4", "executed": "4", "passed": "4", "failed": "0", "notExecuted": "0"}
+          assert all(counters.get(key) == value for key, value in expected.items()), counters.attrib
+          PYTHON
       - name: Upload failed MAUI test diagnostics
         if: ${{ failure() || cancelled() }}
         timeout-minutes: 2
@@ -2702,13 +2739,15 @@ jobs:
         with:
           path: ${{ runner.temp }}/catalyst-appium
           key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
-      - name: Upload partial Catalyst notification evidence
+      - name: Upload Catalyst control and dispatch evidence
         if: ${{ success() }}
         timeout-minutes: 1
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
           name: catalyst-notification-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+          path: |
+            ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+            ${{ runner.temp }}/catalyst-gui-diagnostics/result.json.app.json
           retention-days: 7
           if-no-files-found: error
       - name: Upload failed Catalyst GUI diagnostics

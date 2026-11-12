@@ -83,6 +83,9 @@ public sealed partial class AppShell : Shell
     }
     catch (Exception ex)
     {
+#if DEBUG
+      CatalystGuiPreflight.LogStartupFailure(ex);
+#endif
       LogStartupSessionRefreshFailed(logger, ex);
     }
   }

@@ -19,6 +19,7 @@
                 app.launchEnvironment["VOUCHA_API_BASE_URL"] = "https://ui-testing.voucha.invalid"
                 app.launchEnvironment["VOUCHA_DISABLE_APP_ATTEST"] = "1"
                 app.launchEnvironment["VOUCHA_UI_TESTING_SOURCE_CREATION_RESPONSES"] = try responseScript()
+                try LaunchSmokeFixtures.configureSession(in: app)
                 app.launch()
                 app.activate()
                 XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
