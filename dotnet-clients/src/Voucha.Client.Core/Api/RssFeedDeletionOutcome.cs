@@ -19,6 +19,7 @@ public sealed record RssFeedDeletionOutcome
 
   public string? RssFeedId { get; }
   public bool IsAcceptedPending { get; }
+  public string? Status => IsAcceptedPending ? "deleting" : null;
   public UiText Message { get; }
 
   internal static RssFeedDeletionOutcome AcceptedPending(string rssFeedId) =>

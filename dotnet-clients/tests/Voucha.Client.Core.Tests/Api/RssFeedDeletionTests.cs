@@ -18,6 +18,7 @@ public sealed class RssFeedDeletionTests
     using var http = Http(handler);
     var result = await new VouchaApiClient(http).DeleteRssFeedAsync(FeedId, TestContext.Current.CancellationToken);
     Assert.True(result.IsAcceptedPending);
+    Assert.Equal("deleting", result.Status);
     Assert.Equal(FeedId, result.RssFeedId);
     Assert.Equal(UiMessageKey.SharedRssFeedDeletionAccepted, result.Message.Key);
     Assert.Equal([("DELETE", $"/api/v1/rss-feeds/{FeedId}", (string?)null)], handler.Requests);
@@ -33,6 +34,7 @@ public sealed class RssFeedDeletionTests
     using var http = Http(handler);
     var result = await new VouchaApiClient(http).DeleteRssFeedAsync(canonical.ToUpperInvariant(), TestContext.Current.CancellationToken);
     Assert.True(result.IsAcceptedPending);
+    Assert.Equal("deleting", result.Status);
     Assert.Equal(canonical, result.RssFeedId);
     Assert.Single(handler.Requests);
   }
@@ -48,6 +50,7 @@ public sealed class RssFeedDeletionTests
     using var http = Http(handler);
     var result = await new VouchaApiClient(http).DeleteRssFeedAsync(FeedId, TestContext.Current.CancellationToken);
     Assert.False(result.IsAcceptedPending);
+    Assert.Null(result.Status);
     Assert.Null(result.RssFeedId);
     Assert.Equal(UiMessageKey.SharedRssFeedDeletionBlockedByAdminImports, result.Message.Key);
     Assert.Single(handler.Requests);
