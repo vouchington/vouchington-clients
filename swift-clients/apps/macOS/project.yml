@@ -133,6 +133,7 @@ targets:
       testTargets:
         - VouchaLaunchSmokeTests
         - VouchaSentryBoundaryTests
+        - VouchaFeedTransportTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
@@ -154,6 +155,27 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.sentry-boundary-tests
         PRODUCT_NAME: VouchaSentryBoundaryTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO
+
+  VouchaFeedTransportTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
+      - path: ../shared-app-tests/FeedFlowUITestingURLProtocolTests.swift
+      - path: ../shared-tests/LaunchSmokeFixtures.swift
+      - path: ../shared-tests/VideoFeedLaunchFixture.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.feed-transport-tests
+        PRODUCT_NAME: VouchaFeedTransportTests
         TEST_HOST: ''
         BUNDLE_LOADER: ''
         ENABLE_APP_SANDBOX: NO

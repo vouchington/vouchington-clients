@@ -1736,6 +1736,15 @@ jobs:
         run: |
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 2 and .passedTests == 2 and .failedTests == 0 and .skippedTests == 0'
+      - name: Run feed transport boundary tests
+        timeout-minutes: 5
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
+        run: |
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaFeedTransportTests -resultBundlePath "$RUNNER_TEMP/macos-feed-transport.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-feed-transport.xcresult" | jq -e '.totalTestCount == 5 and .passedTests == 5 and .failedTests == 0 and .skippedTests == 0'
       - name: Launch macOS root shell, sidebar feeds, and email sign-in
         timeout-minutes: 15
         working-directory: candidate-clients
@@ -1750,8 +1759,8 @@ jobs:
             exit 1
           fi
           rm -rf "$XCODE_DERIVED_DATA/Build/Products/Debug/Voucha.app"
-          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPostsTests/testPostsFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/SourceCreationSmokeTests/testCreatesAndOpensSourceFromEveryVertical -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 6 and .passedTests == 6 and .failedTests == 0 and .skippedTests == 0'
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPostsTests/testPostsFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/SourceCreationSmokeTests/testCreatesAndOpensSourceFromEveryVertical -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedRecoveryTests/testVideoFeedRetryRecoversCanonicalRow -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 7 and .passedTests == 7 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed macOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -1773,6 +1782,7 @@ jobs:
           name: macos-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/macos-launch-smoke.xcresult
+            ${{ runner.temp }}/macos-feed-transport.xcresult
             ${{ runner.temp }}/macos-launch-diagnostics
           retention-days: 1
           if-no-files-found: warn

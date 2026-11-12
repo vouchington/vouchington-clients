@@ -31,6 +31,7 @@ public struct ErrorStateView: View {
             Button(UiMessages.string(.nativeCommonRetry, locale: locale)) {
                 Task { await retry() }
             }
+            .accessibilityIdentifier("error-state-retry")
             .buttonStyle(.borderedProminent)
             .padding(.top, Spacing.sm)
         }
