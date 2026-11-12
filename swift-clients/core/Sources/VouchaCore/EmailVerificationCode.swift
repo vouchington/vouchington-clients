@@ -1,3 +1,5 @@
+import Foundation
+
 /// Email codes use ten ASCII RFC 4648 base32 characters, independently of authenticator TOTP.
 public enum EmailVerificationCode {
     public static func normalized(_ input: String) -> String? {
@@ -9,7 +11,7 @@ public enum EmailVerificationCode {
         guard uppercase.allSatisfy({ (65 ... 90).contains($0) || (50 ... 55).contains($0) }) else {
             return nil
         }
-        return String(decoding: uppercase, as: UTF8.self)
+        return String(bytes: uppercase, encoding: .utf8)
     }
 }
 
