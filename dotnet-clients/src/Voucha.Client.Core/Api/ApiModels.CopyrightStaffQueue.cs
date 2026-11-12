@@ -60,24 +60,24 @@ public sealed record CopyrightStaffTarget(
 
 public sealed record CopyrightStaffActionIntent(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("target_id")] string TargetId,
+    [property: JsonPropertyName("target_id"), JsonRequired] string TargetId,
     [property: JsonPropertyName("action")] string Action,
     [property: JsonPropertyName("state")] string State,
     [property: JsonPropertyName("failure_message")] string? FailureMessage);
 
 public sealed record CopyrightStaffStaydownMatch(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("image_id")] string ImageId,
+    [property: JsonPropertyName("image_id"), JsonRequired] string ImageId,
     [property: JsonPropertyName("registered_image_id")] string RegisteredImageId,
-    [property: JsonPropertyName("target_id")] string TargetId,
+    [property: JsonPropertyName("target_id"), JsonRequired] string TargetId,
     [property: JsonPropertyName("uploaded_by_id")] string UploadedById,
-    [property: JsonPropertyName("uploaded_by_username")] string? UploadedByUsername,
-    [property: JsonPropertyName("image_placement")] CopyrightStaffImagePlacement? ImagePlacement,
+    [property: JsonPropertyName("uploaded_by_username"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? UploadedByUsername,
+    [property: JsonPropertyName("image_placement"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] CopyrightStaffImagePlacement? ImagePlacement,
     [property: JsonPropertyName("match_kind")] string MatchKind,
     [property: JsonPropertyName("hamming_distance")] int HammingDistance,
     [property: JsonPropertyName("matched_at")] DateTimeOffset MatchedAt);
 
 public sealed record CopyrightStaffImagePlacement(
-    [property: JsonPropertyName("image_id")] string ImageId,
-    [property: JsonPropertyName("placement_id")] string PlacementId,
-    [property: JsonPropertyName("placement_revision")] int PlacementRevision);
+    [property: JsonPropertyName("image_id"), JsonRequired] string ImageId,
+    [property: JsonPropertyName("placement_id"), JsonRequired] string PlacementId,
+    [property: JsonPropertyName("placement_revision"), JsonRequired] int PlacementRevision);
