@@ -14,6 +14,7 @@ final class SourceCreationViewModel {
     private(set) var message: UiVerbatimText?
     private(set) var isTerminal = false
     private(set) var destination: String?
+    private var completedForList = false
     var currentDestination: String? {
         identity() == owner && destinationGeneration == generation ? destination : nil
     }
@@ -61,6 +62,7 @@ final class SourceCreationViewModel {
         message = nil
         isTerminal = false
         destination = nil
+        completedForList = false
         destinationGeneration = nil
         owner = nil
     }
@@ -108,8 +110,39 @@ final class SourceCreationViewModel {
         await monitor(token: token, account: account)
     }
 
+    func consumeListCompletion() -> Bool {
+        guard completedForList, identity() == owner else { return false }
+        completedForList = false
+        return true
+    }
+
     private func current(_ token: Int, _ account: String) -> Bool {
         token == generation && identity() == account && !Task.isCancelled
+    }
+
+}
+
+extension SourceCreationViewModel {
+    private func complete(_ result: ImportResult, failedRows: Int, token: Int, account: String) async throws {
+        if result.status != .error, result.status != .skipped, failedRows == 0 {
+            let resolved = try await resolveDestination(result)
+            guard current(token, account) else { return }
+            guard let resolved else {
+                message = .message(.nativeSwiftImportExportTryStatusAgain)
+                return
+            }
+            destination = resolved
+            completedForList = true
+            destinationGeneration = token
+            isTerminal = true
+            message = .message(.nativeSwiftImportExportSourceCreated)
+        } else {
+            isTerminal = true
+            message = .message(
+                .nativeSwiftImportExportFailed,
+                textParameters: ["error": .message(.nativeSwiftImportExportUnknownError)]
+            )
+        }
     }
 
     private func monitor(token: Int, account: String) async {
@@ -127,21 +160,7 @@ final class SourceCreationViewModel {
                 result = status.rows.first
                 if status.import.pendingRows == 0 || status.import.completedAt != nil,
                    let result, result.status != .pending {
-                    if result.status != .error,
-                       let entityId = result.entityId, status.import.failedRows == 0 {
-                        let topic = try await service.topic(entityId)
-                        guard current(token, account) else { return }
-                        destination = topic.map { "/source/\($0)" }
-                        destinationGeneration = token
-                        isTerminal = true
-                        message = .message(.nativeSwiftImportExportSourceCreated)
-                    } else {
-                        isTerminal = true
-                        message = .message(
-                            .nativeSwiftImportExportFailed,
-                            textParameters: ["error": .message(.nativeSwiftImportExportUnknownError)]
-                        )
-                    }
+                    try await complete(result, failedRows: status.import.failedRows, token: token, account: account)
                     return
                 }
                 message = result?.isRetrying == true

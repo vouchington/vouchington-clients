@@ -388,8 +388,14 @@ public sealed class SourceCreationTests
     public Queue<Func<Task<RssFeedImportStatus>>> Reads { get; } = new();
     public int Posts { get; private set; }
     public int Gets { get; private set; }
+    public int Resolves { get; private set; }
+    public Func<string, Task<CreatedSourceDetail>>? Resolve { get; set; }
     public Task<RssFeedImportSubmission> CreateAsync(Uri url, CancellationToken token) { Posts++; return Post?.Invoke() ?? Task.FromResult(Submission); }
     public Task<RssFeedImportStatus> ReadAsync(string importId, CancellationToken token) { Gets++; Assert.Equal(Submission.Import.Id, importId); return Reads.Count > 0 ? Reads.Dequeue()() : Task.FromResult(DefaultStatus); }
-    public Task<CreatedSourceDetail> ResolveAsync(string feedId, CancellationToken token) => Task.FromResult(new CreatedSourceDetail(feedId, "resolved-topic"));
+    public Task<CreatedSourceDetail> ResolveAsync(string feedId, CancellationToken token)
+    {
+      Resolves++;
+      return Resolve?.Invoke(feedId) ?? Task.FromResult(new CreatedSourceDetail(feedId, "resolved-topic"));
+    }
   }
 }

@@ -78,11 +78,11 @@ public sealed partial class SourceCreationViewModel
         Publish();
         if (summary.IsTerminal() && result.Status != Api.ImportResultStatus.Pending)
         {
-          if (!result.IsTerminalFailure() && result.EntityId is { Length: > 0 } feedId && string.IsNullOrWhiteSpace(result.TopicSlug))
+          if (!result.IsTerminalFailure() && result.EntityId is { Length: > 0 } feedId && !IsTopicDestination(result.TopicSlug))
           {
             var detail = await service.ResolveAsync(feedId, token).ConfigureAwait(true);
             if (!Current()) return;
-            if (detail.Id != feedId || string.IsNullOrWhiteSpace(detail.TopicId)) throw new InvalidOperationException();
+            if (detail.Id != feedId || !IsTopicDestination(detail.TopicId)) throw new InvalidOperationException();
             resolvedTopic = detail.TopicId;
           }
           if (!result.IsTerminalFailure() && !CanOpen) throw new InvalidOperationException();

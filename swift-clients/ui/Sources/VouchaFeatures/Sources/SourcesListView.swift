@@ -82,10 +82,7 @@ public struct SourcesListView: View {
             }
         }
         .sheet(isPresented: $showCreation) {
-            SourceCreationView(model: creationModel) { path in
-                showCreation = false
-                navigateToSource(path)
-            }
+            creationSheet
         }
         .onChange(of: creationIdentity()) { _, _ in
             replaceCreationContext()

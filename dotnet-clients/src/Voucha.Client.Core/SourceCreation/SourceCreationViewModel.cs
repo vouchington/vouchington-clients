@@ -1,3 +1,4 @@
+using System.Globalization;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.ImportExport;
@@ -53,10 +54,16 @@ public sealed partial class SourceCreationViewModel : ObservableObject, IDisposa
       ? new ImportResultPresentation(row, localization).LocalizedDisplayStatus
       : importId is null ? null : localization.Localize(UiMessageKey.NativeSwiftImportExportPending);
   public string? EntityId => result?.EntityId;
-  public string? TopicSlug => result?.TopicSlug ?? resolvedTopic;
+  public string? TopicSlug => IsTopicDestination(result?.TopicSlug) ? result?.TopicSlug
+      : IsTopicDestination(resolvedTopic) ? resolvedTopic : null;
   public bool CanOpen => !disposed && origin == service.ApiOrigin &&
       accountId == session.Current.Identity?.Id && summary?.IsTerminal() == true && result is { Status: not ImportResultStatus.Pending } && !result.IsTerminalFailure() &&
-      !string.IsNullOrWhiteSpace(EntityId) && !string.IsNullOrWhiteSpace(TopicSlug);
+      !string.IsNullOrWhiteSpace(EntityId) && IsTopicDestination(TopicSlug);
+
+  private static bool IsTopicDestination(string? value) =>
+      value is { Length: > 0 } && value is not "." and not ".." &&
+      !value.Any(character => char.IsWhiteSpace(character) || char.IsControl(character) ||
+          char.GetUnicodeCategory(character) == UnicodeCategory.Format || "/\\?#%".Contains(character, StringComparison.Ordinal));
 
   public void Cancel()
   {

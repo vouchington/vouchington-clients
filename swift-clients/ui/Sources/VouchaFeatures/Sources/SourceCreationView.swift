@@ -5,6 +5,7 @@ struct SourceCreationView: View {
     @Environment(\.locale) var locale
     @Bindable var model: SourceCreationViewModel
     var navigate: (String) -> Void
+    var didDismiss: () -> Void = {}
 
     var body: some View {
         Form {
@@ -32,6 +33,9 @@ struct SourceCreationView: View {
                 }
             }
         }
-        .onDisappear { model.cancel() }
+        .onDisappear {
+            model.cancel()
+            didDismiss()
+        }
     }
 }
