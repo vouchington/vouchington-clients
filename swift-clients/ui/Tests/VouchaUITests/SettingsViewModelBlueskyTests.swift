@@ -11,7 +11,7 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             linkedBlueskyIdentity(), 200
         )
-        let viewModel = try SettingsViewModel(client: makeClient())
+        let viewModel = try SettingsViewModel(client: makeFreshAccountSettingsTestClient())
         await viewModel.load()
         XCTAssertEqual(viewModel.identity?.blueskyAccount?.did, "did:plc:alice")
         CannedFeedURLProtocol.handlers["/api/v1/auth/bluesky/link"] = (Data("{}".utf8), 200)
@@ -19,7 +19,9 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
             PrivateUserTestFixture.identityEnvelope(), 200
         )
 
-        await viewModel.disconnectBluesky()
+        try await confirmAccountChange(XCTUnwrap(viewModel.freshConfirmation)) {
+            await viewModel.disconnectBluesky()
+        }
 
         XCTAssertNil(viewModel.identity?.blueskyAccount)
         XCTAssertEqual(viewModel.blueskyLinkState, .idle)
@@ -34,11 +36,13 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             linkedBlueskyIdentity(), 200
         )
-        let viewModel = try SettingsViewModel(client: makeClient())
+        let viewModel = try SettingsViewModel(client: makeFreshAccountSettingsTestClient())
         await viewModel.load()
         CannedFeedURLProtocol.handlers["/api/v1/auth/bluesky/link"] = (Data("{}".utf8), 500)
 
-        await viewModel.disconnectBluesky()
+        try await confirmAccountChange(XCTUnwrap(viewModel.freshConfirmation)) {
+            await viewModel.disconnectBluesky()
+        }
 
         XCTAssertEqual(viewModel.identity?.blueskyAccount?.did, "did:plc:alice")
         XCTAssertEqual(
@@ -55,17 +59,21 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
         )
         let defaults = try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
         let store = NativeBlueskyLinkStore(defaults: defaults)
-        let viewModel = try SettingsViewModel(client: makeClient(), blueskyLinkStore: store)
+        let viewModel = try SettingsViewModel(client: makeFreshAccountSettingsTestClient(), blueskyLinkStore: store)
         viewModel.blueskyHandle = "  alice.bsky.social  "
         var openedURL: URL?
 
-        await viewModel.beginBlueskyLink(store: store) { openedURL = $0 }
+        try await confirmAccountChange(XCTUnwrap(viewModel.freshConfirmation)) {
+            await viewModel.beginBlueskyLink(store: store) { openedURL = $0 }
+        }
 
         XCTAssertEqual(openedURL, URL(string: "https://bsky.social/oauth/authorize"))
         XCTAssertEqual(try store.pending()?.flowId, "00000000-0000-7000-8000-00000000b501")
         XCTAssertEqual(viewModel.blueskyLinkState, .awaitingCallback)
-        XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.first??.contains(#""callback_mode":"native""#) == true)
-        XCTAssertTrue(CannedFeedURLProtocol.capturedBodies.first??.contains(#""handle":"alice.bsky.social""#) == true)
+        XCTAssertTrue(CannedFeedURLProtocol.capturedBodies
+            .contains { $0?.contains(#""callback_mode":"native""#) == true })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedBodies
+            .contains { $0?.contains(#""handle":"alice.bsky.social""#) == true })
     }
 
     func testAwaitingCallbackCanBeCancelledAndConnectReenabled() throws {
@@ -193,7 +201,7 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
                 "bluesky_account": ["did": "did:plc:alice", "handle": "alice.bsky.social"]
             ]), 200
         )
-        let viewModel = try SettingsViewModel(client: makeClient(), blueskyLinkStore: store)
+        let viewModel = try SettingsViewModel(client: makeFreshAccountSettingsTestClient(), blueskyLinkStore: store)
 
         store.recordResult(.success)
         await viewModel.waitForBlueskyLinkResultConsumption()
@@ -203,7 +211,7 @@ final class SettingsViewModelBlueskyTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     func testEmptyHandleDoesNotStartNetworkRequest() async throws {
-        let viewModel = try SettingsViewModel(client: makeClient())
+        let viewModel = try SettingsViewModel(client: makeFreshAccountSettingsTestClient())
         viewModel.blueskyHandle = "  "
         await viewModel.beginBlueskyLink { _ in XCTFail("Should not open authorization") }
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)

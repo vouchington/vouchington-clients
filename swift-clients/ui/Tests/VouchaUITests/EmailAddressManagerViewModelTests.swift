@@ -21,11 +21,7 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
     }
 
     private func makeClient() -> APIClient {
-        APIClient(
-            config: AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test"),
-            cookieStorage: HTTPCookieStorage(),
-            protocolClasses: [CannedFeedURLProtocol.self]
-        )
+        try! makeFreshAccountSettingsTestClient()
     }
 
     private func makeViewModel() -> EmailAddressManagerViewModel {
@@ -83,7 +79,7 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         )
         let viewModel = makeViewModel()
         viewModel.emailAddress = " User@Example.com "
-        await viewModel.requestVerification()
+        await confirmAccountChange(viewModel.freshConfirmation) { await viewModel.requestVerification() }
         XCTAssertEqual(viewModel.emailAddress, "user@example.com")
         XCTAssertEqual(viewModel.phase, .enterCode)
     }
@@ -100,10 +96,10 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         viewModel.emailAddress = "user@example.com"
         viewModel.verificationCode = "ABCDEFGH23"
         viewModel.phase = .enterCode
-        await viewModel.verify()
+        await confirmAccountChange(viewModel.freshConfirmation) { await viewModel.verify() }
         XCTAssertEqual(viewModel.phase, .verified)
         XCTAssertEqual(viewModel.statusMessage, UiMessage(.nativeSwiftSettingsEmailVerifiedRetry))
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path.hasSuffix("/verifications") }.count, 1)
     }
 
     func testInvalidCodeStaysOnCodeStep() async {
@@ -115,7 +111,7 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         viewModel.emailAddress = "user@example.com"
         viewModel.verificationCode = "BADCODE234"
         viewModel.phase = .enterCode
-        await viewModel.verify()
+        await confirmAccountChange(viewModel.freshConfirmation) { await viewModel.verify() }
         XCTAssertEqual(viewModel.phase, .enterCode)
         XCTAssertNotNil(viewModel.errorMessage)
     }
@@ -150,14 +146,14 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
             viewModel.verificationCode = "abcdefgh23"
             viewModel.phase = .enterCode
 
-            await viewModel.verify()
+            await confirmAccountChange(viewModel.freshConfirmation) { await viewModel.verify() }
 
             XCTAssertEqual(viewModel.verificationCode, "ABCDEFGH23")
             XCTAssertEqual(viewModel.phase, .enterCode)
             XCTAssertTrue(viewModel.canVerifyCode)
             XCTAssertNotNil(viewModel.errorMessage)
             XCTAssertNil(viewModel.statusMessage)
-            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, 1)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.filter { $0.path.hasSuffix("/verifications") }.count, 1)
         }
     }
 
@@ -166,7 +162,7 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         viewModel.emailAddress = "user@example.com"
         viewModel.verificationCode = "ABCDEFGH23"
         viewModel.phase = .enterCode
-        await viewModel.verify()
+        await confirmAccountChange(viewModel.freshConfirmation) { await viewModel.verify() }
 
         viewModel.startAnotherAddress()
 

@@ -26,6 +26,8 @@ extension RootView {
             showingSignIn = true
         case .expired(_, .connect):
             routeNativeTargetPath("/my/identity")
+        case .confirmationReady, .expired(_, .reauthenticate):
+            break
         }
     }
 }

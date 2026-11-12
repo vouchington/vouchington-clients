@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaLocalization
 import VouchaModels
@@ -37,11 +38,14 @@ public extension SettingsViewModel {
         }
         blueskyLinkState = .linking
         do {
+            guard let freshConfirmation else { throw AccountConfirmationError.unavailableMethod }
+            let accountProof = try await freshConfirmation.authorize()
             let completionProof = try NativeAuthorizationCompletionProof.generate()
             let response: BeginBlueskyAccountLinkResponse = try await client.send(
                 .beginNativeBlueskyAccountLink(
                     handle: handle,
-                    completionProofChallenge: completionProof.challenge
+                    completionProofChallenge: completionProof.challenge,
+                    reAuthToken: accountProof
                 )
             )
             guard let flowId = response.flowId,
@@ -62,6 +66,8 @@ public extension SettingsViewModel {
             blueskyLinkExpiresAt = startedAt.addingTimeInterval(NativeBlueskyLinkStore.lifetime)
             blueskyLinkState = .awaitingCallback
             openAuthorizationURL(url)
+        } catch is CancellationError {
+            blueskyLinkState = .cancelled
         } catch {
             blueskyLinkState = .error(.message(.nativeSwiftSettingsBlueskyLinkFailed))
         }
@@ -168,26 +174,15 @@ public extension SettingsViewModel {
         guard let client else { return }
         blueskyLinkState = .disconnecting
         do {
-            let _: EmptyResponse = try await client.send(.disconnectBlueskyAccount)
+            guard let freshConfirmation else { throw AccountConfirmationError.unavailableMethod }
+            let proof = try await freshConfirmation.authorize()
+            let _: EmptyResponse = try await client.send(.disconnectBlueskyAccount(reAuthToken: proof))
             await reload()
             blueskyLinkState = .idle
+        } catch is CancellationError {
+            blueskyLinkState = .cancelled
         } catch {
             blueskyLinkState = .error(.message(.nativeSwiftSettingsBlueskyDisconnectFailed))
         }
-    }
-}
-
-/// Holds the latest Bluesky result task so a caller can wait for the reload the observer started.
-final class BlueskyLinkResultTasks: @unchecked Sendable {
-    private let lock = NSLock()
-    private var task: Task<Void, Never>?
-
-    func set(_ task: Task<Void, Never>) {
-        lock.withLock { self.task = task }
-    }
-
-    func wait() async {
-        let task = lock.withLock { self.task }
-        await task?.value
     }
 }
