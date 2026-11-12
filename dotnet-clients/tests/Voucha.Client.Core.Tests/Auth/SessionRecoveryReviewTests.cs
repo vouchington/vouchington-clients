@@ -83,7 +83,7 @@ public sealed partial class SessionRecoveryTests
     var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     fixture.Terminal.Other = async request =>
     {
-      if (request.RequestUri!.AbsolutePath == "/api/v1/auth/email-address/login")
+      if (request.RequestUri!.AbsolutePath == "/api/v1/auth/native/email-address/login")
       {
         entered.SetResult();
         await release.Task.WaitAsync(TestContext.Current.CancellationToken);
