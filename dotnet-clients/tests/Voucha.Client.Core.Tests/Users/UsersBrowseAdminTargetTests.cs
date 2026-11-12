@@ -39,4 +39,11 @@ public sealed class UsersBrowseAdminTargetTests
     Assert.Equal("/user/jane%20doe/admin", target.Value);
     Assert.DoesNotContain("%25", target.Value, StringComparison.Ordinal);
   }
+
+  [Theory]
+  [InlineData("alice", "alice")]
+  [InlineData(null, "id-1")]
+  [InlineData("   ", "id-1")]
+  public void UserLabelPrefersUsernameThenId(string? username, string expected) =>
+      Assert.Equal(expected, UsersBrowseViewModel.UserLabel(new UserSearchResult("id-1", username)));
 }
