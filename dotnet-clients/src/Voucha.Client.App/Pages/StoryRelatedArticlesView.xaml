@@ -16,7 +16,7 @@
                         <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}"/>
-                                <Label Text="{Binding Title}" Style="{StaticResource Headline}"/>
+                                <Label Text="{Binding Title}" AutomationId="{Binding Id, StringFormat='news-related-title-{0}'}" Style="{StaticResource Headline}"/>
                                 <Label Text="{Binding Summary}" Style="{StaticResource Body}"/>
                                 <controls:HackerNewsReferencesView Presentation="{Binding HackerNews}"/>
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
