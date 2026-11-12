@@ -31,12 +31,12 @@ extension MutationChallengePresentationTests {
         XCTAssertTrue(containsAnchor(inactiveRoot))
 
         inactiveRoot.rootView.broker = nil
-        await waitUntil { !self.containsAnchor(inactiveRoot) }
+        try await waitUntil { !self.containsAnchor(inactiveRoot) }
         XCTAssertEqual(broker.pendingID, id)
         try XCTUnwrap(provider.onToken)("active-window-proof")
         await fulfillment(of: [completed], timeout: 2)
         XCTAssertEqual(proof, "active-window-proof")
-        await waitUntil { activeSheet.presentedViewController == nil }
+        try await waitUntil { activeSheet.presentedViewController == nil }
     }
 
     func testUnclaimedRequestPresentsWhenWindowBecomesKey() async throws {
@@ -50,7 +50,7 @@ extension MutationChallengePresentationTests {
             window.isHidden = true
         }
         sibling.makeKeyAndVisible()
-        await waitUntil { sibling.isKeyWindow && !window.isKeyWindow }
+        try await waitUntil { sibling.isKeyWindow && !window.isKeyWindow }
         XCTAssertTrue(sibling.isKeyWindow)
         XCTAssertFalse(window.isKeyWindow)
         XCTAssertNil(provider.onToken)
@@ -61,13 +61,13 @@ extension MutationChallengePresentationTests {
             completed.fulfill()
         }
         defer { request.cancel() }
-        await waitUntil { broker.pendingID != nil }
+        try await waitUntil { broker.pendingID != nil }
         XCTAssertTrue(sibling.isKeyWindow)
         XCTAssertFalse(window.isKeyWindow)
         XCTAssertNil(sheet.presentedViewController)
         XCTAssertNil(provider.onToken)
         window.makeKeyAndVisible()
-        await waitUntil { window.isKeyWindow && !sibling.isKeyWindow }
+        try await waitUntil { window.isKeyWindow && !sibling.isKeyWindow }
         XCTAssertTrue(window.isKeyWindow)
         XCTAssertFalse(sibling.isKeyWindow)
         let challenge = try await presentedChallenge(above: sheet)
@@ -76,7 +76,7 @@ extension MutationChallengePresentationTests {
         try XCTUnwrap(provider.onToken)("activated-window-proof")
         await fulfillment(of: [completed], timeout: 2)
         XCTAssertEqual(proof, "activated-window-proof")
-        await waitUntil { sheet.presentedViewController == nil }
+        try await waitUntil { sheet.presentedViewController == nil }
     }
 
     func containsAnchor(_ controller: UIViewController) -> Bool {
@@ -86,8 +86,8 @@ extension MutationChallengePresentationTests {
     func present(
         _ sheet: UIViewController,
         broker: MutationChallengeBroker
-    ) async throws -> (UIWindow, UIHostingController<MutationChallengeTestRoot>) {
-        let root = try UIHostingController(rootView: MutationChallengeTestRoot(
+    ) async throws -> (UIWindow, MutationChallengeRootController) {
+        let root = try MutationChallengeRootController(rootView: MutationChallengeTestRoot(
             broker: broker,
             baseURL: XCTUnwrap(URL(string: "https://voucha.ai")),
             provider: provider
@@ -95,27 +95,49 @@ extension MutationChallengePresentationTests {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let window = UIWindow(windowScene: scene)
         window.rootViewController = root
+        var presented = false
+        defer {
+            if !presented {
+                window.isHidden = true
+                window.rootViewController = nil
+            }
+        }
         window.makeKeyAndVisible()
-        await waitUntil { root.view.window != nil && window.isKeyWindow && scene.activationState == .foregroundActive }
-        let presented = expectation(description: "Create-list editor presented")
-        root.present(sheet, animated: false) { presented.fulfill() }
-        await fulfillment(of: [presented], timeout: 5)
+        // Wait on UIKit's own signals, not a deadline: the first presentation in a cold host process
+        // loads SwiftUI, localization and the navigation stack and can take far longer than any fixed budget.
+        await root.appearance()
+        await awaitKeyAndActive(window, scene: scene)
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            root.present(sheet, animated: false) { done.resume() }
+        }
+        XCTAssertTrue(root.presentedViewController === sheet)
+        XCTAssertTrue(sheet.presentingViewController === root)
+        XCTAssertTrue(sheet.viewIfLoaded?.window === window)
+        presented = true
         return (window, root)
     }
 
     func presentedChallenge(
         above sheet: UIViewController
     ) async throws -> UIHostingController<AnyView> {
-        await waitUntil {
-            sheet.presentedViewController is UIHostingController<AnyView>
-                && sheet.presentedViewController?.isBeingPresented == false
+        try await waitUntil {
+            guard let challenge = sheet.presentedViewController as? UIHostingController<AnyView> else { return false }
+            return challenge.presentingViewController === sheet && challenge.viewIfLoaded?.window != nil
+                && !challenge.isBeingPresented && !challenge.isBeingDismissed && challenge.transitionCoordinator == nil
+                && sheet.transitionCoordinator == nil
         }
         return try XCTUnwrap(sheet.presentedViewController as? UIHostingController<AnyView>)
     }
 
-    func waitUntil(_ condition: @escaping () -> Bool) async {
+    func waitUntil(_ condition: @escaping () -> Bool, file: StaticString = #filePath, line: UInt = #line) async throws {
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in condition() }, object: nil)
-        await fulfillment(of: [ready], timeout: 5)
+        let result = await XCTWaiter.fulfillment(of: [ready], timeout: 5)
+        _ = try XCTUnwrap(
+            result == .completed && condition() ? true : nil,
+            "Presentation state did not settle",
+            file: file,
+            line: line
+        )
     }
 }
 
@@ -144,4 +166,29 @@ struct MutationChallengeTestRoot: View {
 @MainActor
 final class MutationChallengeProviderStub {
     var onToken: ((String) -> Void)?
+}
+
+@MainActor
+final class MutationChallengeRootController: UIHostingController<MutationChallengeTestRoot> {
+    private(set) var hasAppeared = false
+    private var appearanceWaiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Returns once UIKit has delivered `viewDidAppear`; resumes immediately if it already has.
+    func appearance() async {
+        if hasAppeared { return }
+        await withCheckedContinuation { appearanceWaiters.append($0) }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        hasAppeared = true
+        let waiters = appearanceWaiters
+        appearanceWaiters = []
+        waiters.forEach { $0.resume() }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        hasAppeared = false
+    }
 }

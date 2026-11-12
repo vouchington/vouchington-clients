@@ -12,6 +12,7 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
   {
     InitializeComponent();
     BindingContextChanged += OnBindingContextChanged;
+    InitializeControlAudit();
   }
   public event EventHandler<NotificationPreferenceChangedEventArgs>? PreferenceChanged;
   public VisualElement Heading => NotificationPreferencesHeading;
@@ -31,6 +32,7 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
     if (BindingContext is not Voucha.Client.Core.Settings.NotificationPreferencesViewModel model) return;
     acceptControlEvents = false;
     isSynchronizing = true;
+    RecordControlAudit();
     try
     {
       EngagementSwitch.IsToggled = model.EngagementEmailsEnabled;
@@ -53,11 +55,19 @@ public sealed partial class NotificationPreferencesView : ContentView, Voucha.Cl
     if (dispatcher is null)
     {
       acceptControlEvents = true;
+      RecordControlAudit();
       return;
     }
 
-    dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(1), () => acceptControlEvents = true);
+    dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(1), () =>
+    {
+      acceptControlEvents = true;
+      RecordControlAudit();
+    });
   }
+  partial void InitializeControlAudit();
+  partial void RecordControlAudit();
+
   private void OnEngagementChanged(object? s, ToggledEventArgs e)
   {
     if (model?.EngagementEmailsEnabled == e.Value) return;

@@ -108,12 +108,12 @@ Reported task and category durations may overlap and are not a critical-path sum
 The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
 task-output build cache is separate from its user home: local builds use the canonical Darwin
 temporary directory, while GitHub Actions uses a private stable runner-home path because cache
-archives retain absolute paths across hosts. The native producer and app consumer restore the
-task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
-that cache. Both Gradle jobs use the same
-checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
+archives retain absolute paths across hosts. The native producer, Kotlin library producer, and app
+consumer restore the task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
+that cache. All three Gradle jobs use the same checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
 the test-library phase saves the shared checksummed-download archive after SDK materialization,
-and the app consumer saves its Gradle user home and bounded task-output cache after APK upload. The
+the Kotlin producer saves a bounded task-output snapshot after its own successful pack and upload,
+and the app consumer saves its Gradle user home and enriched task-output snapshot after APK upload. The
 task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
 30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
 checks remain required on hits.
@@ -125,12 +125,24 @@ Pull requests still compile from source on a miss, but do not write large per-PR
 that compete with the default-branch entries. The archive key follows the checksum-bearing
 materialization script, so an unrelated workflow edit does not invalidate verified downloads.
 The task-output key partitions runner OS, architecture, canonical cache path, pinned Swift/Skip/
-Gradle configuration, and candidate revision. A pull request reads only its exact base revision's
-cache. A `main` push first tries its own revision (for reruns), then its exact predecessor; after
-a successful APK upload, it writes a bounded snapshot for the new revision if that key was absent.
-There are no prefix restore keys. A missing or failed predecessor gives a cold build. The first
-default-branch entry can only be written by a successful `main` push, so an open pull request
-cannot establish warm-hit timing for this new key.
+Gradle configuration, candidate revision, and snapshot kind (`app` or `kotlin-libraries`). The
+native producer and app consumer select the app kind; Kotlin uses its own kind so a partial snapshot
+cannot claim the app's immutable primary key. A pull request first requests its exact base revision;
+a `main` push requests its own revision (for reruns), then its exact predecessor. All three jobs
+fall back to a compatible prefix within the same OS, architecture, path, and configuration partition.
+This can reuse either snapshot kind: Gradle still fingerprints task inputs and executes missing
+work. Persistent cache reuse does not replace the exact-run artifact digest or dependency provenance
+checks. Pull requests never publish persistent snapshots.
+
+A missing compatible cache or changed configuration still requires a cold build. The observed
+failed run spent 3 minutes 36 seconds in setup and was cancelled after 6 minutes 24 seconds of cold
+Kotlin compilation under the former 10-minute job limit; the default-branch cache catalog had no
+Gradle task-output entries. Kotlin therefore has a 23-minute job budget with a 10-minute build step
+(the existing 600-second command wrapper remains), two minutes each for exact-run packing and
+upload, and bounded main-only cache inspection/publication steps. Its successful main snapshot can
+seed later runs independently of the downstream APK result. The observed setup plus the 17
+minutes of bounded build/handoff/publication totals 20 minutes 36 seconds; the job leaves another
+2 minutes 24 seconds for transfer variance and cleanup. These budgets accommodate bootstrap work; native performance and warm-cache timing still require hosted-run validation.
 
 The prior pinned Gradle profile baseline measured task overlap and bounded generated-state
 sizes. This experiment measures compression, artifact transfer, rehydration, and repeated Gradle

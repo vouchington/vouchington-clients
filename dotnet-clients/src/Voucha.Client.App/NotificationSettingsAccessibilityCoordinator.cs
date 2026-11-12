@@ -83,10 +83,20 @@ public sealed class MauiNotificationAccessibilityPlatform(INativeSemanticFocus s
 {
   public bool Focus(VisualElement heading)
   {
-    return semanticFocus.MoveTo(heading);
+    var succeeded = semanticFocus.MoveTo(heading);
+#if DEBUG
+    CatalystGuiAudit.Current?.Focus(heading.AutomationId, succeeded);
+#endif
+    return succeeded;
   }
 
-  public void Announce(string text) => SemanticScreenReader.Default.Announce(text);
+  public void Announce(string text)
+  {
+    SemanticScreenReader.Default.Announce(text);
+#if DEBUG
+    CatalystGuiAudit.Current?.Announce(text);
+#endif
+  }
 }
 
 public sealed class NotificationSettingsAccessibilityCoordinator(

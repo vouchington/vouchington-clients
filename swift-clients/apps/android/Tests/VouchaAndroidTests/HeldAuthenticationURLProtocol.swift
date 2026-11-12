@@ -64,6 +64,18 @@ final class HeldAuthenticationURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
+        if request.url?.path == "/api/v1/session" {
+            do {
+                if isCredentialedSessionRefresh(request) {
+                    _ = try deliver(statusCode: 200, body: androidSessionRefreshFixture())
+                } else {
+                    _ = deliver(statusCode: 401, body: Data(#"{"code":"AUTH_REQUIRED"}"#.utf8))
+                }
+            } catch {
+                client?.urlProtocol(self, didFailWithError: error)
+            }
+            return
+        }
         guard let host = request.url?.host else { return }
         let waiting = Self.registryLock.withLock { () -> WaitingRequest? in
             guard let waiting = Self.requests[host], request.url?.path == waiting.path else { return nil }
@@ -78,12 +90,20 @@ final class HeldAuthenticationURLProtocol: URLProtocol {
     }
 
     private func deliver(statusCode: Int, body: Data) -> Bool {
+        var headers = ["Content-Type": "application/json"]
+        let isAuthentication = ["/api/v1/auth/email-address/login", "/api/v1/auth/mfa/totp/verification"]
+            .contains(request.url?.path ?? "")
+        let authBody = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
+        if isAuthentication, (200 ... 299).contains(statusCode),
+           authBody?["mfaRequired"] as? Bool != true, authBody?["mfa_required"] as? Bool != true {
+            headers["Set-Cookie"] = "st=fixture-authenticated-session; Path=/; Secure; HttpOnly"
+        }
         guard let url = request.url,
               let response = HTTPURLResponse(
                   url: url,
                   statusCode: statusCode,
                   httpVersion: "HTTP/1.1",
-                  headerFields: ["Content-Type": "application/json"]
+                  headerFields: headers
               )
         else { return false }
 

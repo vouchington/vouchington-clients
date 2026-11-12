@@ -189,7 +189,7 @@
                                 <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}" />
                                 <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding Title}" AutomationId="{Binding Id, StringFormat='news-item-title-{0}'}" Style="{StaticResource Headline}" />
                                 <Label Text="{Binding Summary}" Style="{StaticResource Body}" />
                                 <controls:HackerNewsReferencesView Presentation="{Binding HackerNews}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">

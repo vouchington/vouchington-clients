@@ -75,13 +75,27 @@ function sourceDirectories(paths) {
       )).digest('hex'),
     }))
 }
+function checkedHelperResult(result, operation, started, budgetMs, inputBytes, files, directories) {
+  const stderr = result.stderr?.trim() ?? ''
+  if (result.error || result.status !== 0) {
+    const detail = result.error?.message ?? `exit ${result.status}, signal ${result.signal ?? 'none'}`
+    fail(`${operation} failed after ${Date.now() - started}ms ` +
+      `(${files} files, ${directories} directories, ${inputBytes} input bytes, ${budgetMs}ms helper budget): ` +
+      `${detail}; ${stderr || 'helper reported no progress'}`)
+  }
+  // Keep routine logs to one bounded phase summary; failures retain every emitted phase.
+  if (stderr) process.stderr.write(`${stderr.split('\n').at(-1)}\n`)
+}
 function scanWithNoFollowDescriptors(root, paths, directories, deadline, limits) {
   const input = JSON.stringify({ files: paths, directories })
   if (Buffer.byteLength(input) > limits.metadataBytes || Date.now() >= deadline) fail('tracked inventory exceeded bounds')
+  const started = Date.now()
+  const budgetMs = deadline - started
+  if (budgetMs <= 0) fail('tracked inventory exceeded bounds before helper launch')
   const result = spawnSync('python3', ['-I', fileURLToPath(new URL('./android-state-source-ns.py', import.meta.url)), 'inventory'], {
-    cwd: root, input, encoding: 'utf8', timeout: deadline - Date.now(), maxBuffer: limits.metadataBytes,
+    cwd: root, input, encoding: 'utf8', timeout: budgetMs, maxBuffer: limits.metadataBytes,
   })
-  if (result.error || result.status !== 0) fail(`tracked inventory failed: ${result.error?.message ?? result.stderr.trim()}`)
+  checkedHelperResult(result, 'tracked inventory', started, budgetMs, Buffer.byteLength(input), paths.length, directories.length)
   return JSON.parse(result.stdout)
 }
 function validatedContext(checkoutRoot, identity, limits) {
@@ -152,9 +166,13 @@ export async function restoreTrackedSourceTimes({ checkoutRoot, identity, metada
   // The helper retains no-follow file descriptors across complete byte validation and replay.
   const input = JSON.stringify({ entries: metadata.entries, directories: metadata.directories })
   if (Buffer.byteLength(input) > limits.metadataBytes || Date.now() >= deadline) fail('timestamp replay exceeded bounds')
+  const started = Date.now()
+  const budgetMs = deadline - started
+  if (budgetMs <= 0) fail('timestamp replay exceeded bounds before helper launch')
   const result = spawnSync('python3', ['-I', fileURLToPath(new URL('./android-state-source-ns.py', import.meta.url))], {
-    cwd: root, input, encoding: 'utf8', timeout: deadline - Date.now(), maxBuffer: 8192,
+    cwd: root, input, encoding: 'utf8', timeout: budgetMs, maxBuffer: 8192,
   })
-  if (result.error || result.status !== 0) fail(`exact timestamp replay failed: ${result.error?.message ?? result.stderr.trim()}`)
+  checkedHelperResult(result, 'exact timestamp replay', started, budgetMs, Buffer.byteLength(input),
+    metadata.entries.length, metadata.directories.length)
   return { entries: metadata.entries.length }
 }

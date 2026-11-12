@@ -108,6 +108,7 @@ final class AndroidPendingDiscardInvalidationTests: XCTestCase {
             cookieStorage: AndroidSessionCookieStorage(secrets: MemorySecrets(), baseURL: baseURL),
             protocolClasses: [HeldAuthenticationURLProtocol.self]
         )
+        try seedAndroidSessionCredentials(account.cookieStorage, origin: baseURL)
         let path = "api-fixtures/v1/responses/swift.my.identity.default.json"
         let root = try ContractRoot.url(requiredPaths: [path])
         let identity = try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
@@ -117,6 +118,7 @@ final class AndroidPendingDiscardInvalidationTests: XCTestCase {
         XCTAssertTrue(HeldAuthenticationURLProtocol.respond(host: host, statusCode: 200, body: identity))
         let signedIn = await refresh.value
         XCTAssertTrue(signedIn)
+        XCTAssertEqual(account.cookieStorage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
         return account
     }
 

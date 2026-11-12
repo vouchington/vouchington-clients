@@ -6,8 +6,8 @@ import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
-describe('iOS Simulator launch, presentation, feed-flow, and sign-in fan-in', () => {
-  it('requires the unsigned app shell, modal presentation, canonical feed flow, and email sign-in to pass', () => {
+describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-in', () => {
+  it('requires the unsigned shell, modal presentation, feed, sign-in, and News interaction shards', () => {
     const workflow = readFileSync(
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
@@ -62,7 +62,7 @@ describe('iOS Simulator launch, presentation, feed-flow, and sign-in fan-in', ()
     assert.match(ipadJob, /-collect-test-diagnostics never/u)
     assert.equal(ipadJob.split('-collect-test-diagnostics never').length - 1, 1)
     assert.match(iosJob, /fail-fast: false/u)
-    assert.equal(iosJob.split('expected_count: 1').length - 1, 2)
+    assert.equal(iosJob.split('expected_count: 1').length - 1, 3)
     assert.match(buildJob, /-only-testing:VouchaPresentationTests/u)
     assert.match(
       iosJob,
@@ -144,7 +144,7 @@ describe('iOS Simulator launch, presentation, feed-flow, and sign-in fan-in', ()
     assert.match(ipadJob, /test ! -L "\$bundle"/u)
     assert.match(
       ipadJob,
-      /\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+      /\.totalTestCount == \$\{\{ matrix\.expected_count \}\} and \.passedTests == \$\{\{ matrix\.expected_count \}\} and \.failedTests == 0 and \.skippedTests == 0/u,
     )
     assert.doesNotMatch(ipadJob, /-only-testing:VouchaLaunchSmokeTests\/FeedFlowTests/u)
     assert.match(

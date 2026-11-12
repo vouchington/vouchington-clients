@@ -91,7 +91,7 @@ public final class ViewModelFactory {
                 metadata: NativeClientMetadata.current()
             )
         #endif
-        let session = SessionManager(client: client, cookieStorage: cookieStorage)
+        let session = SessionManager(client: client)
         let cache = MemoryDiskCacheStore()
         let factory = ViewModelFactory(
             apiClient: client,

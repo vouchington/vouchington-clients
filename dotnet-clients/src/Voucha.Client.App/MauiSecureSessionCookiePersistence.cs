@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Storage;
 using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.App;
@@ -9,11 +10,19 @@ public sealed partial class MauiSecureSessionCookiePersistence : ISessionCookieP
 {
   private readonly ILogger<MauiSecureSessionCookiePersistence> logger;
   private readonly string storageKey;
+  private readonly ISecureStorage secureStorage;
 
   public MauiSecureSessionCookiePersistence(
       Uri apiBaseUrl,
       ILogger<MauiSecureSessionCookiePersistence> logger)
+      : this(apiBaseUrl, logger, SecureStorage.Default)
   {
+  }
+
+  internal MauiSecureSessionCookiePersistence(
+      Uri apiBaseUrl, ILogger<MauiSecureSessionCookiePersistence> logger, ISecureStorage secureStorage)
+  {
+    this.secureStorage = secureStorage ?? throw new ArgumentNullException(nameof(secureStorage));
     this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     storageKey = $"voucha.session-cookies.{HashOrigin(apiBaseUrl)}";
   }
@@ -22,7 +31,7 @@ public sealed partial class MauiSecureSessionCookiePersistence : ISessionCookieP
   {
     try
     {
-      return await SecureStorage.Default.GetAsync(storageKey).ConfigureAwait(false);
+      return await secureStorage.GetAsync(storageKey).ConfigureAwait(false);
     }
     catch (Exception ex)
     {
@@ -35,11 +44,12 @@ public sealed partial class MauiSecureSessionCookiePersistence : ISessionCookieP
   {
     try
     {
-      await SecureStorage.Default.SetAsync(storageKey, serializedCookies).ConfigureAwait(false);
+      await secureStorage.SetAsync(storageKey, serializedCookies).ConfigureAwait(false);
     }
     catch (Exception ex)
     {
       LogSessionWriteFailed(logger, ex);
+      throw;
     }
   }
 
@@ -47,7 +57,7 @@ public sealed partial class MauiSecureSessionCookiePersistence : ISessionCookieP
   {
     try
     {
-      SecureStorage.Default.Remove(storageKey);
+      secureStorage.Remove(storageKey);
     }
     catch (Exception ex)
     {

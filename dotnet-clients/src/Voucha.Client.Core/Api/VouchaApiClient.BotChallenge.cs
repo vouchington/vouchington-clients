@@ -13,7 +13,10 @@ public sealed partial class VouchaApiClient
     var method = request.Method;
     var headers = request.Headers.ToArray();
     var bytes = request.Body is null ? null : JsonSerializer.SerializeToUtf8Bytes(request.Body, VouchaApiJson.Options);
-    var mayChallenge = request.AllowsBotChallenge && httpClient.BaseAddress is { } apiOrigin &&
+    var mayChallenge = !headers.Any(header =>
+        string.Equals(header.Key, "x-app-attest-challenge-id", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(header.Key, "x-app-attest-assertion", StringComparison.OrdinalIgnoreCase)) &&
+        request.AllowsBotChallenge && httpClient.BaseAddress is { } apiOrigin &&
         uri.IsAbsoluteUri && uri.Scheme == apiOrigin.Scheme && uri.Host == apiOrigin.Host && uri.Port == apiOrigin.Port &&
         (method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch || method == HttpMethod.Delete);
     using var scope = mayChallenge ? botChallengeReplay?.Begin(cancellationToken) : null;
@@ -22,6 +25,9 @@ public sealed partial class VouchaApiClient
     HttpRequestMessage CreateMessage(string? proof = null)
     {
       var message = new HttpRequestMessage(method, uri);
+      message.Options.Set(ClientMetadataHandler.RepeatableJson, true);
+      message.Options.Set(ClientMetadataHandler.CoordinatedRotation, request.IsCoordinatedSessionRotation);
+      message.Options.Set(ClientMetadataHandler.CoordinatedSignOut, request.IsCoordinatedSignOut);
       foreach (var (name, value) in headers) message.Headers.TryAddWithoutValidation(name, value);
       if (bytes is not null)
       {

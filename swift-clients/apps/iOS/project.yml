@@ -168,6 +168,20 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.launch-smoke-tests
         PRODUCT_NAME: VouchaLaunchSmokeTests
 
+  VouchaFlowTransportTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '17.4'
+    sources:
+      - path: TransportTests
+      - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.flow-transport-tests
+        PRODUCT_NAME: VouchaFlowTransportTests
+
 schemes:
   Voucha:
     build:
@@ -183,6 +197,7 @@ schemes:
       targets:
         - VouchaLaunchSmokeTests
         - VouchaPresentationTests
+        - VouchaFlowTransportTests
       commandLineArguments:
         '--ui-testing-sign-in': true
       environmentVariables: *appEnvironment
