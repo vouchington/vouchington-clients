@@ -24,6 +24,7 @@
             app.launchEnvironment["VOUCHA_DISABLE_APP_ATTEST"] = "1"
             app.launchEnvironment["VOUCHA_UI_TESTING_NEWS_FEED_RESPONSE_BASE64"] = fixture.feed.base64EncodedString()
             app.launchEnvironment["VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"] = fixture.identity.base64EncodedString()
+            try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
             // Fixture identity restoration precedes mounting RootView and loading its feed.
