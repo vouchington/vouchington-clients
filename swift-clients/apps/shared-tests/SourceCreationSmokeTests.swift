@@ -31,8 +31,7 @@
                 create.click()
                 let field = app.textFields.firstMatch
                 XCTAssertTrue(field.waitForExistence(timeout: 10))
-                field.click()
-                field.typeText("https://example.test/feed.xml")
+                LaunchSmokeFieldTyping.type("https://example.test/feed.xml", into: field)
                 app.sheets.buttons["Create"].click()
                 let open = app.buttons["Open source"].firstMatch
                 XCTAssertTrue(open.waitForExistence(timeout: 20))
