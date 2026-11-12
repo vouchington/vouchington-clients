@@ -143,7 +143,7 @@ final class SessionManagerLocalizationTests: XCTestCase {
     func testFailedLogoutClearsTheAPIClientsCanonicalJarWhenTheInjectedJarDiffers() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         let activeJar = try XCTUnwrap(configuration.httpCookieStorage)
-        let separateJar = IsolatedHTTPCookieStorage.make()
+        let separateJar = try XCTUnwrap(URLSessionConfiguration.ephemeral.httpCookieStorage)
         XCTAssertFalse(activeJar === separateJar)
         let recorder = CookiePersistenceRecorder(jar: activeJar)
         let client = try APIClient(
@@ -160,6 +160,8 @@ final class SessionManagerLocalizationTests: XCTestCase {
         ]))
         activeJar.setCookie(cookie)
         separateJar.setCookie(cookie)
+        XCTAssertEqual(activeJar.cookies?.map(\.value), ["private-session"])
+        XCTAssertEqual(separateJar.cookies?.map(\.value), ["private-session"])
         MockURLProtocol.handlers["/api/v1/auth/logout"] = (Data("{}".utf8), 500)
 
         await manager.signOut()
