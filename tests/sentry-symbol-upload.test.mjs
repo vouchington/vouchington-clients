@@ -156,3 +156,50 @@ test('every caller isolates symbol collection and upload from pull requests', ()
     }
   }
 })
+
+test('Windows symbols come from the existing unsigned Release build with isolated upload', () => {
+  const source = readFileSync(
+    new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
+    'utf8',
+  )
+  const windows = source
+    .split('  dotnet-windows-maui:\n')[1]
+    .split('  sentry-dotnet-windows-symbols:')[0]
+  const upload = source
+    .split('  sentry-dotnet-windows-symbols:\n')[1]
+    .split('  dotnet-windows-language-model-surface:')[0]
+  assert.match(windows, /if: needs\.verify\.outputs\.windows-maui == 'true'/)
+  assert.match(
+    windows,
+    /--configuration Release --framework net10\.0-windows10\.0\.26100\.0 --no-restore/,
+  )
+  assert.match(windows, /-p:DebugType=portable -p:DebugSymbols=true/)
+  assert.match(windows, /-p:WindowsPackageType=None/)
+  assert.match(windows, /-p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false/)
+  assert.match(windows, /node scripts\/sentry-windows-symbols\.mjs/)
+  assert.ok(
+    windows.indexOf('Compile the actual Windows MAUI app') <
+      windows.indexOf('Collect trusted Windows app symbols'),
+  )
+  assert.match(upload, /needs: dotnet-windows-maui/)
+  assert.match(upload, /uses: \.\/\.github\/workflows\/sentry-symbols\.yml/)
+  assert.match(upload, /project: \$\{\{ vars\.SENTRY_PROJECT_DOTNET \}\}/)
+  const artifact = 'sentry-dotnet-windows-${{ github.run_id }}-${{ github.run_attempt }}'
+  assert.ok(windows.includes(`name: ${artifact}`))
+  assert.ok(upload.includes(`artifact: ${artifact}`))
+  for (const block of [windows, upload]) assert.doesNotMatch(block, /secrets\./)
+  assert.match(upload, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/)
+  for (const gate of windows.matchAll(/        if: (github\.event_name[^\n]+)/g)) {
+    const evaluate = Function('github', `return ${gate[1]}`)
+    assert.equal(evaluate({ event_name: 'pull_request', ref: 'refs/heads/main' }), false)
+    assert.equal(evaluate({ event_name: 'push', ref: 'refs/heads/main' }), true)
+  }
+  for (const expression of windows.matchAll(/VOUCHA_SENTRY_\w+: \$\{\{ (.*?) \}\}/g)) {
+    const evaluate = Function('github', 'vars', 'format', `return ${expression[1]}`)
+    const vars = { VOUCHA_SENTRY_DSN_DOTNET: 'public-dsn' }
+    const format = (_, sha) => `voucha-dotnet@${sha}`
+    assert.equal(evaluate({ event_name: 'pull_request', ref: 'refs/heads/main' }, vars, format), '')
+    assert.equal(evaluate({ event_name: 'push', ref: 'refs/heads/topic' }, vars, format), '')
+    assert.ok(evaluate({ event_name: 'push', ref: 'refs/heads/main', sha: 'commit' }, vars, format))
+  }
+})

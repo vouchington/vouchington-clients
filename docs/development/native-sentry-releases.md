@@ -32,12 +32,22 @@ rules to admit only `main` and approved iOS release tags, with required reviewer
 PR builds never enter the upload job or receive the upload token. A missing token or project
 configuration skips upload; configured uploads fail visibly if symbols are absent or rejected.
 
-Apple jobs retain the dSYMs from the exact archive. The .NET upload uses PDBs from the existing
-Release Mac Catalyst app build on `main`, including the app and its Core dependency. This does
-not add Windows packaging or signing. Windows release PDB upload remains pending a trusted
-Windows release artifact producer; Mac Catalyst PDBs must never be used for a Windows binary.
-Preserve matching binaries and symbols for each shipping
-artifact; an unsigned CI build is inspection evidence, not a signed/store release.
+Apple jobs retain the dSYMs from the exact archive. The .NET uploads use symbols from the existing
+Release Mac Catalyst build and the changed-file-routed unsigned Windows MAUI build on `main`.
+Windows explicitly emits portable PDBs and retains each app/Core PDB with its matching DLL from
+that build's Release output. Missing files or conflicting duplicate outputs fail collection.
+Windows and Mac Catalyst use separate artifacts so their same-named assemblies cannot overwrite
+each other. Both use the existing .NET Sentry project and public DSN configuration below.
+
+PR Windows builds retain their existing compilation coverage with reporting disabled; they cannot
+collect or upload Sentry symbols. The Windows upload remains conditional on the existing Windows
+build route. Uploader and collector changes are routing inputs so those paths receive build coverage.
+This extends an existing unsigned compiler job and adds no Windows packaging or signing pipeline.
+
+Preserve matching binaries and symbols for each shipping artifact. The retained Windows pairs prove
+which unsigned CI binaries produced those symbols; they do not establish symbolication for a
+separately rebuilt, signed or store-delivered application. Repeat the acceptance checks below against
+the artifact that actually ships.
 
 ## Owner configuration and acceptance
 

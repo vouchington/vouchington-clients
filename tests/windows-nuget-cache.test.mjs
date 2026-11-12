@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const jobs = [
   [
@@ -26,10 +27,9 @@ for (const [suffix, finalCheck, lock] of jobs) {
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
     )
-    const job = workflow.split(`  dotnet-windows-${suffix}:\n`)[1].split(/^  [a-z][^\n]*:\n/mu)[0]
-    const steps = job.split('      - name: ')
-    const restore = steps.find(step => step.startsWith('Restore NuGet packages\n'))
-    const save = steps.find(step => step.startsWith('Save NuGet packages from main\n'))
+    const job = jobBlock(workflow, `dotnet-windows-${suffix}`)
+    const restore = `${stepBlock(job, 'Restore NuGet packages')}\n`
+    const save = stepBlock(job, 'Save NuGet packages from main')
     assert.ok(restore && save)
     assert.doesNotMatch(
       job,
@@ -61,7 +61,11 @@ for (const [suffix, finalCheck, lock] of jobs) {
     assert.match(save, /timeout-minutes: 3/u)
     assert.match(save, /continue-on-error: true/u)
     assert.ok(job.indexOf(finalCheck) < job.indexOf('Save NuGet'))
-    assert.equal(steps.at(-1), save, 'save must follow all validation steps')
+    assert.equal(
+      job.slice(job.indexOf(save)).trim(),
+      save.trim(),
+      'save must follow all validation steps',
+    )
 
     const condition = save.match(/if: \$\{\{ (.+) \}\}/u)[1]
     assert.ok(condition.includes('success()'), 'failures and cancellations must never save')

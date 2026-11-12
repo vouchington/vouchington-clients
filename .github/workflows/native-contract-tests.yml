@@ -2777,6 +2777,10 @@ jobs:
     if: needs.verify.outputs.windows-maui == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      VOUCHA_SENTRY_DSN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VOUCHA_SENTRY_DSN_DOTNET || '' }}
+      VOUCHA_SENTRY_RELEASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('voucha-dotnet@{0}', github.sha) || '' }}
+      VOUCHA_SENTRY_ENVIRONMENT: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || '' }}
     permissions:
       actions: read
       contents: read
@@ -2856,6 +2860,20 @@ jobs:
           -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
+          -p:DebugType=portable -p:DebugSymbols=true
+      - name: Collect trusted Windows app symbols
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: candidate-clients
+        shell: pwsh
+        run: node scripts/sentry-windows-symbols.mjs . "$env:RUNNER_TEMP/sentry-dotnet-windows"
+      - name: Retain trusted Windows app symbols
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: sentry-dotnet-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sentry-dotnet-windows/
+          if-no-files-found: error
+          retention-days: 1
       - name: Save NuGet packages from main
         if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-maui-nuget-cache.outputs.cache-hit != 'true' }}
         timeout-minutes: 3
@@ -2866,6 +2884,18 @@ jobs:
             ${{ runner.temp }}/voucha-windows-nuget-packages
             ${{ runner.temp }}/voucha-windows-nuget-http-cache
           key: ${{ steps.windows-maui-nuget-cache.outputs.cache-primary-key }}
+
+  sentry-dotnet-windows-symbols:
+    permissions:
+      contents: read
+      actions: read
+    needs: dotnet-windows-maui
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/sentry-symbols.yml
+    with:
+      artifact: sentry-dotnet-windows-${{ github.run_id }}-${{ github.run_attempt }}
+      project: ${{ vars.SENTRY_PROJECT_DOTNET }}
+
   dotnet-windows-language-model-surface:
     name: .NET Windows language-model surface
     needs: verify
