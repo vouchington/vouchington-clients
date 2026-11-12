@@ -93,7 +93,7 @@ public sealed partial class PostDetailPageBinding
     {
       DirectReplyCount = viewModel.DirectReplyCount(post.Id),
       CanToggleCollapse = !viewModel.IsCollapseBusy(post.Id),
-      HasMoreSubtree = !collapsed && viewModel.HasMoreSubtree(post.Id),
+      HasMoreSubtree = !isRoot && !collapsed && viewModel.HasMoreSubtree(post.Id),
       HasSubtreeError = viewModel.HasSubtreeError(post.Id),
     };
   }

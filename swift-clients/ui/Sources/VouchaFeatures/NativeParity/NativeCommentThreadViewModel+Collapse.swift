@@ -12,6 +12,7 @@ public extension NativeCommentThreadViewModel {
             if let collapseStorageKey {
                 collapseDefaults.set(collapsedCommentIds.sorted(), forKey: collapseStorageKey)
             }
+            if !shouldCollapse { await loadMoreHiddenDescendants(commentId: commentId) }
             return
         }
         guard let client else { return }
@@ -43,7 +44,8 @@ public extension NativeCommentThreadViewModel {
     }
 
     func loadMoreHiddenDescendants(commentId: String) async {
-        guard sessionIsActive, isSignedIn, let client,
+        guard sessionIsActive, let client,
+              descendantPosts.contains(where: { $0.id == commentId }),
               !collapsedCommentIds.contains(commentId) else { return }
         var pagination = subtreePagination[commentId] ?? CursorPaginationState<Post>()
         guard let request = pagination.beginNextPage() else { return }

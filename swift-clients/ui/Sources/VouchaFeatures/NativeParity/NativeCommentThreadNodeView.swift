@@ -74,14 +74,6 @@ struct NativeCommentThreadNodeView: View {
             )
 
             if !isCollapsed {
-                if let pagination = subtreePagination[post.id] {
-                    HybridPaginationControl(
-                        hasMore: !pagination.hasLoadedPage || pagination.hasMore,
-                        isLoading: pagination.isLoading,
-                        hasError: pagination.lastError != nil,
-                        accessibilityIdentifier: "comment-hidden-descendants-\(post.id)"
-                    ) { await onLoadHiddenDescendants(post.id) }
-                }
                 ForEach(node.children) { child in
                     NativeCommentThreadNodeView(
                         node: child,
@@ -116,9 +108,23 @@ struct NativeCommentThreadNodeView: View {
                         onLock: onLock
                     )
                 }
+                if let pagination = descendantPagination {
+                    HybridPaginationControl(
+                        hasMore: !pagination.hasLoadedPage || pagination.hasMore,
+                        isLoading: pagination.isLoading,
+                        hasError: pagination.lastError != nil,
+                        accessibilityIdentifier: "comment-hidden-descendants-\(post.id)"
+                    ) { await onLoadHiddenDescendants(post.id) }
+                }
             }
         }
         .padding(.leading, depth > 0 ? Spacing.md : 0)
+    }
+
+    private var descendantPagination: CursorPaginationState<Post>? {
+        if let pagination = subtreePagination[node.id] { return pagination }
+        let replyCount = postMetricsById[node.id]?.count.children ?? node.post.metrics?.count.children ?? 0
+        return replyCount > node.children.count ? CursorPaginationState<Post>() : nil
     }
 
     private func canEdit(post: Post) -> Bool {
