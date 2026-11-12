@@ -30,6 +30,7 @@ public partial class PostsPage : ContentPage
     this.serviceProvider = serviceProvider;
     this.emailRecovery = emailRecovery;
     mode = sessionStore.Current.IsAuthenticated ? "feed" : "browse";
+    TimeRangePicker.IsVisible = mode == "browse";
     BindingContext = new PostsPageBinding(viewModel, sessionStore, LoadCurrentAsync);
     PaginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
   }
@@ -64,10 +65,13 @@ public partial class PostsPage : ContentPage
   private async void OnLoadNextPageRequested(object? sender, EventArgs e) =>
       await viewModel.LoadMoreAsync().ConfigureAwait(true);
 
-  private Task LoadCurrentAsync() =>
-      mode == "browse" || !sessionStore.Current.IsAuthenticated
-          ? viewModel.LoadBrowseAsync(postTypes, hasHackerNewsReferences: hasHackerNewsReferences)
+  private Task LoadCurrentAsync()
+  {
+    TimeRangePicker.IsVisible = mode == "browse" || !sessionStore.Current.IsAuthenticated;
+    return mode == "browse" || !sessionStore.Current.IsAuthenticated
+          ? viewModel.LoadBrowseAsync(postTypes, viewModel.TimeRange.RequestValue, hasHackerNewsReferences: hasHackerNewsReferences)
           : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek);
+  }
 
   private async void OnHackerNewsClicked(object? sender, EventArgs e)
   {

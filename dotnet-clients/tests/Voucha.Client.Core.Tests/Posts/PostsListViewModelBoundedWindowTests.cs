@@ -192,6 +192,46 @@ public sealed class PostsListViewModelBoundedWindowTests
     Assert.Equal(LoadState.Loaded, viewModel.State);
   }
 
+  [Theory]
+  [InlineData("review")]
+  [InlineData("discussion")]
+  [InlineData("data_point")]
+  [InlineData(null)]
+  public async Task PickerChangeResetsCursorKeepsTypeAndAppendsOnlySelectedRange(string? postType)
+  {
+    var service = new ScriptedPostsService(
+        Page(["old"], "old-cursor"), Page(["new"], "new-cursor"),
+        Page(["more"], null), Page(["default"], null));
+    using var model = new PostsListViewModel(service);
+    await model.LoadBrowseAsync(postType, cancellationToken: TestContext.Current.CancellationToken);
+    await model.SelectBrowseTimeRangeAsync("1w", TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { "new" }, model.Items.Select(row => row.Id));
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { "new", "more" }, model.Items.Select(row => row.Id));
+    await model.SelectBrowseTimeRangeAsync("1m", TestContext.Current.CancellationToken);
+    Assert.Equal(new[] { "default" }, model.Items.Select(row => row.Id));
+    Assert.Equal(new string?[] { null, "1w", "1w", null }, service.BrowseRequests.Select(request => request.TimeRange));
+    Assert.Equal(new string?[] { null, null, "new-cursor", null }, service.BrowseRequests.Select(request => request.After));
+    Assert.All(service.BrowseRequests, request => Assert.Equal(postType, request.PostTypes));
+  }
+
+  [Fact]
+  public async Task PickerChangeDiscardsAnOlderInFlightContinuation()
+  {
+    var gate = new TaskCompletionSource<PostsFeedResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new ScriptedPostsService(Page(["old"], "old-cursor"), gate.Task, Page(["year"], "year-cursor"));
+    using var model = new PostsListViewModel(service);
+    await model.LoadBrowseAsync(cancellationToken: TestContext.Current.CancellationToken);
+    var continuation = model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    await model.SelectBrowseTimeRangeAsync("1y", TestContext.Current.CancellationToken);
+    gate.SetResult(await Page(["stale"], "stale-cursor"));
+    await continuation;
+    Assert.Equal(new[] { "year" }, model.Items.Select(row => row.Id));
+    Assert.True(model.HasMore);
+    Assert.Equal("1y", service.BrowseRequests.Last().TimeRange);
+    Assert.Null(service.BrowseRequests.Last().After);
+  }
+
   private static Task<PostsFeedResponse> Page(string[] ids, string? endCursor, bool? hasNext = null) =>
       Task.FromResult(new PostsFeedResponse(
           ids.Select(id => new EntityReference("post", id, id, null, null, null, null, null, null, null, null)).ToArray(),

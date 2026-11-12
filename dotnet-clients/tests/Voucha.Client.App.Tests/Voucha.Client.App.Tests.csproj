@@ -177,6 +177,9 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodFlagsView.cs" Link="Pages/CommunityAutomodFlagsView.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionPage*.cs" Link="Pages/%(Filename)%(Extension)" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationPage.cs" Link="Pages/ModerationPage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Controls/PostTimeRangePicker.xaml" Link="Controls/PostTimeRangePicker.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/PostTimeRangePicker.xaml.cs" Link="Controls/PostTimeRangePicker.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ProfilePage.TimeRange.cs" Link="Pages/ProfilePage.TimeRange.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml" Link="Controls/HybridPaginationControl.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml.cs" Link="Controls/HybridPaginationControl.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/ViewportPaginationTrigger.cs" Link="Controls/ViewportPaginationTrigger.cs" />

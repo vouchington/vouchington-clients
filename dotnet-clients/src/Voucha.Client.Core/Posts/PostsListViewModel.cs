@@ -42,6 +42,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   {
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.localization = localization ?? UiLocalization.English;
+    TimeRange = new(this.localization);
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
@@ -49,9 +50,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public void OnUiLocaleChanged()
   {
+    TimeRange.RefreshLabels();
     Items = Items.ToArray();
     OnPropertyChanged(nameof(HackerNewsFilterLabel));
   }
+
+  public PostTimeRangeSelection TimeRange { get; }
 
   public IReadOnlyList<PostRow> Items
   {
