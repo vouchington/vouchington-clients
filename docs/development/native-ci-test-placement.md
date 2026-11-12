@@ -105,12 +105,13 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly six passed tests with nothing skipped: the root shell, one sidebar
+requires exactly seven passed tests with nothing skipped: the root shell, one sidebar
 navigation that opens Videos, leaves for News, and returns to the canonical video row from the
 shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
 News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, one
 sidebar navigation that opens Posts, leaves for News, and returns to the canonical post from
-`swift.posts.feed.default`, one email OTP sign-in that removes the signed-out control, and a Videos transport error followed
+`swift.posts.feed.default`, one source-creation flow that opens a created source from every
+vertical, one email OTP sign-in that removes the signed-out control, and a Videos transport error followed
 by the real Retry action and the canonical video row. The recovery case uses a synchronized,
 one-shot local network failure; its successful response replays the unchanged canonical video
 fixture. #80 stays open for the News tab: the pin lacks a matching Swift article feed fixture.

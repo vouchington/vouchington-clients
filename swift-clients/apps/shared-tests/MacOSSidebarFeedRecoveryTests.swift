@@ -13,7 +13,7 @@
             let app = launch(fixture, failOnce: true)
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
             LaunchSmokeSidebar.click("Videos", in: app)
-            let retry = app.buttons["Retry"]
+            let retry = app.buttons["error-state-retry"]
             XCTAssertTrue(retry.waitForExistence(timeout: 20))
             XCTAssertTrue(retry.isEnabled)
             XCTAssertTrue(retry.isHittable)

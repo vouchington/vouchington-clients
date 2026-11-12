@@ -2,7 +2,7 @@
 
 Issue [#80](https://github.com/vouchington/vouchington-clients/issues/80) requires actual macOS
 app interaction, beyond compilation or view inspection. The hosted `Swift macOS app smoke` job
-selects these six XCUITest cases explicitly and requires six passed tests, zero failures and zero
+selects these seven XCUITest cases explicitly and requires seven passed tests, zero failures and zero
 skips. It retains the WindowServer and GUI-console ownership preflight, deterministic backend
 transport, existing ad-hoc launch entitlements, and failure diagnostics.
 
@@ -13,6 +13,7 @@ transport, existing ad-hoc launch entitlements, and failure diagnostics.
 | Videos          | Canonical video title appears, disappears when leaving for News, and returns |
 | Podcasts        | Canonical episode appears, disappears when leaving for News, and returns     |
 | Posts           | Canonical post appears, disappears when leaving for News, and returns        |
+| Source creation | Create and open an RSS source through each news, podcast and video vertical  |
 | Videos recovery | First eligible video request fails locally; Retry recovers the canonical row |
 
 The recovery scenario is an explicit Debug-only launch input to the existing isolated transport.
@@ -39,7 +40,7 @@ then adopt the merged producer commit before adding News rendering/navigation co
 `web.rss-feed-items.feed.default` is unsuitable: it declares other consumers, uses `limit=25`,
 and contains video content. Replaying it as Swift News would not establish the missing behavior.
 
-Candidate-specific hosted execution of all six selected tests is required. Local package or
+Candidate-specific hosted execution of all seven selected tests is required. Local package or
 hostless protocol tests are supporting evidence only. Physical-device, store-installation and
 signed-release acceptance remain separate; these deterministic hosted macOS flows do not certify
 them. Local signing or automation permission failures must be reported without weakening the

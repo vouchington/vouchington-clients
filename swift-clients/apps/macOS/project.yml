@@ -167,6 +167,7 @@ targets:
     deploymentTarget: '14.4'
     sources:
       - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
       - path: ../shared-app-tests/FeedFlowUITestingURLProtocolTests.swift
       - path: ../shared-tests/LaunchSmokeFixtures.swift
       - path: ../shared-tests/VideoFeedLaunchFixture.swift
