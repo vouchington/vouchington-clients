@@ -27,6 +27,8 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public string HackerNewsFilterLabel => localization.Localize(UiMessageKey.SharedHackerNewsFilterLabel);
 
+  public bool IsHackerNewsFilterVisible => browsing;
+
   public bool? HackerNewsFilter
   {
     get => activeHackerNewsFilter;
@@ -97,7 +99,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
     HackerNewsFilter = null;
-    browsing = false;
+    SetProperty(ref browsing, false, nameof(IsHackerNewsFilterVisible));
     endCursor = null;
     HasMore = true;
     var currentRequest = BeginLoad();
@@ -124,7 +126,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
     HackerNewsFilter = hasHackerNewsReferences;
-    browsing = true;
+    SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
     endCursor = null;
     HasMore = true;
     var currentRequest = BeginLoad();

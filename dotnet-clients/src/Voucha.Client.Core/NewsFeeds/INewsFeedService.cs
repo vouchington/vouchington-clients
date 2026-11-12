@@ -34,17 +34,6 @@ public interface INewsFeedService
 
   Task<NewsFeedPage> GetNewsFeedPageAsync(
       NewsFeedScope scope,
-      NewsFeedSourceType sourceFeedType,
-      string? after,
-      int limit,
-      bool? hasHackerNewsReferences,
-      CancellationToken cancellationToken = default) =>
-      hasHackerNewsReferences is null
-          ? GetNewsFeedPageAsync(scope, sourceFeedType, after, limit, cancellationToken)
-          : Task.FromException<NewsFeedPage>(new NotSupportedException("Hacker News filtering is not implemented by this news service."));
-
-  Task<NewsFeedPage> GetNewsFeedPageAsync(
-      NewsFeedScope scope,
       string? after,
       int limit,
       bool? hasHackerNewsReferences,

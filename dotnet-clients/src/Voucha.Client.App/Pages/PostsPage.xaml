@@ -22,7 +22,7 @@
             <Button Text="{DynamicResource native.swift.common.all}" Clicked="OnAllClicked" Margin="0,0,8,8" />
             <Button Text="{DynamicResource native.swift.navigationTitles.reviews}" Clicked="OnReviewsClicked" Margin="0,0,8,8" />
             <Button Text="{DynamicResource native.swift.navigationTitles.discussions}" Clicked="OnDiscussionsClicked" Margin="0,0,8,8" />
-            <Button Text="{Binding HackerNewsFilterLabel}" Clicked="OnHackerNewsClicked" Margin="0,0,8,8" BackgroundColor="#E5E7EB" TextColor="#111827">
+            <Button Text="{Binding HackerNewsFilterLabel}" IsVisible="{Binding IsHackerNewsFilterVisible}" Clicked="OnHackerNewsClicked" Margin="0,0,8,8" BackgroundColor="#E5E7EB" TextColor="#111827">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button" Binding="{Binding IsHackerNewsFilterSelected}" Value="True">
                         <Setter Property="BackgroundColor" Value="#1D4ED8" />

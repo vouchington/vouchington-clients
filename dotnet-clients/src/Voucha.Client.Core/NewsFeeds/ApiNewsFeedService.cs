@@ -72,7 +72,7 @@ public sealed partial class ApiNewsFeedService : INewsFeedService, IStoryDiscuss
       CancellationToken cancellationToken = default)
       => await GetNewsFeedPageAsync(scope, sourceFeedType, after, limit, null, cancellationToken).ConfigureAwait(false);
 
-  public async Task<NewsFeedPage> GetNewsFeedPageAsync(
+  private async Task<NewsFeedPage> GetNewsFeedPageAsync(
       NewsFeedScope scope,
       NewsFeedSourceType sourceFeedType,
       string? after,

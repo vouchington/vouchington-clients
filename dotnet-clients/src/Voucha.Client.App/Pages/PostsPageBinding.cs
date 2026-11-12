@@ -27,6 +27,7 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
       OnPropertyChanged(nameof(PaginationIsLoading));
       OnPropertyChanged(nameof(HackerNewsFilterLabel));
       OnPropertyChanged(nameof(IsHackerNewsFilterSelected));
+      OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
     };
   }
 
@@ -52,6 +53,8 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
   public bool CanCompose => sessionStore.Current.IsAuthenticated;
 
   public string HackerNewsFilterLabel => viewModel.HackerNewsFilterLabel;
+
+  public bool IsHackerNewsFilterVisible => viewModel.IsHackerNewsFilterVisible;
 
   public bool IsHackerNewsFilterSelected => viewModel.HackerNewsFilter == true;
 

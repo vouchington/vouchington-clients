@@ -29,6 +29,13 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var page = new PostsPage(model, new FilterSession(authenticated), null!, Recovery(locale));
     var binding = Assert.IsType<PostsPageBinding>(page.BindingContext);
     var filter = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == model.HackerNewsFilterLabel);
+    var feed = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == localization.Localize(UiMessageKey.NativeDotnetPostsFeed));
+    var all = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == localization.Localize(UiMessageKey.NativeSwiftCommonAll));
+    await ClickAndLoadAsync(feed, model, () => model.IsLoading);
+    Assert.Equal(!authenticated, filter.IsVisible);
+    await ClickAndLoadAsync(all, model, () => model.IsLoading);
+    Assert.True(filter.IsVisible);
+    Assert.True(binding.IsHackerNewsFilterVisible);
     await ClickAndLoadAsync(filter, model, () => model.IsLoading);
     Assert.True(binding.IsHackerNewsFilterSelected);
     Assert.Contains("has_hacker_news_references=true", handler.Paths[^1], StringComparison.Ordinal);
@@ -41,9 +48,11 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     await ClickAndLoadAsync(filter, model, () => model.IsLoading);
     Assert.Contains("post_types=review", handler.Paths[^1], StringComparison.Ordinal);
     Assert.StartsWith("/api/v1/posts?", handler.Paths[^1], StringComparison.Ordinal);
-    var feed = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == localization.Localize(UiMessageKey.NativeDotnetPostsFeed));
     await ClickAndLoadAsync(feed, model, () => model.IsLoading);
     Assert.False(binding.IsHackerNewsFilterSelected);
+    Assert.Equal(!authenticated, filter.IsVisible);
+    await ClickAndLoadAsync(all, model, () => model.IsLoading);
+    Assert.True(filter.IsVisible);
     await ClickAndLoadAsync(filter, model, () => model.IsLoading);
     Assert.True(binding.IsHackerNewsFilterSelected);
     Assert.StartsWith("/api/v1/posts?", handler.Paths[^1], StringComparison.Ordinal);
