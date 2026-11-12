@@ -37,6 +37,7 @@
                 XCTAssertTrue(open.waitForExistence(timeout: 20))
                 open.click()
                 XCTAssertTrue(app.sheets.firstMatch.waitForNonExistence(timeout: 10))
+                XCTAssertTrue(LaunchSmokeSidebar.visibleText("Feed URL", in: app).waitForExistence(timeout: 20))
                 XCTAssertTrue(LaunchSmokeSidebar.visibleText("https://example.test/feed.xml", in: app)
                     .waitForExistence(timeout: 20))
                 app.terminate()
