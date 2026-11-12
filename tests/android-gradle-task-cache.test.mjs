@@ -14,7 +14,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
 import { pathToFileURL } from 'node:url'
-import { inspectGradleBuildCache } from '../swift-clients/apps/android/tooling/check-gradle-build-cache.mjs'
+import {
+  cacheSaveLimits,
+  inspectGradleBuildCache,
+} from '../swift-clients/apps/android/tooling/check-gradle-build-cache.mjs'
 import { selectGradleTaskCache } from '../swift-clients/apps/android/tooling/select-gradle-task-cache.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
@@ -32,6 +35,7 @@ const revisionA = 'a'.repeat(40)
 const revisionB = 'b'.repeat(40)
 const revisionC = 'c'.repeat(40)
 const baseCacheEvent = {
+  TASK_CACHE_KIND: 'app',
   RUNNER_OS: 'macOS',
   RUNNER_ARCH: 'ARM64',
   TASK_CACHE_CONFIG_HASH: 'f'.repeat(64),
@@ -41,10 +45,10 @@ const baseCacheEvent = {
   GITHUB_REF: 'refs/heads/main',
 }
 
-test('revision-chain keys seed each successful main source revision without prefix lookup', () => {
+test('revision-chain keys seed each successful main source revision with a compatible fallback', () => {
   const path = '/Users/runner/.cache/voucha/gradle-build-cache'
   const main = selectGradleTaskCache(baseCacheEvent, path)
-  assert.match(main.cacheKey, new RegExp(`-${revisionB}$`, 'u'))
+  assert.match(main.cacheKey, new RegExp(`-${revisionB}-app$`, 'u'))
   assert.equal(main.previousKey, main.cacheKey.replace(revisionB, revisionA))
   assert.notEqual(
     selectGradleTaskCache({ ...baseCacheEvent, CANDIDATE_REVISION: revisionC }, path).cacheKey,
@@ -63,6 +67,33 @@ test('revision-chain keys seed each successful main source revision without pref
   )
   assert.equal(pr.cacheKey, main.previousKey)
   assert.equal(pr.previousKey, undefined, 'a pull request must not restore a predecessor or save')
+  assert.equal(
+    pr.compatiblePrefix,
+    main.compatiblePrefix,
+    'a base revision gap can reuse the default-branch namespace',
+  )
+  assert.ok(pr.cacheKey.startsWith(pr.compatiblePrefix))
+  const kotlin = selectGradleTaskCache(
+    { ...baseCacheEvent, TASK_CACHE_KIND: 'kotlin-libraries' },
+    path,
+  )
+  assert.notEqual(
+    kotlin.cacheKey,
+    main.cacheKey,
+    'partial Kotlin output cannot claim the app primary key',
+  )
+  assert.equal(kotlin.compatiblePrefix, main.compatiblePrefix)
+  for (const [overrides, cachePath] of [
+    [{ RUNNER_OS: 'Linux' }, path],
+    [{ RUNNER_ARCH: 'X64' }, path],
+    [{ TASK_CACHE_CONFIG_HASH: 'e'.repeat(64) }, path],
+    [{}, `${path}-other`],
+  ]) {
+    assert.notEqual(
+      selectGradleTaskCache({ ...baseCacheEvent, ...overrides }, cachePath).compatiblePrefix,
+      main.compatiblePrefix,
+    )
+  }
   assert.notEqual(
     selectGradleTaskCache({ ...baseCacheEvent, RUNNER_ARCH: 'X64' }, path).cacheKey,
     main.cacheKey,
@@ -77,6 +108,12 @@ test('revision-chain keys seed each successful main source revision without pref
 
 test('task-cache key selection fails closed for malformed events and zero predecessor', () => {
   const path = '/Users/runner/.cache/voucha/gradle-build-cache'
+  for (const kind of [undefined, '', 'native', 'app\n']) {
+    assert.throws(
+      () => selectGradleTaskCache({ ...baseCacheEvent, TASK_CACHE_KIND: kind }, path),
+      /kind/u,
+    )
+  }
   assert.equal(
     selectGradleTaskCache({ ...baseCacheEvent, PREVIOUS_MAIN_REVISION: '0'.repeat(40) }, path)
       .previousKey,
@@ -108,6 +145,70 @@ test('task-cache key selection fails closed for malformed events and zero predec
     () => selectGradleTaskCache(baseCacheEvent, '/tmp/cache\ninvalid'),
     /single absolute/u,
   )
+})
+
+test('selector CLI emits a compatible PR fallback and rejects malformed kinds before appending', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'android-gradle-cache-selector-'))
+  try {
+    const output = join(fixture, 'step-output')
+    const cachePath = join(fixture, 'gradle-build-cache')
+    const selector = join(
+      repositoryRoot,
+      'swift-clients/apps/android/tooling/select-gradle-task-cache.mjs',
+    )
+    const env = {
+      ...process.env,
+      ...baseCacheEvent,
+      GITHUB_EVENT_NAME: 'pull_request',
+      GITHUB_REF: 'refs/pull/123/merge',
+      PR_BASE_REVISION: revisionA,
+      CANDIDATE_REVISION: revisionC,
+      TASK_CACHE_KIND: 'kotlin-libraries',
+    }
+    const selected = spawnSync(process.execPath, [selector, cachePath, output], {
+      env,
+      encoding: 'utf8',
+    })
+    assert.equal(selected.status, 0, selected.stderr)
+    const emitted = readFileSync(output, 'utf8')
+    const fields = Object.fromEntries(
+      emitted
+        .trimEnd()
+        .split('\n')
+        .map(line => {
+          const separator = line.indexOf('=')
+          return [line.slice(0, separator), line.slice(separator + 1)]
+        }),
+    )
+    assert.equal(fields.path, cachePath)
+    assert.equal(fields['previous-key'], '', 'a PR has no previous-main revision fallback')
+    assert.match(fields['cache-key'], new RegExp(`-${revisionA}-kotlin-libraries$`, 'u'))
+    assert.ok(
+      !fields['cache-key'].includes(revisionC),
+      'PR lookup uses its base rather than its head',
+    )
+    const main = selectGradleTaskCache(baseCacheEvent, cachePath)
+    assert.equal(
+      fields['compatible-prefix'],
+      main.compatiblePrefix,
+      'a missing base cache can fall back to compatible main snapshots of either kind',
+    )
+    assert.ok(main.cacheKey.startsWith(fields['compatible-prefix']))
+    assert.ok(fields['cache-key'].startsWith(fields['compatible-prefix']))
+    assert.match(fields['compatible-prefix'], /^macOS-ARM64-/u)
+    assert.ok(fields['compatible-prefix'].includes(fields['path-hash']))
+    assert.ok(fields['compatible-prefix'].includes(baseCacheEvent.TASK_CACHE_CONFIG_HASH))
+
+    const invalid = spawnSync(process.execPath, [selector, cachePath, output], {
+      env: { ...env, TASK_CACHE_KIND: 'unknown' },
+      encoding: 'utf8',
+    })
+    assert.notEqual(invalid.status, 0)
+    assert.match(invalid.stderr, /kind/u)
+    assert.equal(readFileSync(output, 'utf8'), emitted, 'invalid selection cannot append outputs')
+  } finally {
+    rmSync(fixture, { recursive: true, force: true })
+  }
 })
 
 test('workflow and build select the same real Darwin task-output cache path', () => {
@@ -178,6 +279,7 @@ test('workflow and build select the same real Darwin task-output cache path', ()
 })
 
 test('task-output cache save scan bounds logical bytes, members, and time', () => {
+  assert.deepEqual(cacheSaveLimits, { bytes: 512 * 1024 ** 2, entries: 100_000, scanMs: 30_000 })
   const fixture = mkdtempSync(join(tmpdir(), 'android-gradle-cache-scan-'))
   try {
     const cacheDir = join(fixture, 'gradle-build-cache')

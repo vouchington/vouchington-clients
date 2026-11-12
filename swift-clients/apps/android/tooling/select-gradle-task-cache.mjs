@@ -17,8 +17,11 @@ export function selectGradleTaskCache(env, path) {
   if (!digest.test(env.TASK_CACHE_CONFIG_HASH ?? '') || !revision.test(env.CANDIDATE_REVISION ?? '')) {
     throw new Error('Gradle task-output cache requires verified config and candidate hashes')
   }
+  if (!['app', 'kotlin-libraries'].includes(env.TASK_CACHE_KIND)) {
+    throw new Error('Gradle task-output cache requires an app or kotlin-libraries kind')
+  }
   const pathHash = createHash('sha256').update(path).digest('hex')
-  const prefix = `${env.RUNNER_OS}-${env.RUNNER_ARCH}-android-gradle-tasks-v1-${pathHash}-${env.TASK_CACHE_CONFIG_HASH}`
+  const prefix = `${env.RUNNER_OS}-${env.RUNNER_ARCH}-android-gradle-tasks-v1-${pathHash}-${env.TASK_CACHE_CONFIG_HASH}-`
   let sourceRevision
   let previousKey
   if (env.GITHUB_EVENT_NAME === 'pull_request') {
@@ -32,11 +35,17 @@ export function selectGradleTaskCache(env, path) {
     if (!revision.test(before ?? '')) {
       throw new Error('Main push Gradle cache requires an exact previous revision')
     }
-    if (before !== '0'.repeat(40)) previousKey = `${prefix}-${before}`
+    if (before !== '0'.repeat(40)) previousKey = `${prefix}${before}-${env.TASK_CACHE_KIND}`
   } else {
     throw new Error('Gradle task-output cache only accepts pull requests or main pushes')
   }
-  return { path, pathHash, cacheKey: `${prefix}-${sourceRevision}`, previousKey }
+  return {
+    path,
+    pathHash,
+    cacheKey: `${prefix}${sourceRevision}-${env.TASK_CACHE_KIND}`,
+    previousKey,
+    compatiblePrefix: prefix,
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -45,6 +54,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const selected = selectGradleTaskCache(process.env, path)
   appendFileSync(
     output,
-    `path=${selected.path}\npath-hash=${selected.pathHash}\ncache-key=${selected.cacheKey}\nprevious-key=${selected.previousKey ?? ''}\n`,
+    `path=${selected.path}\npath-hash=${selected.pathHash}\ncache-key=${selected.cacheKey}\nprevious-key=${selected.previousKey ?? ''}\ncompatible-prefix=${selected.compatiblePrefix}\n`,
   )
 }
