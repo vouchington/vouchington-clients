@@ -40,6 +40,12 @@ public sealed class TopicManagementPageMergeTests
 
     Assert.Equal(UiCopy.Localize(Key(keyName)), status.Text);
     Assert.Equal(canCheckAgain, check.IsVisible);
+    var operation = Fixture($"native.topics.merge.status.{state}").TopicMerge;
+    Assert.Equal(state, page.FindByName<Label>("MergeStatusLabel").Text);
+    Assert.Equal(operation.Stage, page.FindByName<Label>("MergeStageLabel").Text);
+    Assert.Equal(operation.ErrorCode ?? string.Empty, page.FindByName<Label>("MergeErrorLabel").Text);
+    Assert.Equal(operation.CompletedAt is { } completed ? UiCopy.FormatDateTime(completed) : string.Empty,
+        page.FindByName<Label>("MergeCompletedLabel").Text);
     Assert.Equal(1, service.StatusReads);
     Assert.Equal(("70000000-0000-7000-8000-000000005170", "70000000-0000-7000-8000-000000005172"), service.LastStatusRequest);
   }
@@ -98,7 +104,10 @@ public sealed class TopicManagementPageMergeTests
     {
       Resources =
       {
-        ["UiLocaleVersion"] = 0,
+        ["UiLocaleVersion"] = new Voucha.Client.App.UiLocaleVersion(
+            new Voucha.Client.Core.Localization.UiLocaleController(new StubDeviceLanguageProvider("en"))),
+        ["UiLocalizedValue"] = new Voucha.Client.App.UiLocalizedValueConverter(
+            Voucha.Client.Core.Localization.UiLocalization.English),
         ["Metadata"] = new Style(typeof(Label)),
         ["Body"] = new Style(typeof(Label)),
       },

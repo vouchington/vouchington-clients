@@ -96,7 +96,7 @@ public partial class TopicsPage : ContentPage
   private async void OnCreateClicked(object? sender, EventArgs e)
   {
     if (!sessionStore.Current.CanManageTopics()) return;
-    await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient));
+    await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, sessionStore: sessionStore));
   }
 
   private async void OnOpenClicked(object? sender, EventArgs e)
@@ -126,7 +126,7 @@ public partial class TopicsPage : ContentPage
     if (!sessionStore.Current.CanManageTopics()) return;
     if (sender is Button { CommandParameter: TopicPageRow item })
     {
-      await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, item.Id));
+      await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, item.Id, sessionStore: sessionStore));
     }
   }
 }

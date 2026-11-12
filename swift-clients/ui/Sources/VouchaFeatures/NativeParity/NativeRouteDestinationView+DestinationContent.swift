@@ -82,7 +82,9 @@ extension NativeRouteDestinationSurface {
                 )
                 .id(routeMatch?.param("id"))
             case .topicManagement:
-                NativeTopicManagementSurface(client: viewModel.client, routeMatch: viewModel.routeMatch)
+                NativeTopicManagementSurface(
+                    client: viewModel.client, routeMatch: viewModel.routeMatch, accountId: currentUserId
+                )
             case .accountSettings, .profileSettings, .advancedSettings, .notificationSettings:
                 NativeSettingsSurface(
                     viewModel: viewModel,

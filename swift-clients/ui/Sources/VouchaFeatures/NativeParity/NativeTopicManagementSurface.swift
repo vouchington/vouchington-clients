@@ -22,16 +22,23 @@ struct NativeTopicManagementSurface: View {
     @State
     private var operationState: NativeTopicManagementOperationState
     private let client: APIClient?
+    private let accountId: String?
 
     init(
         client: APIClient?,
         routeMatch: NativeRouteMatch?,
+        accountId: String? = nil,
         logoUploadState: NativeTopicImageFieldUploadState? = nil,
         heroUploadState: NativeTopicImageFieldUploadState? = nil,
         operationState: NativeTopicManagementOperationState? = nil
     ) {
         self.client = client
-        _viewModel = State(initialValue: NativeTopicManagementViewModel(client: client, routeMatch: routeMatch))
+        self.accountId = accountId
+        _viewModel = State(initialValue: NativeTopicManagementViewModel(
+            client: client,
+            routeMatch: routeMatch,
+            accountId: accountId
+        ))
         _logoUploadState = State(initialValue: logoUploadState ?? NativeTopicImageFieldUploadState())
         _heroUploadState = State(initialValue: heroUploadState ?? NativeTopicImageFieldUploadState())
         _operationState = State(initialValue: operationState ?? NativeTopicManagementOperationState())
@@ -83,6 +90,9 @@ struct NativeTopicManagementSurface: View {
                 .disabled(operationState.isSavePending || bindableModel.isLoading || isImageUploadPending)
             }
             status(viewModel: bindableModel)
+        }
+        .onChange(of: accountId) { _, accountId in
+            viewModel.updateMergeAccount(accountId)
         }
         .task {
             await viewModel.load()

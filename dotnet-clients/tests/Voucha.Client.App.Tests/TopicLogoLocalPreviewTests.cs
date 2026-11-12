@@ -119,7 +119,10 @@ public sealed class TopicLogoLocalPreviewTests
     {
       Resources =
       {
-        ["UiLocaleVersion"] = 0,
+        ["UiLocaleVersion"] = new Voucha.Client.App.UiLocaleVersion(
+            new Voucha.Client.Core.Localization.UiLocaleController(new StubDeviceLanguageProvider("en"))),
+        ["UiLocalizedValue"] = new Voucha.Client.App.UiLocalizedValueConverter(
+            Voucha.Client.Core.Localization.UiLocalization.English),
         ["Metadata"] = new Style(typeof(Label)),
         ["Body"] = new Style(typeof(Label)),
         [UiMessageKey.ImagesUploadPreviewUnavailable.Value] = PreviewUnavailableCopy(),

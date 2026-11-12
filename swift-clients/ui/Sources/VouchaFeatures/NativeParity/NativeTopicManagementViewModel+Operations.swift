@@ -172,3 +172,15 @@ extension NativeTopicManagementViewModel {
         allowReviews = topic.allowReviews ?? false
     }
 }
+
+extension NativeTopicManagementViewModel {
+    func toggleSourceEnabled() async {
+        guard let feed = sourceDetail else { return }
+        await updateSource(enabled: !feed.isEnabled)
+    }
+
+    func toggleSourceDiscoverable() async {
+        guard let feed = sourceDetail else { return }
+        await updateSource(discoverable: !feed.isDiscoverable)
+    }
+}
