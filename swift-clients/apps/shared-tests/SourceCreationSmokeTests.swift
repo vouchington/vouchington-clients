@@ -63,7 +63,7 @@
             let list = encoded("""
             {"results":[{"id":"\(entityId)","title":"Created smoke source","feed_type":"article",
             "rss_feed_url":{"url":"https://example.test/feed.xml"},"is_enabled":true,"is_discoverable":true,
-            "topic":{"id":"smoke-source","name":"Created smoke source","slug":"smoke-source"}}],
+            "topic":{"id":"smoke-source","name":"Created smoke source","slug":"smoke-source","topic_type":"rss_feed"}}],
             "topic_elections":{},"page_info":{"has_next_page":false}}
             """)
             let script = try [
