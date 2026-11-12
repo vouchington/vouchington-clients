@@ -14,11 +14,12 @@ function backend({
   initiallyAuthenticated = false,
   initiallyExpanded = false,
   wrongRelatedTitle = false,
-  losesPrimary = false,
+  losesPrimaryAfterCollapse = false,
 } = {}) {
   let authenticated = initiallyAuthenticated
   let expanded = initiallyExpanded
   let requested = false
+  let relatedClicks = 0
   const values = {}
   const calls = []
   async function request(method, path, body, timeout) {
@@ -42,7 +43,10 @@ function backend({
         authenticated = true
       }
       if (id === 'navigation-news') assert.ok(authenticated)
-      if (id === 'story-related-articles') expanded = !expanded
+      if (id === 'story-related-articles') {
+        expanded = !expanded
+        relatedClicks += 1
+      }
       return { value: null }
     }
     if (command === 'displayed')
@@ -53,7 +57,7 @@ function backend({
             : id === 'auth-resend-email-code'
               ? requested
               : id === 'news-item-title-item-1'
-                ? !losesPrimary
+                ? !(losesPrimaryAfterCollapse && relatedClicks >= 2)
                 : true,
       }
     if (command === 'attribute/value')
@@ -118,6 +122,17 @@ describe('Catalyst auth/news Mac2 protocol assertions (not GUI execution)', () =
     await assert.rejects(
       assertAuthNewsControls(backend({ wrongRelatedTitle: true }).request, 'flow', async () => {}),
       /Wrong related article/u,
+    )
+  })
+  it('rejects a primary row that disappears only after collapse', async () => {
+    const fake = backend({ losesPrimaryAfterCollapse: true })
+    await assert.rejects(
+      assertAuthNewsControls(fake.request, 'flow', async () => {}),
+      /Primary article disappeared after collapse/u,
+    )
+    assert.equal(
+      fake.calls.filter(call => call.path.endsWith('/story-related-articles/click')).length,
+      2,
     )
   })
 })
