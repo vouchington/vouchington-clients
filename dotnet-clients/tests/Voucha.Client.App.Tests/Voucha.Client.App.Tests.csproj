@@ -15,6 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../src/Voucha.Client.App/AppShell.ShellContentEnumeration.cs" Link="AppShell.ShellContentEnumeration.cs" />
+    <Compile Include="../../src/Voucha.Client.App/AppShell.SettingsIntentPages.cs" Link="AppShell.SettingsIntentPages.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/SettingsPage.NotificationFocus.cs" Link="Pages/SettingsPage.NotificationFocus.cs" />
     <Compile Include="../../src/Voucha.Client.App/CatalystGuiFixtureHandler.cs" Link="CatalystGuiFixtureHandler.cs" />
     <Compile Include="../../src/Voucha.Client.App/CatalystGuiAudit.cs" Link="CatalystGuiAudit.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/TurnstileChallengePage.xaml" Link="Pages/TurnstileChallengePage.xaml" />
