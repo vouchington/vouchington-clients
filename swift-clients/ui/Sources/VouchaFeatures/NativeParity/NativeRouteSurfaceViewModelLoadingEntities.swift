@@ -128,13 +128,34 @@ extension NativeRouteSurfaceViewModel {
                 staffProvenance: entity.staffProvenance
             ),
             row("chevron.up.chevron.down", appText(.nativeSwiftRouteSurfaceVote), voteDetail),
-            row("doc.text", countText(0, item: "post"), appText(.nativeSwiftRouteSurfaceTopicPostsAvailable)),
+            row("doc.text", appText(.nativeSwiftRouteSurfaceTopicPostsAvailable), .verbatim("")),
+            topicCollectionRow(response, key: "discussions", title: .nativeSwiftNavigationTitlesPosts, path: "posts"),
+            topicCollectionRow(response, key: "reviews", title: .nativeSwiftNavigationTitlesReviews, path: "reviews"),
+            topicCollectionRow(response, key: "data-points", title: .nativeDotnetGrowthDataPoints, path: "data-points"),
             row(
                 "newspaper",
                 appText(.nativeSwiftNavigationTitlesNews),
                 appText(.nativeSwiftRouteSurfaceTopicNewsAvailable)
             )
         ]
+    }
+
+    private func topicCollectionRow(
+        _ response: NativeTopicDetailResponse, key: String, title: UiMessageKey, path: String
+    ) -> NativeRouteDestinationRow {
+        let metrics = response.topicMetrics
+        return row(
+            "doc.text",
+            .message(title),
+            .app(UiMessage(
+                .nativeSwiftRouteSurfaceNumberValue,
+                numberParameters: ["value": Double(key == "discussions" ? metrics?.visiblePostsCount ?? 0 : metrics?
+                        .visibleCount(key) ?? 0)],
+                cappedNumberParameters: (key == "discussions"
+                    ? metrics?.isVisiblePostsCountCapped : metrics?.isVisibleCountCapped(key)) == true ? ["value"] : []
+            )),
+            targetPath: "/topic/\(response.topic.slug ?? response.topic.id)/\(path)"
+        )
     }
 
 }

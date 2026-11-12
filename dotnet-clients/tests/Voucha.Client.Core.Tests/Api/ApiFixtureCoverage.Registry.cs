@@ -202,6 +202,8 @@ internal static partial class ApiFixtureCoverage
     ["shared.currencies.list.default"] = typeof(CurrenciesResponse),
     ["web.topics.search.default"] = typeof(TopicSearchResponse),
     ["web.topics.show.default"] = typeof(TopicResponse),
+    ["web.topics.show.viewer-lower-bound"] = typeof(TopicResponse),
+    ["web.topics.show.viewer-review-data-lower-bound"] = typeof(TopicResponse),
     ["web.topics.mutation.default"] = typeof(TopicMutationResponse),
     ["web.topics.publisher-types.default"] = typeof(PublisherTypeTopicsResponse),
     ["native.topics.user-tags.default"] = typeof(UserTagTopicsResponse),
