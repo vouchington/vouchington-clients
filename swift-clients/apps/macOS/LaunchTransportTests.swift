@@ -37,6 +37,11 @@
             let tokens = try JSONSerialization.jsonObject(with: fixture("native.auth.session.refresh.rotated"))
                 as? [String: [String: Any]]
             let jar = await client.cookieStorage
+            let transport = await client.session
+            XCTAssertTrue(transport.configuration.httpCookieStorage === jar)
+            XCTAssertFalse(transport.configuration.httpShouldSetCookies)
+            let coordinator = await client.cookieCoordinator
+            XCTAssertEqual(coordinator.stamp.revision, 1, "Sign-in must rotate before resolving identity")
             XCTAssertEqual(jar.cookies?.first { $0.name == "dt" }?.value, tokens?["session"]?["dt"] as? String)
             XCTAssertEqual(jar.cookies?.first { $0.name == "st" }?.value, tokens?["session"]?["st"] as? String)
         }
@@ -66,9 +71,12 @@
         }
 
         private func client(protocolClass: AnyClass) throws -> APIClient {
-            try APIClient(
+            let configuration = URLSessionConfiguration.ephemeral
+            let jar = try XCTUnwrap(configuration.httpCookieStorage)
+            return try APIClient(
                 config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://ui-testing.voucha.invalid"))),
-                cookieStorage: HTTPCookieStorage(), protocolClasses: [protocolClass], bootstrapSession: false
+                cookieStorage: jar, protocolClasses: [protocolClass], bootstrapSession: false,
+                sessionConfiguration: configuration
             )
         }
 

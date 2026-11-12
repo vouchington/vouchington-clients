@@ -82,7 +82,10 @@ extension SessionCookieCoordinator {
                 firstProperties.removeValue(forKey: HTTPCookiePropertyKey("Created"))
                 secondProperties.removeValue(forKey: HTTPCookiePropertyKey("Created"))
             }
-            return NSDictionary(dictionary: firstProperties).isEqual(to: secondProperties)
+            // String keys avoid platform-specific bridging of HTTPCookiePropertyKey.
+            let firstValues = Dictionary(uniqueKeysWithValues: firstProperties.map { ($0.key.rawValue, $0.value) })
+            let secondValues = Dictionary(uniqueKeysWithValues: secondProperties.map { ($0.key.rawValue, $0.value) })
+            return NSDictionary(dictionary: firstValues).isEqual(to: secondValues)
         }
     }
 
