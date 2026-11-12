@@ -19,6 +19,10 @@ final class UserProfileEndpointTests: XCTestCase {
         XCTAssertEqual(communities.path, "/api/v1/users/user%2Fid/communities/member")
         XCTAssertEqual(query(communities), ["after": "community-cursor", "limit": "25"])
 
+        let referralLinks = Endpoint.userReferralLinks(userId: "user/id", after: "link-cursor")
+        XCTAssertEqual(referralLinks.path, "/api/v1/referral-links")
+        XCTAssertEqual(query(referralLinks), ["after": "link-cursor", "limit": "25", "user_id": "user/id"])
+
         let sources = Endpoint.userRssFeeds(
             userId: "user/id", feedType: "article", after: "source-cursor", limit: 25
         )

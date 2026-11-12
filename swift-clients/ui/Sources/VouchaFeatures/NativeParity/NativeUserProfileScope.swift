@@ -27,6 +27,7 @@ enum NativeUserProfileScope: Equatable {
     case usersFollowers
     case sourcesFollowing(SourceFilter?)
     case communitiesMember
+    case referralLinks
 
     init?(match: NativeRouteMatch) {
         let suffix = match.path.split(separator: "/").dropFirst(2).joined(separator: "/")
@@ -52,7 +53,8 @@ enum NativeUserProfileScope: Equatable {
         "topics/following": .topicsFollowing,
         "users/following": .usersFollowing,
         "users/followers": .usersFollowers,
-        "communities/member": .communitiesMember
+        "communities/member": .communitiesMember,
+        "referral-links": .referralLinks
     ]
 
     var primaryTitle: UiMessageKey {
@@ -63,6 +65,7 @@ enum NativeUserProfileScope: Equatable {
         case .usersFollowing, .usersFollowers: .nativeSwiftNavigationTitlesFriends
         case .sourcesFollowing: .nativeSwiftRouteMetadataMainSourcesBrowseSourcesTitle
         case .communitiesMember: .nativeSwiftNavigationTitlesCommunities
+        case .referralLinks: .nativeSwiftLandingPagesReferralLinks
         }
     }
 
@@ -75,6 +78,7 @@ enum NativeUserProfileScope: Equatable {
         case .usersFollowers: .nativeSwiftFriendsNoFollowers
         case .sourcesFollowing: .nativeSwiftEmptyStateNoSources
         case .communitiesMember: .nativeSwiftProfileNoCommunities
+        case .referralLinks: .nativeSwiftEmptyStateNoReferralLinks
         }
     }
 }
