@@ -28,7 +28,7 @@ final class AndroidAccountTests: XCTestCase {
         XCTAssertFalse(account.otpRequested)
         XCTAssertNotNil(account.authError)
         XCTAssertEqual(AndroidAuthURLProtocol.requestSnapshot().map { $0.url?.path }, [
-            "/api/v1/auth/email-address/tokens"
+            "/api/v1/auth/native/email-address/tokens"
         ])
     }
 

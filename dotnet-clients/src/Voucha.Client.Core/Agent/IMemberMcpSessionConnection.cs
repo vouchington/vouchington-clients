@@ -10,6 +10,12 @@ public interface IMemberMcpSystemBrowser
 public interface IMemberMcpSessionConnectionFactory
 {
   Task<IMemberMcpSessionConnection> CreateAsync(string accountId, CancellationToken cancellationToken);
+
+  /// <summary>
+  /// Factory whose connections can revoke grants stored by the retired browser authorization.
+  /// Null when connections created here already do so.
+  /// </summary>
+  IMemberMcpSessionConnectionFactory? LegacyGrantRevocationFactory => null;
 }
 
 public interface IMemberMcpSessionConnection : IAsyncDisposable

@@ -68,7 +68,7 @@ final class AndroidAuthURLProtocol: URLProtocol {
         let configuration = Self.lock.withLock {
             Self.requests.append(recordedRequest)
             let status = switch path {
-            case "/api/v1/auth/email-address/tokens": Self.otpStatusCode
+            case "/api/v1/auth/native/email-address/tokens": Self.otpStatusCode
             case "/api/v1/auth/logout": Self.logoutStatusCode
             case "/mutation": request.value(forHTTPHeaderField: "x-voucha-bot-challenge-token") == nil ? 403 : 200
             default: 200
@@ -105,7 +105,7 @@ final class AndroidAuthURLProtocol: URLProtocol {
 
     private func responseData(path: String, status: Int, identity: Data) throws -> Data {
         switch path {
-        case "/api/v1/auth/email-address/login":
+        case "/api/v1/auth/native/email-address/login":
             Data(#"{"mfaRequired":true,"loginAttemptId":"mfa-attempt"}"#.utf8)
         case "/api/v1/my/identity":
             identity

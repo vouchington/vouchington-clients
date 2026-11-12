@@ -40,6 +40,19 @@ public sealed class NativeSessionContractTests
   }
 
   [Fact]
+  public void NativeEmailRequestKeepsTurnstileAndLocaleWhenGivenAndOmitsThemOtherwise()
+  {
+    Assert.Equal("""{"emailAddress":"a@example.com"}""",
+        JsonSerializer.Serialize(VouchaApiEndpoints.RequestNativeEmailOtp("a@example.com").Body, VouchaApiJson.Options));
+    var request = VouchaApiEndpoints.RequestNativeEmailOtp("a@example.com", "turnstile", "fr");
+    Assert.Equal("/api/v1/auth/native/email-address/tokens", request.Path);
+    Assert.Equal("""{"emailAddress":"a@example.com","cfTurnstileResponse":"turnstile","ui_locale":"fr"}""",
+        JsonSerializer.Serialize(request.Body, VouchaApiJson.Options));
+    Assert.DoesNotContain(request.Headers.Keys, name => name.Equals("Origin", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("Sec-Fetch-", StringComparison.OrdinalIgnoreCase));
+  }
+
+  [Fact]
   public void PublishedSessionsAndGrantsKeepMcpAttestationFields()
   {
     var sessions = Decode<AuthSessionListResponse>("native.auth.sessions.default");

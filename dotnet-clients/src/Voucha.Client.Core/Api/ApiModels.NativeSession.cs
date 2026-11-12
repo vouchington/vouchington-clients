@@ -55,7 +55,11 @@ public sealed record AuthSessionMcpConnection(
     [property: JsonPropertyName("last_minted_at")] DateTimeOffset LastMintedAt);
 
 public sealed record RequestNativeEmailOtpBody(
-    [property: JsonPropertyName("emailAddress")] string Email);
+    [property: JsonPropertyName("emailAddress")] string Email,
+    [property: JsonPropertyName("cfTurnstileResponse"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TurnstileToken = null,
+    [property: JsonPropertyName("ui_locale"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? UiLocale = null);
 
 public sealed record MintNativeSessionMcpTokenBody(
     [property: JsonPropertyName("client_app")] string ClientApp);

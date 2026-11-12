@@ -26,7 +26,7 @@ public sealed class AuthCoverageTests
     var service = new AuthenticationService(client, store, passkeyProvider);
 
     await service.RequestEmailOtpAsync("a@example.com", "turnstile", TestContext.Current.CancellationToken);
-    Assert.Equal("/api/v1/auth/email-address/tokens", handler.Requests[0].PathAndQuery);
+    Assert.Equal("/api/v1/auth/native/email-address/tokens", handler.Requests[0].PathAndQuery);
 
     var challenge = await service.VerifyEmailOtpAsync(
         "a@example.com",

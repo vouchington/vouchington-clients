@@ -24,7 +24,7 @@ public sealed class AuthLocaleTests
         "fr",
         TestContext.Current.CancellationToken);
 
-    Assert.Equal("/api/v1/auth/email-address/tokens", handler.PathAndQuery);
+    Assert.Equal("/api/v1/auth/native/email-address/tokens", handler.PathAndQuery);
     Assert.Contains("\"ui_locale\":\"fr\"", handler.RequestBody, StringComparison.Ordinal);
   }
 

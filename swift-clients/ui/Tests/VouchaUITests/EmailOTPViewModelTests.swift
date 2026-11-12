@@ -59,7 +59,7 @@ final class EmailOTPViewModelTests: XCTestCase {
     }
 
     func testRequestCodeSendsTurnstileToken() async {
-        CannedFeedURLProtocol.handlers["/api/v1/auth/email-address/tokens"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/auth/native/email-address/tokens"] = (
             Data(#"{"email_address":"alice@example.com"}"#.utf8),
             200
         )
@@ -71,7 +71,7 @@ final class EmailOTPViewModelTests: XCTestCase {
         await vm.requestCode()
 
         let otpRequest = zip(CannedFeedURLProtocol.capturedURLs, CannedFeedURLProtocol.capturedBodies)
-            .first { url, _ in url.path == "/api/v1/auth/email-address/tokens" }
+            .first { url, _ in url.path == "/api/v1/auth/native/email-address/tokens" }
         XCTAssertNotNil(otpRequest)
         XCTAssertTrue(otpRequest?.1?.contains(#""ui_locale":"es""#) == true)
         XCTAssertEqual(vm.step, .enterCode)
@@ -92,7 +92,7 @@ final class EmailOTPViewModelTests: XCTestCase {
     }
 
     func testEmailVerificationFailuresStayEditableWithoutAutomaticRetry() async throws {
-        let path = "/api/v1/auth/email-address/login"
+        let path = "/api/v1/auth/native/email-address/login"
         for (status, message) in [
             (400, "Invalid code"),
             (400, "Replaced code"),

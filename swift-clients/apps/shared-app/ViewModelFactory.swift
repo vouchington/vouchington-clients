@@ -100,7 +100,10 @@ public final class ViewModelFactory {
             config: config,
             nativeOAuthAuthorizationStore: NativeOAuthAuthorizationStore()
         )
-        factory.nativeChatMCPSession = makeNativeChatMCPSession(config: config, accessGroup: keychainAccessGroup)
+        factory.nativeChatMCPSession = makeNativeChatMCPSession(
+            config: config, apiClient: client, accessGroup: keychainAccessGroup,
+            currentAccountId: { [weak factory] in factory?.sessionManager.currentUserId }
+        )
         factory.installMCPSignOutCleanup()
         #if canImport(DeviceCheck)
             factory.appAttestationService = appAttestationService

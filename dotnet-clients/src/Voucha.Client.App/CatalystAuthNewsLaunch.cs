@@ -31,9 +31,9 @@ internal static class CatalystAuthNewsLaunch
     public IReadOnlyList<string> PreferredLanguages { get; } = ["en"];
   }
 
-  internal static string ReadFixture(string id, string method, string path)
+  internal static string ReadFixture(string id, string method, string path, string? contractRoot = null)
   {
-    var root = Environment.GetEnvironmentVariable("VOUCHA_CONTRACT_ROOT");
+    var root = contractRoot ?? Environment.GetEnvironmentVariable("VOUCHA_CONTRACT_ROOT");
     if (string.IsNullOrEmpty(root) || !root.StartsWith('/') || root.Contains("..") || root.Contains("$("))
       throw new InvalidOperationException("Auth/news GUI requires an absolute contract root.");
     var fixtureRoot = Path.Combine(root, "api-fixtures", "v1");
