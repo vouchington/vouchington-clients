@@ -39,7 +39,7 @@ public sealed class PostTimeRangePickerRenderingTests
     Assert.Equal("all", model.RequestValue);
     picker.SelectedIndex = 1;
     Assert.Equal(new[] { "all", "1m" }, emitted);
-    Assert.Null(model.RequestValue);
+    Assert.Equal("1m", model.RequestValue);
   }
 
   [Fact]

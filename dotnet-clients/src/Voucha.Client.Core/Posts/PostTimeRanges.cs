@@ -1,8 +1,8 @@
 namespace Voucha.Client.Core.Posts;
 
 /// <summary>
-/// Finite <c>time_range</c> values for post lists. The default selection is <c>null</c>, which
-/// omits the parameter so the server applies its 30-day default for every sort.
+/// Finite <c>time_range</c> values for post lists. Browse lists send <c>1m</c> explicitly
+/// because omitting the parameter leaves the server query unbounded.
 /// </summary>
 public static class PostTimeRanges
 {

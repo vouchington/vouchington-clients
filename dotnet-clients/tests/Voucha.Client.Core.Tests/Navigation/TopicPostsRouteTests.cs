@@ -32,7 +32,7 @@ public sealed class TopicPostsRouteTests
     Assert.Equal("/api/v1/posts", request.Path);
     Assert.Equal("canonical-topic", request.Query[filter]);
     Assert.Equal(postType, scope.PostTypes);
-    Assert.False(request.Query.ContainsKey("time_range"));
+    Assert.Equal("1m", request.Query["time_range"]);
     Assert.False(request.Query.ContainsKey("data_point_vertical"));
     Assert.Single(request.Query.Keys.Where(key => key is "topics" or "review_topic" or "data_point_topic"));
   }

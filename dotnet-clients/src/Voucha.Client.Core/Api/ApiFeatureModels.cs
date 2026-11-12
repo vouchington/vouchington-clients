@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.Core.Api;
 
@@ -16,7 +17,7 @@ public sealed record FetchPostsRequest(
     string? After = null,
     int Limit = 25,
     string? SemanticSearchQuery = null,
-    string? TimeRange = null,
+    string? TimeRange = PostTimeRanges.Last30Days,
     bool? HasHackerNewsReferences = null,
     string? DataPointTopic = null);
 

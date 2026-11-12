@@ -11,7 +11,7 @@ public static class PostBrowseRoute
     "/discussions" => new(PostTypes: "discussion"),
     "/data-points" => new(PostTypes: "data_point"),
     "/articles" => new(PostTypes: "article"),
-    "/blog" => new(PostTypes: "blog"),
+    "/blog" => new(PostTypes: "blog_post"),
     "/links" => new(PostTypes: "link"),
     _ => null,
   };

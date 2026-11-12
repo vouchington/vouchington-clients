@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Posts;
 namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
@@ -19,7 +20,7 @@ public static partial class VouchaApiEndpoints
             ("limit", request.Limit),
             ("after", request.After),
             ("semantic_search_query", request.SemanticSearchQuery),
-            ("time_range", request.TimeRange),
+            ("time_range", request.TimeRange ?? PostTimeRanges.Last30Days),
             ("has_hacker_news_references", Bool(request.HasHackerNewsReferences))));
   }
 

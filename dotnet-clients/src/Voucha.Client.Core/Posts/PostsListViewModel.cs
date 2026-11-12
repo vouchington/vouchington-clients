@@ -97,9 +97,10 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   public async Task LoadFeedAsync(
       string feedType = "any",
       string? postTypes = null,
-      string? timeRange = null,
+      string? timeRange = PostTimeRanges.LastWeek,
       CancellationToken cancellationToken = default)
   {
+    timeRange ??= PostTimeRanges.LastWeek;
     activeFeedType = feedType;
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
@@ -124,11 +125,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public async Task LoadBrowseAsync(
       string? postTypes = null,
-      string? timeRange = null,
+      string? timeRange = PostTimeRanges.Last30Days,
       bool? hasHackerNewsReferences = null,
       CancellationToken cancellationToken = default,
       FetchPostsRequest? scope = null)
   {
+    timeRange ??= PostTimeRanges.Last30Days;
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
     HackerNewsFilter = hasHackerNewsReferences;

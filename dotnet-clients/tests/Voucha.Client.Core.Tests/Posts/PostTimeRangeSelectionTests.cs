@@ -7,7 +7,7 @@ namespace Voucha.Client.Core.Tests.Posts;
 public sealed class PostTimeRangeSelectionTests
 {
   [Fact]
-  public void BrowseOptionsHaveLocalizedKeysAndDefaultMonthOmitsRequestParameter()
+  public void BrowseOptionsHaveLocalizedKeysAndDefaultMonthSendsExplicitWindow()
   {
     var selection = new PostTimeRangeSelection(UiLocalization.English);
     Assert.Equal(new[] { "1w", "1m", "1y", "all" }, selection.Options.Select(option => option.Value));
@@ -20,12 +20,12 @@ public sealed class PostTimeRangeSelectionTests
       UiMessageKey.ExtractedPostsPostTimeRangeSelectAllTime,
     }, selection.Options.Select(option => option.LabelText.Key!.Value));
     Assert.Equal("1m", selection.SelectedOption.Value);
-    Assert.Null(selection.RequestValue);
+    Assert.Equal("1m", selection.RequestValue);
     Assert.False(selection.Select("1m"));
     Assert.True(selection.Select("all"));
     Assert.Equal("all", selection.RequestValue);
     Assert.True(selection.Select("1m"));
-    Assert.Null(selection.RequestValue);
+    Assert.Equal("1m", selection.RequestValue);
   }
 
   [Fact]

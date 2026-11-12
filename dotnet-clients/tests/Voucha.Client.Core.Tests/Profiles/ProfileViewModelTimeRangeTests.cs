@@ -15,7 +15,7 @@ public sealed partial class ProfileViewModelSafetyTests
       FetchPostsAsyncOverride = (_, request) =>
       {
         requests.Add(request);
-        var id = request.TimeRange is null ? "default" : request.After is null ? "year" : "more";
+        var id = request.TimeRange == "1m" ? "default" : request.After is null ? "year" : "more";
         var cursor = request.After is null ? "opaque-cursor" : null;
         return Task.FromResult(new PostsFeedResponse(
             [Reference(id)], new PageInfo(cursor, cursor is not null, null),
@@ -32,7 +32,7 @@ public sealed partial class ProfileViewModelSafetyTests
     Assert.Equal(new[] { "year", "more" }, model.HistoryItems.Select(row => row.Id));
     await model.SelectTimeRangeAsync("1m", TestContext.Current.CancellationToken);
     Assert.Equal(new[] { "default" }, model.HistoryItems.Select(row => row.Id));
-    Assert.Equal(new string?[] { null, "1y", "1y", null }, requests.Select(request => request.TimeRange));
+    Assert.Equal(new string?[] { "1m", "1y", "1y", "1m" }, requests.Select(request => request.TimeRange));
     Assert.Equal(new string?[] { null, null, "opaque-cursor", null }, requests.Select(request => request.After));
     Assert.All(requests, request =>
     {

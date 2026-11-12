@@ -11,7 +11,7 @@ public sealed class PostBrowseRouteTests
   [InlineData("/discussions", "discussion")]
   [InlineData("/data-points", "data_point")]
   [InlineData("/articles", "article")]
-  [InlineData("/blog", "blog")]
+  [InlineData("/blog", "blog_post")]
   [InlineData("/links", "link")]
   public void GlobalBrowseRoutesKeepRequestedType(string path, string? type)
   {
@@ -19,7 +19,7 @@ public sealed class PostBrowseRouteTests
     var scope = PostBrowseRoute.FromMatch(resolution.Match);
     Assert.NotNull(scope);
     Assert.Equal(type, scope.PostTypes);
-    Assert.Null(scope.TimeRange);
+    Assert.Equal("1m", scope.TimeRange);
     Assert.Null(scope.Topics);
   }
 

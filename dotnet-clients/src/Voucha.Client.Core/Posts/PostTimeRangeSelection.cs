@@ -8,7 +8,7 @@ public sealed record PostTimeRangeOption(string Value, UiText LabelText, IUiLoca
   public string Label => Localization.Resolve(LabelText);
 }
 
-/// <summary>Input-driven ranges; the default range omits the API parameter.</summary>
+/// <summary>Input-driven ranges with an explicit API time window.</summary>
 public sealed class PostTimeRangeSelection : ObservableObject
 {
   public static IReadOnlyList<string> BrowseOptions { get; } =
@@ -31,7 +31,7 @@ public sealed class PostTimeRangeSelection : ObservableObject
   public UiText LabelText => UiText.Localized(UiMessageKey.ExtractedPostsPostTimeRangeSelectLabel);
   public IReadOnlyList<PostTimeRangeOption> Options => options;
   public PostTimeRangeOption SelectedOption => selectedOption;
-  public string? RequestValue => selectedOption.Value == PostTimeRanges.Last30Days ? null : selectedOption.Value;
+  public string RequestValue => selectedOption.Value;
 
   public bool Select(string value)
   {

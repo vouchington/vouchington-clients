@@ -13,13 +13,13 @@ public sealed class PostsListViewModelBoundedWindowTests
   [InlineData("new")]
   [InlineData("best")]
   [InlineData("trending")]
-  public void BrowseDefaultsToServerWindowForEverySortAndScope(string sort)
+  public void BrowseDefaultsToExplicitMonthForEverySortAndScope(string sort)
   {
     var request = VouchaApiEndpoints.AllPosts(new FetchPostsRequest(
         PostTypes: "review,data_point", Topics: "topic-1", ReviewTopic: "topic-2",
         Creator: "user-1", DataPointVertical: "travel", Sort: sort));
 
-    Assert.False(request.Query.ContainsKey("time_range"));
+    Assert.Equal("1m", request.Query["time_range"]);
     Assert.Equal(sort, request.Query["sort"]);
     Assert.Equal("review,data_point", request.Query["post_types"]);
     Assert.Equal("topic-1", request.Query["topics"]);
@@ -31,7 +31,7 @@ public sealed class PostsListViewModelBoundedWindowTests
   [Fact]
   public void PostPickerSearchIncludesOlderPosts()
   {
-    Assert.False(VouchaApiEndpoints.SearchPosts("ordinary search").Query.ContainsKey("time_range"));
+    Assert.Equal("1m", VouchaApiEndpoints.SearchPosts("ordinary search").Query["time_range"]);
     var request = VouchaApiEndpoints.SearchPosts("older discussion", 8, PostTimeRanges.AllTime);
 
     Assert.Equal("all", request.Query["time_range"]);
@@ -40,10 +40,10 @@ public sealed class PostsListViewModelBoundedWindowTests
   }
 
   [Fact]
-  public void FeedAndBrowseEndpointsOmitTimeRangeByDefaultAndSendFiniteRangesExactly()
+  public void FeedAndBrowseEndpointsDefaultToExplicitWeekAndMonthAndSendFiniteRangesExactly()
   {
-    Assert.False(VouchaApiEndpoints.Posts().Query.ContainsKey("time_range"));
-    Assert.False(VouchaApiEndpoints.AllPosts(new FetchPostsRequest()).Query.ContainsKey("time_range"));
+    Assert.Equal("1w", VouchaApiEndpoints.Posts().Query["time_range"]);
+    Assert.Equal("1m", VouchaApiEndpoints.AllPosts(new FetchPostsRequest()).Query["time_range"]);
     Assert.Equal("1m", VouchaApiEndpoints.Posts(timeRange: PostTimeRanges.Last30Days).Query["time_range"]);
     Assert.Equal("1w", VouchaApiEndpoints.Posts(timeRange: PostTimeRanges.LastWeek).Query["time_range"]);
     Assert.Equal(
@@ -79,7 +79,7 @@ public sealed class PostsListViewModelBoundedWindowTests
   }
 
   [Fact]
-  public async Task DefaultRequestOmitsTimeRangeAndLast30DaysSendsOneMonthFromTheFirstPage()
+  public async Task DefaultFeedUsesWeekAndExplicitLast30DaysSendsOneMonthFromTheFirstPage()
   {
     var service = new ScriptedPostsService(Page(["a"], null), Page(["b"], null));
     var viewModel = new PostsListViewModel(service);
@@ -87,7 +87,7 @@ public sealed class PostsListViewModelBoundedWindowTests
     await viewModel.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
     await viewModel.LoadFeedAsync(timeRange: PostTimeRanges.Last30Days, cancellationToken: TestContext.Current.CancellationToken);
 
-    Assert.Null(service.FeedRequests[0].TimeRange);
+    Assert.Equal("1w", service.FeedRequests[0].TimeRange);
     Assert.Equal("1m", service.FeedRequests[1].TimeRange);
     Assert.Null(service.FeedRequests[1].After);
     Assert.Equal(new[] { "b" }, viewModel.Items.Select(row => row.Id));
@@ -211,7 +211,7 @@ public sealed class PostsListViewModelBoundedWindowTests
     Assert.Equal(new[] { "new", "more" }, model.Items.Select(row => row.Id));
     await model.SelectBrowseTimeRangeAsync("1m", TestContext.Current.CancellationToken);
     Assert.Equal(new[] { "default" }, model.Items.Select(row => row.Id));
-    Assert.Equal(new string?[] { null, "1w", "1w", null }, service.BrowseRequests.Select(request => request.TimeRange));
+    Assert.Equal(new string?[] { "1m", "1w", "1w", "1m" }, service.BrowseRequests.Select(request => request.TimeRange));
     Assert.Equal(new string?[] { null, null, "new-cursor", null }, service.BrowseRequests.Select(request => request.After));
     Assert.All(service.BrowseRequests, request => Assert.Equal(postType, request.PostTypes));
   }
@@ -249,7 +249,7 @@ public sealed class PostsListViewModelBoundedWindowTests
     await model.LoadMoreAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal(new[] { "selected", "more" }, model.Items.Select(row => row.Id));
-    Assert.Equal(new string?[] { null, "all", "all" }, service.BrowseRequests.Select(request => request.TimeRange));
+    Assert.Equal(new string?[] { "1m", "all", "all" }, service.BrowseRequests.Select(request => request.TimeRange));
     Assert.Equal(new string?[] { null, null, "selected-cursor" }, service.BrowseRequests.Select(request => request.After));
     Assert.All(service.BrowseRequests, request =>
     {
@@ -258,6 +258,19 @@ public sealed class PostsListViewModelBoundedWindowTests
       Assert.Equal("canonical-topic", endpoint.Query[filter]);
       Assert.False(endpoint.Query.ContainsKey("data_point_vertical"));
     });
+  }
+
+  [Fact]
+  public async Task NullBrowseRangeCannotAccidentallyRequestAnUnboundedList()
+  {
+    Assert.Equal("1m", VouchaApiEndpoints.AllPosts(new FetchPostsRequest(TimeRange: null)).Query["time_range"]);
+    Assert.Equal("1m", VouchaApiEndpoints.SearchPosts("search", timeRange: null).Query["time_range"]);
+    var service = new ScriptedPostsService(Page(["month"], "cursor"), Page(["more"], null));
+    using var model = new PostsListViewModel(service);
+    await model.LoadBrowseAsync(timeRange: null, cancellationToken: TestContext.Current.CancellationToken);
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.All(service.BrowseRequests, request => Assert.Equal("1m", request.TimeRange));
+    Assert.Equal(new[] { "month", "more" }, model.Items.Select(row => row.Id));
   }
 
   private static Task<PostsFeedResponse> Page(string[] ids, string? endCursor, bool? hasNext = null) =>
