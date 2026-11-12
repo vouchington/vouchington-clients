@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import VouchaAPI
 import VouchaCore
 @testable import VouchaFeatures
@@ -28,19 +29,35 @@ func makeFreshAccountSettingsTestClient() throws -> APIClient {
 
 extension XCTestCase {
     @MainActor
+    func waitForAccountConfirmationState(_ condition: @escaping @MainActor () -> Bool) async {
+        let ready = expectation(description: "Fresh confirmation reaches expected state")
+        var active = true
+        defer { active = false }
+        func observe() {
+            guard active else { return }
+            if condition() {
+                active = false
+                ready.fulfill()
+                return
+            }
+            withObservationTracking { _ = condition() } onChange: {
+                Task { @MainActor in observe() }
+            }
+        }
+        observe()
+        await fulfillment(of: [ready], timeout: 2)
+    }
+
+    @MainActor
     func confirmAccountChange(
         _ confirmation: FreshAccountConfirmationViewModel,
         operation: @escaping @MainActor () async -> Void
     ) async {
         let owner = confirmation.generation
         let operationTask = Task { await operation() }
-        let ready = expectation(for: NSPredicate { _, _ in
-            MainActor
-                .assumeIsolated {
-                    confirmation.generation != owner && confirmation.isPresented && confirmation.methods != nil
-                }
-        }, evaluatedWith: nil)
-        await fulfillment(of: [ready], timeout: 2)
+        await waitForAccountConfirmationState {
+            confirmation.generation != owner && confirmation.isPresented && confirmation.methods != nil
+        }
         guard confirmation.generation != owner, confirmation.isPresented, confirmation.methods != nil else {
             confirmation.cancel()
             operationTask.cancel()

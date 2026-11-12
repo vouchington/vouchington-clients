@@ -44,11 +44,7 @@ extension FreshAccountConfirmationTests {
         XCTAssertTrue(try broker.handleIncomingURL(XCTUnwrap(URL(
             string: "voucha://auth/oauth/callback?flow_id=broker-flow&completion_token=completion"
         ))))
-        let ready = expectation(
-            for: NSPredicate { _, _ in MainActor.assumeIsolated { broker.result != nil } },
-            evaluatedWith: nil
-        )
-        await fulfillment(of: [ready], timeout: 2)
+        await waitForAccountConfirmationState { broker.result != nil }
         await fixture.model.consumeBrokerResult(broker.result)
         let token = try await waiting.value
         XCTAssertEqual(token, "broker-proof")
@@ -100,11 +96,7 @@ extension FreshAccountConfirmationTests {
             )
         ]
         let waiting = Task { try await fixture.model.authorize() }
-        let ready = expectation(
-            for: NSPredicate { _, _ in MainActor.assumeIsolated { fixture.model.passkeys.count == 1 } },
-            evaluatedWith: nil
-        )
-        await fulfillment(of: [ready], timeout: 2)
+        await waitForAccountConfirmationState { fixture.model.passkeys.count == 1 }
         await fixture.model.loadMorePasskeys()
         XCTAssertEqual(fixture.model.passkeys.map(\.id), ["key-1", "key-2"])
         let url = try XCTUnwrap(CannedFeedURLProtocol.capturedURLs.last)

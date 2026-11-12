@@ -153,11 +153,7 @@ final class FreshAccountConfirmationTests: XCTestCase {
     }
 
     func waitForMethods(_ model: FreshAccountConfirmationViewModel) async {
-        let ready = expectation(
-            for: NSPredicate { _, _ in MainActor.assumeIsolated { model.methods != nil } },
-            evaluatedWith: nil
-        )
-        await fulfillment(of: [ready], timeout: 2)
+        await waitForAccountConfirmationState { model.methods != nil }
     }
 
     func makeFixture(google: (any FreshProviderAssertion)? = nil, brokerEnabled: Bool = false) throws
