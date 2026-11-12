@@ -1,6 +1,4 @@
 import SwiftUI
-import VouchaAuth
-import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -22,16 +20,6 @@ struct NativeDetailSurface: View {
     var showingReportNoteDialog = false
     @State
     var showingUserTags = false
-
-    var turnstileChallenge: NativeTurnstileChallengeView {
-        NativeTurnstileChallengeView(
-            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-            action: .reportsCreate,
-            baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
-        ) { token in
-            handleReportTurnstileToken(token)
-        }
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {

@@ -313,17 +313,17 @@ import XCTest
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.null, schema: authoritative))
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.string("other"), schema: authoritative))
             let projected = try NativeChatFoundationModelsSchema.projectWithProperty(raw)
-            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(
-                with: JSONEncoder().encode(projected)
-            ) as? [String: Any])
-            let properties = try XCTUnwrap(encoded["properties"] as? [String: Any])
-            let value = try XCTUnwrap(properties["value"] as? [String: Any])
-            let reference = try XCTUnwrap(value["$ref"] as? String)
-            let definitions = try XCTUnwrap(encoded["$defs"] as? [String: [String: Any]])
-            let choice = try XCTUnwrap(definitions[String(reference.dropFirst(8))])
-            let choices = try XCTUnwrap(choice["anyOf"] as? [[String: Any]])
-            XCTAssertEqual(choices.count, 1)
-            XCTAssertEqual(choices[0]["enum"] as? [String], ["active"])
+            let projectedSchema = try JSONDecoder().decode(
+                DecodedJSONValue.self, from: JSONEncoder().encode(projected)
+            )
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["value": .string("active")]), schema: projectedSchema
+            ))
+            for rejected in [DecodedJSONValue.null, .string("other"), .integer(7)] {
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                    .object(["value": rejected]), schema: projectedSchema
+                ))
+            }
             XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(Data(
                 #"{"type":"string","enum":[null,7]}"#.utf8
             )))

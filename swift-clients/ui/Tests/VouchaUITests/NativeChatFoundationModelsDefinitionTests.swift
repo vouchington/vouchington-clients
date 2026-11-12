@@ -41,11 +41,21 @@ import XCTest
             XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object([
                 "value": .object(["next": .string("other")])
             ]), schema: authoritative))
+            let fields = try NativeChatFoundationModelsSchema.projectionFields(from: raw)
+            let definitions = try XCTUnwrap(fields["$defs"] as? [String: [String: Any]])
+            XCTAssertEqual(try NativeChatFoundationModelsSchema.Projection().reachableDefinitions(
+                in: fields, definitions: definitions
+            ), ["First", "Second"])
             let projected = try NativeChatFoundationModelsSchema.project(raw)
-            let encoded = try XCTUnwrap(String(data: JSONEncoder().encode(projected), encoding: .utf8))
-            XCTAssertTrue(encoded.contains("First"))
-            XCTAssertTrue(encoded.contains("Second"))
-            XCTAssertFalse(encoded.contains("Unused"))
+            let projectedSchema = try JSONDecoder().decode(
+                DecodedJSONValue.self, from: JSONEncoder().encode(projected)
+            )
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.object([
+                "value": .object(["next": .string("ready")])
+            ]), schema: projectedSchema))
+            XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.object([
+                "value": .object(["next": .string("other")])
+            ]), schema: projectedSchema))
         }
 
         func testMissingReachableDefinitionFailsClosedWithoutWalkingUnusedCycles() throws {
