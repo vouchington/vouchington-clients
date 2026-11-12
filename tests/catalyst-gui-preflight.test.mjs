@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
-import { fileURLToPath } from 'node:url'
 import { notificationLocalizationFile } from '../scripts/catalyst-notification-app-evidence.mjs'
 import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
@@ -131,8 +138,22 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(job, /timeout-minutes: 1\n/u)
   })
 
-  it('stages the shared identity and email-preferences fixtures', () => {
+  it('stages producer fixtures with generated client localization', t => {
     const root = mkdtempSync(join(tmpdir(), 'catalyst-fixture-'))
+    t.after(() => rmSync(root, { recursive: true, force: true }))
+    const consumer = join(root, 'consumer')
+    cpSync(
+      new URL('../dotnet-clients/tooling/', import.meta.url),
+      join(consumer, 'dotnet-clients/tooling'),
+      { recursive: true },
+    )
+    mkdirSync(join(consumer, 'scripts'), { recursive: true })
+    for (const file of [
+      'catalyst-notification-evidence.mjs',
+      'catalyst-notification-app-evidence.mjs',
+    ]) {
+      cpSync(new URL(`../scripts/${file}`, import.meta.url), join(consumer, 'scripts', file))
+    }
     const fixtureRoot = join(root, 'api-fixtures', 'v1')
     mkdirSync(join(fixtureRoot, 'responses'), { recursive: true })
     writeFileSync(join(fixtureRoot, 'responses', 'swift.my.identity.default.json'), '{}\n')
@@ -158,18 +179,18 @@ describe('Mac Catalyst GUI preflight', () => {
       join(fixtureRoot, 'manifest.json'),
       JSON.stringify({ fixtures: [identityFixture, emailFixture] }),
     )
-    const script = fileURLToPath(
-      new URL('../dotnet-clients/tooling/catalyst-gui-preflight.mjs', import.meta.url),
-    )
+    const script = join(consumer, 'dotnet-clients/tooling/catalyst-gui-preflight.mjs')
     execFileSync(process.execPath, [script, '--check-fixture'], {
       env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
     })
-    const resource = join(root, notificationLocalizationFile)
+    assert.equal(existsSync(join(root, notificationLocalizationFile)), false)
+    const resource = join(consumer, notificationLocalizationFile)
     mkdirSync(join(resource, '..'), { recursive: true })
-    writeFileSync(resource, '<root/>')
+    writeFileSync(resource, '<root>generated client localization</root>')
     const staged = join(root, 'staged')
     execFileSync(process.execPath, [script, '--stage-fixture', staged], {
       env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
+      cwd: root,
     })
     assert.equal(
       existsSync(join(staged, 'api-fixtures', 'v1', 'responses', 'swift.my.identity.default.json')),
@@ -181,7 +202,26 @@ describe('Mac Catalyst GUI preflight', () => {
       ),
       true,
     )
-    assert.equal(readFileSync(join(staged, notificationLocalizationFile), 'utf8'), '<root/>')
+    assert.equal(
+      readFileSync(join(staged, notificationLocalizationFile), 'utf8'),
+      '<root>generated client localization</root>',
+    )
+    rmSync(resource)
+    const producerResource = join(root, notificationLocalizationFile)
+    mkdirSync(join(producerResource, '..'), { recursive: true })
+    writeFileSync(producerResource, '<root>wrong producer resource</root>')
+    assert.throws(
+      () =>
+        execFileSync(
+          process.execPath,
+          [script, '--stage-fixture', join(root, 'missing-client-resource')],
+          {
+            env: { ...process.env, VOUCHA_CONTRACT_ROOT: root },
+            stdio: 'pipe',
+          },
+        ),
+      /ENOENT/u,
+    )
     writeFileSync(
       join(fixtureRoot, 'manifest.json'),
       JSON.stringify({ fixtures: [identityFixture] }),

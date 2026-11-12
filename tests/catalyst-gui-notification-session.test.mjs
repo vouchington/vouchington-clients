@@ -59,19 +59,36 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
       fixture.moderation_email_time_of_day = saved
       const session = nativeSession({}, { preferences: fixture })
       await session.run()
-      const patches = session.evidence.patches.filter(patch => patch.fields.includes('moderation_email_time_of_day'))
+      const patches = session.evidence.patches.filter(patch =>
+        patch.fields.includes('moderation_email_time_of_day'),
+      )
       assert.equal(patches.length, 1)
       const hour = Number(saved.slice(0, 2))
-      assert.equal(patches[0].after.moderation_email_time_of_day, `${String(hour + (hour % 12 === 11 ? -1 : 1)).padStart(2, '0')}:37`)
-      assert.equal(session.calls.some(call => call.url.endsWith('/notification-time/click')), false)
-      assert.equal(session.calls.filter(call => call.body?.args?.[0]?.elementId === 'time-hour').length, 1)
+      assert.equal(
+        patches[0].after.moderation_email_time_of_day,
+        `${String(hour + (hour % 12 === 11 ? -1 : 1)).padStart(2, '0')}:37`,
+      )
+      assert.equal(
+        session.calls.some(call => call.url.endsWith('/notification-time/click')),
+        false,
+      )
+      assert.equal(
+        session.calls.filter(call => call.body?.args?.[0]?.elementId === 'time-hour').length,
+        1,
+      )
     })
   }
   it('does not proceed to timezone when time editing produces no persisted PATCH', async () => {
     const session = nativeSession({ noTimePatch: true })
     await assert.rejects(session.run(), /time persisted PATCH did not settle/u)
-    assert.equal(session.calls.some(call => call.url.endsWith('/notification-timezone/click')), false)
-    assert.equal(session.evidence.patches.some(patch => patch.fields.includes('moderation_email_time_of_day')), false)
+    assert.equal(
+      session.calls.some(call => call.url.endsWith('/notification-timezone/click')),
+      false,
+    )
+    assert.equal(
+      session.evidence.patches.some(patch => patch.fields.includes('moderation_email_time_of_day')),
+      false,
+    )
   })
   it('retries only a transient missing native element during initial load', async () => {
     const session = nativeSession({ missingOnce: true })

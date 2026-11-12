@@ -76,7 +76,7 @@ function stageFixture(destination) {
   }
   const localized = join(destination, notificationLocalizationFile)
   mkdirSync(dirname(localized), { recursive: true })
-  copyFileSync(join(root, notificationLocalizationFile), localized)
+  copyFileSync(new URL(`../../${notificationLocalizationFile}`, import.meta.url), localized)
 }
 
 function appiumPrefix() {

@@ -92,8 +92,14 @@ export function nativeSession(fault = {}, fixture = {}) {
       if (command === 'elements' && id === 'notification-time') {
         assert.equal(body.using, 'xpath')
         assert.equal(body.value, './/XCUIElementTypeTextField')
-        if (fault.timeComponentsError) return { value: { error: 'unknown command', message: 'component query unavailable' } }
-        return { value: (fault.noTimeComponents ? [] : ['time-hour', 'time-minute', ...(fault.ambiguousHour ? ['time-hour-copy'] : [])]).map(ELEMENT => ({ ELEMENT })) }
+        if (fault.timeComponentsError)
+          return { value: { error: 'unknown command', message: 'component query unavailable' } }
+        return {
+          value: (fault.noTimeComponents
+            ? []
+            : ['time-hour', 'time-minute', ...(fault.ambiguousHour ? ['time-hour-copy'] : [])]
+          ).map(ELEMENT => ({ ELEMENT })),
+        }
       }
       if (command === 'displayed') {
         if (field === 'preferences-heading') return { value: notificationRouteVisible }
@@ -112,12 +118,32 @@ export function nativeSession(fault = {}, fixture = {}) {
         }
       }
       if (command === 'attribute/enabled') return { value: true }
-      if (command === 'attribute/label') return { value: id.startsWith('time-hour') ? 'Hour' : id === 'time-minute' ? 'Minute' : 'Notifications' }
+      if (command === 'attribute/label')
+        return {
+          value: id.startsWith('time-hour')
+            ? 'Hour'
+            : id === 'time-minute'
+              ? 'Minute'
+              : 'Notifications',
+        }
       if (command === 'attribute/amType')
-        return { value: id === 'notification-time' ? fault.timeType ?? 'XCUIElementTypeDatePicker' : fault.hourType ?? 'XCUIElementTypeTextField' }
+        return {
+          value:
+            id === 'notification-time'
+              ? (fault.timeType ?? 'XCUIElementTypeDatePicker')
+              : (fault.hourType ?? 'XCUIElementTypeTextField'),
+        }
       if (command === 'attribute/value') {
         const [hour, minute] = state.moderation_email_time_of_day.split(':')
-        return { value: id.startsWith('time-hour') ? String(Number(hour) % 12 || 12) : id === 'time-minute' ? minute : id === 'notification-time' ? `${Number(hour) % 12 || 12}:${minute} ${Number(hour) < 12 ? 'AM' : 'PM'}` : state[keys[field]] }
+        return {
+          value: id.startsWith('time-hour')
+            ? String(Number(hour) % 12 || 12)
+            : id === 'time-minute'
+              ? minute
+              : id === 'notification-time'
+                ? `${Number(hour) % 12 || 12}:${minute} ${Number(hour) < 12 ? 'AM' : 'PM'}`
+                : state[keys[field]],
+        }
       }
       if (command === 'click') {
         if (id === 'timezone-option') {
@@ -152,9 +178,14 @@ export function nativeSession(fault = {}, fixture = {}) {
           assert.equal(args.elementId, 'time-hour')
           assert.equal(args.keys.length, 2)
           assert.ok(['XCUIKeyboardKeyUpArrow', 'XCUIKeyboardKeyDownArrow'].includes(args.keys[0]))
-          if (fault.timeKeysError) return { value: { error: 'invalid element state', message: 'hour is not editable' } }
+          if (fault.timeKeysError)
+            return { value: { error: 'invalid element state', message: 'hour is not editable' } }
           const [hour, minute] = state.moderation_email_time_of_day.split(':')
-          if (!fault.noTimePatch) persist('moderation_email_time_of_day', `${String(Number(hour) + (args.keys[0] === 'XCUIKeyboardKeyUpArrow' ? 1 : -1)).padStart(2, '0')}:${minute}`)
+          if (!fault.noTimePatch)
+            persist(
+              'moderation_email_time_of_day',
+              `${String(Number(hour) + (args.keys[0] === 'XCUIKeyboardKeyUpArrow' ? 1 : -1)).padStart(2, '0')}:${minute}`,
+            )
         } else {
           const values = options[focused]
           let index = values.indexOf(state[keys[focused]])
