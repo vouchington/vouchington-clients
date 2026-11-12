@@ -77,22 +77,28 @@ export function nativeSession(fault = {}, fixture = {}) {
       assert.equal(body.using, 'accessibility id')
       return { value: { 'element-6066-11e4-a52e-4f735466cecf': body.value } }
     }
-    if (path === '/elements' && body.using === 'xpath') {
-      assert.ok(
-        [
-          '//*[self::XCUIElementTypeSheet or self::XCUIElementTypeAlert][.//XCUIElementTypePickerWheel]',
-          '//XCUIElementTypePickerWheel',
-        ].includes(body.value),
-        'options are not clickable menu elements',
+    if (body?.using === 'xpath') assert.fail('recursive XPath snapshots are forbidden')
+    if (path === '/elements' && ['class name', 'predicate string'].includes(body.using)) {
+      const isWheel = body.using === 'class name'
+      assert.equal(
+        body.value,
+        isWheel
+          ? 'XCUIElementTypePickerWheel'
+          : "amType == 'XCUIElementTypeButton' AND label == 'Done'",
       )
+      if (!picker) return { value: [] }
+      if (fault.pickerQueryError === picker.field)
+        return { value: { error: 'unknown command', message: 'picker query unavailable' } }
+      const missing = isWheel ? fault.noWheel : fault.noDone
+      const ambiguous = isWheel ? fault.ambiguousWheel : fault.ambiguousDone
+      const id = isWheel ? 'picker-wheel' : 'picker-done'
       return {
-        value: picker
-          ? [
-              {
-                ELEMENT: `${body.value.startsWith('//*[') ? 'picker-sheet' : 'picker-wheel'}-${pickerGeneration}`,
-              },
-            ]
-          : [],
+        value:
+          missing === picker.field
+            ? []
+            : [id, ...(ambiguous === picker.field ? [id + '-copy'] : [])].map(id => ({
+                ELEMENT: `${id}-${pickerGeneration}`,
+              })),
       }
     }
     if (path === '/elements') {
@@ -115,28 +121,11 @@ export function nativeSession(fault = {}, fixture = {}) {
       }
       const field = id.replace('notification-', '')
       const command = match[2]
-      if (command === 'elements' && id === 'picker-sheet') {
-        assert.ok(picker, 'action sheet must be open')
-        assert.equal(body.using, 'xpath')
-        const isWheel = body.value === './/XCUIElementTypePickerWheel'
-        assert.ok(isWheel || body.value === './/XCUIElementTypeButton[@label="Done"]')
-        if (fault.pickerQueryError === picker.field)
-          return { value: { error: 'unknown command', message: 'picker query unavailable' } }
-        const missing = isWheel ? fault.noWheel : fault.noDone
-        const ambiguous = isWheel ? fault.ambiguousWheel : fault.ambiguousDone
-        const id = isWheel ? 'picker-wheel' : 'picker-done'
-        return {
-          value:
-            missing === picker.field
-              ? []
-              : [id, ...(ambiguous === picker.field ? [id + '-copy'] : [])].map(id => ({
-                  ELEMENT: `${id}-${pickerGeneration}`,
-                })),
-        }
-      }
+      if (command === 'elements' && id.startsWith('picker-'))
+        assert.fail('sheet-scoped lookup can retry stale identity for minutes')
       if (command === 'elements' && id === 'notification-time') {
-        assert.equal(body.using, 'xpath')
-        assert.equal(body.value, './/XCUIElementTypeTextField')
+        assert.equal(body.using, 'class name')
+        assert.equal(body.value, 'XCUIElementTypeTextField')
         if (fault.timeComponentsError)
           return { value: { error: 'unknown command', message: 'component query unavailable' } }
         return {

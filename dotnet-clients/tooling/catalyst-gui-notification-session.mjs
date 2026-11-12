@@ -21,14 +21,17 @@ export async function assertNotificationControls(request, sessionId, options = {
   const now = options.now ?? Date.now
   const sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)))
   const deadline = now() + (options.timeoutMs ?? 140_000)
+  const assertDeadline = () => {
+    if (now() >= deadline) throw new Error('notification session exceeded its shared deadline')
+  }
   const checks = []
   const passed = name => checks.push({ name, status: 'passed' })
   const command = async (method, path, body) => {
-    if (now() >= deadline) throw new Error('notification session exceeded its shared deadline')
+    assertDeadline()
     const response = await request(method, `/session/${sessionId}${path}`, body, {
       signal: AbortSignal.timeout(Math.max(1, Math.ceil(deadline - now()))),
     })
-    if (now() >= deadline) throw new Error('notification session exceeded its shared deadline')
+    assertDeadline()
     if (response?.value?.error) throw new Error(`Mac2 ${response.value.error}: ${response.value.message ?? path}`)
     return response?.value
   }
@@ -67,7 +70,9 @@ export async function assertNotificationControls(request, sessionId, options = {
   const click = element => command('POST', path(element, 'click'), {})
   const execute = (script, args) => command('POST', '/execute/sync', { script: `macos: ${script}`, args: [args] })
   const report = async () => {
+    assertDeadline()
     const value = await options.readEvidence()
+    assertDeadline()
     assert.equal(value?.schemaVersion, 1, 'unsupported notification app report')
     assert.ok(value.initialPreferences && Array.isArray(value.patches), 'missing notification app report data')
     return value
@@ -102,50 +107,39 @@ export async function assertNotificationControls(request, sessionId, options = {
   // MAUI 10.0.20 PickerHandler.iOS.cs presents UIPickerView in an action
   // sheet on Catalyst. Its Done action commits the selected row. Mac2's
   // setValue types text; scroll the wheel and confirm through the saved control.
-  const one = async (parent, xpath, description) => {
-    const values = await command('POST', parent ? path(parent, 'elements') : '/elements', { using: 'xpath', value: xpath })
-    assert.ok(Array.isArray(values), `${description} query must return an array`)
-    const shown = []
-    for (const value of values) {
-      const element = value['element-6066-11e4-a52e-4f735466cecf'] ?? value.ELEMENT
-      assert.ok(typeof element === 'string' && element.length > 0, `invalid ${description} reference`)
-      if (truth(await visible(element))) shown.push(element)
-    }
-    assert.equal(shown.length, 1, `${description} must expose exactly one native element`)
-    assert.equal(truth(await attr(shown[0], 'enabled')), true, `${description} was disabled`)
-    return shown[0]
+  const wheels = async () => {
+    const values = await command('POST', '/elements', { using: 'class name', value: 'XCUIElementTypePickerWheel' })
+    assert.ok(Array.isArray(values), 'picker wheel query must return an array')
+    assert.ok(values.length <= 1, 'picker wheel must expose exactly one native element')
+    return values
   }
-  const pickerSheets = async () => {
-    const values = await command('POST', '/elements', { using: 'xpath', value: '//*[self::XCUIElementTypeSheet or self::XCUIElementTypeAlert][.//XCUIElementTypePickerWheel]' })
-    assert.ok(Array.isArray(values), 'picker action sheet query must return an array')
-    assert.ok(values.length <= 1, 'picker must expose exactly one action sheet')
-    return values.map(value => value['element-6066-11e4-a52e-4f735466cecf'] ?? value.ELEMENT)
+  const one = async (values, description) => {
+    assert.ok(Array.isArray(values), `${description} query must return an array`)
+    assert.equal(values.length, 1, `${description} must expose exactly one native element`)
+    const element = values[0]['element-6066-11e4-a52e-4f735466cecf'] ?? values[0].ELEMENT
+    assert.ok(typeof element === 'string' && element.length > 0, `invalid ${description} reference`)
+    assert.equal(truth(await visible(element)), true, `${description} was not visible`)
+    assert.equal(truth(await attr(element, 'enabled')), true, `${description} was disabled`)
+    return element
   }
   const pick = async (field, steps) => {
     const id = `notification-${field === 'news' || field === 'community' ? `${field}-digest` : field}`
     const control = await ready(id)
     const before = await attr(control, 'value')
     await click(control)
-    await poll('native picker action sheet', pickerSheets, sheets => sheets.length === 1)
+    let current = await poll('native picker wheel', wheels, values => values.length === 1)
     for (let step = 0; step < Math.abs(steps); step += 1) {
-      // A wheel adjustment can replace the sheet and every child identity.
-      // Never retain these references across a gesture (including Done).
-      const sheets = await pickerSheets()
-      assert.equal(sheets.length, 1, 'picker dismissed before all adjustments completed')
-      const wheel = await one(sheets[0], './/XCUIElementTypePickerWheel', 'picker wheel')
-      assert.equal(await attr(wheel, 'amType'), 'XCUIElementTypePickerWheel', 'unsupported native picker control')
-      // Mac2 setValue types text, and keyboard input can resign the Catalyst
-      // picker. Scroll the native wheel instead, one row per gesture.
+      // Native locators avoid XPath's XML snapshot and stale Sheet ancestor
+      // resolution. Carry only the fresh post-gesture wheel into the next turn.
+      const wheel = await one(current, 'picker wheel')
       await execute('scroll', { elementId: wheel, deltaX: 0, deltaY: steps > 0 ? -32 : 32 })
-      const refreshed = await pickerSheets()
-      if (refreshed.length) await one(refreshed[0], './/XCUIElementTypePickerWheel', 'picker wheel')
+      current = await wheels()
     }
-    const sheets = await pickerSheets()
-    if (sheets.length) await click(await one(sheets[0], './/XCUIElementTypeButton[@label="Done"]', 'picker Done button'))
-    await poll('picker dismissal', () => command('POST', '/elements', { using: 'xpath', value: '//XCUIElementTypePickerWheel' }), values => {
-      assert.ok(Array.isArray(values), 'picker dismissal query must return an array')
-      return values.length === 0
-    })
+    if (current.length) {
+      const done = await command('POST', '/elements', { using: 'predicate string', value: "amType == 'XCUIElementTypeButton' AND label == 'Done'" })
+      await click(await one(done, 'picker Done button'))
+    }
+    await poll('picker dismissal', wheels, values => values.length === 0)
     // The selected control survives dismissal; the wheel does not. Re-query
     // even this control because a persisted update can replace its identity.
     const value = await poll(`${field} selected control`, async () => {
@@ -233,7 +227,7 @@ export async function assertNotificationControls(request, sessionId, options = {
   const type = await attr(time, 'amType')
   assert.equal(type, 'XCUIElementTypeDatePicker', `unsupported native time control ${String(type)}`)
   const components = await command('POST', path(time, 'elements'), {
-    using: 'xpath', value: './/XCUIElementTypeTextField',
+    using: 'class name', value: 'XCUIElementTypeTextField',
   })
   assert.ok(Array.isArray(components), 'Mac2 time components response must be an array')
   const hours = []
@@ -278,8 +272,11 @@ export async function assertNotificationControls(request, sessionId, options = {
   assert.equal(activated.activations.length, initial.activations.length + 1, 'deep link must activate the canonical route exactly once')
   assertDispatches(activated)
   await sleep(250)
-  assertDispatches(await report())
-  assert.equal((await report()).patches.length, patchCount, 'route activation unexpectedly mutated preferences')
+  assertDeadline()
+  const final = await report()
+  assertDispatches(final)
+  assert.equal(final.patches.length, patchCount, 'route activation unexpectedly mutated preferences')
+  assertDeadline()
   passed('canonical-route-focus-and-announcement-dispatched')
   return checks
 }

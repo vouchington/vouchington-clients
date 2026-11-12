@@ -79,9 +79,19 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
     )
     const wheels = originalCalls.filter(
       call =>
-        call.url.endsWith('/elements') && call.body?.value === './/XCUIElementTypePickerWheel',
+        call.url.endsWith('/elements') &&
+        call.body?.using === 'class name' &&
+        call.body?.value === 'XCUIElementTypePickerWheel',
     )
-    assert.ok(wheels.length >= adjustments.length * 2, 're-query after every adjustment')
+    assert.equal(
+      wheels.length,
+      adjustments.length * 3,
+      'one opening, one post-scroll, one dismissal query per picker',
+    )
+    assert.equal(
+      originalCalls.some(call => call.body?.using === 'xpath'),
+      false,
+    )
   })
   for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
     it(`verifies ${field} through the selected control and PATCH when adjustment dismisses its sheet`, async () => {
@@ -91,10 +101,9 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
   }
   for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
     for (const [fault, message] of [
-      ['noWheel', /picker wheel must expose exactly one/u],
+      ['noWheel', /native picker wheel did not settle/u],
       ['ambiguousWheel', /picker wheel must expose exactly one/u],
       ['disabledWheel', /picker wheel was disabled/u],
-      ['wheelType', /unsupported native picker control/u],
       ['emptyWheel', /selected control did not settle/u],
       ['stuckWheel', /selected control did not settle/u],
       ['wheelKeysError', /Mac2 invalid element state/u],
@@ -257,3 +266,29 @@ it('refuses to absorb any startup PATCH for a fixture with saved preferences', a
   await assert.rejects(session.run(), /load must not mutate saved preferences/u)
   assert.equal(session.calls.filter(call => call.url.endsWith('/click')).length, 0)
 })
+
+for (const phase of ['observation', 'final report']) {
+  it(`rejects success when the ${phase} crosses the shared deadline`, async () => {
+    const session = nativeSession()
+    let clock = 0
+    let observing = false
+    await assert.rejects(
+      session.run({
+        timeoutMs: 500,
+        now: () => clock,
+        sleep: async ms => {
+          if (ms === 250 && session.evidence.activations.length === 2) {
+            observing = true
+            if (phase === 'observation') clock = 501
+          }
+        },
+        readEvidence: async () => {
+          if (observing && phase === 'final report') clock = 501
+          return structuredClone(session.evidence)
+        },
+      }),
+      /shared deadline/u,
+    )
+    assert.equal(observing, true)
+  })
+}
