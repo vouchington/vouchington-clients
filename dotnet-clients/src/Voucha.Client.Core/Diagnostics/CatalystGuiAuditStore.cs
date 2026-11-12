@@ -28,12 +28,16 @@ public sealed class CatalystGuiAuditStore
   public static CatalystGuiAuditStore? Create(bool fixtureMode, string? resultPath, JsonObject preferences)
   {
     if (!fixtureMode || string.IsNullOrEmpty(resultPath)) return null;
+    ArgumentNullException.ThrowIfNull(preferences);
     if (!Path.IsPathFullyQualified(resultPath)) throw new ArgumentException("An absolute GUI result path is required.", nameof(resultPath));
     return new CatalystGuiAuditStore(resultPath + ".app.json", preferences);
   }
 
   public void Patch(JsonObject patch, JsonObject before, JsonObject after)
   {
+    ArgumentNullException.ThrowIfNull(patch);
+    ArgumentNullException.ThrowIfNull(before);
+    ArgumentNullException.ThrowIfNull(after);
     lock (gate)
     {
       var fields = new JsonArray();
@@ -60,6 +64,7 @@ public sealed class CatalystGuiAuditStore
 
   public void Activate(string canonicalPath)
   {
+    ArgumentNullException.ThrowIfNull(canonicalPath);
     lock (gate)
     {
       activationId++;
@@ -74,6 +79,7 @@ public sealed class CatalystGuiAuditStore
 
   public void Dispatch(JsonObject entry)
   {
+    ArgumentNullException.ThrowIfNull(entry);
     lock (gate)
     {
       entry["activationId"] = activationId;

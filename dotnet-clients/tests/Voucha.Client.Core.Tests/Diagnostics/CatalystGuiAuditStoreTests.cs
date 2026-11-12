@@ -77,6 +77,45 @@ public sealed class CatalystGuiAuditStoreTests : IDisposable
   }
 
   [Fact]
+  public void MissingInitialPreferencesDoesNotCreateReport()
+  {
+    var error = Assert.Throws<ArgumentNullException>(() => CatalystGuiAuditStore.Create(true, ResultPath, null!));
+    Assert.Equal("preferences", error.ParamName);
+    Assert.Empty(Directory.GetFiles(directory));
+  }
+
+  [Theory]
+  [InlineData("patch")]
+  [InlineData("before")]
+  [InlineData("after")]
+  [InlineData("canonicalPath")]
+  [InlineData("entry")]
+  public void NullMutationInputsDoNotChangeReport(string parameter)
+  {
+    var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
+    var original = File.ReadAllText(AuditPath);
+    var error = Assert.Throws<ArgumentNullException>(() =>
+    {
+      switch (parameter)
+      {
+        case "patch": store.Patch(null!, new JsonObject(), new JsonObject()); break;
+        case "before": store.Patch(new JsonObject(), null!, new JsonObject()); break;
+        case "after": store.Patch(new JsonObject(), new JsonObject(), null!); break;
+        case "canonicalPath": store.Activate(null!); break;
+        case "entry": store.Dispatch(null!); break;
+      }
+    });
+    Assert.Equal(parameter, error.ParamName);
+    Assert.Equal(original, File.ReadAllText(AuditPath));
+    Assert.False(File.Exists(AuditPath + ".tmp"));
+    store.Activate("/valid");
+    var report = Report();
+    Assert.Equal(1, Assert.Single(report["activations"]!.AsArray())!["activationId"]!.GetValue<int>());
+    Assert.Empty(report["patches"]!.AsArray());
+    Assert.Empty(report["accessibilityDispatches"]!.AsArray());
+  }
+
+  [Fact]
   public void FailedPatchIsRemovedBeforeNextSuccessfulWrite()
   {
     var store = CatalystGuiAuditStore.Create(true, ResultPath, new JsonObject())!;
