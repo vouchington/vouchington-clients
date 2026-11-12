@@ -41,9 +41,13 @@ function stageFixture(destination) {
 }
 
 async function session() {
-  const budget = createDeadline(authNewsBudgetMs)
+  let currentRequest
+  const describeRequest = () => currentRequest
+    ? ` during ${currentRequest.method} ${currentRequest.path} (cap ${currentRequest.cap}ms, elapsed ${Math.max(0, Math.round(performance.now() - currentRequest.started))}ms)`
+    : ''
+  const budget = createDeadline(authNewsBudgetMs, undefined, describeRequest)
   let cleanupBudget
-  const cleanup = () => cleanupBudget ??= createDeadline(authNewsCleanupMs)
+  const cleanup = () => cleanupBudget ??= createDeadline(authNewsCleanupMs, undefined, describeRequest)
   const resultPath = process.env.CATALYST_FLOWS_RESULT
   if (resultPath) rmSync(resultPath, { force: true })
   const prefix = process.env.CATALYST_APPIUM_PREFIX
@@ -71,12 +75,27 @@ async function session() {
   })
   const sessionStartupTimeout = 100_000
   async function request(method, path, body, timeout = 10_000, deadline = budget) {
-    const response = await fetch(`http://127.0.0.1:4727${path}`, { method, signal: AbortSignal.any([deadline.signal, AbortSignal.timeout(deadline.remaining(timeout))]),
-      ...(body ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {}) })
-    const payload = await response.json()
-    if (!response.ok || payload.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(payload).slice(0, 500)}`)
-    return payload
+    const context = { method, path, cap: deadline.remaining(timeout), started: performance.now() }
+    currentRequest = context
+    const requestTimeout = AbortSignal.timeout(context.cap)
+    try {
+      const response = await fetch(`http://127.0.0.1:4727${path}`, { method, signal: AbortSignal.any([deadline.signal, requestTimeout]),
+        ...(body ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {}) })
+      const payload = await response.json()
+      // Preserve a late successful session id so the caller can delete the acquired session.
+      if (method !== 'POST' || path !== '/session') deadline.remaining()
+      if (!response.ok || payload.value?.error) throw new Error(`HTTP ${response.status}: ${JSON.stringify(payload).slice(0, 500)}`)
+      return payload
+    } catch (error) {
+      const scope = deadline === budget ? 'overall' : 'cleanup'
+      const kind = deadline.signal.aborted || /overall deadline exceeded/u.test(String(error)) || (requestTimeout.aborted && context.cap < timeout)
+        ? `${scope} deadline exceeded` : requestTimeout.aborted ? 'request timeout' : 'request failed'
+      throw new Error(`${kind}${describeRequest()}: ${error instanceof Error ? error.message : error}`, { cause: error })
+    } finally {
+      if (currentRequest === context) currentRequest = undefined
+    }
   }
+
   try {
     checks = await budget.run(async () => {
     const deadline = Date.now() + 20_000

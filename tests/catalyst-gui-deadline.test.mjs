@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import {
   authNewsBudgetMs,
   authNewsCleanupMs,
+  authNewsTypingMs,
   createDeadline,
 } from '../dotnet-clients/tooling/catalyst-gui-deadline.mjs'
 import { assertAuthNewsControls } from '../dotnet-clients/tooling/catalyst-gui-auth-news-session.mjs'
@@ -23,6 +24,21 @@ describe('Catalyst auth/news shared deadline', () => {
     const cleanup = createDeadline(authNewsCleanupMs, () => now)
     assert.equal(cleanup.remaining(), 10_000)
     assert.ok(authNewsBudgetMs + authNewsCleanupMs < 180_000)
+  })
+
+  it('clips the typing cap to shared time remaining and includes in-flight deadline context', async () => {
+    let now = 0
+    const budget = createDeadline(authNewsBudgetMs, () => now)
+    assert.equal(authNewsTypingMs, 30_000)
+    assert.equal(budget.remaining(authNewsTypingMs), 30_000)
+    now = 125_000
+    assert.equal(budget.remaining(authNewsTypingMs), 25_000)
+    await assert.rejects(
+      createDeadline(5, undefined, () => ' during POST /element/email/value (cap 5ms)').run(
+        () => new Promise(() => {}),
+      ),
+      /overall deadline exceeded during POST \/element\/email\/value \(cap 5ms\)/u,
+    )
   })
 
   it('rejects a stuck operation with its overall watchdog', async () => {

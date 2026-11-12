@@ -1,4 +1,4 @@
-import { authNewsBudgetMs, createDeadline } from './catalyst-gui-deadline.mjs'
+import { authNewsBudgetMs, authNewsTypingMs, createDeadline } from './catalyst-gui-deadline.mjs'
 
 export async function assertAuthNewsControls(request, sessionId, openNews, budget = createDeadline(authNewsBudgetMs)) {
   const checks = []
@@ -44,7 +44,7 @@ export async function assertAuthNewsControls(request, sessionId, openNews, budge
   async function enter(id, value) {
     const element = await find(id)
     await request('POST', path(element, 'click'), {})
-    await request('POST', path(element, 'value'), { text: value })
+    await request('POST', path(element, 'value'), { text: value }, authNewsTypingMs)
   }
   async function click(id) { await request('POST', path(await find(id), 'click'), {}) }
 

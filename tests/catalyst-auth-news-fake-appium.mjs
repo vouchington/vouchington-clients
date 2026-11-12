@@ -6,6 +6,7 @@ let requested = false
 let authenticated = false
 let expanded = false
 let delayedElement = false
+let delayedTyping = false
 const values = {}
 const log = value => appendFileSync(process.env.CATALYST_FAKE_LOG, `${JSON.stringify(value)}\n`)
 if (process.argv[2] === '--open') {
@@ -29,6 +30,18 @@ const server = createServer(async (req, res) => {
       if (!res.writableEnded) log({ elementRequestAborted: true })
     })
     await delay(10_500)
+  }
+  if (
+    req.url.endsWith('/value') &&
+    req.method === 'POST' &&
+    ['typing', 'typing-timeout'].includes(process.env.CATALYST_FAKE_DELAY) &&
+    !delayedTyping
+  ) {
+    delayedTyping = true
+    res.on('close', () => {
+      if (!res.writableEnded) log({ typingRequestAborted: true })
+    })
+    await delay(process.env.CATALYST_FAKE_DELAY === 'typing' ? 10_500 : 100)
   }
   let value = null
   let status = 200

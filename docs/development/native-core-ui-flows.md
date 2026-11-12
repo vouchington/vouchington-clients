@@ -50,7 +50,11 @@ Catalyst scenario has its own three-minute step inside the existing ten-minute j
 150-second deadline caps Appium readiness, Mac2 startup, every HTTP request, navigation, and UI polling.
 A separate ten-second budget covers diagnostics and teardown, leaving twenty seconds for fixture
 staging, ad-hoc signing, and step overhead. Mac2 startup retains a 100-second maximum and is shortened
-when needed to preserve HTTP response overhead. Local process readiness waits are bounded. Network-download retries do not rerun tests or turn failures into passes.
+when needed to preserve HTTP response overhead. Text entry has a 30-second request cap for Mac2
+accessibility lookup and input synthesis; other ordinary requests retain ten seconds. Both caps
+consume the same remaining deadline, and text entry is never retried. Accessibility source is
+requested only after failure, with its two-second cap inside the cleanup budget. Local process
+readiness waits are bounded. Network-download retries do not rerun tests or turn failures into passes.
 Failures retain existing Simulator summaries/logs or the Catalyst native accessibility tree and fail
 the required job. Manually rerunning a candidate is a new execution, not evidence that the first passed.
 

@@ -21,8 +21,8 @@ function backend({
   let requested = false
   const values = {}
   const calls = []
-  async function request(method, path, body) {
-    calls.push({ method, path, body })
+  async function request(method, path, body, timeout) {
+    calls.push({ method, path, body, timeout })
     if (path.endsWith('/element')) return { value: { ELEMENT: body.value } }
     const match = path.match(/\/element\/([^/]+)\/(.*)/u)
     assert.ok(match, `Unexpected request ${path}`)
@@ -94,6 +94,17 @@ describe('Catalyst auth/news Mac2 protocol assertions (not GUI execution)', () =
     assert.equal(
       fake.calls.filter(call => call.path.endsWith('/story-related-articles/click')).length,
       2,
+    )
+    assert.deepEqual(
+      fake.calls
+        .filter(call => call.method === 'POST' && call.path.endsWith('/value'))
+        .map(call => call.timeout),
+      [30_000, 30_000],
+    )
+    assert.ok(
+      fake.calls
+        .filter(call => !call.path.endsWith('/value') || call.method !== 'POST')
+        .every(call => call.timeout === undefined),
     )
     assert.ok(checks.every(check => check.status === 'passed'))
   })
@@ -263,6 +274,96 @@ describe('Catalyst auth/news CLI orchestration with a child fake (not GUI eviden
         ],
         100_000,
       )
+    })
+  })
+
+  it('allows one-shot text entry beyond ten seconds without fetching success diagnostics', async () => {
+    await cliFixture(async ({ result, log, env }) => {
+      await exec(process.execPath, [cli, '--session'], {
+        env: { ...env, CATALYST_FAKE_DELAY: 'typing' },
+        timeout: 30_000,
+      })
+      assert.equal(JSON.parse(readFileSync(result, 'utf8')).passed, 6)
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      const typing = calls.filter(call => call.method === 'POST' && call.path?.endsWith('/value'))
+      assert.equal(typing.length, 2)
+      assert.deepEqual(
+        typing.map(call => call.body.text),
+        ['fixture@example.test', 'ABCDEFGHJK'],
+      )
+      assert.ok(!calls.some(call => call.path?.endsWith('/source')))
+    })
+  })
+
+  it('rejects typing that exhausts the shared budget without retrying or writing evidence', async () => {
+    await cliFixture(async ({ root, result, log, env }) => {
+      const clock = join(root, 'elapsed-typing.mjs')
+      writeFileSync(
+        clock,
+        `
+        const realNow = performance.now.bind(performance)
+        let elapsed = 0
+        Object.defineProperty(performance, 'now', { value: () => realNow() + elapsed })
+        const realFetch = globalThis.fetch
+        globalThis.fetch = async (url, options) => {
+          const response = await realFetch(url, options)
+          if (url.endsWith('/value') && options.method === 'POST') elapsed = 150001
+          return response
+        }
+      `,
+      )
+      await assert.rejects(
+        exec(process.execPath, ['--import', clock, cli, '--session'], { env, timeout: 10_000 }),
+        /overall deadline exceeded during POST \/session\/fake-session\/element\/auth-email-address\/value \(cap 30000ms, elapsed [0-9]+ms\)/u,
+      )
+      assert.throws(() => readFileSync(result), /ENOENT/u)
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.equal(
+        calls.filter(call => call.method === 'POST' && call.path?.endsWith('/value')).length,
+        1,
+      )
+      assert.ok(calls.some(call => call.path?.endsWith('/source')))
+      assert.ok(calls.some(call => call.method === 'DELETE'))
+      assert.equal(calls.at(-1).stopped, true)
+    })
+  })
+
+  it('reports a scoped typing timeout separately from the overall deadline without retrying', async () => {
+    await cliFixture(async ({ root, result, log, env }) => {
+      const timer = join(root, 'typing-timeout.mjs')
+      writeFileSync(
+        timer,
+        `
+        const timeout = AbortSignal.timeout.bind(AbortSignal)
+        AbortSignal.timeout = ms => timeout(ms === 30000 ? 5 : ms)
+      `,
+      )
+      await assert.rejects(
+        exec(process.execPath, ['--import', timer, cli, '--session'], {
+          env: { ...env, CATALYST_FAKE_DELAY: 'typing-timeout' },
+          timeout: 10_000,
+        }),
+        /request timeout during POST \/session\/fake-session\/element\/auth-email-address\/value \(cap 30000ms, elapsed [0-9]+ms\)/u,
+      )
+      assert.throws(() => readFileSync(result), /ENOENT/u)
+      const calls = readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line))
+      assert.equal(
+        calls.filter(call => call.method === 'POST' && call.path?.endsWith('/value')).length,
+        1,
+      )
+      assert.ok(calls.some(call => call.typingRequestAborted === true))
+      assert.ok(calls.some(call => call.path?.endsWith('/source')))
+      assert.ok(calls.some(call => call.method === 'DELETE'))
+      assert.equal(calls.at(-1).stopped, true)
     })
   })
 
