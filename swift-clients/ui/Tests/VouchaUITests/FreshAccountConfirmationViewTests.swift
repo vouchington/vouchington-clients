@@ -1,6 +1,7 @@
 import SwiftUI
 import ViewInspector
 import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest

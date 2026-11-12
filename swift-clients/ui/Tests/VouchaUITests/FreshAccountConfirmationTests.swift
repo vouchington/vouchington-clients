@@ -18,7 +18,7 @@ final class FreshAccountConfirmationTests: XCTestCase {
         let fixture = try makeFixture()
         let mutation = Task {
             let proof = try await fixture.model.authorize()
-            let _: EmptyResponse = try await fixture.client.send(.disconnectBlueskyAccount(reAuthToken: proof))
+            let _: VouchaAuth.EmptyResponse = try await fixture.client.send(.disconnectBlueskyAccount(reAuthToken: proof))
         }
         await waitForMethods(fixture.model)
         XCTAssertFalse(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/auth/bluesky/link" })
