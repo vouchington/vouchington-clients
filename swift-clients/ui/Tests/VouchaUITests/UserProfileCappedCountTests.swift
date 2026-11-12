@@ -131,6 +131,7 @@ final class UserProfileCappedCountTests: NativeRouteSurfaceViewModelTestCase {
         }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(UserProfileResponse.self, from: JSONSerialization.data(withJSONObject: root))
     }
 
