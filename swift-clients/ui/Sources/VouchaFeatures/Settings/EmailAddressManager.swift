@@ -75,12 +75,18 @@ public struct EmailAddressManager: View {
                     text: $viewModel.verificationCode
                 )
                 .textFieldStyle(.roundedBorder)
+                #if os(iOS)
+                    .keyboardType(.asciiCapable)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .textContentType(.oneTimeCode)
+                #endif
                 HStack {
                     Button(UiMessages.string(.nativeSwiftCommonVerify, locale: nativeUiLocale)) {
                         Task { await viewModel.verify() }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.verificationCode.count != 8 || viewModel.isLoading)
+                    .disabled(!viewModel.canVerifyCode)
                     Button(UiMessages.string(.nativeSwiftSettingsUseAnotherAddress, locale: nativeUiLocale)) {
                         viewModel.startAnotherAddress()
                     }

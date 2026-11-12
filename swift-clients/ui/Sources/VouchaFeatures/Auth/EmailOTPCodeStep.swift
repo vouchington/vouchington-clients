@@ -19,13 +19,13 @@ struct EmailOTPCodeStep: View {
         #if os(iOS)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
-                    // The number pad covers the centered Verify Code button.
+                    // Keep verification accessible while the keyboard is visible.
                     Button {
                         Task { await viewModel.verifyCode() }
                     } label: {
                         Text(UiMessages.string(.nativeAuthVerifyCode, locale: locale))
                     }
-                    .disabled(viewModel.code.isEmpty || viewModel.isLoading)
+                    .disabled(!viewModel.canVerifyCode)
                 }
             }
         #endif
@@ -55,10 +55,12 @@ struct EmailOTPCodeStep: View {
 
     private var form: some View {
         VStack(spacing: Spacing.md) {
-            TextField(UiMessages.string(.nativeAuthCodePlaceholder, locale: locale), text: $viewModel.code)
+            TextField(UiMessages.string(.nativeAuthVerifyCode, locale: locale), text: $viewModel.code)
                 .textFieldStyle(.roundedBorder)
             #if os(iOS)
-                .keyboardType(.numberPad)
+                .keyboardType(.asciiCapable)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
                 .textContentType(.oneTimeCode)
             #endif
                 .submitLabel(.go)
@@ -82,7 +84,7 @@ struct EmailOTPCodeStep: View {
             .frame(maxWidth: .infinity)
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(viewModel.code.isEmpty || viewModel.isLoading)
+            .disabled(!viewModel.canVerifyCode)
 
             Button(UiMessages.string(.nativeAuthDifferentEmail, locale: locale)) {
                 viewModel.step = .enterEmail

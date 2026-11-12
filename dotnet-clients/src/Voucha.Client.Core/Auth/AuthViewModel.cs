@@ -57,7 +57,7 @@ public sealed partial class AuthViewModel : ObservableObject, IDisposable, IUiLo
   public string Code
   {
     get => code;
-    set => SetProperty(ref code, value);
+    set => SetProperty(ref code, EmailVerificationCode.Normalize(value));
   }
 
   public string TurnstileToken
@@ -129,20 +129,6 @@ public sealed partial class AuthViewModel : ObservableObject, IDisposable, IUiLo
           .RequestEmailOtpAsync(Email, TurnstileToken, UiLocale, cancellationToken)
           .ConfigureAwait(true);
       MarkEmailOtpRequested();
-    }).ConfigureAwait(true);
-  }
-
-  public async Task VerifyEmailOtpAsync(CancellationToken cancellationToken = default)
-  {
-    await RunAsync(async () =>
-    {
-      mfaChallenge = await authenticationService
-          .VerifyEmailOtpAsync(Email, Code, cancellationToken)
-          .ConfigureAwait(true);
-      StatusMessage = mfaChallenge is null
-          ? localization.Localize(UiMessageKey.NativeDotnetCsharpSignedIn)
-          : localization.Localize(UiMessageKey.NativeDotnetAuthMfaCodeRequired);
-      OnPropertyChanged(nameof(SessionLabel));
     }).ConfigureAwait(true);
   }
 

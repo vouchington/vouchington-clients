@@ -29,7 +29,7 @@
         <Entry Text="{Binding EmailAddress}" Placeholder="{DynamicResource native.auth.emailAddress}" Keyboard="Email" />
         <Button Text="{DynamicResource native.swift.settings.sendVerificationCode}" Clicked="OnRequestClicked" />
         <VerticalStackLayout Spacing="8" IsVisible="{Binding IsAwaitingVerification}">
-            <Entry Text="{Binding Otp}" Placeholder="{DynamicResource native.swift.settings.message8CharacterCode}" MaxLength="8" />
+            <Entry Text="{Binding Otp}" Placeholder="{DynamicResource native.swift.settings.message8CharacterCode}" />
             <Button Text="{DynamicResource native.dotnet.settings.verifyEmail}" Clicked="OnVerifyClicked" />
         </VerticalStackLayout>
         <Label Text="{Binding ErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />

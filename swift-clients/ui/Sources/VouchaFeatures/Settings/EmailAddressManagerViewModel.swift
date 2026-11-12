@@ -53,7 +53,13 @@ public final class EmailAddressManagerViewModel {
         }
     }
 
+    public var canVerifyCode: Bool {
+        EmailVerificationCode.normalized(verificationCode) != nil && !isLoading
+    }
+
     public func verify() async {
+        guard !isLoading, let normalized = EmailVerificationCode.normalized(verificationCode) else { return }
+        verificationCode = normalized
         await perform {
             let response: EmailAddressListResponse = try await client.send(
                 .verifyMyEmailAddress(emailAddress: emailAddress, token: verificationCode)

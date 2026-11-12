@@ -59,7 +59,7 @@ final class AndroidCookieAuthPersistenceTests: XCTestCase {
         account.email = "person@example.com"
         account.turnstileToken = "challenge-token"
         await account.requestOTP()
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         await account.verifyOTP()
         account.totp = "654321"
         XCTAssertNotNil(account.loginAttemptID)
@@ -101,7 +101,7 @@ final class AndroidCookieAuthPersistenceTests: XCTestCase {
         XCTAssertTrue(account.otpRequested)
 
         secrets.setWriteFailure(true)
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         await account.verifyOTP()
 
         XCTAssertNil(account.loginAttemptID)

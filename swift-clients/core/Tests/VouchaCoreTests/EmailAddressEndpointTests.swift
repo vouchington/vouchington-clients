@@ -13,10 +13,10 @@ final class EmailAddressEndpointTests: XCTestCase {
             body: ["email_address": " User@Example.com "]
         )
         assertEndpoint(
-            .verifyMyEmailAddress(emailAddress: "user+tag@example.com", token: "ABCD1234"),
+            .verifyMyEmailAddress(emailAddress: "user+tag@example.com", token: "ABCDEFGH23"),
             method: .POST,
             path: "/api/v1/my/email-addresses/user%2Btag%40example.com/verifications",
-            body: ["token": "ABCD1234"]
+            body: ["token": "ABCDEFGH23"]
         )
     }
 
@@ -29,11 +29,11 @@ final class EmailAddressEndpointTests: XCTestCase {
         )
         assertEndpoint(
             .verifyMyEmailAddress(
-                emailAddress: "user@example.com", token: "ABCD1234", reAuthToken: "fresh-auth"
+                emailAddress: "user@example.com", token: "ABCDEFGH23", reAuthToken: "fresh-auth"
             ),
             method: .POST,
             path: "/api/v1/my/email-addresses/user%40example.com/verifications",
-            body: ["token": "ABCD1234", "re_auth_token": "fresh-auth"]
+            body: ["token": "ABCDEFGH23", "re_auth_token": "fresh-auth"]
         )
     }
 

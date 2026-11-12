@@ -77,6 +77,48 @@ final class EmailOTPViewModelTests: XCTestCase {
         XCTAssertEqual(vm.step, .enterCode)
     }
 
+    func testMalformedEmailCodeNeverSendsARequest() async {
+        let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        vm.email = "alice@example.com"
+        vm.step = .enterCode
+        for code in ["123456", "ABCDEFGH01", "ABCDEFGH89", "ＡBCDEFGH23", "abcdefgh2 "] {
+            vm.code = code
+            XCTAssertFalse(vm.canVerifyCode, code)
+            await vm.verifyCode()
+        }
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
+        XCTAssertEqual(vm.step, .enterCode)
+        XCTAssertFalse(vm.didSucceed)
+    }
+
+    func testEmailVerificationFailuresStayEditableWithoutAutomaticRetry() async throws {
+        let path = "/api/v1/auth/email-address/login"
+        for (status, message) in [
+            (400, "Invalid code"),
+            (400, "Replaced code"),
+            (400, "Purpose mismatch"),
+            (429, "Quota exhausted")
+        ] {
+            CannedFeedURLProtocol.capturedURLs = []
+            CannedFeedURLProtocol.handlers[path] = try (
+                JSONSerialization.data(withJSONObject: ["message": message]), status
+            )
+            let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+            vm.email = "alice@example.com"
+            vm.code = "abcdefgh23"
+            vm.step = .enterCode
+
+            await vm.verifyCode()
+
+            XCTAssertEqual(vm.code, "ABCDEFGH23")
+            XCTAssertEqual(vm.step, .enterCode)
+            XCTAssertTrue(vm.canVerifyCode)
+            XCTAssertFalse(vm.didSucceed)
+            XCTAssertNotNil(vm.errorMessage)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [path])
+        }
+    }
+
     func testDefaultUiLocaleUsesPreferredUiLanguageRegionTags() {
         XCTAssertEqual(EmailOTPViewModel.defaultUiLocale(preferredLanguages: ["pt-BR"]), "pt")
     }

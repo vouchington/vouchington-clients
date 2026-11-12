@@ -19,7 +19,7 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest VerifyEmailAddress(string emailAddress, string token, string? reAuthToken = null) =>
       new(HttpMethod.Post, $"/api/v1/my/email-addresses/{Path(emailAddress)}/verifications")
       {
-        Body = new VerifyEmailAddressBody(token, reAuthToken),
+        Body = new VerifyEmailAddressBody(Auth.EmailVerificationCode.RequireValid(token), reAuthToken),
       };
 
   public static ApiRequest UpdateMyIdentity(UpdateMyIdentityBody body) =>

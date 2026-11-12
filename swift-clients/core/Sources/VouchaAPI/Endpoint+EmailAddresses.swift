@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 
 public extension Endpoint {
     static func myEmailAddresses(after: String? = nil, limit: Int = 25) -> Endpoint {
@@ -20,7 +21,7 @@ public extension Endpoint {
         return Endpoint(
             .POST,
             path: "/api/v1/my/email-addresses/\(encodedEmailAddress)/verifications",
-            body: EmailAddressVerificationBody(token: token, reAuthToken: reAuthToken)
+            body: EmailAddressVerificationBody(token: EncodedEmailVerificationCode(token), reAuthToken: reAuthToken)
         )
     }
 }
@@ -31,6 +32,6 @@ private struct EmailAddressVerificationRequestBody: Encodable {
 }
 
 private struct EmailAddressVerificationBody: Encodable {
-    let token: String
+    let token: EncodedEmailVerificationCode
     let reAuthToken: String?
 }

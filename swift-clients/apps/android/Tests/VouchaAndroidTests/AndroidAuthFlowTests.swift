@@ -28,7 +28,7 @@ final class AndroidAuthFlowTests: XCTestCase {
         account.turnstileToken = "challenge-token"
 
         await account.requestOTP()
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         await account.verifyOTP()
         account.totp = "654321"
         await account.verifyMFA()

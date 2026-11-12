@@ -17,12 +17,13 @@ final class EmailOTPInitialLinkTests: XCTestCase {
             Data(#"{"mfa_required":true,"login_attempt_id":"attempt-1"}"#.utf8),
             200
         )
-        let viewModel = makeViewModel(initialEmail: "alice@example.com", initialCode: "123456")
+        let viewModel = makeViewModel(initialEmail: "alice@example.com", initialCode: "abcdefgh23")
 
         XCTAssertEqual(viewModel.step, .enterCode)
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [])
 
         await viewModel.verifyCode()
+        XCTAssertEqual(viewModel.code, "ABCDEFGH23")
 
         XCTAssertEqual(viewModel.step, .mfaChallenge(loginAttemptId: "attempt-1"))
         XCTAssertEqual(

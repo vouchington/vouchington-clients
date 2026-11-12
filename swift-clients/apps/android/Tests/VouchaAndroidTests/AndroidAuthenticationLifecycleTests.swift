@@ -56,7 +56,7 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
 
         let account = try makeAccount(host: host)
         account.email = "first@example.com"
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         account.otpRequested = true
         let verification = Task { await account.verifyOTP() }
 
@@ -85,7 +85,7 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
         let account = AndroidAccount(cookieStorage: AndroidSessionCookieStorage(secrets: AuthenticationMemorySecrets()))
         account.email = "person@example.com"
         account.otpRequested = true
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         account.totp = "654321"
         account.loginAttemptID = "mfa-attempt"
         account.turnstileToken = "old-token"

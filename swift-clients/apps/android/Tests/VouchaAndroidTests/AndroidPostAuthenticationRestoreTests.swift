@@ -105,7 +105,7 @@ final class AndroidPostAuthenticationRestoreTests: XCTestCase {
         )
         account.isRestoring = false
         account.email = "person@example.com"
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         account.totp = "654321"
         account.loginAttemptID = "consumed-attempt"
         return account

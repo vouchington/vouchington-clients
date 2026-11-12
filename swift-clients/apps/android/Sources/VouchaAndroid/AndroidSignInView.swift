@@ -3,8 +3,10 @@ import VouchaCore
 import VouchaLocalization
 
 struct AndroidSignInView: View {
-    @Bindable var account: AndroidAccount
-    @Environment(\.locale) var locale
+    @Bindable
+    var account: AndroidAccount
+    @Environment(\.locale)
+    var locale
 
     var body: some View {
         NavigationStack {
@@ -27,13 +29,15 @@ struct AndroidSignInView: View {
                         }.disabled(account.isAuthenticating)
                     } else if account.otpRequested {
                         Text(UiMessages.string(.nativeAuthCheckEmail, locale: locale))
-                        TextField(UiMessages.string(.nativeAuthCodePlaceholder, locale: locale), text: $account.otp)
+                        TextField(UiMessages.string(.nativeAuthVerifyCode, locale: locale), text: $account.otp)
                         #if os(iOS) || os(Android) || SKIP
-                            .keyboardType(.numberPad)
+                            .keyboardType(.asciiCapable)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
                         #endif
                         Button(UiMessages.string(.nativeAuthVerifyCode, locale: locale)) {
                             Task { await account.verifyOTP() }
-                        }.disabled(account.isAuthenticating || account.otp.isEmpty)
+                        }.disabled(account.isAuthenticating || EmailVerificationCode.normalized(account.otp) == nil)
                         Button(UiMessages.string(.nativeAuthDifferentEmail, locale: locale)) {
                             account.restartSignIn()
                         }.disabled(account.isAuthenticating)

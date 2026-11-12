@@ -10,7 +10,7 @@ public sealed partial class VouchaApiEndpointParityTests
   public void EmailAddressVerificationEndpointsIncludeReauthenticationTokenWhenSupplied()
   {
     var request = VouchaApiEndpoints.RequestEmailAddressVerification("user@example.com", "reauth-token");
-    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCD1234", "reauth-token");
+    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCDEFGH23", "reauth-token");
 
     using var requestBody = JsonDocument.Parse(JsonSerializer.Serialize(request.Body, VouchaApiJson.Options));
     using var verifyBody = JsonDocument.Parse(JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
@@ -22,13 +22,13 @@ public sealed partial class VouchaApiEndpointParityTests
   public void EmailAddressVerificationEndpointsPreserveWireContract()
   {
     var request = VouchaApiEndpoints.RequestEmailAddressVerification(" User@Example.com ");
-    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCD1234");
+    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCDEFGH23");
 
     Assert.Equal(HttpMethod.Post, request.Method);
     Assert.Equal("/api/v1/my/email-addresses", request.Path);
     Assert.Equal("{\"email_address\":\" User@Example.com \"}", JsonSerializer.Serialize(request.Body, VouchaApiJson.Options));
     Assert.Equal("/api/v1/my/email-addresses/user%40example.com/verifications", verify.Path);
-    Assert.Equal("{\"token\":\"ABCD1234\"}", JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
+    Assert.Equal("{\"token\":\"ABCDEFGH23\"}", JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
   }
 
   [Fact]

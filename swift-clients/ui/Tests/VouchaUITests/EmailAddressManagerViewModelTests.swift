@@ -98,7 +98,7 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         )
         let viewModel = makeViewModel()
         viewModel.emailAddress = "user@example.com"
-        viewModel.verificationCode = "ABCD1234"
+        viewModel.verificationCode = "ABCDEFGH23"
         viewModel.phase = .enterCode
         await viewModel.verify()
         XCTAssertEqual(viewModel.phase, .verified)
@@ -113,17 +113,58 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         )
         let viewModel = makeViewModel()
         viewModel.emailAddress = "user@example.com"
-        viewModel.verificationCode = "BADCODE1"
+        viewModel.verificationCode = "BADCODE234"
         viewModel.phase = .enterCode
         await viewModel.verify()
         XCTAssertEqual(viewModel.phase, .enterCode)
         XCTAssertNotNil(viewModel.errorMessage)
     }
 
+    func testMalformedCodeNeverSendsVerification() async {
+        let viewModel = makeViewModel()
+        viewModel.emailAddress = "user@example.com"
+        viewModel.phase = .enterCode
+        for code in ["123456", "ABCDEFGH01", "ABCDEFGH89", "ＡBCDEFGH23", "abcdefgh2 "] {
+            viewModel.verificationCode = code
+            XCTAssertFalse(viewModel.canVerifyCode)
+            await viewModel.verify()
+        }
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
+        XCTAssertEqual(viewModel.phase, .enterCode)
+    }
+
+    func testRejectedCodeNeverRetriesOrCompletesVerification() async throws {
+        let path = "/api/v1/my/email-addresses/user@example.com/verifications"
+        for (status, message) in [
+            (400, "Invalid code"),
+            (400, "Replaced code"),
+            (400, "Purpose mismatch"),
+            (429, "Quota exhausted")
+        ] {
+            CannedFeedURLProtocol.capturedURLs = []
+            CannedFeedURLProtocol.handlers[path] = try (
+                JSONSerialization.data(withJSONObject: ["message": message]), status
+            )
+            let viewModel = makeViewModel()
+            viewModel.emailAddress = "user@example.com"
+            viewModel.verificationCode = "abcdefgh23"
+            viewModel.phase = .enterCode
+
+            await viewModel.verify()
+
+            XCTAssertEqual(viewModel.verificationCode, "ABCDEFGH23")
+            XCTAssertEqual(viewModel.phase, .enterCode)
+            XCTAssertTrue(viewModel.canVerifyCode)
+            XCTAssertNotNil(viewModel.errorMessage)
+            XCTAssertNil(viewModel.statusMessage)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, 1)
+        }
+    }
+
     func testStartAnotherAddressResetsTransientState() async {
         let viewModel = makeViewModel()
         viewModel.emailAddress = "user@example.com"
-        viewModel.verificationCode = "ABCD1234"
+        viewModel.verificationCode = "ABCDEFGH23"
         viewModel.phase = .enterCode
         await viewModel.verify()
 

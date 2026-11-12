@@ -12,7 +12,7 @@ public static partial class VouchaApiEndpoints
       new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/email/tokens");
 
   public static ApiRequest VerifyReAuthEmailCode(string code) =>
-      new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/email/verification") { Body = new ReAuthCodeBody(code) };
+      new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/email/verification") { Body = new ReAuthCodeBody(Auth.EmailVerificationCode.RequireValid(code)) };
 
   public static ApiRequest VerifyReAuthTotp(string code) =>
       new(HttpMethod.Post, "/api/v1/auth/mfa/re-auth/totp/verification") { Body = new ReAuthCodeBody(code) };
