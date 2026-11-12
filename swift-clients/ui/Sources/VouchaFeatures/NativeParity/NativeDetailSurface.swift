@@ -118,8 +118,11 @@ struct NativeDetailSurface: View {
         .padding()
     }
 
+}
+
+private extension NativeDetailSurface {
     @ViewBuilder
-    private var relationControls: some View {
+    var relationControls: some View {
         if let entityType = viewModel.detailRelationEntityType,
            let entityId = viewModel.detailRelationEntityId {
             let isUserProfile = entityType == "user"

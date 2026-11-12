@@ -52,7 +52,9 @@ struct NativePublicLandingItemsSurface: View {
         }
     }
 
-    private func reviewButton(_ review: LandingPageReview, itemId: String, memberId: String? = nil) -> some View {
+    private func reviewButton(
+        _ review: VouchaAPI.LandingPageReview, itemId: String, memberId: String? = nil
+    ) -> some View {
         Button {
             recordClick(itemId, memberId: memberId)
             onNavigate(NativeEntityDetailPath.review(id: review.id, slug: review.slug))
