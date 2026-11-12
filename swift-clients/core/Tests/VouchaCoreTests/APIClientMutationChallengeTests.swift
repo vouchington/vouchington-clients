@@ -97,17 +97,20 @@ final class APIClientMutationChallengeTests: XCTestCase {
 
     func testSessionReplacementWhilePromptingDoesNotReplay() async throws {
         InvitationURLProtocol.requestHandlers = ["POST /mutation": (challenge(), 403)]
-        let storage = IsolatedHTTPCookieStorage.make()
-        let url = try XCTUnwrap(URL(string: "http://localhost:2999"))
+        let configuration = URLSessionConfiguration.ephemeral
+        let storage = try XCTUnwrap(configuration.httpCookieStorage)
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:2999"))
         let replacement = try XCTUnwrap(HTTPCookie(properties: [
-            .domain: "localhost", .path: "/", .name: "st", .value: "replacement"
+            .domain: "127.0.0.1", .path: "/", .name: "st", .value: "replacement"
         ]))
         let client = APIClient(
             config: AppConfig(baseURL: url, turnstileSiteKey: "test"),
-            cookieStorage: storage, protocolClasses: [InvitationURLProtocol.self]
+            cookieStorage: storage, protocolClasses: [InvitationURLProtocol.self],
+            sessionConfiguration: configuration
         )
         await client.setMutationChallengeHandler {
             storage.setCookie(replacement)
+            XCTAssertEqual(storage.cookies(for: url)?.first(where: { $0.name == "st" })?.value, "replacement")
             return "old-session-proof"
         }
         do {
