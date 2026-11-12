@@ -61,6 +61,9 @@ public sealed class CatalystAuthNewsHandlerTests
     var auth = await accepted.Content.ReadFromJsonAsync<AuthResponse>(TestContext.Current.CancellationToken);
     Assert.False(auth!.MfaRequired);
     Assert.Equal(2, accepted.Headers.GetValues("Set-Cookie").Count());
+    using var withoutCookie = await client.GetAsync(Identity, TestContext.Current.CancellationToken);
+    Assert.Equal(HttpStatusCode.Unauthorized, withoutCookie.StatusCode);
+    client.DefaultRequestHeaders.Add("Cookie", "dt=catalyst-flow-device; st=catalyst-flow-session");
     Assert.Equal(ApiFixtureLoader.LoadResponse("swift.my.identity.default"),
         await client.GetStringAsync(Identity, TestContext.Current.CancellationToken));
     Assert.Equal(ApiFixtureLoader.LoadResponse("web.rss-feed-items.feed.default"),

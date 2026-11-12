@@ -13,9 +13,17 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
   // within an article feed. This is not an article-filter or response-contract parity test.
   private readonly string news = CatalystAuthNewsLaunch.ReadFixture(
       "web.rss-feed-items.feed.default", "GET", "/api/v1/feeds/rss_feed_items/any");
+  private readonly string userId;
   private bool requested;
   private bool authenticated;
   private readonly object gate = new();
+
+  public CatalystAuthNewsHandler()
+  {
+    using var document = JsonDocument.Parse(identity);
+    userId = document.RootElement.GetProperty("identity").GetProperty("id").GetString()
+        ?? throw new InvalidOperationException("Identity fixture has no user id.");
+  }
 
   protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
   {
@@ -49,13 +57,14 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
       return response;
     }
     if (request.Method == HttpMethod.Get && path == "/api/v1/my/identity")
-      return authenticated ? Json(identity) : Json("{}", HttpStatusCode.Unauthorized);
+      return HasIssuedSession(request) ? Json(identity) : Json("{}", HttpStatusCode.Unauthorized);
     // Post-login rotation must return the same authenticated user, as the producer does.
     if (request.Method == HttpMethod.Patch && path == "/api/v1/session")
-      return Json(authenticated
-          ? """{"session":{"dt":"catalyst-flow-device","st":"catalyst-flow-session","dte":3600,"ste":3600,"uid":"catalyst-flow-user","session":{"uid":"catalyst-flow-user"}}}"""
+      return Json(HasIssuedSession(request)
+          ? """{"session":{"dt":"catalyst-flow-device","st":"catalyst-flow-session","dte":3600,"ste":3600,"uid":""" +
+            JsonSerializer.Serialize(userId) + ""","session":{"uid":""" + JsonSerializer.Serialize(userId) + "}}}"
           : """{"session":{"dt":"catalyst-bootstrap-device","st":"catalyst-bootstrap-session","dte":3600,"ste":3600}}""");
-    if (request.Method == HttpMethod.Get && path == "/api/v1/feeds/rss_feed_items/any" && authenticated &&
+    if (request.Method == HttpMethod.Get && path == "/api/v1/feeds/rss_feed_items/any" && HasIssuedSession(request) &&
         request.RequestUri?.Query == "?limit=20&media_type=article") return Json(news);
     if (request.Method == HttpMethod.Get && path == "/api/v1/feature-flags")
       return Json("""{"flags":{},"overrides":{}}""");
@@ -65,6 +74,11 @@ internal sealed class CatalystAuthNewsHandler : HttpMessageHandler
       return new HttpResponseMessage(HttpStatusCode.NotModified);
     return Json("""{"error":"unexpected-auth-news-ui-request"}""", HttpStatusCode.BadRequest);
   }
+
+  // Protected routes require the cookie issued at login, not just the server-side flag.
+  private bool HasIssuedSession(HttpRequestMessage request) =>
+      authenticated && request.Headers.TryGetValues("Cookie", out var values) &&
+      values.SelectMany(value => value.Split(';')).Any(part => part.Trim() == "st=catalyst-flow-session");
 
   private static string? Text(JsonElement body, string key) =>
       body.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
