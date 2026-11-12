@@ -39,4 +39,23 @@ extension NativeRouteSurfaceViewModel {
         }
         return [.init(name: key, value: topicDetailId)]
     }
+
+    func postListQueryItems(client: APIClient, after: String?, postTypes: String?) async throws -> [URLQueryItem] {
+        var query = [
+            URLQueryItem(name: "limit", value: "10"),
+            URLQueryItem(name: "sort", value: topicPostSort),
+            URLQueryItem(name: "time_range", value: postTimeRangeQueryValue)
+        ]
+        try await query.append(contentsOf: topicPostQueryItems(client: client))
+        if hasHackerNewsReferences {
+            query.append(.init(name: "has_hacker_news_references", value: "true"))
+        }
+        if let postTypes {
+            query.append(.init(name: "post_types", value: postTypes))
+        }
+        if let after {
+            query.append(.init(name: "after", value: after))
+        }
+        return query
+    }
 }

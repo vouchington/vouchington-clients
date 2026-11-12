@@ -7,21 +7,7 @@ extension NativeRouteSurfaceViewModel {
         let postTypes = topicPostType ?? postTypesFilter(for: destination ?? .feedPosts)
         let endpoint: Endpoint
         if destination == .postsBrowse || destination == .storiesBrowse || topicPostCollection != nil {
-            var query = [
-                URLQueryItem(name: "limit", value: "10"),
-                URLQueryItem(name: "sort", value: topicPostSort)
-            ]
-            try await query.append(contentsOf: topicPostQueryItems(client: client))
-            query.append(.init(name: "time_range", value: postTimeRangeQueryValue))
-            if hasHackerNewsReferences {
-                query.append(.init(name: "has_hacker_news_references", value: "true"))
-            }
-            if let postTypes {
-                query.append(.init(name: "post_types", value: postTypes))
-            }
-            if let after {
-                query.append(.init(name: "after", value: after))
-            }
+            let query = try await postListQueryItems(client: client, after: after, postTypes: postTypes)
             endpoint = Endpoint(.GET, path: "/api/v1/posts", queryItems: query)
         } else {
             endpoint = .posts(
