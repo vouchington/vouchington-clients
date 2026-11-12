@@ -25,7 +25,10 @@ export async function assertNotificationControls(request, sessionId, options = {
   const passed = name => checks.push({ name, status: 'passed' })
   const command = async (method, path, body) => {
     if (now() >= deadline) throw new Error('notification session exceeded its shared deadline')
-    const response = await request(method, `/session/${sessionId}${path}`, body)
+    const response = await request(method, `/session/${sessionId}${path}`, body, {
+      signal: AbortSignal.timeout(Math.max(1, Math.ceil(deadline - now()))),
+    })
+    if (now() >= deadline) throw new Error('notification session exceeded its shared deadline')
     if (response?.value?.error) throw new Error(`Mac2 ${response.value.error}: ${response.value.message ?? path}`)
     return response?.value
   }
@@ -139,9 +142,10 @@ export async function assertNotificationControls(request, sessionId, options = {
   }
   const initial = await poll('initial notification accessibility dispatch', report, value => value.accessibilityDispatches?.some(item => item.kind === 'announcement'))
   assertDispatches(initial)
-  state = initial.patches.at(-1)?.after ?? initial.initialPreferences
-  patchCount = initial.patches.length
-  // Startup timezone initialization is allowed, but each later gesture is audited.
+  assert.ok(typeof initial.initialPreferences.moderation_email_timezone === 'string' && initial.initialPreferences.moderation_email_timezone.length > 0, 'canonical fixture must provide a saved timezone')
+  assert.equal(initial.patches.length, 0, 'notification load must not mutate saved preferences')
+  state = initial.initialPreferences
+  patchCount = 0
   await toggle('engagement')
   passed('engagement-mutation-persisted')
   const digestChoices = ['none', 'daily', 'weekly']
@@ -176,7 +180,7 @@ export async function assertNotificationControls(request, sessionId, options = {
   const targetTime = state.moderation_email_time_of_day === '09:30' ? '10:30' : '09:30'
   await mutate('time', targetTime, async () => {
     await click(time)
-    await execute('keys', { elementId: time, keys: [{ key: 'a', modifierFlags: 16 }, targetTime, 'XCUIKeyboardKeyReturn'] })
+    await execute('keys', { elementId: time, keys: [{ key: 'a', modifierFlags: 16 }, ...targetTime, 'XCUIKeyboardKeyReturn'] })
   })
   passed('time-mutation-persisted')
   const zone = state.moderation_email_timezone === 'UTC' ? 'America/Los_Angeles' : 'UTC'

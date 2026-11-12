@@ -131,9 +131,10 @@ async function prebuildHost() {
   ])
 }
 
-async function request(method, path, body) {
+async function request(method, path, body, options = {}) {
   const response = await fetch(`http://127.0.0.1:${appiumPort}${path}`, {
     method,
+    signal: options.signal,
     ...(body
       ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
       : {}),

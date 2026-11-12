@@ -142,7 +142,11 @@ export function nativeSession(fault = {}, fixture = {}) {
         if (focused === 'time') {
           assert.deepEqual(args.keys[0], { key: 'a', modifierFlags: 16 })
           assert.equal(args.elementId, 'notification-time')
-          persist('moderation_email_time_of_day', args.keys[1])
+          assert.ok(
+            args.keys.slice(1, -1).every(key => typeof key === 'string' && key.length === 1),
+            'Mac2 expects each text character as a key',
+          )
+          persist('moderation_email_time_of_day', args.keys.slice(1, -1).join(''))
         } else {
           const values = options[focused]
           let index = values.indexOf(state[keys[focused]])

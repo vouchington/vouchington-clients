@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { assertNotificationControls } from '../dotnet-clients/tooling/catalyst-gui-notification-session.mjs'
 import { nativeSession } from './catalyst-gui-notification-driver.mjs'
 
 describe('notification Mac2 native gestures and persisted acceptance', () => {
@@ -79,4 +80,42 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
       false,
     )
   })
+})
+
+// A completed HTTP response cannot turn an expired session into passing evidence.
+it('cancels in-flight native requests and rejects a response that arrives past the budget', async () => {
+  const session = nativeSession()
+  let clock = 0
+  let signal
+  await assert.rejects(
+    assertNotificationControls(
+      async (...args) => {
+        signal = args[3].signal
+        const result = await session.request(...args)
+        clock = 501
+        return result
+      },
+      'native',
+      {
+        readEvidence: async () => session.evidence,
+        expectedAnnouncement: 'fixture',
+        now: () => clock,
+        timeoutMs: 500,
+      },
+    ),
+    /deadline/u,
+  )
+  assert.ok(signal instanceof AbortSignal)
+})
+
+it('refuses to absorb any startup PATCH for a fixture with saved preferences', async () => {
+  const session = nativeSession()
+  const before = structuredClone(session.evidence.initialPreferences)
+  session.evidence.patches.push({
+    fields: ['is_engagement_emails_enabled'],
+    before,
+    after: { ...before, is_engagement_emails_enabled: !before.is_engagement_emails_enabled },
+  })
+  await assert.rejects(session.run(), /load must not mutate saved preferences/u)
+  assert.equal(session.calls.filter(call => call.url.endsWith('/click')).length, 0)
 })
