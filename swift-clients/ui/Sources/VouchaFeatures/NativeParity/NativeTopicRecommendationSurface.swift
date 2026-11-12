@@ -63,14 +63,18 @@ extension NativeTopicRecommendationSurface {
         .task { await viewModel.load() }
         .emailVerificationRecovery(client: viewModel.client, gate: viewModel.emailVerificationGate)
         .sheet(isPresented: $showingTurnstile) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-                action: .postsCreate,
-                baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
-            ) { token in
-                viewModel.turnstileToken = token
-                showingTurnstile = false
-            }
+            turnstileChallenge(viewModel: viewModel)
+        }
+    }
+
+    func turnstileChallenge(viewModel: NativeTopicRecommendationViewModel) -> NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: .postsCreate,
+            baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            viewModel.turnstileToken = token
+            showingTurnstile = false
         }
     }
 

@@ -25,7 +25,7 @@ struct NativeTurnstileChallengeView: View {
     }
 }
 
-private final class NativeTurnstileCoordinator: NSObject, WKScriptMessageHandler {
+final class NativeTurnstileCoordinator: NSObject, WKScriptMessageHandler {
     let onToken: (String) -> Void
     var isActive = true
 
@@ -37,15 +37,19 @@ private final class NativeTurnstileCoordinator: NSObject, WKScriptMessageHandler
         _: WKUserContentController,
         didReceive message: WKScriptMessage
     ) {
-        guard isActive, message.frameInfo.isMainFrame, message.name == "turnstileToken",
-              let token = message.body as? String, !token.isEmpty else {
+        receiveTokenMessage(name: message.name, body: message.body, isMainFrame: message.frameInfo.isMainFrame)
+    }
+
+    func receiveTokenMessage(name: String, body: Any, isMainFrame: Bool) {
+        guard isActive, isMainFrame, name == "turnstileToken",
+              let token = body as? String, !token.isEmpty else {
             return
         }
         onToken(token)
     }
 }
 
-private func makeTurnstileWebView(
+func makeTurnstileWebView(
     siteKey: String,
     challenge: TurnstileChallengeContext,
     coordinator: NativeTurnstileCoordinator
@@ -84,7 +88,7 @@ func turnstileHTML(siteKey: String, challenge: TurnstileChallengeContext) -> Str
 }
 
 #if os(iOS)
-    private struct NativeTurnstileWebView: UIViewRepresentable {
+    struct NativeTurnstileWebView: UIViewRepresentable {
         let siteKey: String
         let challenge: TurnstileChallengeContext
         let onToken: (String) -> Void
@@ -107,7 +111,7 @@ func turnstileHTML(siteKey: String, challenge: TurnstileChallengeContext) -> Str
     }
 
 #elseif os(macOS)
-    private struct NativeTurnstileWebView: NSViewRepresentable {
+    struct NativeTurnstileWebView: NSViewRepresentable {
         let siteKey: String
         let challenge: TurnstileChallengeContext
         let onToken: (String) -> Void

@@ -23,6 +23,16 @@ struct NativeDetailSurface: View {
     @State
     var showingUserTags = false
 
+    var turnstileChallenge: NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: .reportsCreate,
+            baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            handleReportTurnstileToken(token)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             if entry.destinationIdentifier == .urlDetail, !isSignedIn {
@@ -72,13 +82,7 @@ struct NativeDetailSurface: View {
             Text(reportSuccessMessage)
         }
         .sheet(isPresented: reportTurnstileBinding) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-                action: .reportsCreate,
-                baseURL: viewModel.client?.baseURL ?? AppConfig.shared.baseURL
-            ) { token in
-                handleReportTurnstileToken(token)
-            }
+            turnstileChallenge
         }
         .sheet(isPresented: $showingReportNoteDialog, onDismiss: presentReportTurnstileAfterNoteDismiss) {
             reportNoteSheet

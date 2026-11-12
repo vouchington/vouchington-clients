@@ -38,6 +38,17 @@ struct NativePostComposeSurface: View {
         )
     }
 
+    func turnstileChallenge(viewModel: NativePostComposeViewModel) -> NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: viewModel.communityIdOrSlug == nil ? .postsCreate : .communitiesCreatePost,
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            viewModel.turnstileToken = token
+            showingTurnstile = false
+        }
+    }
+
     var body: some View {
         @Bindable
         var viewModel = composeViewModel
@@ -81,14 +92,7 @@ struct NativePostComposeSurface: View {
             drafts(viewModel: viewModel)
         }
         .sheet(isPresented: $showingTurnstile) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-                action: viewModel.communityIdOrSlug == nil ? .postsCreate : .communitiesCreatePost,
-                baseURL: client?.baseURL ?? AppConfig.shared.baseURL
-            ) { token in
-                viewModel.turnstileToken = token
-                showingTurnstile = false
-            }
+            turnstileChallenge(viewModel: viewModel)
         }
         .fileImporter(
             isPresented: $showingImageImporter,

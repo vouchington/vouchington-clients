@@ -21,6 +21,17 @@ struct CommunityCreateSurface: View {
         self.turnstileSiteKey = turnstileSiteKey
     }
 
+    var turnstileChallenge: NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: .communitiesCreate,
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            viewModel.turnstileToken = token
+            showingTurnstile = false
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             TextField(UiMessages.string(.nativeSwiftCommunitiesName, locale: nativeUiLocale), text: $viewModel.name)
@@ -51,14 +62,7 @@ struct CommunityCreateSurface: View {
             stateText(viewModel.state, locale: nativeUiLocale)
         }
         .sheet(isPresented: $showingTurnstile) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-                action: .communitiesCreate,
-                baseURL: client?.baseURL ?? AppConfig.shared.baseURL
-            ) { token in
-                viewModel.turnstileToken = token
-                showingTurnstile = false
-            }
+            turnstileChallenge
         }
     }
 }

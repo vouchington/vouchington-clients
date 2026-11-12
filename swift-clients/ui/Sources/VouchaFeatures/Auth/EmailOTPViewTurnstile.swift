@@ -8,14 +8,23 @@ extension View {
         viewModel: EmailOTPViewModel
     ) -> some View {
         sheet(isPresented: isPresented) {
-            NativeTurnstileChallengeView(
-                siteKey: siteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
-                action: .authEmailAddressTokens,
-                baseURL: viewModel.turnstileBaseURL
-            ) { token in
-                viewModel.turnstileToken = token
-                isPresented.wrappedValue = false
-            }
+            emailOTPTurnstileChallenge(siteKey: siteKey, isPresented: isPresented, viewModel: viewModel)
         }
+    }
+}
+
+@MainActor
+func emailOTPTurnstileChallenge(
+    siteKey: String?,
+    isPresented: Binding<Bool>,
+    viewModel: EmailOTPViewModel
+) -> NativeTurnstileChallengeView {
+    NativeTurnstileChallengeView(
+        siteKey: siteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+        action: .authEmailAddressTokens,
+        baseURL: viewModel.turnstileBaseURL
+    ) { token in
+        viewModel.turnstileToken = token
+        isPresented.wrappedValue = false
     }
 }
