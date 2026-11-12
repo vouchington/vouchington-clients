@@ -283,7 +283,7 @@ public sealed class PostsListViewModelBoundedWindowTests
   {
     var service = new ScriptedPostsService(Page(["first"], "cursor"), Page(["more"], null));
     using var model = new PostsListViewModel(service);
-    await model.LoadBrowseAsync("review", requested, true, TestContext.Current.CancellationToken);
+    await model.LoadBrowseAsync("review", requested, true, cancellationToken: TestContext.Current.CancellationToken);
     await model.LoadMoreAsync(TestContext.Current.CancellationToken);
     Assert.Equal(new[] { "1w", "1m", "1y" }, model.TimeRange.Options.Select(option => option.Value));
     Assert.Equal(expected, model.TimeRange.RequestValue);

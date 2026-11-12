@@ -7,6 +7,7 @@ public sealed record TopicPostsRoute(string TopicIdOrSlug, string Section)
 {
   public static TopicPostsRoute? FromResolution(NativeDeepLinkResolution resolution)
   {
+    ArgumentNullException.ThrowIfNull(resolution);
     if (resolution.DestinationId is not (NativeRouteDestinationId.TopicDetail or NativeRouteDestinationId.SourceDetail) ||
         resolution.Match is not { } match || match.Param("idOrSlug", "id") is not { Length: > 0 } topic)
       return null;
@@ -18,6 +19,7 @@ public sealed record TopicPostsRoute(string TopicIdOrSlug, string Section)
   public async Task<FetchPostsRequest> ResolveRequestAsync(
       ITopicsService topics, bool isAuthenticated = false, CancellationToken cancellationToken = default)
   {
+    ArgumentNullException.ThrowIfNull(topics);
     var response = await topics.FetchTopicAsync(TopicIdOrSlug, cancellationToken).ConfigureAwait(false);
     return RequestForTopic(response.Topic.Id, isAuthenticated);
   }

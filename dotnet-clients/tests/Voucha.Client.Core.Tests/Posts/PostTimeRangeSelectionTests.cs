@@ -11,7 +11,6 @@ public sealed class PostTimeRangeSelectionTests
   {
     var selection = new PostTimeRangeSelection(UiLocalization.English);
     Assert.Equal(new[] { "1w", "1m", "1y", "all" }, selection.Options.Select(option => option.Value));
-    Assert.Equal(UiMessageKey.ExtractedPostsPostTimeRangeSelectLabel, selection.LabelText.Key);
     Assert.Equal(new[]
     {
       UiMessageKey.ExtractedPostsPostTimeRangeSelectLast7Days,

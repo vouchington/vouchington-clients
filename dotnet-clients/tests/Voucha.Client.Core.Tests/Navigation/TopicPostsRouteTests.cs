@@ -68,6 +68,17 @@ public sealed class TopicPostsRouteTests
     Assert.Equal("1m", request.TimeRange);
   }
 
+  [Fact]
+  public async Task NullRouteAndLookupInputsFailAtThePublicBoundary()
+  {
+    var resolutionError = Assert.Throws<ArgumentNullException>(() => TopicPostsRoute.FromResolution(null!));
+    Assert.Equal("resolution", resolutionError.ParamName);
+    var route = new TopicPostsRoute("travel", "posts");
+    var lookupError = await Assert.ThrowsAsync<ArgumentNullException>(() =>
+        route.ResolveRequestAsync(null!, cancellationToken: TestContext.Current.CancellationToken));
+    Assert.Equal("topics", lookupError.ParamName);
+  }
+
   public class TopicLookupProxy : DispatchProxy
   {
     public string? Identifier { get; private set; }

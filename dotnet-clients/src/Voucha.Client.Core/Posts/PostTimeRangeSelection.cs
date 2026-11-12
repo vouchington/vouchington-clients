@@ -28,7 +28,6 @@ public sealed class PostTimeRangeSelection : ObservableObject
         ?? throw new ArgumentException("Default range must be offered.", nameof(defaultRange));
   }
 
-  public UiText LabelText => UiText.Localized(UiMessageKey.ExtractedPostsPostTimeRangeSelectLabel);
   public IReadOnlyList<PostTimeRangeOption> Options => options;
   public PostTimeRangeOption SelectedOption => selectedOption;
   public string RequestValue => selectedOption.Value;

@@ -127,8 +127,8 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
       string? postTypes = null,
       string? timeRange = null,
       bool? hasHackerNewsReferences = null,
-      CancellationToken cancellationToken = default,
-      FetchPostsRequest? scope = null)
+      FetchPostsRequest? scope = null,
+      CancellationToken cancellationToken = default)
   {
     timeRange = ConfigureBrowseTimeRange(timeRange, hasHackerNewsReferences);
     activePostTypes = postTypes;
