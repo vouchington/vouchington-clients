@@ -1,7 +1,7 @@
-using Voucha.Client.Core.Posts;
 using System.Globalization;
 
 namespace Voucha.Client.Core.Api;
+
 public static partial class VouchaApiEndpoints
 {
   public static ApiRequest CombinedSearch(string query, int limit = 3) =>
@@ -63,21 +63,6 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest UpdateSpendingCategoryAttributes(string topicId, object body) =>
       new(HttpMethod.Patch, $"/api/v1/topics/{Path(topicId)}/spending-category") { Body = body };
-
-  public static ApiRequest Posts(
-      string feedType = "any",
-      string? after = null,
-      int limit = 20,
-      string? postTypes = null,
-      string? timeRange = PostTimeRanges.LastWeek) =>
-      Get(
-          $"/api/v1/feeds/posts/{Path(feedType)}",
-          Query(
-              ("limit", limit),
-              ("sort", "hot"),
-              ("after", after),
-              ("post_types", postTypes),
-              ("time_range", timeRange)));
 
   public static ApiRequest Notifications(string? after = null, int limit = 20) =>
       Get("/api/v1/my/notifications", Query(("limit", limit), ("after", after)));

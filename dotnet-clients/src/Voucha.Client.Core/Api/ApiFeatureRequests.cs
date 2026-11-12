@@ -1,8 +1,24 @@
 using Voucha.Client.Core.Posts;
+
 namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
 {
+  public static ApiRequest Posts(
+      string feedType = "any",
+      string? after = null,
+      int limit = 20,
+      string? postTypes = null,
+      string? timeRange = PostTimeRanges.LastWeek) =>
+      Get(
+          $"/api/v1/feeds/posts/{Path(feedType)}",
+          Query(
+              ("limit", limit),
+              ("sort", "hot"),
+              ("after", after),
+              ("post_types", postTypes),
+              ("time_range", timeRange)));
+
   public static ApiRequest AllPosts(FetchPostsRequest request)
   {
     ArgumentNullException.ThrowIfNull(request);
