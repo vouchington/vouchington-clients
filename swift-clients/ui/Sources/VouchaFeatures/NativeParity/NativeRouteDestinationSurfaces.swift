@@ -38,7 +38,7 @@ struct NativeListSurface: View {
                     onNavigateToTargetPath: onNavigateToTargetPath
                 )
             } else {
-                if viewModel.supportsHackerNewsFilter {
+                if viewModel.isHackerNewsFilterVisible {
                     Toggle(
                         UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
                         isOn: $viewModel.hasHackerNewsReferences
@@ -98,6 +98,7 @@ struct NativeListSurface: View {
                 NativeActionSurface(viewModel: viewModel)
             }
         }
+        .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 if viewModel.destination == .notifications {

@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
@@ -19,6 +20,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   private string? activeTimeRange;
   private bool? activeHackerNewsFilter;
   private bool browsing;
+  private readonly HackerNewsReferenceGate? hackerNewsReferences;
   private int requestId;
   private readonly HashSet<string> votingIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> bookmarkingKeys = new(StringComparer.Ordinal);
@@ -27,25 +29,24 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public string HackerNewsFilterLabel => localization.Localize(UiMessageKey.SharedHackerNewsFilterLabel);
 
-  public bool IsHackerNewsFilterVisible => browsing;
-
-  public bool? HackerNewsFilter
-  {
-    get => activeHackerNewsFilter;
-    private set => SetProperty(ref activeHackerNewsFilter, value);
-  }
-
   public PostsListViewModel(
       IPostsService postsService,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      HackerNewsReferenceGate? hackerNewsReferences = null)
   {
+    this.hackerNewsReferences = hackerNewsReferences;
+    if (hackerNewsReferences is not null) hackerNewsReferences.Changed += OnHackerNewsReferencesChanged;
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    if (hackerNewsReferences is not null) hackerNewsReferences.Changed -= OnHackerNewsReferencesChanged;
+    localeSubscription?.Dispose();
+  }
 
   public void OnUiLocaleChanged()
   {
@@ -125,7 +126,11 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   {
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
-    HackerNewsFilter = hasHackerNewsReferences;
+    var config = RefreshHackerNewsReferencesAsync(cancellationToken);
+    // A requested filter is only sent once the backend flag is known to be on.
+    if (hasHackerNewsReferences is not null) await config.ConfigureAwait(true);
+    var filter = hackerNewsReferences?.ReferencesVisible == true ? hasHackerNewsReferences : null;
+    HackerNewsFilter = filter;
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
     endCursor = null;
     HasMore = true;
@@ -135,8 +140,10 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         {
           var response = await postsService
               .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes, TimeRange: timeRange,
-                  HasHackerNewsReferences: hasHackerNewsReferences), cancellationToken)
+                  HasHackerNewsReferences: filter), cancellationToken)
               .ConfigureAwait(true);
+          // The flag fetch runs alongside the page fetch; settle it so the filter is final with the list.
+          await config.ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);
         },
         () => CompleteCanceled(currentRequest),

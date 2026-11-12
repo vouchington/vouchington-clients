@@ -6,6 +6,7 @@ using Voucha.Client.App;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Posts;
@@ -25,7 +26,9 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var localization = new UiLocalization(locale);
     using var copy = UiCopy.PushLocalization(localization);
     var handler = new FilterHandler("""{"results":[],"posts":{},"users":{},"communities":{},"page_info":{"has_next_page":false}}""");
-    using var model = new PostsListViewModel(new ApiPostsService(new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") })), localization, locale);
+    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+    using var model = new PostsListViewModel(new ApiPostsService(client), localization, locale,
+        new HackerNewsReferenceGate(client.FetchHackerNewsConfigAsync));
     var page = new PostsPage(model, new FilterSession(authenticated), null!, Recovery(locale));
     var binding = Assert.IsType<PostsPageBinding>(page.BindingContext);
     var filter = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == model.HackerNewsFilterLabel);
@@ -80,11 +83,15 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var localization = new UiLocalization(locale);
     using var copy = UiCopy.PushLocalization(localization);
     var handler = new FilterHandler("""{"results":[],"rss_feed_items":{},"rss_feeds":{},"page_info":{"has_next_page":false}}""");
-    using var model = new NewsFeedsViewModel(new ApiNewsFeedService(new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") })), kind, scope,
-        localization: localization, localeController: locale);
+    var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+    using var model = new NewsFeedsViewModel(new ApiNewsFeedService(client), kind, scope,
+        localization: localization, localeController: locale,
+        hackerNewsReferences: new HackerNewsReferenceGate(client.FetchHackerNewsConfigAsync));
     var page = new NewsFeedsPage(model, new FilterSession(false), null!, Recovery(locale));
     var binding = Assert.IsType<NewsFeedsPageBinding>(page.BindingContext);
     var filter = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == model.HackerNewsFilterLabel);
+    Assert.False(filter.IsVisible);
+    await model.LoadAsync(TestContext.Current.CancellationToken);
     Assert.True(filter.IsVisible);
     await ClickAndLoadAsync(filter, model, () => model.IsLoading);
     Assert.True(binding.IsHackerNewsFilterSelected);
@@ -135,6 +142,11 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     public List<string> Paths { get; } = [];
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+      if (request.RequestUri!.AbsolutePath == "/api/v1/hacker-news-config")
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+          Content = new StringContent("""{"references_visible":true,"post_time_range_cap":"1y"}"""),
+        });
       Paths.Add(request.RequestUri!.PathAndQuery);
       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) });
     }

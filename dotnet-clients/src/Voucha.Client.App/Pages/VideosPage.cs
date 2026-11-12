@@ -1,6 +1,7 @@
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.NewsFeeds;
 
 namespace Voucha.Client.App.Pages;
@@ -15,6 +16,7 @@ public sealed class VideosPage : NewsFeedsPage
       EmailVerificationRecoveryCoordinator emailRecovery,
       IUiLocalization localization,
       IUiLocaleController localeController,
+      HackerNewsReferenceGate hackerNewsReferences,
       NewsFeedScope? initialScope = null)
       : base(
           new NewsFeedsViewModel(
@@ -25,7 +27,8 @@ public sealed class VideosPage : NewsFeedsPage
                   : NewsFeedKind.Videos.GetAnonymousScope()),
               bookmarkService,
               localization,
-              localeController),
+              localeController,
+              hackerNewsReferences),
           sessionStore,
           serviceProvider,
           emailRecovery)

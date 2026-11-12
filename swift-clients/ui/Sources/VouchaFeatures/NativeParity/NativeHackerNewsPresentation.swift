@@ -11,6 +11,18 @@ extension NativeRouteSurfaceViewModel {
         }
     }
 
+    var isHackerNewsFilterVisible: Bool {
+        supportsHackerNewsFilter && hackerNewsReferencesVisible
+    }
+
+    /// Refresh the backend flag. A failed request keeps the last known value (hidden initially).
+    func refreshHackerNewsReferencesVisibility() async {
+        guard let client,
+              let visible = await HackerNewsReferencesVisibility.fetch(client: client) else { return }
+        hackerNewsReferencesVisible = visible
+        if !visible, hasHackerNewsReferences { hasHackerNewsReferences = false }
+    }
+
     func hackerNewsDetail(_ detail: UiVerbatimText, references: HackerNewsReferences?) -> UiVerbatimText {
         guard let references else { return detail }
         var parts = [detail]
@@ -40,7 +52,9 @@ extension NativeRouteSurfaceViewModel {
             if let postTypes {
                 query.append(.init(name: "post_types", value: postTypes))
             }
-            if hasHackerNewsReferences { query.append(.init(name: "has_hacker_news_references", value: "true")) }
+            if hasHackerNewsReferences, isHackerNewsFilterVisible {
+                query.append(.init(name: "has_hacker_news_references", value: "true"))
+            }
             if let after {
                 query.append(.init(name: "after", value: after))
             }

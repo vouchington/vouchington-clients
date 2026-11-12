@@ -25,6 +25,10 @@ public extension Endpoint {
         Endpoint(.GET, path: "/api/v1/captcha-config")
     }
 
+    static var hackerNewsConfig: Endpoint {
+        Endpoint(.GET, path: "/api/v1/hacker-news-config")
+    }
+
     static func user(idOrSlug: String, includeBio: Bool? = nil) -> Endpoint {
         var items: [URLQueryItem] = []
         if let includeBio {

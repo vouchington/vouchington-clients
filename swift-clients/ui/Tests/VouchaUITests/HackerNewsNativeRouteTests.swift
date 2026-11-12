@@ -21,7 +21,12 @@ final class HackerNewsNativeRouteTests: NativeRouteSurfaceViewModelTestCase {
                 ApiFixtureLoader.data("native.rss-feed-items.hacker-news.list"),
                 200
             )
+            CannedFeedURLProtocol.handlers["/api/v1/hacker-news-config"] = (
+                ApiFixtureLoader.data("native.hacker-news-config.default"),
+                200
+            )
             await model.load()
+            await model.refreshHackerNewsReferencesVisibility()
             XCTAssertTrue(model.supportsHackerNewsFilter)
             XCTAssertTrue(model.rows.contains { $0.detail.contains("Seen on Hacker News") })
             let surface = NativeListSurface(viewModel: model)
@@ -43,7 +48,12 @@ final class HackerNewsNativeRouteTests: NativeRouteSurfaceViewModelTestCase {
             ApiFixtureLoader.data("native.posts.hacker-news.filtered"),
             200
         )
+        CannedFeedURLProtocol.handlers["/api/v1/hacker-news-config"] = (
+            ApiFixtureLoader.data("native.hacker-news-config.default"),
+            200
+        )
         await model.load()
+        await model.refreshHackerNewsReferencesVisibility()
         XCTAssertTrue(model.rows.contains { $0.detail.contains("Seen on Hacker News") })
         model.hasHackerNewsReferences = true
         await model.hackerNewsFilterTask?.value

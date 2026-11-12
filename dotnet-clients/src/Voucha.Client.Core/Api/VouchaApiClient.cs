@@ -59,6 +59,9 @@ public sealed partial class VouchaApiClient
   public Task<CaptchaConfigResponse> FetchCaptchaConfigAsync(CancellationToken cancellationToken = default) =>
       SendAsync<CaptchaConfigResponse>(VouchaApiEndpoints.CaptchaConfig(), cancellationToken);
 
+  public Task<HackerNewsConfigResponse> FetchHackerNewsConfigAsync(CancellationToken cancellationToken = default) =>
+      SendAsync<HackerNewsConfigResponse>(VouchaApiEndpoints.HackerNewsConfig(), cancellationToken);
+
   public Task<FediverseSearchResponse> FediverseSearchAsync(
       string query,
       string? providers = null,

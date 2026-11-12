@@ -9,6 +9,11 @@ public struct CaptchaConfigResponse: Codable, Sendable {
     public let alwaysApprove: Bool
 }
 
+public struct HackerNewsConfigResponse: Codable, Sendable {
+    public let referencesVisible: Bool
+    public let postTimeRangeCap: String
+}
+
 public struct CommunityMembership: Decodable, Identifiable, Sendable {
     public let id: String
     public let communityId: String

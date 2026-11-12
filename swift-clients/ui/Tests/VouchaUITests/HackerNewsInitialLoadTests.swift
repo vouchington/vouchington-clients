@@ -8,6 +8,11 @@ final class HackerNewsInitialLoadTests: NativeRouteSurfaceViewModelTestCase {
         let path = "/api/v1/posts"
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/posts"))
         let model = try NativeRouteSurfaceViewModel(entry: route.entry, client: makeClient(), routeMatch: route.match)
+        CannedFeedURLProtocol.handlers["/api/v1/hacker-news-config"] = (
+            ApiFixtureLoader.data("native.hacker-news-config.default"),
+            200
+        )
+        await model.refreshHackerNewsReferencesVisibility()
         CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 503)
         CannedFeedURLProtocol.suspendResponse(path: path)
         let oldBarrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")

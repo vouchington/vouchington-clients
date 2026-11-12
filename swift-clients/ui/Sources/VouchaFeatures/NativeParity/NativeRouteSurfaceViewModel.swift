@@ -31,6 +31,9 @@ public final class NativeRouteSurfaceViewModel {
         }
     }
 
+    /// The backend flag; the filter stays hidden until a request reports references visible.
+    public internal(set) var hackerNewsReferencesVisible = false
+
     var profileHackerNewsReferences: [String: HackerNewsReferences] = [:]
     public internal(set) var focusedHackerNewsReferences: HackerNewsReferences?
     public internal(set) var focusedRssFeedItemEmbed: UrlEmbed?

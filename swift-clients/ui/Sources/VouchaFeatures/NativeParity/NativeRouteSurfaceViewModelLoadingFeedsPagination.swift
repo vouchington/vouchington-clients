@@ -48,14 +48,14 @@ extension NativeRouteSurfaceViewModel {
                 after: after,
                 limit: 10,
                 mediaType: mediaType,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                hasHackerNewsReferences: hasHackerNewsReferences && isHackerNewsFilterVisible ? true : nil
             )
             : Endpoint.rssFeedItems(
                 feedType: rssFeedItemFeedType,
                 after: after,
                 limit: 10,
                 mediaType: mediaType,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                hasHackerNewsReferences: hasHackerNewsReferences && isHackerNewsFilterVisible ? true : nil
             )
         let response: NativeRssFeedItemsResponse = try await client.send(endpoint)
         let rows = response.results.compactMap { result -> NativeForwardRow? in

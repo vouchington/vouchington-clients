@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Support;
 using Xunit;
@@ -65,7 +66,10 @@ public sealed class PostsListViewModelBoundedWindowTests
   public async Task HackerNewsFilterReloadsFromFirstPageAndContinuesWithSameFilter()
   {
     var service = new ScriptedPostsService(Page(["old"], "old-cursor"), Page(["new"], "new-cursor"), Page(["next"], null));
-    var viewModel = new PostsListViewModel(service);
+    var viewModel = new PostsListViewModel(
+        service,
+        hackerNewsReferences: new HackerNewsReferenceGate(
+            _ => Task.FromResult(new HackerNewsConfigResponse(true, "1y"))));
 
     await viewModel.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
     await viewModel.LoadBrowseAsync(hasHackerNewsReferences: true, cancellationToken: TestContext.Current.CancellationToken);

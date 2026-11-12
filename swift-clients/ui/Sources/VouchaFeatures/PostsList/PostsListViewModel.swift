@@ -45,6 +45,9 @@ public final class PostsListViewModel {
         didSet { filterReloadTask = Task { await reload() } }
     }
 
+    /// The backend flag; the filter stays hidden until a request reports references visible.
+    public internal(set) var hackerNewsReferencesVisible = false
+
     public var filter: PostFilter = .all {
         didSet {
             filterReloadTask = Task { await reload() }
@@ -163,7 +166,7 @@ public final class PostsListViewModel {
     }
 
     func feedEndpoint(after cursor: String?) -> Endpoint {
-        hasHackerNewsReferences && supportsHackerNewsFilter
+        hasHackerNewsReferences && isHackerNewsFilterVisible
             ? Endpoint.postsFeed(
                 postTypes: filter.postTypes,
                 timeRange: timeRange?.rawValue,

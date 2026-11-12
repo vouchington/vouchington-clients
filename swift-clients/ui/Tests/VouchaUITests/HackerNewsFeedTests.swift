@@ -69,7 +69,12 @@ final class HackerNewsFeedTests: XCTestCase {
                 ApiFixtureLoader.data("native.rss-feed-items.hacker-news.list"),
                 200
             )
+            CannedFeedURLProtocol.handlers["/api/v1/hacker-news-config"] = (
+                ApiFixtureLoader.data("native.hacker-news-config.default"),
+                200
+            )
             let viewModel = RSSFeedListViewModel(client: client(), contentType: contentType, feedSource: source)
+            await viewModel.refreshHackerNewsReferencesVisibility()
             var page = try XCTUnwrap(JSONSerialization
                 .jsonObject(with: ApiFixtureLoader.data("native.rss-feed-items.hacker-news.list")) as? [String: Any])
             page["page_info"] = ["has_next_page": true, "end_cursor": "opaque"]
@@ -113,8 +118,15 @@ final class HackerNewsFeedTests: XCTestCase {
             ApiFixtureLoader.data("swift.posts.feed.default"),
             200
         )
+        CannedFeedURLProtocol.handlers["/api/v1/hacker-news-config"] = (
+            ApiFixtureLoader.data("native.hacker-news-config.default"),
+            200
+        )
         let model = PostsListViewModel(client: client(), feedType: "all", timeRange: .last30Days)
         XCTAssertTrue(model.supportsHackerNewsFilter)
+        XCTAssertFalse(model.isHackerNewsFilterVisible)
+        await model.refreshHackerNewsReferencesVisibility()
+        XCTAssertTrue(model.isHackerNewsFilterVisible)
         model.filter = .reviews
         await model.filterReloadTask?.value
         let view = PostsListView(viewModel: model, isSignedIn: false)

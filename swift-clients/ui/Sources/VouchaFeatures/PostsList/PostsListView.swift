@@ -45,7 +45,7 @@ public struct PostsListView: View {
             }
         }
         .toolbar {
-            if viewModel.supportsHackerNewsFilter {
+            if viewModel.isHackerNewsFilterVisible {
                 Toggle(
                     UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
                     isOn: $viewModel.hasHackerNewsReferences
@@ -53,6 +53,7 @@ public struct PostsListView: View {
             }
         }
         .navigationTitle(UiMessages.string(.nativeSwiftPostsListPosts, locale: nativeUiLocale))
+        .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .task(id: isStaffViewer) { await viewModel.reload() }
         .refreshable { await viewModel.reload() }
         .emailVerificationRecovery(
