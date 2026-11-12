@@ -31,13 +31,11 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
   it('opens each native wheel, adjusts its selected row, and confirms Done before PATCH', async () => {
     const session = nativeSession()
     await session.run()
-    const done = session.calls.filter(call => call.url.endsWith('/picker-done/click'))
+    const done = session.calls.filter(call => /\/picker-done-\d+\/click$/u.test(call.url))
     assert.equal(done.length, 4)
-    const wheelKeys = session.calls.filter(
-      call => call.body?.args?.[0]?.elementId === 'picker-wheel',
-    )
+    const wheelKeys = session.calls.filter(call => call.body?.script === 'macos: scroll')
     assert.equal(wheelKeys.length, 4)
-    assert.ok(wheelKeys.every(call => call.body.args[0].keys.length === 1))
+    assert.ok(wheelKeys.every(call => call.body.args[0].deltaX === 0))
     assert.equal(session.evidence.patches.at(-1).after.moderation_email_timezone, 'Africa/Abidjan')
     assert.equal(
       session.calls.some(call => call.body?.value?.includes('@label="Africa/Abidjan"')),
@@ -48,14 +46,57 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
       false,
     )
   })
+  it('invalidates picker references after adjustment and Done without reading a dismissed wheel', async () => {
+    const session = nativeSession()
+    await session.run()
+    const originalCalls = [...session.calls]
+    const adjustments = originalCalls.filter(call => call.body?.script === 'macos: scroll')
+    assert.equal(adjustments.length, 4)
+    for (const adjustment of adjustments) {
+      const wheel = adjustment.body.args[0].elementId
+      const response = await session.request(
+        'GET',
+        `/session/native/element/${wheel}/attribute/value`,
+      )
+      assert.equal(response.value.error, 'stale element reference')
+    }
+    const doneCalls = originalCalls.filter(call => /\/picker-done-\d+\/click$/u.test(call.url))
+    assert.equal(doneCalls.length, 4)
+    for (const done of doneCalls) {
+      const latestWheel = done.url
+        .replace('picker-done-', 'picker-wheel-')
+        .replace('/click', '/attribute/value')
+      const response = await session.request('GET', latestWheel)
+      assert.equal(
+        response.value.error,
+        'stale element reference',
+        'Done invalidates the freshly re-queried wheel too',
+      )
+    }
+    assert.equal(
+      originalCalls.some(call => /picker-wheel-\d+\/attribute\/value$/u.test(call.url)),
+      false,
+    )
+    const wheels = originalCalls.filter(
+      call =>
+        call.url.endsWith('/elements') && call.body?.value === './/XCUIElementTypePickerWheel',
+    )
+    assert.ok(wheels.length >= adjustments.length * 2, 're-query after every adjustment')
+  })
+  for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
+    it(`verifies ${field} through the selected control and PATCH when adjustment dismisses its sheet`, async () => {
+      const session = nativeSession({ autoCommit: field })
+      assert.equal((await session.run()).length, 10)
+    })
+  }
   for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
     for (const [fault, message] of [
       ['noWheel', /picker wheel must expose exactly one/u],
       ['ambiguousWheel', /picker wheel must expose exactly one/u],
       ['disabledWheel', /picker wheel was disabled/u],
       ['wheelType', /unsupported native picker control/u],
-      ['emptyWheel', /picker wheel value was empty/u],
-      ['stuckWheel', /picker wheel adjustment did not settle/u],
+      ['emptyWheel', /selected control did not settle/u],
+      ['stuckWheel', /selected control did not settle/u],
       ['wheelKeysError', /Mac2 invalid element state/u],
       ['pickerQueryError', /Mac2 unknown command/u],
       ['noDone', /picker Done button must expose exactly one/u],

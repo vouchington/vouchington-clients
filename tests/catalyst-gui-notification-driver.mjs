@@ -19,6 +19,8 @@ export function nativeSession(fault = {}, fixture = {}) {
   let clock = 0
   let focused
   let picker
+  let pickerGeneration = 0
+  const selectedValues = {}
   let notificationRouteVisible = true
   let departed = false
   const calls = []
@@ -85,7 +87,11 @@ export function nativeSession(fault = {}, fixture = {}) {
       )
       return {
         value: picker
-          ? [{ ELEMENT: body.value.startsWith('//*[') ? 'picker-sheet' : 'picker-wheel' }]
+          ? [
+              {
+                ELEMENT: `${body.value.startsWith('//*[') ? 'picker-sheet' : 'picker-wheel'}-${pickerGeneration}`,
+              },
+            ]
           : [],
       }
     }
@@ -94,7 +100,19 @@ export function nativeSession(fault = {}, fixture = {}) {
     }
     const match = /^\/element\/([^/]+)\/(.*)$/u.exec(path)
     if (match) {
-      const id = decodeURIComponent(match[1])
+      const reference = decodeURIComponent(match[1])
+      const id = reference.startsWith('picker-') ? reference.replace(/-\d+$/u, '') : reference
+      if (
+        /^picker-(?:sheet|wheel|done)(?:-copy)?-\d+$/u.test(reference) &&
+        (!picker || !reference.endsWith(`-${pickerGeneration}`))
+      ) {
+        return {
+          value: {
+            error: 'stale element reference',
+            message: 'PickerWheel is not present on the current view',
+          },
+        }
+      }
       const field = id.replace('notification-', '')
       const command = match[2]
       if (command === 'elements' && id === 'picker-sheet') {
@@ -111,8 +129,8 @@ export function nativeSession(fault = {}, fixture = {}) {
           value:
             missing === picker.field
               ? []
-              : [id, ...(ambiguous === picker.field ? [id + '-copy'] : [])].map(ELEMENT => ({
-                  ELEMENT,
+              : [id, ...(ambiguous === picker.field ? [id + '-copy'] : [])].map(id => ({
+                  ELEMENT: `${id}-${pickerGeneration}`,
                 })),
         }
       }
@@ -166,8 +184,10 @@ export function nativeSession(fault = {}, fixture = {}) {
                 : (fault.hourType ?? 'XCUIElementTypeTextField'),
         }
       if (command === 'attribute/value') {
+        if (fault.emptyWheel === field) return { value: '' }
         if (id === 'picker-wheel') {
           assert.ok(picker)
+          if (!fault.allowWheelValue) return { value: String(picker.index) }
           const value = picker.values[picker.index]
           return {
             value:
@@ -186,7 +206,11 @@ export function nativeSession(fault = {}, fixture = {}) {
               ? minute
               : id === 'notification-time'
                 ? `${Number(hour) % 12 || 12}:${minute} ${Number(hour) < 12 ? 'AM' : 'PM'}`
-                : state[keys[field]],
+                : Object.hasOwn(options, field) && field !== 'timezone'
+                  ? fault.emptyWheel === field
+                    ? ''
+                    : `Localized ${selectedValues[field] ?? state[keys[field]]}`
+                  : (selectedValues[field] ?? state[keys[field]]),
         }
       }
       if (command === 'click') {
@@ -195,6 +219,7 @@ export function nativeSession(fault = {}, fixture = {}) {
           if (fault.doneError === picker.field)
             return { value: { error: 'invalid element state', message: 'Done unavailable' } }
           const selected = picker.values[picker.index]
+          selectedValues[picker.field] = selected
           if (fault.noPickerPatch !== picker.field) persist(keys[picker.field], selected)
           if (fault.noDismissal !== picker.field) picker = undefined
           return { value: null }
@@ -208,6 +233,7 @@ export function nativeSession(fault = {}, fixture = {}) {
                   ...options.timezone.filter(value => value !== state[keys[field]]),
                 ]
               : options[field]
+          pickerGeneration += 1
           picker = { field, values, index: values.indexOf(state[keys[field]]) }
         }
         focused = field
@@ -229,20 +255,25 @@ export function nativeSession(fault = {}, fixture = {}) {
       if (fault.unsupported)
         return { value: { error: 'unknown command', message: 'keys unavailable' } }
       const args = body.args[0]
-      if (body.script === 'macos: keys') {
-        if (args.elementId === 'picker-wheel') {
-          assert.ok(picker, 'wheel only exists while its action sheet is open')
-          assert.equal(args.keys.length, 1, 'confirm with Done, never Return')
-          assert.ok(['XCUIKeyboardKeyDownArrow', 'XCUIKeyboardKeyUpArrow'].includes(args.keys[0]))
-          if (fault.wheelKeysError === picker.field)
-            return { value: { error: 'invalid element state', message: 'wheel unavailable' } }
-          if (fault.stuckWheel !== picker.field)
-            picker.index += args.keys[0] === 'XCUIKeyboardKeyDownArrow' ? 1 : -1
-          assert.ok(picker.index >= 0 && picker.index < picker.values.length)
-          if (fault.earlyPickerPatch === picker.field)
+      if (body.script === 'macos: scroll') {
+        assert.ok(picker, 'wheel only exists while its action sheet is open')
+        assert.equal(args.elementId, `picker-wheel-${pickerGeneration}`)
+        assert.equal(args.deltaX, 0)
+        assert.ok([-32, 32].includes(args.deltaY))
+        if (fault.wheelKeysError === picker.field)
+          return { value: { error: 'invalid element state', message: 'wheel unavailable' } }
+        if (fault.stuckWheel !== picker.field) picker.index += args.deltaY < 0 ? 1 : -1
+        assert.ok(picker.index >= 0 && picker.index < picker.values.length)
+        pickerGeneration += 1
+        if (fault.earlyPickerPatch === picker.field)
+          persist(keys[picker.field], picker.values[picker.index])
+        if (fault.autoCommit === picker.field) {
+          if (fault.noPickerPatch !== picker.field)
             persist(keys[picker.field], picker.values[picker.index])
-          return { value: null }
+          picker = undefined
         }
+        return { value: null }
+      } else if (body.script === 'macos: keys') {
         assert.equal(args.keys.at(-1), 'XCUIKeyboardKeyReturn')
         if (focused === 'time-hour') {
           assert.equal(args.elementId, 'time-hour')

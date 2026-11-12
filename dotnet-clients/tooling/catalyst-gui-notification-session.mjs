@@ -101,7 +101,7 @@ export async function assertNotificationControls(request, sessionId, options = {
   }
   // MAUI 10.0.20 PickerHandler.iOS.cs presents UIPickerView in an action
   // sheet on Catalyst. Its Done action commits the selected row. Mac2's
-  // setValue types text; use element-scoped native keys on the wheel instead.
+  // setValue types text; scroll the wheel and confirm through the saved control.
   const one = async (parent, xpath, description) => {
     const values = await command('POST', parent ? path(parent, 'elements') : '/elements', { using: 'xpath', value: xpath })
     assert.ok(Array.isArray(values), `${description} query must return an array`)
@@ -115,39 +115,48 @@ export async function assertNotificationControls(request, sessionId, options = {
     assert.equal(truth(await attr(shown[0], 'enabled')), true, `${description} was disabled`)
     return shown[0]
   }
+  const pickerSheets = async () => {
+    const values = await command('POST', '/elements', { using: 'xpath', value: '//*[self::XCUIElementTypeSheet or self::XCUIElementTypeAlert][.//XCUIElementTypePickerWheel]' })
+    assert.ok(Array.isArray(values), 'picker action sheet query must return an array')
+    assert.ok(values.length <= 1, 'picker must expose exactly one action sheet')
+    return values.map(value => value['element-6066-11e4-a52e-4f735466cecf'] ?? value.ELEMENT)
+  }
   const pick = async (field, steps) => {
-    const element = await ready(`notification-${field === 'news' || field === 'community' ? `${field}-digest` : field}`)
-    await click(element)
-    const sheet = await poll('native picker action sheet', async () => {
-      const values = await command('POST', '/elements', { using: 'xpath', value: '//*[self::XCUIElementTypeSheet or self::XCUIElementTypeAlert][.//XCUIElementTypePickerWheel]' })
-      assert.ok(Array.isArray(values), 'picker action sheet query must return an array')
-      return values
-    }, values => values.length > 0)
-    assert.equal(sheet.length, 1, 'picker must expose exactly one action sheet')
-    const sheetId = sheet[0]['element-6066-11e4-a52e-4f735466cecf'] ?? sheet[0].ELEMENT
-    const wheel = await one(sheetId, './/XCUIElementTypePickerWheel', 'picker wheel')
-    assert.equal(await attr(wheel, 'amType'), 'XCUIElementTypePickerWheel', 'unsupported native picker control')
-    let value = await attr(wheel, 'value')
-    assert.ok(typeof value === 'string' && value.length > 0, 'picker wheel value was empty')
-    if (field === 'timezone') assert.equal(value, state.moderation_email_timezone, 'timezone wheel started from a stale selection')
-    await click(wheel)
+    const id = `notification-${field === 'news' || field === 'community' ? `${field}-digest` : field}`
+    const control = await ready(id)
+    const before = await attr(control, 'value')
+    await click(control)
+    await poll('native picker action sheet', pickerSheets, sheets => sheets.length === 1)
     for (let step = 0; step < Math.abs(steps); step += 1) {
-      const before = value
-      await execute('keys', { elementId: wheel, keys: [steps > 0 ? 'XCUIKeyboardKeyDownArrow' : 'XCUIKeyboardKeyUpArrow'] })
-      value = await poll('picker wheel adjustment', () => attr(wheel, 'value'), next => typeof next === 'string' && next.length > 0 && next !== before)
+      // A wheel adjustment can replace the sheet and every child identity.
+      // Never retain these references across a gesture (including Done).
+      const sheets = await pickerSheets()
+      assert.equal(sheets.length, 1, 'picker dismissed before all adjustments completed')
+      const wheel = await one(sheets[0], './/XCUIElementTypePickerWheel', 'picker wheel')
+      assert.equal(await attr(wheel, 'amType'), 'XCUIElementTypePickerWheel', 'unsupported native picker control')
+      // Mac2 setValue types text, and keyboard input can resign the Catalyst
+      // picker. Scroll the native wheel instead, one row per gesture.
+      await execute('scroll', { elementId: wheel, deltaX: 0, deltaY: steps > 0 ? -32 : 32 })
+      const refreshed = await pickerSheets()
+      if (refreshed.length) await one(refreshed[0], './/XCUIElementTypePickerWheel', 'picker wheel')
     }
-    if (field === 'timezone') {
-      assert.notEqual(value, state.moderation_email_timezone, 'timezone wheel did not change')
-      // The first row is the saved zone; the next is a system IANA zone.
-      // Read the selected row instead of assuming an offscreen target exists.
-      assert.ok(/^(?:UTC|[A-Za-z_+-]+(?:\/[A-Za-z0-9_+.-]+)+)$/u.test(value), 'unsupported native timezone value')
-    }
-    await click(await one(sheetId, './/XCUIElementTypeButton[@label="Done"]', 'picker Done button'))
+    const sheets = await pickerSheets()
+    if (sheets.length) await click(await one(sheets[0], './/XCUIElementTypeButton[@label="Done"]', 'picker Done button'))
     await poll('picker dismissal', () => command('POST', '/elements', { using: 'xpath', value: '//XCUIElementTypePickerWheel' }), values => {
       assert.ok(Array.isArray(values), 'picker dismissal query must return an array')
       return values.length === 0
     })
-    await poll(`${field} enabled after selection`, () => attr(element, 'enabled'), truth)
+    // The selected control survives dismissal; the wheel does not. Re-query
+    // even this control because a persisted update can replace its identity.
+    const value = await poll(`${field} selected control`, async () => {
+      try {
+        return await attr(await ready(id), 'value')
+      } catch (error) {
+        if (/stale element reference/iu.test(error.message)) return undefined
+        throw error
+      }
+    }, next => typeof next === 'string' && next.length > 0 && next !== before)
+    if (field === 'timezone') assert.ok(/^(?:UTC|[A-Za-z_+-]+(?:\/[A-Za-z0-9_+.-]+)+)$/u.test(value), 'unsupported native timezone value')
     return value
   }
   const select = async (field, choices, target) => {
