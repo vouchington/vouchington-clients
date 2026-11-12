@@ -30,7 +30,7 @@ public sealed partial class ApiNewsFeedService : IStoryRelatedArticlesService
           .Select(id => MapItem(response.RssFeedItems[id], response.RssFeedItemElections,
               response.ElectionVotes, response.Bookmarks, false, NewsFeedItemKind.Article,
               response.RssFeedItemThumbnailUrl, response.RssFeedItemEmbeds, null, null) with
-              { HackerNewsReferences = response.RssFeedItemHackerNewsReferences?.GetValueOrDefault(id) }).ToArray();
+          { HackerNewsReferences = response.RssFeedItemHackerNewsReferences?.GetValueOrDefault(id) }).ToArray();
       return item with { StoryArticles = new(storyId, item.Id, peers, page.PageInfo, localization) };
     }).ToArray();
   }

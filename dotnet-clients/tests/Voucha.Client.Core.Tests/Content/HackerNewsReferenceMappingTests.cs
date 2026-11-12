@@ -52,7 +52,8 @@ public sealed class HackerNewsReferenceMappingTests
     var detail = ApiFixtureLoader.LoadResponse("native.posts.hacker-news.detail");
     var descendants = """{"results":[],"posts":{},"users":{},"communities":{},"page_info":{"has_next_page":false}}""";
     var client = new VouchaApiClient(new HttpClient(new Handler(request =>
-        request.RequestUri!.AbsolutePath.EndsWith("/descendants", StringComparison.Ordinal) ? descendants : detail)) { BaseAddress = new Uri("https://example.com") });
+        request.RequestUri!.AbsolutePath.EndsWith("/descendants", StringComparison.Ordinal) ? descendants : detail))
+    { BaseAddress = new Uri("https://example.com") });
     var model = new CommentThreadViewModel(new ApiPostsService(client), "profile-review-1");
     await model.LoadAsync(TestContext.Current.CancellationToken);
     Assert.NotNull(model.RootHackerNewsReferences);
@@ -67,7 +68,8 @@ public sealed class HackerNewsReferenceMappingTests
     first["page_info"]!["end_cursor"] = "next";
     var second = first.ToJsonString().Replace("profile-review-1", "second-post", StringComparison.Ordinal);
     var client = new VouchaApiClient(new HttpClient(new Handler(request =>
-        request.RequestUri!.Query.Contains("after=next", StringComparison.Ordinal) ? second : first.ToJsonString())) { BaseAddress = new Uri("https://example.com") });
+        request.RequestUri!.Query.Contains("after=next", StringComparison.Ordinal) ? second : first.ToJsonString()))
+    { BaseAddress = new Uri("https://example.com") });
     using var model = new PostsListViewModel(new ApiPostsService(client));
     await model.LoadBrowseAsync(cancellationToken: TestContext.Current.CancellationToken);
     await model.LoadMoreAsync(TestContext.Current.CancellationToken);

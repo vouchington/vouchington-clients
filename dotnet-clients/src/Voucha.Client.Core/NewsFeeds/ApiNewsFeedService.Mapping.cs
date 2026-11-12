@@ -29,7 +29,8 @@ public sealed partial class ApiNewsFeedService
               response.RssFeedItemEmbeds,
               reference.StoryId,
               response.StoryPostIds,
-              reference.DeliveryId) with { HackerNewsReferences = response.RssFeedItemHackerNewsReferences?.GetValueOrDefault(reference.ItemId!) })
+              reference.DeliveryId) with
+          { HackerNewsReferences = response.RssFeedItemHackerNewsReferences?.GetValueOrDefault(reference.ItemId!) })
           .ToArray());
 
   private NewsFeedItem MapItem(
