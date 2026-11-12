@@ -24,17 +24,10 @@ public sealed class FollowerDistributionRecipientAvatarTests
     var fixture = JsonSerializer.Deserialize<UserFollowersResponse>(
         File.ReadAllText(ContractPaths.ApiFixture("responses/swift.users.followers.default.json")),
         VouchaApiJson.Options)!;
-    // The claimed follower fixture currently has no placement. Add the optional API field
-    // locally to one fixture-derived user to exercise the rendered placement path.
-    var fixtureUsers = fixture.Results.ToArray();
-    fixtureUsers[0] = fixtureUsers[0] with
-    {
-      ProfileImagePlacement = new TopicImagePlacement(
-        "00000000-0000-7000-8000-000000000201",
-        "00000000-0000-7000-8000-000000000301",
-        2)
-    };
-    var users = fixtureUsers.Concat([
+    var follower = Assert.Single(fixture.Results);
+    Assert.Equal("00000000-0000-7000-8000-000000000301", follower.ProfileImagePlacement?.PlacementId);
+    Assert.Equal(2, follower.ProfileImagePlacement?.PlacementRevision);
+    var users = fixture.Results.Concat([
       new User("01900000-0000-7000-8000-000000000002", "bob", Name: "🌱 Bob", ProfileImageId: "legacy-only")
     ]).ToArray();
     using var state = new FollowerDistributionViewModel(

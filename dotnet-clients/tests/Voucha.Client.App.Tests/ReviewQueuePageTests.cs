@@ -7,8 +7,8 @@ using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Moderation;
-using Voucha.Client.Core.Tests.Moderation;
 using Voucha.Client.Core.Tests.Api;
+using Voucha.Client.Core.Tests.Moderation;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
