@@ -129,8 +129,7 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.match(preflightSource, /CatalystGuiLaunchOptions/u)
     assert.match(notificationScript, /toggle\('engagement'\)/u)
     assert.match(notificationScript, /toggle\('moderation'\)/u)
-
-    assert.equal(job.match(/timeout-minutes:/gu)?.length, 8)
+    assert.equal(job.match(/timeout-minutes:/gu)?.length, 10)
     assert.match(job, /timeout-minutes: 6\n/u)
     assert.match(job, /timeout-minutes: 3\n/u)
     assert.match(job, /timeout-minutes: 2\n/u)

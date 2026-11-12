@@ -243,4 +243,11 @@
     <Compile Include="../../src/Voucha.Client.App/SentryTransactionProjection.cs" Link="SentryTransactionProjection.cs" />
     <Compile Include="../../src/Voucha.Client.App/SentryAccountSync.cs" Link="SentryAccountSync.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Voucha.Client.App/ITurnstileTokenProvider.cs" Link="ITurnstileTokenProvider.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <Compile Include="../../src/Voucha.Client.App/CatalystAuthNewsHandler.cs" Link="CatalystAuthNewsHandler.cs" />
+    <Compile Include="../../src/Voucha.Client.App/CatalystAuthNewsLaunch.cs" Link="CatalystAuthNewsLaunch.cs" />
+  </ItemGroup>
 </Project>

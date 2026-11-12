@@ -27,6 +27,9 @@ public static partial class MauiProgram
     services.AddSingleton<CookieContainer>();
     services.AddSingleton(PublicKeyPinningPolicy.VouchaDefault);
     services.AddSingleton<ISessionCookiePersistence>(sp =>
+#if DEBUG
+        CatalystAuthNewsLaunch.IsRequested ? new CatalystAuthNewsSessionPersistence() :
+#endif
         new MauiSecureSessionCookiePersistence(
             sp.GetRequiredService<AppConfig>().ApiBaseUrl,
             sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>()));
@@ -62,6 +65,7 @@ public static partial class MauiProgram
       HttpMessageHandler transport = sp.GetRequiredService<SocketsHttpHandler>();
 #if DEBUG
       transport = CatalystGuiFixtureHandler.Wrap(transport);
+      if (CatalystAuthNewsLaunch.IsRequested) transport = new CatalystAuthNewsHandler();
 #endif
       return new HttpClient(
           new ClientMetadataHandler(
