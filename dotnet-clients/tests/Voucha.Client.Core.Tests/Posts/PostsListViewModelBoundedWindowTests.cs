@@ -243,7 +243,7 @@ public sealed class PostsListViewModelBoundedWindowTests
     var service = new ScriptedPostsService(
         Page(["default"], "old-cursor"), Page(["selected"], "selected-cursor"), Page(["more"], null));
     using var model = new PostsListViewModel(service);
-    var scope = new TopicPostsRoute("travel", section).RequestForTopic("canonical-topic");
+    var scope = new TopicPostsRoute("travel", section).RequestForTopic("canonical-topic", isAuthenticated: true);
     await model.LoadBrowseAsync(scope.PostTypes, scope: scope, cancellationToken: TestContext.Current.CancellationToken);
     await model.SelectBrowseTimeRangeAsync("all", TestContext.Current.CancellationToken);
     await model.LoadMoreAsync(TestContext.Current.CancellationToken);
@@ -254,6 +254,7 @@ public sealed class PostsListViewModelBoundedWindowTests
     Assert.All(service.BrowseRequests, request =>
     {
       Assert.Equal(type, request.PostTypes);
+      Assert.Equal(section == "data-points" ? "new" : "following_new", request.Sort);
       var endpoint = VouchaApiEndpoints.AllPosts(request);
       Assert.Equal("canonical-topic", endpoint.Query[filter]);
       Assert.False(endpoint.Query.ContainsKey("data_point_vertical"));

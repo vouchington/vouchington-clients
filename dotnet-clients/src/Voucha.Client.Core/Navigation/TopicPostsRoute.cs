@@ -16,20 +16,21 @@ public sealed record TopicPostsRoute(string TopicIdOrSlug, string Section)
   }
 
   public async Task<FetchPostsRequest> ResolveRequestAsync(
-      ITopicsService topics, CancellationToken cancellationToken = default)
+      ITopicsService topics, bool isAuthenticated = false, CancellationToken cancellationToken = default)
   {
     var response = await topics.FetchTopicAsync(TopicIdOrSlug, cancellationToken).ConfigureAwait(false);
-    return RequestForTopic(response.Topic.Id);
+    return RequestForTopic(response.Topic.Id, isAuthenticated);
   }
 
-  public FetchPostsRequest RequestForTopic(string topicId)
+  public FetchPostsRequest RequestForTopic(string topicId, bool isAuthenticated = false)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(topicId);
+    var sort = isAuthenticated ? "following_new" : "new";
     return Section switch
     {
-      "posts" or "discussions" => new(Topics: topicId),
-      "reviews" => new(PostTypes: "review", ReviewTopic: topicId),
-      "data-points" => new(PostTypes: "data_point", DataPointTopic: topicId),
+      "posts" or "discussions" => new(Topics: topicId, Sort: sort),
+      "reviews" => new(PostTypes: "review", ReviewTopic: topicId, Sort: sort),
+      "data-points" => new(PostTypes: "data_point", DataPointTopic: topicId, Sort: "new"),
       _ => throw new InvalidOperationException("Unsupported topic post section."),
     };
   }

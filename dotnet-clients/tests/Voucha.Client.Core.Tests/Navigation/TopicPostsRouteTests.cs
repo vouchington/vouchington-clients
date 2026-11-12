@@ -25,7 +25,7 @@ public sealed class TopicPostsRouteTests
     var resolution = NativeDeepLinkResolver.Resolve(path, new NavigationViewer(true, []));
     var route = Assert.IsType<TopicPostsRoute>(TopicPostsRoute.FromResolution(resolution));
     var topics = DispatchProxy.Create<ITopicsService, TopicLookupProxy>();
-    var scope = await route.ResolveRequestAsync(topics, TestContext.Current.CancellationToken);
+    var scope = await route.ResolveRequestAsync(topics, cancellationToken: TestContext.Current.CancellationToken);
     var request = VouchaApiEndpoints.AllPosts(scope);
 
     Assert.Equal("travel", ((TopicLookupProxy)(object)topics).Identifier);
@@ -48,6 +48,24 @@ public sealed class TopicPostsRouteTests
   {
     var resolution = NativeDeepLinkResolver.Resolve(path, new NavigationViewer(true, []));
     Assert.Null(TopicPostsRoute.FromResolution(resolution));
+  }
+
+  [Theory]
+  [InlineData("posts", true, "following_new")]
+  [InlineData("posts", false, "new")]
+  [InlineData("discussions", true, "following_new")]
+  [InlineData("discussions", false, "new")]
+  [InlineData("reviews", true, "following_new")]
+  [InlineData("reviews", false, "new")]
+  [InlineData("data-points", true, "new")]
+  [InlineData("data-points", false, "new")]
+  public async Task TopicSectionSortMatchesWebForTheCurrentViewer(string section, bool authenticated, string sort)
+  {
+    var route = new TopicPostsRoute("travel", section);
+    var topics = DispatchProxy.Create<ITopicsService, TopicLookupProxy>();
+    var request = await route.ResolveRequestAsync(topics, authenticated, TestContext.Current.CancellationToken);
+    Assert.Equal(sort, VouchaApiEndpoints.AllPosts(request).Query["sort"]);
+    Assert.Equal("1m", request.TimeRange);
   }
 
   public class TopicLookupProxy : DispatchProxy
