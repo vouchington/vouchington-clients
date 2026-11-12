@@ -52,6 +52,7 @@ final class HackerNewsNativeRouteTests: NativeRouteSurfaceViewModelTestCase {
         let query = URLComponents(url: request, resolvingAgainstBaseURL: false)?.queryItems
         XCTAssertEqual(query?.first { $0.name == "post_types" }?.value, "review")
         XCTAssertEqual(query?.first { $0.name == "has_hacker_news_references" }?.value, "true")
+        XCTAssertNil(query?.first { $0.name == "time_range" })
     }
 
     func testSummaryVariantsAndUnsupportedFilter() throws {

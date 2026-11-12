@@ -33,6 +33,10 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     var all = Assert.Single(VisualTreeElements.Descendants<Button>(page), button => button.Text == localization.Localize(UiMessageKey.NativeSwiftCommonAll));
     await ClickAndLoadAsync(feed, model, () => model.IsLoading);
     Assert.Equal(!authenticated, filter.IsVisible);
+    if (authenticated)
+      Assert.Contains("time_range=1w", handler.Paths[^1], StringComparison.Ordinal);
+    else
+      Assert.DoesNotContain("time_range", handler.Paths[^1], StringComparison.Ordinal);
     await ClickAndLoadAsync(all, model, () => model.IsLoading);
     Assert.True(filter.IsVisible);
     Assert.True(binding.IsHackerNewsFilterVisible);
@@ -40,6 +44,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     Assert.True(binding.IsHackerNewsFilterSelected);
     Assert.Contains("has_hacker_news_references=true", handler.Paths[^1], StringComparison.Ordinal);
     Assert.StartsWith("/api/v1/posts?", handler.Paths[^1], StringComparison.Ordinal);
+    Assert.DoesNotContain("time_range", handler.Paths[^1], StringComparison.Ordinal);
     await ClickAndLoadAsync(filter, model, () => model.IsLoading);
     Assert.False(binding.IsHackerNewsFilterSelected);
     Assert.DoesNotContain("has_hacker_news_references", handler.Paths[^1], StringComparison.Ordinal);

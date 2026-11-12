@@ -16,6 +16,7 @@ final class NativePostTimeRangeRequestTests: NativeRouteSurfaceViewModelTestCase
         let urls = CannedFeedURLProtocol.capturedURLs.filter { $0.path == path }
         XCTAssertEqual(urls.count, 2)
         XCTAssertEqual(urls.map { query("time_range", url: $0) }, ["1w", "1w"])
+        XCTAssertTrue(urls.allSatisfy { query("has_hacker_news_references", url: $0) == nil })
         XCTAssertEqual(query("after", url: urls.last), "older==")
     }
 
