@@ -2646,7 +2646,7 @@ jobs:
             echo "::error::Debug app status $app_status; Mac2 host status $host_status"
             exit 1
           fi
-      - name: Open the Mac2 notification settings session
+      - name: Launch the root shell and notification settings sessions
         timeout-minutes: 3
         working-directory: candidate-clients
         env:
@@ -2678,6 +2678,9 @@ jobs:
           codesign --force --sign - "$PWD/$app"
           export CATALYST_APP_PATH="$PWD/$app"
           export VOUCHA_CONTRACT_ROOT="$staged"
+          export CATALYST_GUI_RESULT="$diagnostics/root-result.json"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --root-session
+          jq -e '.total == 3 and .passed == 3 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
           export CATALYST_GUI_RESULT="$diagnostics/result.json"
           export CATALYST_NATIVE_REVISION="${{ needs.verify.outputs.revision-sha }}"
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session

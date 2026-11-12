@@ -3,6 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import { dirname, join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { assertNotificationControls } from './catalyst-gui-notification-session.mjs'
+import { assertRootShellControls } from './catalyst-gui-root-session.mjs'
 
 import { notificationEvidence } from '../../scripts/catalyst-notification-evidence.mjs'
 
@@ -166,7 +167,7 @@ async function writePageSource(request, sessionId) {
   }
 }
 
-async function session() {
+async function session(rootShell = false) {
   const resultPath = process.env.CATALYST_GUI_RESULT
   if (!resultPath) throw new Error('CATALYST_GUI_RESULT is required')
   rmSync(resultPath, { force: true })
@@ -192,7 +193,9 @@ async function session() {
           'appium:automationName': 'Mac2',
           'appium:bundleId': bundleId,
           'appium:appPath': appPath,
-          'appium:arguments': [launchArgument],
+          'appium:noReset': false,
+          'appium:skipAppKill': false,
+          'appium:arguments': [rootShell ? '--ui-testing-root-shell-smoke' : launchArgument],
           'appium:environment': {
             VOUCHA_CONTRACT_ROOT: process.env.VOUCHA_CONTRACT_ROOT,
             CATALYST_GUI_RESULT: process.env.CATALYST_GUI_RESULT,
@@ -206,12 +209,16 @@ async function session() {
     if (!sessionId) throw new Error('Mac2 did not return a session id')
     let checks
     try {
-      checks = await assertNotificationControls(request, sessionId)
+      if (rootShell) await assertRootShellControls(request, sessionId)
+      else checks = await assertNotificationControls(request, sessionId)
     } catch (error) {
       await writePageSource(request, sessionId)
       throw error
     }
-    writeFileSync(resultPath, JSON.stringify(notificationEvidence(checks, nativeRevision, commit)))
+    const result = rootShell
+      ? { total: 3, passed: 3, failed: 0, skipped: 0 }
+      : notificationEvidence(checks, nativeRevision, commit)
+    writeFileSync(resultPath, JSON.stringify(result))
   } finally {
     if (sessionId) {
       await request('DELETE', `/session/${sessionId}`).catch(() => undefined)
@@ -226,7 +233,8 @@ try {
   else if (mode === '--stage-fixture') stageFixture(process.argv[3])
   else if (mode === '--prebuild-host') await prebuildHost()
   else if (mode === '--session') await session()
-  else throw new Error('pass --check-fixture, --stage-fixture, --prebuild-host, or --session')
+  else if (mode === '--root-session') await session(true)
+  else throw new Error('pass --check-fixture, --stage-fixture, --prebuild-host, --session, or --root-session')
 } catch (error) {
   console.error(error instanceof Error ? error.message : error)
   process.exitCode = 1

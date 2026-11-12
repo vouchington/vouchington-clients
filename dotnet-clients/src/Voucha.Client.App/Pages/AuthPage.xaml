@@ -9,7 +9,7 @@
     <ScrollView>
         <VerticalStackLayout x:Name="ContentStack" Padding="20" Spacing="18">
             <VerticalStackLayout Spacing="4">
-                <Label Text="{DynamicResource native.dotnet.auth.session}" Style="{StaticResource Headline}" />
+                <Label AutomationId="auth-session-heading" Text="{DynamicResource native.dotnet.auth.session}" Style="{StaticResource Headline}" />
                 <Label Text="{Binding SessionLabel}" Style="{StaticResource Body}" />
                 <Label Text="{Binding StatusMessage}" Style="{StaticResource Metadata}" />
             </VerticalStackLayout>
@@ -20,9 +20,9 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{DynamicResource native.dotnet.auth.emailCode}" Style="{StaticResource Headline}" />
-                    <Entry Placeholder="{DynamicResource native.auth.emailAddress}" Text="{Binding Email}" Keyboard="Email" />
+                    <Entry AutomationId="auth-email-address" Placeholder="{DynamicResource native.auth.emailAddress}" Text="{Binding Email}" Keyboard="Email" />
                     <HorizontalStackLayout Spacing="8">
-                        <Button Text="{DynamicResource native.dotnet.auth.sendEmailCode}" Clicked="OnSendEmailCodeClicked" />
+                        <Button AutomationId="auth-send-email-code" Text="{DynamicResource native.dotnet.auth.sendEmailCode}" Clicked="OnSendEmailCodeClicked" />
                         <Button
                             Text="{DynamicResource native.dotnet.auth.resendCode}"
                             Clicked="OnResendEmailCodeClicked"

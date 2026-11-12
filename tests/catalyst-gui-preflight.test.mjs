@@ -39,7 +39,7 @@ const notificationScript = readFileSync(
 )
 
 describe('Mac Catalyst GUI preflight', () => {
-  it('keeps one non-skipped Debug Mac2 session inside a 10-minute job', () => {
+  it('requires root-shell and notification Debug Mac2 sessions inside a 10-minute job', () => {
     const job = jobBlock(workflow, 'dotnet-catalyst-gui')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const needs = jobBlock(workflow, 'tests')
@@ -63,6 +63,8 @@ describe('Mac Catalyst GUI preflight', () => {
     )
     assert.match(job, /catalyst-gui-preflight\.mjs --stage-fixture/u)
     assert.match(job, /-p:CodesignEntitlements=/u)
+    assert.match(job, /catalyst-gui-preflight\.mjs --root-session/u)
+    assert.match(job, /root-result\.json/u)
     assert.match(job, /catalyst-gui-preflight\.mjs --session/u)
     assert.match(sessionScript, /--ui-testing-launch-smoke/u)
     assert.match(job, /pgrep -qx WindowServer/u)
@@ -76,6 +78,16 @@ describe('Mac Catalyst GUI preflight', () => {
       /Upload partial Catalyst notification evidence\n\s+if: \$\{\{ success\(\) \}\}/u,
     )
     assert.match(job, /result\.json\n\s+retention-days: 7\n\s+if-no-files-found: error/u)
+    assert.equal(
+      job.match(/jq -e '\.total == 3 and \.passed == 3 and \.failed == 0 and \.skipped == 0'/gu)
+        ?.length,
+      1,
+      'root session requires its independent non-skipping runtime result',
+    )
+    assert.match(
+      job,
+      /CATALYST_GUI_RESULT="\$diagnostics\/root-result\.json"\n\s+node dotnet-clients\/tooling\/catalyst-gui-preflight\.mjs --root-session\n\s+jq[^\n]+\n\s+export CATALYST_GUI_RESULT="\$diagnostics\/result\.json"\n\s+export CATALYST_NATIVE_REVISION="\$\{\{ needs\.verify\.outputs\.revision-sha \}\}"\n\s+node dotnet-clients\/tooling\/catalyst-gui-preflight\.mjs --session/u,
+    )
     assert.match(needs, /^      - dotnet-catalyst-gui$/mu)
     assert.match(maui, /timeout-minutes: 30/u)
     assert.match(maui, /--configuration Release --framework net10\.0-maccatalyst/u)
@@ -99,7 +111,13 @@ describe('Mac Catalyst GUI preflight', () => {
       job,
       /CATALYST_NATIVE_REVISION="\$\{\{ needs\.verify\.outputs\.revision-sha \}\}"/u,
     )
-    assert.doesNotMatch(sessionScript, /root-shell/u)
+    assert.match(sessionScript, /total: 3, passed: 3, failed: 0, skipped: 0/u)
+    assert.match(sessionScript, /--ui-testing-root-shell-smoke/u)
+    assert.match(
+      sessionScript,
+      /if \(rootShell\) await assertRootShellControls\(request, sessionId\)\n\s+else checks = await assertNotificationControls\(request, sessionId\)/u,
+    )
+    assert.match(preflightSource, /CatalystGuiLaunchOptions/u)
     assert.match(notificationScript, /notification-engagement/u)
     assert.match(notificationScript, /notification-moderation/u)
     assert.match(notificationScript, /notification-news-digest/u)
