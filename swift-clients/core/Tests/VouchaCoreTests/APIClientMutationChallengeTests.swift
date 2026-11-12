@@ -37,6 +37,31 @@ final class APIClientMutationChallengeTests: XCTestCase {
         }
     }
 
+    func testChangedResponseURLNeverPresentsOrReplaysMutation() async throws {
+        for raw in [false, true] {
+            InvitationURLProtocol.reset()
+            InvitationURLProtocol.requestHandlers = ["POST /mutation": (challenge(), 403)]
+            InvitationURLProtocol.finalResponseURL = try XCTUnwrap(URL(string: "http://localhost:2999/redirected"))
+            let client = try makeClient()
+            await client.setMutationChallengeHandler {
+                XCTFail("A challenge from another response URL must not prompt")
+                return "proof"
+            }
+            do {
+                if raw {
+                    _ = try await client.data(for: .init(.POST, path: "/mutation"))
+                } else {
+                    let _: EmptyResponse = try await client.send(.init(.POST, path: "/mutation"))
+                }
+                XCTFail("Expected forbidden")
+            } catch VouchaError.forbidden {} catch { XCTFail("Unexpected error: \(error)") }
+            XCTAssertEqual(InvitationURLProtocol.capturedMethods, ["POST"])
+            XCTAssertEqual(InvitationURLProtocol.capturedURLs.map(\.path), ["/mutation"])
+            let headers = try XCTUnwrap(InvitationURLProtocol.capturedHeaders.first).mapKeysLowercased()
+            XCTAssertNil(headers["x-voucha-bot-challenge-token"])
+        }
+    }
+
     func testSuccessfulReplayCarriesOneUseProofAndFreshSignature() async throws {
         InvitationURLProtocol.requestHandlers = ["PATCH /mutation": (challenge(), 403)]
         let signer = MutationCountingSigner()

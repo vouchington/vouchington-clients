@@ -21,6 +21,7 @@ extension APIClient {
               rawRequest.url?.host == baseURL.host, rawRequest.url?.port == baseURL.port,
               rawRequest.httpBodyStream == nil, ["POST", "PUT", "PATCH", "DELETE"].contains(method),
               let response = first.1 as? HTTPURLResponse, response.statusCode == 403,
+              response.url == rawRequest.url,
               let challenge = try? decoder.decode(BotChallengeRequiredResponse.self, from: first.0),
               challenge.code == BotChallengeRequiredResponse.requiredCode,
               challenge.action == "bot-challenge.mutation",

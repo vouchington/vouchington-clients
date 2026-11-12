@@ -58,6 +58,9 @@ public sealed class BotChallengeReplayTests
   [InlineData("wrong-status")]
   [InlineData("get")]
   [InlineData("other-origin")]
+  [InlineData("redirect-url")]
+  [InlineData("redirect-method")]
+  [InlineData("missing-context")]
   public async Task OtherOutcomesNeverPromptOrReplay(string outcome)
   {
     var handler = new Handler { Outcome = outcome };
@@ -188,13 +191,20 @@ public sealed class BotChallengeReplayTests
           proof, Header(request, "Idempotency-Key")));
       if (Outcome == "network") throw new HttpRequestException("Ambiguous failure");
       if (Outcome == "success" || (proof is not null && Outcome != "repeat"))
-        return new(HttpStatusCode.OK) { Content = new StringContent("{\"success\":true}") };
+        return new(HttpStatusCode.OK) { Content = new StringContent("{\"success\":true}"), RequestMessage = request };
       var body = ApiFixtureLoader.LoadResponse("native.bot-challenge.required");
       if (Outcome == "ordinary") body = "{\"code\":\"FORBIDDEN\"}";
       if (Outcome == "wrong-action") body = body.Replace("bot-challenge.mutation", "posts.create", StringComparison.Ordinal);
       if (Outcome == "bad-json") body = "invalid";
+      var responseRequest = Outcome switch
+      {
+        "redirect-url" => new HttpRequestMessage(request.Method, "https://api.test/redirected"),
+        "redirect-method" => new HttpRequestMessage(HttpMethod.Get, request.RequestUri),
+        "missing-context" => null,
+        _ => request,
+      };
       return new(Outcome == "wrong-status" ? HttpStatusCode.BadRequest : HttpStatusCode.Forbidden)
-      { Content = new StringContent(body) };
+      { Content = new StringContent(body), RequestMessage = responseRequest };
     }
     private static string? Header(HttpRequestMessage request, string name) =>
         request.Headers.TryGetValues(name, out var values) ? Assert.Single(values) : null;

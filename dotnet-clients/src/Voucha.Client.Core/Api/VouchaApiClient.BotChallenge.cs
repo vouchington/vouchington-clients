@@ -38,7 +38,9 @@ public sealed partial class VouchaApiClient
 
     using var original = CreateMessage();
     var response = await httpClient.SendAsync(original, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-    if (scope is null || response.StatusCode != HttpStatusCode.Forbidden) return response;
+    if (scope is null || response.StatusCode != HttpStatusCode.Forbidden ||
+        response.RequestMessage is not { } responseRequest ||
+        responseRequest.RequestUri != uri || responseRequest.Method != method) return response;
     try
     {
       var body = await ReadErrorBodyAsync(response.Content, token).ConfigureAwait(false);
