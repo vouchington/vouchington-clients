@@ -109,6 +109,29 @@ final class SourceCreationTests: XCTestCase {
         XCTAssertEqual(counts.1, 3)
     }
 
+    func testDefaultPollingDelayReachesCompletion() async {
+        let script = SourceCreationScript([status(.pending, pending: 1), status(.sourceCreated, pending: 0)])
+        let model = SourceCreationViewModel(service: .init(
+            create: { _ in await script.create() }, status: { _ in try await script.read() }, topic: { _ in "topic" }
+        ), baseURL: base, identity: { "account" })
+        model.url = "https://example.com/feed"
+        await model.create()
+        XCTAssertEqual(model.destination, "/source/topic")
+    }
+
+    func testMismatchedStatusIdentityRemainsRetryable() async {
+        let wrong = RssFeedImportStatus(import: .init(
+            id: "wrong", totalRows: 1, completedRows: 0, failedRows: 0, pendingRows: 1,
+            completedAt: nil, createdAt: Date()
+        ), rows: [])
+        let script = SourceCreationScript([wrong])
+        let model = model(script)
+        await model.create()
+        XCTAssertNil(model.result)
+        XCTAssertFalse(model.isTerminal)
+        XCTAssertNotNil(model.message)
+    }
+
     func testTerminalFailure() async {
         let model = model(SourceCreationScript([status(.error, pending: 0, failed: 1)]))
         await model.create()

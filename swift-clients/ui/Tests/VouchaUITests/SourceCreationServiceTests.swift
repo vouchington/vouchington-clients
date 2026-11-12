@@ -23,7 +23,7 @@ final class SourceCreationServiceTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(status.rows.count, 1)
         let requests = CannedFeedURLProtocol.capturedRequests
         XCTAssertEqual(requests.map(\.method), ["POST", "GET"])
-        let body = try XCTUnwrap(requests[0].body).data(using: .utf8)!
+        let body = try XCTUnwrap(try XCTUnwrap(requests[0].body).data(using: .utf8))
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(object["rss_feed_url"] as? String, "https://example.com/feed")
         XCTAssertEqual(object["follow"] as? Bool, true)

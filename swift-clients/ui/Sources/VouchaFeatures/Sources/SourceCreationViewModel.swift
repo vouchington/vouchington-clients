@@ -43,6 +43,18 @@ final class SourceCreationViewModel {
         isWorking = false
     }
 
+    func reset() {
+        cancel()
+        url = ""
+        importId = nil
+        submitted = false
+        result = nil
+        message = nil
+        isTerminal = false
+        destination = nil
+        owner = nil
+    }
+
     func create() async {
         guard !isWorking, !submitted, !isTerminal, importId == nil,
               !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,

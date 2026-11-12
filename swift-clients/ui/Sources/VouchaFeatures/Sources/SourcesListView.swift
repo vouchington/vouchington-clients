@@ -70,14 +70,17 @@ public struct SourcesListView: View {
         .navigationTitle(navigationTitle)
         .toolbar {
             if isSignedIn {
-                Button(UiMessages.string(.nativeSwiftCommonCreate, locale: nativeUiLocale)) { showCreation = true }
+                Button(UiMessages.string(.nativeSwiftCommonCreate, locale: nativeUiLocale)) {
+                    if creationModel.isTerminal { creationModel.reset() }
+                    showCreation = true
+                }
             }
         }
         .sheet(isPresented: $showCreation) {
             SourceCreationView(model: creationModel, navigate: navigateToSource)
         }
         .onChange(of: creationIdentity()) { _, _ in
-            creationModel.cancel()
+            creationModel.reset()
             showCreation = false
         }
         .task(id: "\(scope.rawValue)|\(isStaffViewer)") {
