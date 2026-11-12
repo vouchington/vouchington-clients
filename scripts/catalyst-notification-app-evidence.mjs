@@ -71,9 +71,19 @@ export function validateNotificationAppEvidence(report, { preferences, announcem
     'app evidence must start from the canonical fixture',
   )
   assert.ok(Array.isArray(report.patches), 'app evidence patches must be an array')
-  const covered = new Set()
+  const transitions = [
+    ['is_engagement_emails_enabled', !preferences.is_engagement_emails_enabled],
+    ...(!preferences.is_moderation_emails_enabled ? [['is_moderation_emails_enabled', true]] : []),
+    ['is_moderation_emails_enabled', false],
+    ['is_moderation_emails_enabled', true],
+  ]
+  assert.equal(
+    report.patches.length,
+    transitions.length,
+    'hosted switch mutation sequence is required',
+  )
   let state = preferences
-  for (const patch of report.patches) {
+  for (const [index, patch] of report.patches.entries()) {
     keys(patch, ['fields', 'before', 'after'], 'persisted PATCH')
     assert.ok(
       Array.isArray(patch.fields) && patch.fields.length === 1 && fields.includes(patch.fields[0]),
@@ -88,10 +98,10 @@ export function validateNotificationAppEvidence(report, { preferences, announcem
       { ...state, [field]: patch.after[field] },
       'PATCH changed hidden or unrelated values',
     )
-    covered.add(field)
+    assert.equal(field, transitions[index][0], 'hosted preflight only mutates switches')
+    assert.equal(patch.after[field], transitions[index][1], 'unexpected hosted switch value')
     state = patch.after
   }
-  assert.equal(covered.size, fields.length, 'all eight controls must persist a mutation')
   assert.ok(
     Array.isArray(report.activations) && report.activations.length === 2,
     'two canonical route activations are required',

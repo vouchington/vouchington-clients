@@ -3,9 +3,10 @@ import { describe, it } from 'node:test'
 
 import { assertNotificationControls } from '../dotnet-clients/tooling/catalyst-gui-notification-session.mjs'
 import { nativeSession } from './catalyst-gui-notification-driver.mjs'
+import { validateNotificationAppEvidence } from '../scripts/catalyst-notification-app-evidence.mjs'
 
 describe('notification Mac2 native gestures and persisted acceptance', () => {
-  it('drives every control through native gestures and audits each exact PATCH', async () => {
+  it('drives the hosted switches and audits each exact PATCH', async () => {
     const session = nativeSession()
     const checks = await session.run()
     assert.deepEqual(
@@ -13,124 +14,44 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
       [
         'heading-exposed',
         'engagement-mutation-persisted',
-        'news-digest-mutation-persisted',
-        'community-digest-mutation-persisted',
         'moderation-visibility-and-hidden-preservation',
-        'cadence-mutation-persisted',
-        'days-mutation-persisted',
-        'time-mutation-persisted',
-        'timezone-mutation-persisted',
         'canonical-route-focus-and-announcement-dispatched',
       ],
     )
     assert.ok(checks.every(check => check.status === 'passed'))
-    assert.equal(session.evidence.patches.length, 9)
-    assert.ok(session.calls.some(call => call.url.endsWith('/notification-day-2/click')))
+    assert.equal(session.evidence.patches.length, 3)
     assert.ok(session.calls.some(call => call.body?.script === 'macos: deepLink'))
   })
-  it('opens each native wheel, adjusts its selected row, and confirms Done before PATCH', async () => {
-    const session = nativeSession()
+  it('supports a saved disabled moderation switch without losing any manual values', async () => {
+    const preferences = nativeSession().evidence.initialPreferences
+    preferences.is_moderation_emails_enabled = false
+    const session = nativeSession({}, { preferences })
     await session.run()
-    const done = session.calls.filter(call => /\/picker-done-\d+\/click$/u.test(call.url))
-    assert.equal(done.length, 4)
-    const wheelKeys = session.calls.filter(call => call.body?.script === 'macos: scroll')
-    assert.equal(wheelKeys.length, 4)
-    assert.ok(wheelKeys.every(call => call.body.args[0].deltaX === 0))
-    assert.equal(session.evidence.patches.at(-1).after.moderation_email_timezone, 'Africa/Abidjan')
-    assert.equal(
-      session.calls.some(call => call.body?.value?.includes('@label="Africa/Abidjan"')),
-      false,
-    )
-    assert.equal(
-      session.calls.some(call => call.method === 'POST' && call.url.endsWith('/value')),
-      false,
-    )
-  })
-  it('invalidates picker references after adjustment and Done without reading a dismissed wheel', async () => {
-    const session = nativeSession()
-    await session.run()
-    const originalCalls = [...session.calls]
-    const adjustments = originalCalls.filter(call => call.body?.script === 'macos: scroll')
-    assert.equal(adjustments.length, 4)
-    for (const adjustment of adjustments) {
-      const wheel = adjustment.body.args[0].elementId
-      const response = await session.request(
-        'GET',
-        `/session/native/element/${wheel}/attribute/value`,
-      )
-      assert.equal(response.value.error, 'stale element reference')
-    }
-    const doneCalls = originalCalls.filter(call => /\/picker-done-\d+\/click$/u.test(call.url))
-    assert.equal(doneCalls.length, 4)
-    for (const done of doneCalls) {
-      const latestWheel = done.url
-        .replace('picker-done-', 'picker-wheel-')
-        .replace('/click', '/attribute/value')
-      const response = await session.request('GET', latestWheel)
-      assert.equal(
-        response.value.error,
-        'stale element reference',
-        'Done invalidates the freshly re-queried wheel too',
-      )
-    }
-    assert.equal(
-      originalCalls.some(call => /picker-wheel-\d+\/attribute\/value$/u.test(call.url)),
-      false,
-    )
-    const wheels = originalCalls.filter(
-      call =>
-        call.url.endsWith('/elements') &&
-        call.body?.using === 'class name' &&
-        call.body?.value === 'XCUIElementTypePickerWheel',
-    )
-    assert.equal(
-      wheels.length,
-      adjustments.length * 3,
-      'one opening, one post-scroll, one dismissal query per picker',
-    )
-    assert.equal(
-      originalCalls.some(call => call.body?.using === 'xpath'),
-      false,
-    )
-  })
-  for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
-    it(`verifies ${field} through the selected control and PATCH when adjustment dismisses its sheet`, async () => {
-      const session = nativeSession({ autoCommit: field })
-      assert.equal((await session.run()).length, 10)
+    validateNotificationAppEvidence(session.evidence, {
+      preferences,
+      announcement: 'Notification settings opened',
     })
-  }
-  for (const field of ['news-digest', 'community-digest', 'cadence', 'timezone']) {
-    for (const [fault, message] of [
-      ['noWheel', /native picker wheel did not settle/u],
-      ['ambiguousWheel', /picker wheel must expose exactly one/u],
-      ['disabledWheel', /picker wheel was disabled/u],
-      ['emptyWheel', /selected control did not settle/u],
-      ['stuckWheel', /selected control did not settle/u],
-      ['wheelKeysError', /Mac2 invalid element state/u],
-      ['pickerQueryError', /Mac2 unknown command/u],
-      ['noDone', /picker Done button must expose exactly one/u],
-      ['ambiguousDone', /picker Done button must expose exactly one/u],
-      ['doneError', /Mac2 invalid element state/u],
-      ['noDismissal', /picker dismissal did not settle/u],
-      ['earlyPickerPatch', /multiple PATCH requests/u],
-      ['noPickerPatch', /persisted PATCH did not settle/u],
-    ]) {
-      it(`rejects ${field} ${fault} without claiming a completed native selection`, async () => {
-        const session = nativeSession({ [fault]: field })
-        await assert.rejects(session.run(), message)
-        assert.equal(
-          session.calls.some(call => call.body?.script === 'macos: deepLink'),
-          false,
-        )
-      })
-    }
-  }
-  it('uses the saved timezone as row zero even when it is not UTC', async () => {
-    const fixture = nativeSession().evidence.initialPreferences
-    fixture.moderation_email_timezone = 'Africa/Abidjan'
-    const session = nativeSession({}, { preferences: fixture })
+    assert.equal(session.evidence.patches.length, 4)
+  })
+  it('does not open manual controls or query picker-sheet elements', async () => {
+    const session = nativeSession()
     await session.run()
-    assert.equal(session.evidence.patches.at(-1).after.moderation_email_timezone, 'Africa/Accra')
+    assert.ok(session.calls.length < 70, 'hosted command count remains bounded')
+    assert.ok(
+      session.calls
+        .filter(call => call.url.endsWith('/click'))
+        .every(call => /notification-(?:engagement|moderation)\/click$/u.test(call.url)),
+    )
+    assert.ok(
+      session.calls
+        .filter(call => call.body?.script)
+        .every(call => call.body.script === 'macos: deepLink'),
+    )
+    assert.ok(
+      session.calls
+        .filter(call => call.body?.using)
+        .every(call => call.body.using === 'accessibility id'),
+    )
   })
   for (const [fault, message] of [
     [{ stale: true }, /stale element reference/u],
@@ -138,17 +59,9 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
     [{ wrongField: true }, /exactly its API field/u],
     [{ corruptUnrelated: true }, /changed an unrelated field/u],
     [{ hiddenScheduleVisible: true }, /schedule visibility differs/u],
-    [{ hiddenDaysVisible: true }, /schedule visibility differs/u],
     [{ noDeparture: true }, /departure from notification settings did not settle/u],
     [{ duplicate: true }, /multiple PATCH requests/u],
     [{ noPatch: true }, /engagement persisted PATCH did not settle/u],
-    [{ timeType: 'XCUIElementTypeTextField' }, /unsupported native time control/u],
-    [{ hourType: 'XCUIElementTypeStaticText' }, /unsupported native hour component/u],
-    [{ noTimeComponents: true }, /exactly one visible editable hour/u],
-    [{ ambiguousHour: true }, /exactly one visible editable hour/u],
-    [{ timeComponentsError: true }, /Mac2 unknown command/u],
-    [{ timeKeysError: true }, /Mac2 invalid element state/u],
-    [{ noTimePatch: true }, /time persisted PATCH did not settle/u],
     [{ focusFailure: true }, /Expected values to be strictly equal/u],
     [{ wrongAnnouncement: true }, /generated localization/u],
     [{ duplicateAnnouncement: true }, /exactly one announcement/u],
@@ -157,46 +70,9 @@ describe('notification Mac2 native gestures and persisted acceptance', () => {
       await assert.rejects(nativeSession(fault).run(), message)
     })
   }
-  for (const saved of ['00:37', '11:37', '12:37', '23:37']) {
-    it(`edits one hour component and preserves minutes for ${saved}`, async () => {
-      const fixture = nativeSession().evidence.initialPreferences
-      fixture.moderation_email_time_of_day = saved
-      const session = nativeSession({}, { preferences: fixture })
-      await session.run()
-      const patches = session.evidence.patches.filter(patch =>
-        patch.fields.includes('moderation_email_time_of_day'),
-      )
-      assert.equal(patches.length, 1)
-      const hour = Number(saved.slice(0, 2))
-      assert.equal(
-        patches[0].after.moderation_email_time_of_day,
-        `${String(hour + (hour % 12 === 11 ? -1 : 1)).padStart(2, '0')}:37`,
-      )
-      assert.equal(
-        session.calls.some(call => call.url.endsWith('/notification-time/click')),
-        false,
-      )
-      assert.equal(
-        session.calls.filter(call => call.body?.args?.[0]?.elementId === 'time-hour').length,
-        1,
-      )
-    })
-  }
-  it('does not proceed to timezone when time editing produces no persisted PATCH', async () => {
-    const session = nativeSession({ noTimePatch: true })
-    await assert.rejects(session.run(), /time persisted PATCH did not settle/u)
-    assert.equal(
-      session.calls.some(call => call.url.endsWith('/notification-timezone/click')),
-      false,
-    )
-    assert.equal(
-      session.evidence.patches.some(patch => patch.fields.includes('moderation_email_time_of_day')),
-      false,
-    )
-  })
   it('retries only a transient missing native element during initial load', async () => {
     const session = nativeSession({ missingOnce: true })
-    assert.equal((await session.run()).length, 10)
+    assert.equal((await session.run()).length, 4)
     assert.ok(
       session.calls
         .slice(0, 2)

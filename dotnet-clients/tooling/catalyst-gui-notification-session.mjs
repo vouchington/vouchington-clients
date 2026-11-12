@@ -3,16 +3,11 @@ import assert from 'node:assert/strict'
 const headingId = 'notification-preferences-heading'
 const fieldNames = {
   engagement: 'is_engagement_emails_enabled',
-  news: 'news_digest_frequency',
   moderation: 'is_moderation_emails_enabled',
-  community: 'community_digest_frequency',
-  cadence: 'moderation_email_cadence',
-  days: 'moderation_email_days_of_week',
-  time: 'moderation_email_time_of_day',
-  timezone: 'moderation_email_timezone',
 }
 
-// These are native control gestures, not fixture commands. The persisted report is
+// Hosted CI exercises native switches only. Picker/time/day gestures remain
+// manual acceptance for #60; do not open their native sheets in this lane. The persisted report is
 // mandatory: an accepted key/click alone never establishes that a setting changed.
 // Mac2 commands: https://appium.github.io/appium-mac2-driver/latest/reference/execute-methods/
 export async function assertNotificationControls(request, sessionId, options = {}) {
@@ -82,14 +77,14 @@ export async function assertNotificationControls(request, sessionId, options = {
   const mutate = async (field, expected, action) => {
     const before = await report()
     assert.equal(before.patches.length, patchCount, 'unexpected or stale PATCH history before gesture')
-    const selected = await action()
+    await action()
     const after = await poll(`${field} persisted PATCH`, report, value => value.patches.length > patchCount)
     assert.equal(after.patches.length, patchCount + 1, `${field} gesture produced multiple PATCH requests`)
     const patch = after.patches.at(-1)
     const key = fieldNames[field]
     assert.deepEqual(patch.fields, [key], `${field} PATCH must contain exactly its API field`)
     assert.deepEqual(patch.before, state, `${field} PATCH started from stale persisted state`)
-    const expectedState = { ...state, [key]: expected ?? selected }
+    const expectedState = { ...state, [key]: expected }
     assert.deepEqual(patch.after, expectedState, `${field} PATCH changed an unrelated field or failed to persist`)
     state = patch.after
     patchCount += 1
@@ -104,61 +99,6 @@ export async function assertNotificationControls(request, sessionId, options = {
       enabled: truth(await attr(element, 'enabled')), value: switchState(await attr(element, 'value')),
     }), value => value.enabled && value.value === !before)
   }
-  // MAUI 10.0.20 PickerHandler.iOS.cs presents UIPickerView in an action
-  // sheet on Catalyst. Its Done action commits the selected row. Mac2's
-  // setValue types text; scroll the wheel and confirm through the saved control.
-  const wheels = async () => {
-    const values = await command('POST', '/elements', { using: 'class name', value: 'XCUIElementTypePickerWheel' })
-    assert.ok(Array.isArray(values), 'picker wheel query must return an array')
-    assert.ok(values.length <= 1, 'picker wheel must expose exactly one native element')
-    return values
-  }
-  const one = async (values, description) => {
-    assert.ok(Array.isArray(values), `${description} query must return an array`)
-    assert.equal(values.length, 1, `${description} must expose exactly one native element`)
-    const element = values[0]['element-6066-11e4-a52e-4f735466cecf'] ?? values[0].ELEMENT
-    assert.ok(typeof element === 'string' && element.length > 0, `invalid ${description} reference`)
-    assert.equal(truth(await visible(element)), true, `${description} was not visible`)
-    assert.equal(truth(await attr(element, 'enabled')), true, `${description} was disabled`)
-    return element
-  }
-  const pick = async (field, steps) => {
-    const id = `notification-${field === 'news' || field === 'community' ? `${field}-digest` : field}`
-    const control = await ready(id)
-    const before = await attr(control, 'value')
-    await click(control)
-    let current = await poll('native picker wheel', wheels, values => values.length === 1)
-    for (let step = 0; step < Math.abs(steps); step += 1) {
-      // Native locators avoid XPath's XML snapshot and stale Sheet ancestor
-      // resolution. Carry only the fresh post-gesture wheel into the next turn.
-      const wheel = await one(current, 'picker wheel')
-      await execute('scroll', { elementId: wheel, deltaX: 0, deltaY: steps > 0 ? -32 : 32 })
-      current = await wheels()
-    }
-    if (current.length) {
-      const done = await command('POST', '/elements', { using: 'predicate string', value: "amType == 'XCUIElementTypeButton' AND label == 'Done'" })
-      await click(await one(done, 'picker Done button'))
-    }
-    await poll('picker dismissal', wheels, values => values.length === 0)
-    // The selected control survives dismissal; the wheel does not. Re-query
-    // even this control because a persisted update can replace its identity.
-    const value = await poll(`${field} selected control`, async () => {
-      try {
-        return await attr(await ready(id), 'value')
-      } catch (error) {
-        if (/stale element reference/iu.test(error.message)) return undefined
-        throw error
-      }
-    }, next => typeof next === 'string' && next.length > 0 && next !== before)
-    if (field === 'timezone') assert.ok(/^(?:UTC|[A-Za-z_+-]+(?:\/[A-Za-z0-9_+.-]+)+)$/u.test(value), 'unsupported native timezone value')
-    return value
-  }
-  const select = async (field, choices, target) => {
-    const current = choices.indexOf(state[fieldNames[field]])
-    const next = choices.indexOf(target)
-    assert.ok(current >= 0 && next >= 0 && current !== next, `unsupported ${field} native picker value`)
-    await mutate(field, target, () => pick(field, next - current))
-  }
   const visibility = async (ids, expected) => {
     for (const id of ids) {
       // Hidden controls may remain in the tree or disappear entirely.
@@ -170,7 +110,6 @@ export async function assertNotificationControls(request, sessionId, options = {
   }
 
   const schedule = expected => visibility(['notification-cadence', 'notification-time', 'notification-timezone'], expected)
-  const daysVisibility = expected => visibility(Array.from({ length: 7 }, (_, index) => `notification-day-${index + 1}`), expected)
 
   const heading = await find(headingId, 75_000)
   assert.equal(truth(await visible(heading)), true, 'notification heading was not visible')
@@ -194,11 +133,6 @@ export async function assertNotificationControls(request, sessionId, options = {
   patchCount = 0
   await toggle('engagement')
   passed('engagement-mutation-persisted')
-  const digestChoices = ['none', 'daily', 'weekly']
-  await select('news', digestChoices, state.news_digest_frequency === 'daily' ? 'weekly' : 'daily')
-  passed('news-digest-mutation-persisted')
-  await select('community', digestChoices, state.community_digest_frequency === 'daily' ? 'weekly' : 'daily')
-  passed('community-digest-mutation-persisted')
   if (!state.is_moderation_emails_enabled) await toggle('moderation')
   await schedule(true)
   await toggle('moderation')
@@ -206,57 +140,6 @@ export async function assertNotificationControls(request, sessionId, options = {
   await toggle('moderation')
   await schedule(true)
   passed('moderation-visibility-and-hidden-preservation')
-  const cadenceChoices = ['daily', 'selected_days', 'weekly']
-  if (state.moderation_email_cadence !== 'daily') await select('cadence', cadenceChoices, 'daily')
-  await daysVisibility(false)
-  await select('cadence', cadenceChoices, 'selected_days')
-  await daysVisibility(true)
-  passed('cadence-mutation-persisted')
-  const days = state.moderation_email_days_of_week
-  const day = [1, 2, 3, 4, 5, 6, 7].find(value => !days.includes(value)) ?? days[0]
-  const changedDays = days.includes(day) ? days.filter(value => value !== day) : [...days, day].sort((a, b) => a - b)
-  assert.ok(changedDays.length > 0, 'cannot remove the final selected moderation day')
-  await mutate('days', changedDays, async () => click(await ready(`notification-day-${day}`)))
-  passed('days-mutation-persisted')
-  const time = await ready('notification-time')
-  // MAUI's Mac Catalyst handler creates a UIDatePicker in Time mode. Inspect
-  // its native editable descendants; never type a complete string into the picker.
-  // Mac2 supports scoped XPath and macos: keys (XCTest typeKey:modifierFlags:):
-  // https://appium.github.io/appium-mac2-driver/latest/reference/locator-strategies/
-  // https://appium.github.io/appium-mac2-driver/latest/reference/execute-methods/#macos-keys
-  const type = await attr(time, 'amType')
-  assert.equal(type, 'XCUIElementTypeDatePicker', `unsupported native time control ${String(type)}`)
-  const components = await command('POST', path(time, 'elements'), {
-    using: 'class name', value: 'XCUIElementTypeTextField',
-  })
-  assert.ok(Array.isArray(components), 'Mac2 time components response must be an array')
-  const hours = []
-  for (const component of components) {
-    const element = component['element-6066-11e4-a52e-4f735466cecf'] ?? component.ELEMENT
-    assert.ok(typeof element === 'string' && element.length > 0, 'invalid native time component reference')
-    if (!truth(await visible(element))) continue
-    if (!/^hours?$/iu.test(String(await attr(element, 'label')))) continue
-    assert.equal(await attr(element, 'amType'), 'XCUIElementTypeTextField', 'unsupported native hour component')
-    assert.equal(truth(await attr(element, 'enabled')), true, 'native hour component was disabled')
-    hours.push(element)
-  }
-  assert.equal(hours.length, 1, 'time picker must expose exactly one visible editable hour component')
-  const [hourText, minuteText] = state.moderation_email_time_of_day.split(':')
-  const hour = Number(hourText)
-  assert.ok(/^\d{2}:\d{2}$/u.test(state.moderation_email_time_of_day) && hour < 24 && Number(minuteText) < 60, 'unsupported saved time')
-  const displayedHour = String(await attr(hours[0], 'value')).trim()
-  assert.ok(/^\d{1,2}$/u.test(displayedHour) && [hour, hour % 12 || 12].includes(Number(displayedHour)), 'native hour differs from saved time')
-  // Stay within the current half-day: changing meridiem or minutes would add a
-  // second UI edit/PATCH. One arrow adjusts one native segment exactly once.
-  const delta = hour % 12 === 11 ? -1 : 1
-  const targetTime = `${String(hour + delta).padStart(2, '0')}:${minuteText}`
-  await mutate('time', targetTime, async () => {
-    await click(hours[0])
-    await execute('keys', { elementId: hours[0], keys: [delta > 0 ? 'XCUIKeyboardKeyUpArrow' : 'XCUIKeyboardKeyDownArrow', 'XCUIKeyboardKeyReturn'] })
-  })
-  passed('time-mutation-persisted')
-  await mutate('timezone', undefined, () => pick('timezone', 1))
-  passed('timezone-mutation-persisted')
   await execute('deepLink', { url: 'voucha://my/preferences', ...(options.bundleId ? { bundleId: options.bundleId } : {}) })
   await poll('departure from notification settings', async () => {
     const values = await command('POST', '/elements', { using: 'accessibility id', value: headingId })

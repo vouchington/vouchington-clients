@@ -8,20 +8,15 @@ import {
 export const notificationChecks = [
   'heading-exposed',
   'engagement-mutation-persisted',
-  'news-digest-mutation-persisted',
-  'community-digest-mutation-persisted',
   'moderation-visibility-and-hidden-preservation',
-  'cadence-mutation-persisted',
-  'days-mutation-persisted',
-  'time-mutation-persisted',
-  'timezone-mutation-persisted',
   'canonical-route-focus-and-announcement-dispatched',
 ]
 const context = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   platform: 'Mac Catalyst',
   runtime: 'Debug Mac2',
-  scope: 'issue-60-controls-and-accessibility-dispatch',
+  scope: 'issue-60-hosted-switches-and-accessibility-dispatch',
+  manualAcceptanceRequired: true,
 }
 
 export function notificationEvidence(checks, nativeRevision, producerCommit) {

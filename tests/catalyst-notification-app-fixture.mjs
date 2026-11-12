@@ -24,10 +24,13 @@ export function appReport() {
     activations: [],
     accessibilityDispatches: [],
   }
-  const values = [false, 'daily', false, 'daily', 'selected_days', [1, 3], '09:30', 'UTC']
   let state = structuredClone(inputs.preferences)
-  for (const [index, field] of Object.keys(state).entries()) {
-    const after = { ...state, [field]: values[index] }
+  for (const [field, value] of [
+    ['is_engagement_emails_enabled', false],
+    ['is_moderation_emails_enabled', false],
+    ['is_moderation_emails_enabled', true],
+  ]) {
+    const after = { ...state, [field]: value }
     report.patches.push({ fields: [field], before: state, after })
     state = after
   }

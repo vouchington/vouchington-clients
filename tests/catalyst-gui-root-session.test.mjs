@@ -205,8 +205,8 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
           assert.equal(existsSync(`${fixture.result}.app.json`), false)
         } else {
           validateNotificationEvidence(result, nativeRevision, producerCommit)
-          assert.equal(result.total, 10)
-          assert.equal(result.schemaVersion, 2)
+          assert.equal(result.total, 4)
+          assert.equal(result.schemaVersion, 3)
           assert.deepEqual(
             result.checks,
             notificationChecks.map(name => ({ name, status: 'passed' })),
@@ -253,7 +253,7 @@ describe('Mac Catalyst session orchestration with external WebDriver protocol do
       )
       assert.equal(existsSync(fixture.result), false)
       const appReport = JSON.parse(readFileSync(`${fixture.result}.app.json`, 'utf8'))
-      assert.equal(new Set(appReport.patches.flatMap(patch => patch.fields)).size, 8)
+      assert.equal(new Set(appReport.patches.flatMap(patch => patch.fields)).size, 2)
       assert.equal(appReport.activations.length, 2)
       const requests = readFileSync(fixture.log, 'utf8')
         .trim()

@@ -20,15 +20,16 @@ const evidence = () => notificationEvidence(records(), revision, producer)
 describe('Catalyst control and dispatch evidence validation', () => {
   it('derives aggregate counts from the named successful records', () => {
     assert.deepEqual(evidence(), {
-      schemaVersion: 2,
+      schemaVersion: 3,
       platform: 'Mac Catalyst',
       runtime: 'Debug Mac2',
-      scope: 'issue-60-controls-and-accessibility-dispatch',
+      scope: 'issue-60-hosted-switches-and-accessibility-dispatch',
+      manualAcceptanceRequired: true,
       nativeRevision: revision,
       producerCommit: producer,
       checks: records(),
-      total: 10,
-      passed: 10,
+      total: 4,
+      passed: 4,
       failed: 0,
       skipped: 0,
     })
@@ -62,6 +63,9 @@ describe('Catalyst control and dispatch evidence validation', () => {
     },
     'wrong runtime': value => {
       value.runtime = 'signed Release'
+    },
+    'manual acceptance falsely completed': value => {
+      value.manualAcceptanceRequired = false
     },
     'wrong scope': value => {
       value.scope = 'issue-91-complete'

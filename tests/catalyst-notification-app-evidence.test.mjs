@@ -34,11 +34,15 @@ const corruptions = {
   'missing patches': report => {
     report.patches = null
   },
-  'missing control': report => {
+  'missing hosted switch mutation': report => {
     report.patches.pop()
   },
   'multiple patch fields': report => {
     report.patches[0].fields.push('news_digest_frequency')
+  },
+  'manual control mutation claimed as hosted': report => {
+    report.patches[0].fields = ['news_digest_frequency']
+    report.patches[0].after = { ...report.initialPreferences, news_digest_frequency: 'daily' }
   },
   'unknown patch field': report => {
     report.patches[0].fields = ['unknown']
