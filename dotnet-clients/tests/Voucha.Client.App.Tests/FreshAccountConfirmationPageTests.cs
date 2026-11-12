@@ -74,6 +74,67 @@ public sealed class FreshAccountConfirmationPageTests
     Assert.Empty(service.PasskeyIds);
   }
 
+  [Fact]
+  public async Task MethodSelectorsAndSendResendButtonsKeepEmailAndTotpPurposeSeparate()
+  {
+    Prepare();
+    var service = new FreshAccountProofServiceStub();
+    using var model = Model(service);
+    var page = new FreshAccountConfirmationPage(model);
+    await model.InitializeAsync();
+    Button ButtonFor(UiMessageKey key) => page.GetVisualTreeDescendants().OfType<Button>().Single(button =>
+        button.Text == UiLocalization.English.Localize(key));
+    ButtonFor(UiMessageKey.ExtractedMfaReauthDialogVerificationPanesSendCode66a5b409).SendClicked();
+    Assert.Equal(1, service.EmailRequests);
+    ButtonFor(UiMessageKey.ExtractedMfaReauthDialogVerificationPanesResend1f948437).SendClicked();
+    Assert.Equal(2, service.EmailRequests);
+    ButtonFor(UiMessageKey.ExtractedMfaReauthDialogMethodSelectorAuthenticatorApp09a12ace).SendClicked();
+    Assert.True(model.IsTotpMode);
+    var entry = Find<Entry>(page, "account-confirmation-code");
+    Assert.Same(Keyboard.Numeric, entry.Keyboard);
+    entry.Text = "123456";
+    ButtonFor(UiMessageKey.ExtractedMfaReauthDialogMethodSelectorEmailVerification4d225196).SendClicked();
+    Assert.True(model.IsEmailMode);
+    Assert.Empty(entry.Text);
+    Assert.Empty(service.Codes);
+  }
+
+  [Fact]
+  public async Task LinkedProviderButtonUsesOnlyTheAdvertisedFreshProvider()
+  {
+    Prepare();
+    var service = new FreshAccountProofServiceStub { Methods = new(false, false, false, ["google"]) };
+    using var model = Model(service);
+    var page = new FreshAccountConfirmationPage(model);
+    await model.InitializeAsync();
+    page.GetVisualTreeDescendants().OfType<Button>().Single(button => button.CommandParameter as string == "google").SendClicked();
+    Assert.Equal("proof-token", (await model.Completion.WaitAsync(TestContext.Current.CancellationToken)).Consume());
+    Assert.Equal(["google"], service.Providers);
+    Assert.Empty(service.Codes);
+  }
+
+  [Fact]
+  public async Task NavigatingAwayCancelsDialogBeforeLateVerificationReturns()
+  {
+    Prepare();
+    var pending = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var service = new FreshAccountProofServiceStub { Verification = () => pending.Task };
+    using var model = Model(service);
+    var page = new DisappearingConfirmationPage(model);
+    await model.InitializeAsync();
+    Find<Entry>(page, "account-confirmation-code").Text = "ABCDEFGH23";
+    Find<Button>(page, "account-confirmation-verify").SendClicked();
+    page.Disappear();
+    pending.SetResult("late-proof");
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => model.Completion);
+    Assert.Single(service.Codes);
+  }
+
+  private sealed class DisappearingConfirmationPage(FreshAccountConfirmationViewModel model) : FreshAccountConfirmationPage(model)
+  {
+    public void Disappear() => base.OnDisappearing();
+  }
+
   private static T Find<T>(Page page, string id) where T : View =>
       page.GetVisualTreeDescendants().OfType<T>().Single(view => view.AutomationId == id);
 
