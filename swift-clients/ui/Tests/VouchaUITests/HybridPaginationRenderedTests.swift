@@ -29,12 +29,13 @@ final class HybridPaginationRenderedTests: XCTestCase {
         try await ViewHosting.host(view) {
             await fulfillment(of: [model.renderedLoading[0]], timeout: 3)
             model.complete(terminal: false, failed: true)
-            await fulfillment(of: [model.finished], timeout: 3)
+            await fulfillment(of: [model.failed], timeout: 3)
             XCTAssertEqual(model.calls, 1)
             try view.inspect().find(button: "Try Again").tap()
             await fulfillment(of: [model.renderedLoading[1]], timeout: 3)
             XCTAssertEqual(model.calls, 2)
             model.complete(terminal: true)
+            await fulfillment(of: [model.finished], timeout: 3)
         }
     }
 }
@@ -48,7 +49,8 @@ private final class PaginationProbe {
     var calls = 0
     var itemCount = 0
     let renderedLoading = (0 ..< 3).map { XCTestExpectation(description: "Rendered loading page \($0)") }
-    let finished = XCTestExpectation(description: "Rendered terminal or error")
+    let finished = XCTestExpectation(description: "Rendered terminal")
+    let failed = XCTestExpectation(description: "Rendered error")
     private var response: CheckedContinuation<Void, Never>?
 
     func load() async {
@@ -89,7 +91,9 @@ private struct PaginationProbeView: View {
         .onChange(of: model.isLoading) { _, loading in
             if loading {
                 model.renderedLoading[model.calls - 1].fulfill()
-            } else if !model.hasMore || model.hasError {
+            } else if model.hasError {
+                model.failed.fulfill()
+            } else if !model.hasMore {
                 model.finished.fulfill()
             }
         }
