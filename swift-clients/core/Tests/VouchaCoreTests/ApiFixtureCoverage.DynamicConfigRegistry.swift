@@ -8,6 +8,9 @@ let dynamicConfigApiFixtureCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "native.captcha-config.default") {
         try assertFixtureCoversDTO($0, as: CaptchaConfigResponse.self)
     },
+    RegisteredFixture(id: "native.hacker-news-config.default") {
+        try assertFixtureCoversDTO($0, as: HackerNewsConfigResponse.self)
+    },
     RegisteredFixture(id: "native.dynamic-config.namespaces.developer") {
         try assertFixtureCoversDTO($0, as: DynamicConfigNamespacesResponse.self)
     },
@@ -34,6 +37,7 @@ let dynamicConfigApiFixtureCoverage: [RegisteredFixture] = [
 let dynamicConfigEndpointFixtureCoverage: [String: Endpoint] = [
     "native.feature-flags.default": Endpoint.featureFlags,
     "native.captcha-config.default": Endpoint.captchaConfig,
+    "native.hacker-news-config.default": Endpoint.hackerNewsConfig,
     "native.dynamic-config.namespaces.developer": Endpoint.dynamicConfigNamespaces,
     "native.dynamic-config.namespace.typed": Endpoint.dynamicConfigNamespace("recaptcha-config"),
     "native.dynamic-config.namespace.string": Endpoint.dynamicConfigNamespace("app-attestation-config"),

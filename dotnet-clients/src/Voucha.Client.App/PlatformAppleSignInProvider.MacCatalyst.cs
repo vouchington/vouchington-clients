@@ -11,6 +11,7 @@ namespace Voucha.Client.App;
 public sealed partial class PlatformAppleSignInProvider :
     NSObject,
     IAppleSignInProvider,
+    IReAuthAppleSignInProvider,
     IASAuthorizationControllerDelegate,
     IASAuthorizationControllerPresentationContextProviding
 {
@@ -20,7 +21,16 @@ public sealed partial class PlatformAppleSignInProvider :
   private ASAuthorizationController? controller;
   private string? rawNonce;
 
-  public Task<AppleSignInCredential> GetCredentialAsync(CancellationToken cancellationToken = default)
+  public Task<AppleSignInCredential> GetCredentialAsync(CancellationToken cancellationToken = default) =>
+      GetCredentialCoreAsync(null, cancellationToken);
+
+  public Task<AppleSignInCredential> GetCredentialAsync(string nonce, CancellationToken cancellationToken = default)
+  {
+    ArgumentException.ThrowIfNullOrWhiteSpace(nonce);
+    return GetCredentialCoreAsync(nonce, cancellationToken);
+  }
+
+  private Task<AppleSignInCredential> GetCredentialCoreAsync(string? nonce, CancellationToken cancellationToken)
   {
     cancellationToken.ThrowIfCancellationRequested();
 
@@ -35,7 +45,7 @@ public sealed partial class PlatformAppleSignInProvider :
           TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    rawNonce = CreateNonce();
+    rawNonce = nonce ?? CreateNonce();
     ASAuthorizationAppleIdRequest request;
     using (var provider = new ASAuthorizationAppleIdProvider())
     {

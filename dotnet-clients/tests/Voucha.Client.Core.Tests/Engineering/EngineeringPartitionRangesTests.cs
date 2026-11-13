@@ -26,6 +26,7 @@ public sealed class EngineeringPartitionRangesTests
       {
         confirmed = body;
         vm.RangeFromDate = "2025-01-01";
+        vm.RequestRangeFromDate = "2025-01-01";
         return Task.FromResult(true);
       }, TestContext.Current.CancellationToken);
       Assert.NotNull(confirmed);
@@ -275,6 +276,9 @@ public sealed class EngineeringPartitionRangesTests
       RangeFromDate = "2020-02-01",
       RangeToDate = "2020-02-02",
       RangeMaxDefaultRows = "100",
+      RequestRangeFromDate = "2020-02-01",
+      RequestRangeToDate = "2020-02-02",
+      RequestRangeMaxDefaultRows = "100",
     };
     return (vm, handler, session);
   }

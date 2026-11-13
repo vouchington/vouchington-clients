@@ -168,7 +168,7 @@ public sealed partial class SessionRecoveryTests
       http = new(new ClientMetadataHandler(new(ClientPlatform.Windows, "1.0"), Origin, Jar,
           new SessionCookiePersistenceHandler(Jar, Terminal)))
       { BaseAddress = Origin };
-      Client = new(http);
+      Client = new(http, new TestAccountChangeConfirmation());
       Store = new(Client, Jar);
     }
     public TestSessionCookiePersistence Persistence { get; }

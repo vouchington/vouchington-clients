@@ -218,7 +218,7 @@ public sealed partial class VouchaApiClientTests
         new FetchPostsFeedRequest(),
         TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/feeds/posts/any?limit=20&sort=hot");
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/feeds/posts/any?limit=20&sort=hot&time_range=1w");
     Assert.Equal("p1", response.Results[0].EntityId);
     Assert.Equal("discussion", response.Posts["p1"].PostType);
     Assert.True(response.Posts.ContainsKey("p1"));
@@ -246,7 +246,7 @@ public sealed partial class VouchaApiClientTests
         new FetchPostsRequest(HasHackerNewsReferences: true),
         TestContext.Current.CancellationToken);
     Assert.Equal(HttpMethod.Get, postHandler.Method);
-    ApiQueryAssertions.Equal("/api/v1/posts?sort=hot&limit=25&has_hacker_news_references=true", postHandler.PathAndQuery);
+    ApiQueryAssertions.Equal("/api/v1/posts?sort=hot&limit=25&has_hacker_news_references=true&time_range=1m", postHandler.PathAndQuery);
 
     var rssHandler = new RecordingHandler("{}");
     var rssClient = new VouchaApiClient(new HttpClient(rssHandler) { BaseAddress = new Uri("https://api.test") });

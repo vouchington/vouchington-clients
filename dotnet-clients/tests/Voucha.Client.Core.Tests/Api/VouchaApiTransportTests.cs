@@ -159,6 +159,7 @@ public sealed class VouchaApiTransportTests
   [InlineData("swift.users.following.default", typeof(UserFollowingResponse))]
   [InlineData("native.users.profile.default", typeof(UserResponse))]
   [InlineData("native.users.profile.restricted", typeof(UserResponse))]
+  [InlineData("native.users.profile.private-counts.owner", typeof(UserResponse))]
   [InlineData("swift.users.followers.default", typeof(UserFollowersResponse))]
   [InlineData("native.users.delete.default", typeof(DeleteUserResponse))]
   [InlineData("native.users.data-request.default", typeof(UserDataRequestResponse))]

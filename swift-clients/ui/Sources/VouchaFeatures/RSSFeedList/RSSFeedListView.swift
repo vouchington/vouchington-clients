@@ -42,12 +42,15 @@ public struct RSSFeedListView: View {
             }
         }
         .toolbar {
-            Toggle(
-                UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
-                isOn: $viewModel.hasHackerNewsReferences
-            )
+            if viewModel.isHackerNewsFilterVisible {
+                Toggle(
+                    UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
+                    isOn: $viewModel.hasHackerNewsReferences
+                )
+            }
         }
         .navigationTitle(UiMessages.string(navigationTitle, locale: nativeUiLocale))
+        .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .task { await viewModel.load() }
         .refreshable { await viewModel.reload() }
         .navigationDestination(item: $storyDiscussionDestination) { destination in

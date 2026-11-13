@@ -16,6 +16,7 @@ public sealed partial class ProfileViewModel
   private IReadOnlyList<TopicRow> topicItems = [];
   private IReadOnlyList<ProfileSourceRow> sourceItems = [];
   private IReadOnlyList<CommunityBrowseRow> communityItems = [];
+  private IReadOnlyList<ProfileReferralLinkRow> referralLinkItems = [];
   private PageInfo? collectionPageInfo;
   private string? collectionErrorMessage;
   private bool isLoadingMore;
@@ -36,6 +37,7 @@ public sealed partial class ProfileViewModel
         OnPropertyChanged(nameof(IsTopicsScope));
         OnPropertyChanged(nameof(IsSourcesScope));
         OnPropertyChanged(nameof(IsCommunitiesScope));
+        OnPropertyChanged(nameof(IsReferralLinksScope));
         OnPropertyChanged(nameof(CanShowAdminLandingPages));
       }
     }
@@ -47,12 +49,14 @@ public sealed partial class ProfileViewModel
   public bool IsTopicsScope => ProfileScope.Section == NativeUserProfileSection.Topics;
   public bool IsSourcesScope => ProfileScope.Section == NativeUserProfileSection.Sources;
   public bool IsCommunitiesScope => ProfileScope.Section == NativeUserProfileSection.Communities;
+  public bool IsReferralLinksScope => ProfileScope.Section == NativeUserProfileSection.ReferralLinks;
   public IReadOnlyList<ProfileScopeTabRow> PrimaryTabs { get => primaryTabs; private set => SetProperty(ref primaryTabs, value); }
   public IReadOnlyList<ProfileScopeTabRow> ContextualTabs { get => contextualTabs; private set => SetProperty(ref contextualTabs, value); }
   public IReadOnlyList<FriendRow> FriendItems { get => friendItems; private set => SetProperty(ref friendItems, value); }
   public IReadOnlyList<TopicRow> TopicItems { get => topicItems; private set => SetProperty(ref topicItems, value); }
   public IReadOnlyList<ProfileSourceRow> SourceItems { get => sourceItems; private set => SetProperty(ref sourceItems, value); }
   public IReadOnlyList<CommunityBrowseRow> CommunityItems { get => communityItems; private set => SetProperty(ref communityItems, value); }
+  public IReadOnlyList<ProfileReferralLinkRow> ReferralLinkItems { get => referralLinkItems; private set => SetProperty(ref referralLinkItems, value); }
   public string? CollectionErrorMessage { get => collectionErrorMessage; private set => SetProperty(ref collectionErrorMessage, value); }
   public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }
   public bool CanLoadMore => (IsPostsScope ? historyPageInfo : collectionPageInfo)?.HasNextPage == true && !IsLoadingMore;
@@ -74,6 +78,7 @@ public sealed partial class ProfileViewModel
     TopicItems = [];
     SourceItems = [];
     CommunityItems = [];
+    ReferralLinkItems = [];
     collectionPageInfo = null;
     CollectionErrorMessage = null;
     OnPropertyChanged(nameof(CanLoadMore));
@@ -97,6 +102,7 @@ public sealed partial class ProfileViewModel
       ScopeRow(NativeUserProfileSection.Friends, friendsCollection, UiMessageKey.NativeDotnetProfileFriends, counts.UsersFollowing + counts.UsersFollowers),
       ScopeRow(NativeUserProfileSection.Sources, NativeUserProfileCollectionKind.SourcesAll, UiMessageKey.NativeDotnetProfileSources, counts.RssFeedsFollowing),
       ScopeRow(NativeUserProfileSection.Communities, NativeUserProfileCollectionKind.CommunitiesMember, UiMessageKey.NativeDotnetProfileCommunities, counts.CommunitiesMember),
+      ScopeRow(NativeUserProfileSection.ReferralLinks, NativeUserProfileCollectionKind.ReferralLinks, UiMessageKey.NativeDotnetReferralLinksTitle, 1),
     ];
     ContextualTabs = BuildContextualTabs(counts);
   }

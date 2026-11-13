@@ -89,6 +89,44 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1" IsVisible="{Binding IsRangeAuthorized}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{DynamicResource engineering.classifierRange.fromInclusiveUtc}" Style="{StaticResource Metadata}" />
+                    <Entry Text="{Binding RangeFromDate}" />
+                    <Label Text="{DynamicResource engineering.classifierRange.toExclusiveUtc}" Style="{StaticResource Metadata}" />
+                    <Entry Text="{Binding RangeToDate}" />
+                    <Label Text="{DynamicResource engineering.classifierRange.maxDefaultRows}" Style="{StaticResource Metadata}" />
+                    <Entry Text="{Binding RangeMaxDefaultRows}" Keyboard="Numeric" />
+                    <Label Text="{Binding ClassifierRangeErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource engineering.classifierRange.create}" Clicked="OnClassifierRangeCreateClicked" />
+                        <Button Text="{DynamicResource engineering.classifierRange.retire}" Clicked="OnClassifierRangeRetireClicked" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1" IsVisible="{Binding IsRangeAuthorized}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{DynamicResource engineering.requestRange.fromInclusiveUtc}" Style="{StaticResource Metadata}" />
+                    <Entry Text="{Binding RequestRangeFromDate}" />
+                    <Label Text="{DynamicResource engineering.requestRange.toExclusiveUtc}" Style="{StaticResource Metadata}" />
+                    <Entry Text="{Binding RequestRangeToDate}" />
+                    <Label Text="{DynamicResource engineering.requestRange.maxDefaultRows}" Style="{StaticResource Metadata}" />
+                    <Entry Text="{Binding RequestRangeMaxDefaultRows}" Keyboard="Numeric" />
+                    <Label Text="{Binding RequestRangeErrorMessage}" TextColor="#991B1B" Style="{StaticResource Body}" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="{DynamicResource engineering.requestRange.create}" Clicked="OnRequestRangeCreateClicked" />
+                        <Button Text="{DynamicResource engineering.requestRange.retire}" Clicked="OnRequestRangeRetireClicked" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
             <Border Padding="16" Stroke="#D8DEE9" StrokeThickness="1">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8" />

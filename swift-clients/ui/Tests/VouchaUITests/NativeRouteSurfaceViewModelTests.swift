@@ -263,7 +263,7 @@ final class NativeRouteSurfaceViewModelTests: NativeRouteSurfaceViewModelTestCas
             """.utf8),
             200
         )
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail),
             client: makeClient(),

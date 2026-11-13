@@ -16,7 +16,8 @@ public sealed class NativeOAuthAuthorizationDisconnectCodeTests
   public async Task DisconnectFailureUsesLocalizedCopyOnlyForKnownCodes(string code, bool generic)
   {
     using var coordinator = new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(new HttpClient(new Handler(code)) { BaseAddress = new Uri("https://api.test") }),
+        new VouchaApiClient(new HttpClient(new Handler(code)) { BaseAddress = new Uri("https://api.test") },
+            new TestAccountChangeConfirmation()),
         new NoPersistence(),
         new NoBrowser(),
         new NoSession());

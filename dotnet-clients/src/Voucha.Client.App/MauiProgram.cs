@@ -9,6 +9,7 @@ using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Growth;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.ImportExport;
 using Voucha.Client.Core.LandingPages;
@@ -129,7 +130,10 @@ public static partial class MauiProgram
             : NewsFeedScope.AllNews,
         sp.GetRequiredService<IBookmarkService>(),
         sp.GetRequiredService<IUiLocalization>(),
-        sp.GetRequiredService<IUiLocaleController>()));
+        sp.GetRequiredService<IUiLocaleController>(),
+        sp.GetRequiredService<HackerNewsReferenceGate>()));
+    builder.Services.AddSingleton(sp =>
+        new HackerNewsReferenceGate(sp.GetRequiredService<VouchaApiClient>().FetchHackerNewsConfigAsync));
     builder.Services.AddTransient<PostsListViewModel>();
     builder.Services.AddTransient<PostComposeViewModel>();
     builder.Services.AddTransient<BookmarkCollectionViewModel>();

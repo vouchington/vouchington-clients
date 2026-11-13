@@ -23,6 +23,9 @@ final class NativeEngineeringPostgresqlViewModel: NativeEngineeringActionPerform
     var rangeConfirmation: NativePostgresqlRangeConfirmation?
     var rangeQueued = false
     var rangeError: NativePostgresqlRangeError?
+    var rangeErrorFamily: NativePostgresqlRangeFamily?
+    var rangeConfirmRequested = false
+    var rangeDrafts: [NativePostgresqlRangeFamily: NativePostgresqlRangeDraft] = [:]
     var rangeAccountId: String?
     var rangeIsAdministrator = false
     var rangeGeneration = UUID()

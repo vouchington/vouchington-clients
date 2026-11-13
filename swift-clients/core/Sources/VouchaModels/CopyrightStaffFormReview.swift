@@ -69,7 +69,8 @@ public struct CopyrightNoticeAssociationTarget: Codable, Identifiable, Sendable 
     public let id: String
     public let jurisdiction: CopyrightNoticeJurisdiction
     public let receivedAt: Date
-    public let workDescription: String
+    @RequiredNullable
+    public var workDescription: String?
     @RequiredNullable
     public var claimantDisplayName: String?
 }

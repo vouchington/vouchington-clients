@@ -50,23 +50,49 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.users.profile.restricted") {
             Endpoint.user(idOrSlug: "restricted", includeBio: true)
         },
+        ManifestRegisteredEndpoint(id: "native.users.profile.private-counts.owner") {
+            Endpoint.user(idOrSlug: "alice", includeBio: true)
+        },
         ManifestRegisteredEndpoint(id: "native.users.vouch-context.default") {
             Endpoint.userTrustContext(userId: "user-abc")
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.all") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "review,discussion,comment")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "review,discussion,comment",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.all", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.reviews") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "review")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "review",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.reviews", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.discussions") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "discussion")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "discussion",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.discussions", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.comments") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "comment")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "comment",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.comments", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.staff-provenance") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "discussion,review")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "discussion,review",
+                timeRange: ApiFixtureLoader.optionalQueryValue(
+                    "native.users.profile.posts.staff-provenance",
+                    "time_range"
+                )
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.topics-following.first-page") {
             Endpoint.userTopicsFollowing(userId: "user-abc")

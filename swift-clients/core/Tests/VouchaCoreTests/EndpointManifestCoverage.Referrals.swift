@@ -17,6 +17,9 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.referral-links.mine.default") {
             Endpoint.referralLinks()
         },
+        ManifestRegisteredEndpoint(id: "native.referral-links.user.public") {
+            Endpoint.userReferralLinks(userId: "user-2")
+        },
         ManifestRegisteredEndpoint(id: "native.referral-clicks.mine.default") {
             Endpoint.myReferralClicks()
         },

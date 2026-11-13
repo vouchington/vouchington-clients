@@ -147,11 +147,11 @@ public sealed partial class NativeOAuthAuthorizationCoordinator :
       if (await StopInvalidatedStartAsync(discardGeneration, purpose, true).ConfigureAwait(true)) return;
       State = NativeOAuthAuthorizationState.WaitingForCallback;
     }
-    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+    catch (OperationCanceledException)
     {
       _ = await ClearFailedStartAsync(pendingMayHaveBeenPersisted).ConfigureAwait(true);
       State = NativeOAuthAuthorizationState.Cancelled;
-      throw;
+      if (cancellationToken.IsCancellationRequested) throw;
     }
     catch (Exception ex)
     {

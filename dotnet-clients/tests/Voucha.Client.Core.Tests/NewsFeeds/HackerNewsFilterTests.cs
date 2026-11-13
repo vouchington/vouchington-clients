@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Tests.Api;
 using Xunit;
@@ -15,7 +16,12 @@ public sealed class HackerNewsFilterTests
     var handler = new PageHandler(Page("first"), Page("filtered"), Page(null));
     var service = new ApiNewsFeedService(
         new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
-    var viewModel = new NewsFeedsViewModel(service, NewsFeedKind.Podcasts, NewsFeedScope.AllPodcasts);
+    var viewModel = new NewsFeedsViewModel(
+        service,
+        NewsFeedKind.Podcasts,
+        NewsFeedScope.AllPodcasts,
+        hackerNewsReferences: new HackerNewsReferenceGate(
+            _ => Task.FromResult(new HackerNewsConfigResponse(true, "1y"))));
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     await viewModel.ToggleHackerNewsFilterAsync(TestContext.Current.CancellationToken);

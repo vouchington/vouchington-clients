@@ -19,7 +19,10 @@ public sealed partial class NewsFeedsViewModel
       "Design",
       "CA1031:Do not catch general exception types",
       Justification = "The feed UI converts continuation failures into retry state instead of surfacing them from async event handlers.")]
-  private async Task LoadFeedPageAsync(bool replace, CancellationToken cancellationToken)
+  private async Task LoadFeedPageAsync(
+      bool replace,
+      CancellationToken cancellationToken,
+      Task? hackerNewsConfig = null)
   {
     var requestId = replace ? Interlocked.Increment(ref loadRequestId) : Volatile.Read(ref loadRequestId);
     var scope = SelectedScope;
@@ -42,8 +45,10 @@ public sealed partial class NewsFeedsViewModel
           scope,
           sourceFeedType,
           request.Cursor,
-          hasHackerNewsReferences,
+          EffectiveHackerNewsReferences,
           cancellationToken).ConfigureAwait(true);
+      // The flag fetch runs alongside the page fetch; settle it so the filter is final with the list.
+      if (hackerNewsConfig is not null) await hackerNewsConfig.ConfigureAwait(true);
       if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) ||
           !feedPages.Complete(request, (replace ? page.Items : KeepDisplayedStoryPrimaries(page.Items)).Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
       Items = feedPages.Items;

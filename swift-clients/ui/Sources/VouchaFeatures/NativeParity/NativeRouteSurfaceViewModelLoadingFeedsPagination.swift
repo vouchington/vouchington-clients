@@ -4,7 +4,17 @@ import VouchaLocalization
 
 extension NativeRouteSurfaceViewModel {
     func loadPostPage(client: APIClient, after: String?) async throws -> NativeForwardPage {
-        let endpoint = hackerNewsPostFeedEndpoint(after: after)
+        let postTypes = topicPostType ?? postTypesFilter(for: destination ?? .feedPosts)
+        let endpoint: Endpoint
+        if destination == .postsBrowse || destination == .storiesBrowse || topicPostCollection != nil {
+            let query = try await postListQueryItems(client: client, after: after, postTypes: postTypes)
+            endpoint = Endpoint(.GET, path: "/api/v1/posts", queryItems: query)
+        } else {
+            endpoint = .posts(
+                feedType: postFeedType, after: after, limit: 10, postTypes: postTypes,
+                timeRange: PostTimeRange.lastWeek.rawValue
+            )
+        }
         let response: NativePostFeedResponse = try await client.send(endpoint)
         let rows = response.results.compactMap { result -> NativeForwardRow? in
             guard let post = response.posts[result.entityId ?? result.id] else { return nil }
@@ -48,14 +58,14 @@ extension NativeRouteSurfaceViewModel {
                 after: after,
                 limit: 10,
                 mediaType: mediaType,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                hasHackerNewsReferences: hasHackerNewsReferences && isHackerNewsFilterVisible ? true : nil
             )
             : Endpoint.rssFeedItems(
                 feedType: rssFeedItemFeedType,
                 after: after,
                 limit: 10,
                 mediaType: mediaType,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                hasHackerNewsReferences: hasHackerNewsReferences && isHackerNewsFilterVisible ? true : nil
             )
         let response: NativeRssFeedItemsResponse = try await client.send(endpoint)
         let rows = response.results.compactMap { result -> NativeForwardRow? in

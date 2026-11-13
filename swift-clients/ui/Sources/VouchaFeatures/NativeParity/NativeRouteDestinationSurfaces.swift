@@ -20,6 +20,11 @@ struct NativeListSurface: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
+            if viewModel.showsPostTimeRangePicker {
+                PostTimeRangePicker(range: viewModel.postTimeRange, options: viewModel.postTimeRangeOptions) { range in
+                    onNavigateToTargetPath(viewModel.postTimeRangePath(range))
+                }
+            }
             if viewModel.destination == .moderationTransparency {
                 ModerationTransparencyRangePicker(
                     range: viewModel.moderationTransparencyRange,
@@ -38,7 +43,7 @@ struct NativeListSurface: View {
                     onNavigateToTargetPath: onNavigateToTargetPath
                 )
             } else {
-                if viewModel.supportsHackerNewsFilter {
+                if viewModel.isHackerNewsFilterVisible {
                     Toggle(
                         UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
                         isOn: $viewModel.hasHackerNewsReferences
@@ -98,6 +103,7 @@ struct NativeListSurface: View {
                 NativeActionSurface(viewModel: viewModel)
             }
         }
+        .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 if viewModel.destination == .notifications {

@@ -8,7 +8,7 @@ import XCTest
 
 @MainActor
 final class PostsListBoundedWindowTests: XCTestCase {
-    private let path = "/api/v1/feeds/posts/any"
+    private let path = "/api/v1/posts"
 
     override func setUp() {
         super.setUp()
@@ -27,7 +27,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
             cookieStorage: HTTPCookieStorage(),
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        return PostsListViewModel(client: client)
+        return PostsListViewModel(client: client, feedType: "all")
     }
 
     private func page(_ ids: [String], hasNext: Bool, cursor: String?) -> Data {
@@ -47,7 +47,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
             .queryItems?.first { $0.name == name }?.value
     }
 
-    func testDefaultOmitsTimeRangeAndLast30DaysSendsOneMonth() async {
+    func testDefaultSendsExplicitMonthAndSelecting30DaysKeepsDefault() async {
         CannedFeedURLProtocol.handlers[path] = (page(["a"], hasNext: false, cursor: nil), 200)
         let vm = makeViewModel()
         await vm.load()
@@ -55,10 +55,11 @@ final class PostsListBoundedWindowTests: XCTestCase {
         await vm.selectTimeRange(.last30Days)
 
         let urls = CannedFeedURLProtocol.capturedURLs
-        XCTAssertEqual(urls.count, 2)
-        XCTAssertNil(queryItem("time_range", in: urls[0]))
-        XCTAssertEqual(queryItem("time_range", in: urls[1]), "1m")
-        XCTAssertEqual(vm.timeRange, .last30Days)
+        XCTAssertEqual(urls.count, 1)
+        XCTAssertEqual(urls[0].path, "/api/v1/posts")
+        XCTAssertEqual(queryItem("sort", in: urls[0]), "hot")
+        XCTAssertEqual(queryItem("time_range", in: urls[0]), "1m")
+        XCTAssertNil(vm.timeRange)
     }
 
     func testFullPageContinuesWithOpaqueCursorAndShortPageIsTerminal() async {
@@ -67,7 +68,7 @@ final class PostsListBoundedWindowTests: XCTestCase {
             (page(["c"], hasNext: false, cursor: "ignored"), 200, 0)
         ]
         let vm = makeViewModel()
-        await vm.selectTimeRange(.last30Days)
+        await vm.selectTimeRange(.lastYear)
         XCTAssertTrue(vm.hasMore)
         await vm.loadNextPage()
         XCTAssertFalse(vm.hasMore)
@@ -76,8 +77,30 @@ final class PostsListBoundedWindowTests: XCTestCase {
         let urls = CannedFeedURLProtocol.capturedURLs
         XCTAssertEqual(urls.count, 2)
         XCTAssertEqual(queryItem("after", in: urls[1]), "opaque==")
-        XCTAssertEqual(queryItem("time_range", in: urls[1]), "1m")
+        XCTAssertEqual(queryItem("time_range", in: urls[1]), "1y")
         XCTAssertEqual(vm.items.map(\.id), ["a", "b", "c"])
+    }
+
+    func testChangingRangeDiscardsRowsCursorAndBookmarksThenDefaultSendsMonth() async {
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (page(["old"], hasNext: true, cursor: "old-cursor"), 200, 0),
+            (page(["year"], hasNext: true, cursor: "year-cursor"), 200, 0),
+            (page(["month"], hasNext: false, cursor: nil), 200, 0)
+        ]
+        let vm = makeViewModel()
+        await vm.load()
+        vm.savedPostIds = ["old"]
+        vm.hiddenPostIds = ["old"]
+        await vm.selectTimeRange(.lastYear)
+        XCTAssertEqual(vm.items.map(\.id), ["year"])
+        XCTAssertTrue(vm.savedPostIds.isEmpty)
+        XCTAssertTrue(vm.hiddenPostIds.isEmpty)
+        await vm.selectTimeRange(.last30Days)
+        XCTAssertEqual(vm.items.map(\.id), ["month"])
+        XCTAssertFalse(vm.hasMore)
+        let urls = CannedFeedURLProtocol.capturedURLs
+        XCTAssertEqual(urls.map { queryItem("after", in: $0) }, [nil, nil, nil])
+        XCTAssertEqual(urls.map { queryItem("time_range", in: $0) }, ["1m", "1y", "1m"])
     }
 
     func testHasNextPageWithoutCursorIsTerminal() async {
@@ -124,10 +147,10 @@ final class PostsListBoundedWindowTests: XCTestCase {
         XCTAssertFalse(vm.hasMore)
 
         CannedFeedURLProtocol.handlers[path] = (page(["fresh"], hasNext: false, cursor: nil), 200)
-        await vm.selectTimeRange(.last30Days)
+        await vm.selectTimeRange(.lastYear)
         let last = CannedFeedURLProtocol.capturedURLs.last
         XCTAssertNil(queryItem("after", in: last))
-        XCTAssertEqual(queryItem("time_range", in: last), "1m")
+        XCTAssertEqual(queryItem("time_range", in: last), "1y")
         XCTAssertEqual(vm.items.map(\.id), ["fresh"])
     }
 

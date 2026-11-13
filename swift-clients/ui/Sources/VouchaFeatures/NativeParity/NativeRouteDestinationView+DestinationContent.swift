@@ -10,6 +10,8 @@ extension NativeRouteDestinationSurface {
                 playbackController: playbackController,
                 currentUserId: currentUserId
             )
+        } else if viewModel.topicPostCollection != nil {
+            NativeListSurface(viewModel: viewModel, onNavigateToTargetPath: onNavigateToTargetPath)
         } else {
             switch entry.destinationIdentifier {
             case .signIn:

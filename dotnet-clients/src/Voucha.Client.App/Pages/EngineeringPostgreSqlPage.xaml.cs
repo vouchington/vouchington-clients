@@ -50,6 +50,18 @@ public partial class EngineeringPostgreSqlPage : ContentPage, IDisposable
 
     await viewModel.CleanupPartitionsAsync().ConfigureAwait(true);
   }
+  private async void OnClassifierRangeCreateClicked(object? sender, EventArgs e) => await RunRangeAsync(false, false).ConfigureAwait(true);
+  private async void OnClassifierRangeRetireClicked(object? sender, EventArgs e) => await RunRangeAsync(false, true).ConfigureAwait(true);
+  private async void OnRequestRangeCreateClicked(object? sender, EventArgs e) => await RunRangeAsync(true, false).ConfigureAwait(true);
+  private async void OnRequestRangeRetireClicked(object? sender, EventArgs e) => await RunRangeAsync(true, true).ConfigureAwait(true);
+
+  private Task RunRangeAsync(bool requestFamily, bool retire) =>
+      viewModel.ConfirmRangeAsync(requestFamily, retire, body => DisplayAlertAsync(
+          viewModel.RangeConfirmationTitle(body),
+          viewModel.RangeConfirmationMessage(body),
+          viewModel.RangeConfirmationTitle(body),
+          UiCopy.Localize(UiMessageKey.NativeDotnetCsharpCancel)));
+
   private async void OnTriggerArticleSyncClicked(object? sender, EventArgs e) => await viewModel.TriggerArticleSyncAsync().ConfigureAwait(true);
   private async void OnRefreshArticleSyncClicked(object? sender, EventArgs e) => await viewModel.RefreshArticleSyncStatusAsync().ConfigureAwait(true);
 }

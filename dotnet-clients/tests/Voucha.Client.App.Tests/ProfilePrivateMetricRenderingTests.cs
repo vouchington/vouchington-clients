@@ -26,6 +26,8 @@ public sealed class ProfilePrivateMetricRenderingTests
   [InlineData("rss_feed_items_hidden", true, "1,000+")]
   [InlineData("rss_feed_items_hidden", false, "1,000")]
   [InlineData("rss_feed_items_hidden", null, "1,000")]
+  [InlineData("rss_feed_items_saved", true, "1,000+")]
+  [InlineData("topics_subscribed_news", false, "1,000")]
   public async Task OwnRowsRenderCapFlagsAndDisappearOnPublicNavigation(string key, bool? capped, string count)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());

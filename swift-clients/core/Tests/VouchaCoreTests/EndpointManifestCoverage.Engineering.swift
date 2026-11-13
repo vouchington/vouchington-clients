@@ -80,6 +80,9 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.captcha-config.default") {
             Endpoint.captchaConfig
         },
+        ManifestRegisteredEndpoint(id: "native.hacker-news-config.default") {
+            Endpoint.hackerNewsConfig
+        },
         ManifestRegisteredEndpoint(id: "native.dynamic-config.namespaces.developer") {
             Endpoint.dynamicConfigNamespaces
         },

@@ -23,7 +23,7 @@ public sealed class NativeOAuthAuthorizationCapabilityRecoveryTests
               "native.oauth.providers.broker-capabilities")),
         });
     using var coordinator = new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
         new EmptyPersistence(),
         new UnusedBrowser(),
         new AnonymousSessionStore());
@@ -70,7 +70,7 @@ public sealed class NativeOAuthAuthorizationCapabilityRecoveryTests
           "native.oauth.providers.broker-capabilities")),
     });
     using var coordinator = new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
         persistence,
         new UnusedBrowser(),
         new AnonymousSessionStore());

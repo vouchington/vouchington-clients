@@ -17,14 +17,13 @@ public sealed partial class PostsListViewModel
   public async Task LoadMoreAsync(CancellationToken cancellationToken = default)
   {
     if (IsLoading || !HasMore || endCursor is not { } after) return;
-    var currentRequest = BeginLoad();
+    var currentRequest = BeginLoad(NextRequestId());
     await ClientLoadAttempt.RunAsync(
         async () =>
         {
           var response = browsing
               ? await postsService.FetchPostsAsync(
-                  new FetchPostsRequest(PostTypes: activePostTypes, After: after, TimeRange: activeTimeRange,
-                      HasHackerNewsReferences: activeHackerNewsFilter), cancellationToken).ConfigureAwait(true)
+                  activeBrowseRequest with { After = after }, cancellationToken).ConfigureAwait(true)
               : await postsService.FetchFeedAsync(
                   new FetchPostsFeedRequest(activeFeedType, after, PostTypes: activePostTypes, TimeRange: activeTimeRange), cancellationToken).ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: true);

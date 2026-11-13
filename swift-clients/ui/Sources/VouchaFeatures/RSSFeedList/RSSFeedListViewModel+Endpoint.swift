@@ -8,13 +8,13 @@ extension RSSFeedListViewModel {
                 feedType: contentType.feedType,
                 after: cursor,
                 mediaType: contentType.mediaType,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                hasHackerNewsReferences: hasHackerNewsReferences && isHackerNewsFilterVisible ? true : nil
             )
         case .all:
             Endpoint.allRssFeedItems(
                 after: cursor,
                 mediaType: contentType.mediaType,
-                hasHackerNewsReferences: hasHackerNewsReferences ? true : nil
+                hasHackerNewsReferences: hasHackerNewsReferences && isHackerNewsFilterVisible ? true : nil
             )
         }
     }

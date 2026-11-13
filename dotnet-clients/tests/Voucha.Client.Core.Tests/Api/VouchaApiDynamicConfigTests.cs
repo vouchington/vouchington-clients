@@ -25,6 +25,7 @@ public sealed class VouchaApiDynamicConfigTests
     {
       ["native.feature-flags.default"] = typeof(FeatureFlagsResponse),
       ["native.captcha-config.default"] = typeof(CaptchaConfigResponse),
+      ["native.hacker-news-config.default"] = typeof(HackerNewsConfigResponse),
       ["native.dynamic-config.namespaces.developer"] = typeof(DynamicConfigNamespacesResponse),
       ["native.dynamic-config.namespace.typed"] = typeof(DynamicConfigNamespaceResponse),
       ["native.dynamic-config.namespace.string"] = typeof(DynamicConfigNamespaceResponse),
