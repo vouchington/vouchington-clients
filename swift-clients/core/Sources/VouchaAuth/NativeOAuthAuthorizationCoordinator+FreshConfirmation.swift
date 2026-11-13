@@ -1,7 +1,5 @@
 import Foundation
-import VouchaAPI
 import VouchaCore
-import VouchaModels
 
 public extension NativeOAuthAuthorizationCoordinator {
     func cancelFreshAccountConfirmation() {
