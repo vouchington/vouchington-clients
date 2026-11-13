@@ -1,13 +1,16 @@
 import SwiftUI
 import VouchaDesignSystem
+import VouchaLocalization
 import VouchaModels
 
 struct NativeUserProfileReferralLinkRow: View {
+    @Environment(\.locale)
+    private var nativeUiLocale
     let link: NativeReferralLink
     let onOpen: () -> Void
 
-    var title: String {
-        link.label?.ifNotEmpty ?? link.referralProgramName?.ifNotEmpty ?? link.url ?? link.id
+    var title: UiVerbatimText {
+        .verbatim(link.label?.ifNotEmpty ?? link.referralProgramName?.ifNotEmpty ?? link.url ?? link.id)
     }
 
     var body: some View {
@@ -16,9 +19,10 @@ struct NativeUserProfileReferralLinkRow: View {
                 Image(systemName: "link")
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(title).font(Typography.subheadline).fontWeight(.semibold)
+                    Text(verbatim: UiMessages.string(title, locale: nativeUiLocale))
+                        .font(Typography.subheadline).fontWeight(.semibold)
                     if let url = link.url {
-                        Text(url)
+                        Text(verbatim: UiMessages.string(.verbatim(url), locale: nativeUiLocale))
                             .font(Typography.caption)
                             .foregroundStyle(Colors.secondaryLabel)
                             .lineLimit(1)
