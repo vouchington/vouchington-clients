@@ -48,6 +48,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
     this.imageUploadService = imageUploadService ?? throw new ArgumentNullException(nameof(imageUploadService));
     this.config = config ?? throw new ArgumentNullException(nameof(config));
     this.localization = localization ?? UiLocalization.English;
+    TimeRange = new(this.localization);
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
     historyTabs = BuildTabs(null, ProfileHistoryTab.All);
   }

@@ -53,7 +53,7 @@ internal static class NativeContentFixtureRequests
     registry["native.posts.time-range.all"] = TimeRangePosts("all");
     registry["native.posts.time-range.explicit-week"] = TimeRangePosts("1w");
     registry["native.users.profile.posts.staff-provenance"] = VouchaApiEndpoints.AllPosts(
-        new FetchPostsRequest(PostTypes: "discussion,review", Creator: "user-abc", Sort: "new"));
+        new FetchPostsRequest(PostTypes: "discussion,review", Creator: "user-abc", Sort: "new", TimeRange: null));
     registry["native.rss-personal.one-day"] = Personal("1d");
     registry["native.rss-personal.seven-day.1m"] = Personal("1m");
     registry["native.rss-personal.seven-day.1y"] = Personal("1y");

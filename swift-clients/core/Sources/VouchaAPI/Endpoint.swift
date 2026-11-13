@@ -95,7 +95,7 @@ public extension Endpoint {
         after: String? = nil,
         limit: Int = 20,
         postTypes: String? = nil,
-        timeRange: String? = nil
+        timeRange: String? = "1w"
     ) -> Endpoint {
         var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)"), .init(name: "sort", value: "hot")]
         if let after {
@@ -104,7 +104,7 @@ public extension Endpoint {
         if let postTypes {
             items.append(.init(name: "post_types", value: postTypes))
         }
-        // Omitted by default: the server applies its 30-day window for every sort.
+        // Native Feed uses an explicit week; a low-level caller may deliberately pass nil.
         if let timeRange {
             items.append(.init(name: "time_range", value: timeRange))
         }

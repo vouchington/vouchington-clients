@@ -140,7 +140,8 @@ public sealed partial class ProfileViewModel
           PostTypes: PostTypes(tab),
           Sort: "new",
           After: after,
-          Limit: 25), cancellationToken).ConfigureAwait(true);
+          Limit: 25,
+          TimeRange: TimeRange.RequestValue), cancellationToken).ConfigureAwait(true);
       if (loadVersion != historyLoadVersion) return;
       if (response.Posts is not { } posts)
       {
