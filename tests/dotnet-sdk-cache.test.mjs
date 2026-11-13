@@ -17,13 +17,10 @@ test('mise .NET SDK is restored from cache before any dot.net download', () => {
     action,
     /id: dotnet-sdk\s+if: inputs\.tool == 'dotnet'\s+uses: actions\/cache\/restore@[0-9a-f]{40} # v/u,
   )
+  assert.match(action, /path: \$\{\{ runner\.temp \}\}\/mise-data\/dotnet-root/u)
   assert.match(
     action,
-    /path: \$\{\{ runner\.temp \}\}\/mise-data\/installs\/dotnet\/\$\{\{ steps\.dotnet-pin\.outputs\.version \}\}/u,
-  )
-  assert.match(
-    action,
-    /key: mise-dotnet-sdk-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.dotnet-pin\.outputs\.version \}\}-\$\{\{ hashFiles\(/u,
+    /key: mise-dotnet-sdk-v2-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-\$\{\{ steps\.dotnet-pin\.outputs\.version \}\}-\$\{\{ hashFiles\(/u,
   )
   assert.match(action, /jq -er '\.sdk\.version'[^\n]*global\.json/u)
 })
@@ -46,7 +43,7 @@ test('cold-cache .NET SDK is seeded from the release CDN, never dot.net, before 
   assert.ok(stepIndex('Restore mise-managed .NET SDK') < posix)
   assert.ok(posix < windows)
   assert.ok(windows < install)
-  const seeds = action.slice(posix, install)
+  const seeds = action.slice(posix, stepIndex('Link mise .NET install to the seeded SDK'))
   assert.equal(seeds.match(/steps\.dotnet-sdk\.outputs\.cache-hit != 'true'/gu)?.length, 2)
   assert.doesNotMatch(seeds, /https?:\/\/dot\.net/u)
   assert.match(seeds, /release-metadata\/\$\{channel\}\/releases\.json/u)
@@ -58,8 +55,26 @@ test('cold-cache .NET SDK is seeded from the release CDN, never dot.net, before 
   assert.match(seeds, /openssl dgst -sha512/u)
   assert.match(seeds, /Get-FileHash -Algorithm SHA512/u)
   assert.equal(seeds.match(/SHA-512 mismatch/gu)?.length, 2)
-  assert.match(seeds, /mise-data\/installs\/dotnet\/\$DOTNET_VERSION/u)
-  assert.match(seeds, /mise-data\/installs\/dotnet\/\$version/u)
+  assert.match(seeds, /\$RUNNER_TEMP\/mise-data\/dotnet-root/u)
+  assert.match(seeds, /'mise-data\/dotnet-root'/u)
+  assert.doesNotMatch(seeds, /installs\/dotnet/u)
+})
+
+test('mise install link points at dotnet-root after cache hits and seeds, before mise install', () => {
+  const posixLink = stepIndex('Link mise .NET install to the seeded SDK')
+  const windowsLink = stepIndex('Link mise .NET install to the seeded SDK on Windows')
+  const install = stepIndex('Install candidate-pinned toolchain')
+  assert.ok(stepIndex('Seed .NET SDK from builds.dotnet.microsoft.com on Windows') < posixLink)
+  assert.ok(posixLink < windowsLink)
+  assert.ok(windowsLink < install)
+  const links = action.slice(posixLink, install)
+  assert.doesNotMatch(links, /cache-hit/u)
+  assert.match(
+    links,
+    /ln -sfn -- "\$data\/dotnet-root" "\$data\/installs\/dotnet\/\$DOTNET_VERSION"/u,
+  )
+  assert.match(links, /New-Item -ItemType Junction -Path \$link -Target \$root/u)
+  assert.equal(action.match(/"MISE_DOTNET_ROOT=/gu)?.length, 2)
 })
 
 test('mise installs tolerate a slow dot.net on a cold cache', () => {
