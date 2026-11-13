@@ -4,7 +4,11 @@ namespace Voucha.Client.Core.Engineering;
 
 public sealed partial class EngineeringPostgreSqlViewModel
 {
-  public void OnUiLocaleChanged() => OnPropertyChanged(nameof(ArticleSyncStatusMessage));
+  public void OnUiLocaleChanged()
+  {
+    OnPropertyChanged(nameof(ArticleSyncStatusMessage));
+    NotifyRangeErrorMessages();
+  }
 
   public void Dispose()
   {
