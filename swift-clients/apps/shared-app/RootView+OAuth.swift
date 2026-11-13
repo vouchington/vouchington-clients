@@ -27,7 +27,7 @@ extension RootView {
         case .expired(_, .connect):
             routeNativeTargetPath("/my/identity")
         case .confirmationReady, .expired(_, .reauthenticate):
-            break
+            viewModelFactory.nativeOAuthAuthorizationCoordinator.discardFreshConfirmationWithoutOwner()
         }
     }
 }

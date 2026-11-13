@@ -1,5 +1,4 @@
 import SwiftUI
-import VouchaAPI
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -55,7 +54,7 @@ struct NativeEngineeringPostgresqlRangeSection: View {
                 }
             }
             .buttonStyle(.bordered)
-            .disabled(viewModel.isActionLoading("partition-range"))
+            .disabled(!viewModel.canPrepareRange)
         }
     }
 
