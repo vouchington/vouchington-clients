@@ -153,6 +153,29 @@ final class HackerNewsConfigFlagTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNoThrow(try NativeListSurface(viewModel: model).inspect().find(ViewType.Toggle.self))
     }
 
+    func testRssFlagTurningOffReloadsFromTheFirstPageWithoutTheFilter() async throws {
+        serveConfig(visible: true)
+        serveContent()
+        let model = try RSSFeedListViewModel(client: makeClient(), contentType: .news, feedSource: .all)
+        await model.refreshHackerNewsReferencesVisibility()
+        model.hasHackerNewsReferences = true
+        await model.hackerNewsFilterTask?.value
+        let before = CannedFeedURLProtocol.capturedURLs.count
+
+        serveConfig(visible: false)
+        await model.refreshHackerNewsReferencesVisibility()
+        await model.hackerNewsFilterTask?.value
+
+        XCTAssertFalse(model.hasHackerNewsReferences)
+        let reloads = CannedFeedURLProtocol.capturedURLs.dropFirst(before).filter {
+            $0.path == "/api/v1/rss-feed-items"
+        }
+        let reload = try XCTUnwrap(reloads.last)
+        let names = URLComponents(url: reload, resolvingAgainstBaseURL: false)?.queryItems?.map(\.name) ?? []
+        XCTAssertFalse(names.contains(parameter))
+        XCTAssertFalse(names.contains("after"))
+    }
+
     func testRouteWithoutClientKeepsTheFilterHidden() async throws {
         let model = try NativeRouteSurfaceViewModel(entry: entry(for: .feedNews), client: nil)
 
