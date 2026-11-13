@@ -95,7 +95,9 @@ test('each shard independently verifies its candidate and tools, with NuGet writ
   for (const job of [rendered, app]) {
     assert.ok(job.includes('uses: ./.github/actions/prepare-native-contract'))
     assert.ok(job.includes('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}'))
-    assert.ok(job.includes('producer-run-attempt: ${{ github.run_attempt }}'))
+    assert.ok(
+      job.includes('producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}'),
+    )
     assert.ok(job.includes('producer-run-id: ${{ github.run_id }}'))
     assert.ok(job.includes('uses: ./.github/actions/setup-mise-toolchain'))
     assert.ok(job.includes('client-root: candidate-clients'))
