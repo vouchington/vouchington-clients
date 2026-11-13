@@ -64,7 +64,7 @@ public extension Endpoint {
         query: String? = nil,
         limit: Int = 25,
         after: String? = nil,
-        timeRange: String? = nil
+        timeRange: String? = "1m"
     ) -> Endpoint {
         var items: [URLQueryItem] = [
             .init(name: "limit", value: "\(limit)"),

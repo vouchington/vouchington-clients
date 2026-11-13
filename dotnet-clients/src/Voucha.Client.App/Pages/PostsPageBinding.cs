@@ -31,6 +31,8 @@ public sealed class PostsPageBinding : LoadablePageBinding<PostRow>
     };
   }
 
+  public PostTimeRangeSelection TimeRange => viewModel.TimeRange;
+
   public bool CanVote => sessionStore.Current.CanCastPublicVotes();
 
   public bool CanClearVote => sessionStore.Current.IsAuthenticated && !sessionStore.Current.CanCastPublicVotes();

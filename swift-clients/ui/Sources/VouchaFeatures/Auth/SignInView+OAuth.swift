@@ -36,7 +36,7 @@ extension SignInView {
                 origin: .brokerOAuth
             )
             showingMFAChallenge = true
-        case .connected:
+        case .connected, .confirmationReady:
             break
         case .expired:
             oauthPresentation.isPresentingExpiration = true

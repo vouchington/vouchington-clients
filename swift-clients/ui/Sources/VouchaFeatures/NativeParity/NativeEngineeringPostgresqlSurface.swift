@@ -58,6 +58,7 @@ struct NativeEngineeringPostgresqlSurface: View {
                     migrationSection(viewModel)
                     partitionSection(viewModel)
                     jobSection(viewModel)
+                    NativeEngineeringPostgresqlRangeSection(viewModel: viewModel)
                     articleSyncSection(viewModel)
                 }
             }

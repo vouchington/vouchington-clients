@@ -46,6 +46,14 @@ extension SettingsSurface {
             .onChange(of: viewModel.nativeOAuthAuthorizationCoordinator?.capabilityErrorMessage) { _, _ in
                 viewModel.synchronizeOAuthError()
             }
+            .sheet(isPresented: Binding(
+                get: { viewModel.freshConfirmation?.isPresented == true },
+                set: { if !$0 { viewModel.freshConfirmation?.cancel() } }
+            )) {
+                if let confirmation = viewModel.freshConfirmation {
+                    FreshAccountConfirmationView(model: confirmation)
+                }
+            }
             .refreshable {
                 await reload()
             }

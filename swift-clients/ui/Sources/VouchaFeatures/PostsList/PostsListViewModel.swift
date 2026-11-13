@@ -42,7 +42,11 @@ public final class PostsListViewModel {
     }
 
     public var hasHackerNewsReferences = false {
-        didSet { filterReloadTask = Task { await reload() } }
+        didSet {
+            guard hasHackerNewsReferences != oldValue else { return }
+            if hasHackerNewsReferences, supportsHackerNewsFilter { timeRange = .lastYear }
+            filterReloadTask = Task { await reload() }
+        }
     }
 
     public var filter: PostFilter = .all {
@@ -51,7 +55,12 @@ public final class PostsListViewModel {
         }
     }
 
-    /// Selected finite window. `nil` selects the server default of 30 days and omits `time_range`.
+    /// Feed has a fixed week; ordinary search (`all`) defaults to 30 days.
+    var isFeed: Bool {
+        feedType != "all"
+    }
+
+    /// Selected finite window. `nil` selects the ordinary-search 30-day default.
     public private(set) var timeRange: PostTimeRange?
 
     var inFlightVotePostIds: Set<String> = []
@@ -64,11 +73,15 @@ public final class PostsListViewModel {
     public init(client: APIClient, feedType: String = "any", timeRange: PostTimeRange? = nil) {
         self.client = client
         self.feedType = feedType
-        self.timeRange = timeRange
+        self.timeRange = feedType == "all" ? (timeRange == .last30Days ? nil : timeRange) : .lastWeek
     }
 
     /// Select a finite range (or `nil` for the default). A change drops the cursor and reloads.
     public func selectTimeRange(_ range: PostTimeRange?) async {
+        guard !isFeed else { return }
+        let range = hasHackerNewsReferences && supportsHackerNewsFilter
+            ? (range == nil || range == .allTime ? .lastYear : range)
+            : (range == .last30Days ? nil : range)
         guard range != timeRange else { return }
         timeRange = range
         await reload()
@@ -134,22 +147,32 @@ public final class PostsListViewModel {
         }
     }
 
-    /// Reset all pagination state.
-    public func reset() {
-        pagination.reset()
-        myVotesByPostId = [:]
-        savedPostIds = []
-        hiddenPostIds = []
-        postEmbedsByPostId = [:]
-        hackerNewsReferencesByPostId = [:]
-        inFlightVotePostIds = []
-        inFlightBookmarkKeys = []
+    var timeRangeOptions: [PostTimeRange] {
+        PostTimeRange.listOptions.filter { !hasHackerNewsReferences || $0 != .allTime }
     }
 
-    /// Clear and reload from the first page.
-    public func reload() async {
-        reset()
-        await loadNextPage()
+    var selectedTimeRange: PostTimeRange {
+        if hasHackerNewsReferences, supportsHackerNewsFilter,
+           timeRange == nil || timeRange == .allTime { return .lastYear }
+        return timeRange ?? .last30Days
+    }
+
+    func feedEndpoint(after cursor: String?) -> Endpoint {
+        if isFeed {
+            return .posts(
+                feedType: feedType,
+                after: cursor,
+                postTypes: filter.postTypes,
+                timeRange: PostTimeRange.lastWeek.rawValue
+            )
+        }
+        return .postsFeed(
+            postTypes: filter.postTypes,
+            timeRange: selectedTimeRange.rawValue,
+            hasHackerNewsReferences: hasHackerNewsReferences && supportsHackerNewsFilter ? true : nil,
+            sort: "hot",
+            after: cursor
+        )
     }
 
     private func applyBookmarkState(for postId: String, from bookmarks: [String: [String: Bool]]?) {
@@ -160,23 +183,6 @@ public final class PostsListViewModel {
         if predicates["hide"] == true {
             hiddenPostIds.insert(postId)
         }
-    }
-
-    func feedEndpoint(after cursor: String?) -> Endpoint {
-        hasHackerNewsReferences && supportsHackerNewsFilter
-            ? Endpoint.postsFeed(
-                postTypes: filter.postTypes,
-                timeRange: timeRange?.rawValue,
-                hasHackerNewsReferences: true,
-                sort: "hot",
-                after: cursor
-            )
-            : Endpoint.posts(
-                feedType: feedType,
-                after: cursor,
-                postTypes: filter.postTypes,
-                timeRange: timeRange?.rawValue
-            )
     }
 
 }

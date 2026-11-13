@@ -9,7 +9,8 @@ public sealed partial class NotificationsViewModel
   {
     ArgumentNullException.ThrowIfNull(row);
 
-    var targetPath = row.TargetPath?.Trim();
+    var targetPath = row.EntityType == "household_invitation"
+        ? "/my/household-invitations" : row.TargetPath?.Trim();
     if (row.IsUnread)
     {
       await MarkReadCoreAsync(row.Id, cancellationToken).ConfigureAwait(true);

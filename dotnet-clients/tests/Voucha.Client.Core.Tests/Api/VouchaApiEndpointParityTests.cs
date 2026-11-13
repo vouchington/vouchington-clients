@@ -268,7 +268,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("rssFeedsForTopic", VouchaApiEndpoints.RssFeedsForTopic("topic-1", includeDescendants: true, enabled: true, discoverable: false), HttpMethod.Get, "/api/v1/rss-feeds", Query(("topic", "topic-1"), ("include_descendants", "true"), ("enabled", "true"), ("discoverable", "false")));
     yield return Case("rssFeedsForTopicAllStates", VouchaApiEndpoints.RssFeedsForTopic("topic-1", enabled: RssFeedEnabledFilter.All), HttpMethod.Get, "/api/v1/rss-feeds", Query(("topic", "topic-1"), ("enabled", "null")));
     yield return Case("rssFeedItems", VouchaApiEndpoints.RssFeedItems("any", "cursor-1", 12, "video"), HttpMethod.Get, "/api/v1/feeds/rss_feed_items/any", Query(("limit", "12"), ("after", "cursor-1"), ("media_type", "video")));
-    yield return Case("posts", VouchaApiEndpoints.Posts("home", "cursor-2", 13, "discussion"), HttpMethod.Get, "/api/v1/feeds/posts/home", Query(("limit", "13"), ("sort", "hot"), ("after", "cursor-2"), ("post_types", "discussion")));
+    yield return Case("posts", VouchaApiEndpoints.Posts("home", "cursor-2", 13, "discussion"), HttpMethod.Get, "/api/v1/feeds/posts/home", Query(("limit", "13"), ("sort", "hot"), ("after", "cursor-2"), ("post_types", "discussion"), ("time_range", "1w")));
     yield return Case("notifications", VouchaApiEndpoints.Notifications("cursor-3", 14), HttpMethod.Get, "/api/v1/my/notifications", Query(("limit", "14"), ("after", "cursor-3")));
     yield return Case("myIdentity", VouchaApiEndpoints.MyIdentity(), HttpMethod.Get, "/api/v1/my/identity", Query());
     yield return Case("emailPreferences", VouchaApiEndpoints.EmailPreferences(), HttpMethod.Get, "/api/v1/my/email-preferences", Query());

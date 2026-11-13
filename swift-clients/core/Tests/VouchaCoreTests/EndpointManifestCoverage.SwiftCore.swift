@@ -3,7 +3,10 @@ import VouchaAPI
 extension EndpointManifestCoverage {
     static let swiftCoreEndpoints: [ManifestRegisteredEndpoint] = [
         ManifestRegisteredEndpoint(id: "swift.posts.feed.default") {
-            Endpoint.posts(feedType: "any")
+            Endpoint.posts(
+                feedType: "any",
+                timeRange: ApiFixtureLoader.optionalQueryValue("swift.posts.feed.default", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "swift.notifications.default") {
             Endpoint.notifications()

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.Core.Api;
 
@@ -17,6 +18,12 @@ public sealed record ApiRequest(HttpMethod Method, string Path)
   internal bool IsCoordinatedSessionRotation { get; init; }
 
   internal bool IsCoordinatedSignOut { get; init; }
+
+  [JsonIgnore]
+  public Func<string, ApiRequest>? ConfirmationFactory { get; init; }
+
+  public ApiRequest ConfirmWith(string? proof, Func<string, ApiRequest> factory, bool required = true) =>
+      required && string.IsNullOrWhiteSpace(proof) ? this with { ConfirmationFactory = factory } : this;
 }
 
 public sealed record SearchCommunitiesRequest(string Query);
@@ -60,7 +67,7 @@ public sealed record FetchPostsFeedRequest(
     string? After = null,
     int Limit = 20,
     string? PostTypes = null,
-    string? TimeRange = null);
+    string? TimeRange = PostTimeRanges.LastWeek);
 
 public sealed record EntityRelationsRequest(
     string EntityType,

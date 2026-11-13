@@ -217,6 +217,7 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="8" IsVisible="{Binding IsPostsScope}">
+                <controls:PostTimeRangePicker Selection="{Binding TimeRange}" RangeSelected="OnTimeRangeSelected" />
                 <Label Text="{DynamicResource native.dotnet.profile.history}" Style="{StaticResource Headline}" />
                 <FlexLayout BindableLayout.ItemsSource="{Binding HistoryTabs}" Direction="Row" Wrap="Wrap" IsVisible="{Binding IsOverviewScope}">
                     <BindableLayout.ItemTemplate>

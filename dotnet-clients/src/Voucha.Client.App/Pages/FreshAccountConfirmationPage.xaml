@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="Voucha.Client.App.Pages.FreshAccountConfirmationPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:auth="clr-namespace:Voucha.Client.Core.Auth;assembly=Voucha.Client.Core"
+    x:DataType="auth:FreshAccountConfirmationViewModel"
+    Title="{DynamicResource extracted.my.mfaReauthDialog.reAuthenticate_3887afa4}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+            <Label Text="{DynamicResource extracted.my.mfaReauthDialog.verifyYourIdentityToRemoveYour_e7d1fbdb}" Style="{StaticResource Headline}" />
+            <Label Text="{Binding ErrorMessage}" Style="{StaticResource Body}" />
+            <Button Text="{DynamicResource extracted.mfaReauthDialog.methodSelector.emailVerification_4d225196}" IsVisible="{Binding CanEmail}" Clicked="OnEmailSelected" />
+            <Button Text="{DynamicResource extracted.mfaReauthDialog.methodSelector.authenticatorApp_09a12ace}" IsVisible="{Binding CanTotp}" Clicked="OnTotpSelected" />
+            <VerticalStackLayout IsVisible="{Binding IsEmailMode}">
+                <Label Text="{DynamicResource extracted.mfaReauthDialog.verificationPanes.weLlSendAVerificationCode_fc0ed3b9}" />
+                <Button Text="{DynamicResource extracted.mfaReauthDialog.verificationPanes.sendCode_66a5b409}" IsVisible="{Binding CanSendEmail}" Clicked="OnSendEmail" />
+                <Button Text="{DynamicResource extracted.mfaReauthDialog.verificationPanes.resend_1f948437}" IsVisible="{Binding HasSentEmail}" Clicked="OnSendEmail" />
+            </VerticalStackLayout>
+            <Label Text="{DynamicResource extracted.mfaReauthDialog.verificationPanes.enterThe6DigitCodeFrom_a160dee6}" IsVisible="{Binding IsTotpMode}" />
+            <Entry AutomationId="account-confirmation-code" IsVisible="{Binding HasCodeMethod}" Text="{Binding Code}" Keyboard="Text" Placeholder="{DynamicResource extracted.emailManager.verifyEmailForm.verificationCode_3ee75029}">
+                <Entry.Triggers>
+                    <DataTrigger TargetType="Entry" Binding="{Binding IsTotpMode}" Value="True">
+                        <Setter Property="Keyboard" Value="Numeric" />
+                    </DataTrigger>
+                </Entry.Triggers>
+            </Entry>
+            <Button AutomationId="account-confirmation-verify" IsVisible="{Binding HasCodeMethod}" Text="{Binding VerifyLabel}" Clicked="OnVerifyCode" />
+            <Button Text="{DynamicResource extracted.my.passkeyManager.passkeys_c87ccdb4}" IsVisible="{Binding CanPasskey}" Clicked="OnLoadPasskeys" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Passkeys}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="auth:ConfirmationPasskeyRow">
+                        <Button Text="{Binding Label}" CommandParameter="{Binding Id}" Clicked="OnVerifyPasskey" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <Button Text="{DynamicResource native.swift.common.loadMore}" IsVisible="{Binding HasMorePasskeys}" Clicked="OnLoadPasskeys" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Providers}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="auth:ConfirmationProviderRow">
+                        <Button Text="{Binding Label}" CommandParameter="{Binding Provider}" Clicked="OnVerifyProvider" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+            <Button Text="{DynamicResource common.cancel}" Clicked="OnCancel" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

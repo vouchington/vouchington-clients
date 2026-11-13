@@ -24,16 +24,19 @@ struct HouseholdRouteSurface: View {
 struct HouseholdSurface: View {
     @Environment(\.locale)
     private var nativeUiLocale
+    private let client: APIClient?
     @State
     var viewModel: HouseholdViewModel
 
     init(client: APIClient) {
+        self.client = client
         _viewModel = State(initialValue: HouseholdViewModel(
             service: HouseholdService(client: client)
         ))
     }
 
     init(viewModel: HouseholdViewModel) {
+        client = nil
         _viewModel = State(initialValue: viewModel)
     }
 
@@ -47,6 +50,14 @@ struct HouseholdSurface: View {
                     locale: nativeUiLocale
                 ))
                 .foregroundStyle(Colors.secondaryLabel)
+
+                if let client {
+                    HouseholdInvitationsSurface(client: client, onAccepted: { await viewModel.load() })
+                    if let householdId = viewModel.ownedHousehold?.id {
+                        HouseholdInvitationsSurface(client: client, householdId: householdId)
+                            .id(householdId)
+                    }
+                }
 
                 if viewModel.isLoading, viewModel.sections.isEmpty {
                     ProgressView(UiMessages.string(

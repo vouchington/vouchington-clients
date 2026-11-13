@@ -1,5 +1,6 @@
 import Observation
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaLocalization
 import VouchaModels
@@ -24,9 +25,19 @@ public final class EmailAddressManagerViewModel {
     public internal(set) var isLoading = false
     public internal(set) var errorMessage: UiVerbatimText?
     public internal(set) var statusMessage: UiMessage?
+    let freshConfirmation: FreshAccountConfirmationViewModel
     private let client: APIClient
 
-    public init(client: APIClient) {
+    public init(
+        client: APIClient,
+        broker: NativeOAuthAuthorizationCoordinator? = nil,
+        googleAssertion: (any FreshProviderAssertion)? = nil
+    ) {
+        freshConfirmation = FreshAccountConfirmationViewModel(
+            client: client,
+            broker: broker,
+            googleAssertion: googleAssertion
+        )
         self.client = client
     }
 
@@ -43,8 +54,10 @@ public final class EmailAddressManagerViewModel {
 
     public func requestVerification() async {
         await perform {
+            let address = emailAddress
+            let proof = try await freshConfirmation.authorize()
             let response: EmailAddressVerificationRequestResponse = try await client.send(
-                .requestMyEmailAddressVerification(emailAddress: emailAddress)
+                .requestMyEmailAddressVerification(emailAddress: address, reAuthToken: proof)
             )
             emailAddress = response.emailAddress
             verificationCode = ""
@@ -61,8 +74,11 @@ public final class EmailAddressManagerViewModel {
         guard !isLoading, let normalized = EmailVerificationCode.normalized(verificationCode) else { return }
         verificationCode = normalized
         await perform {
+            let address = emailAddress
+            let code = verificationCode
+            let proof = try await freshConfirmation.authorize()
             let response: EmailAddressListResponse = try await client.send(
-                .verifyMyEmailAddress(emailAddress: emailAddress, token: verificationCode)
+                .verifyMyEmailAddress(emailAddress: address, token: code, reAuthToken: proof)
             )
             pagination.reset(items: response.results)
             pagination.restoreContinuation(

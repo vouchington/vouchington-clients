@@ -22,6 +22,7 @@ public final class NativeOAuthAuthorizationCoordinator {
     var retainedCallbackURL: URL?
     var secureStateReadUnavailable = false
     var resultAcknowledgementNeedsRetry = false
+    var freshConfirmationEpoch = 0
 
     public init(
         client: APIClient,
@@ -57,12 +58,14 @@ public final class NativeOAuthAuthorizationCoordinator {
         provider: NativeOAuthProvider,
         purpose: NativeOAuthAuthorizationPurpose
     ) -> Bool {
-        capabilities?[provider].supportsNative(purpose) == true
+        capabilities?[provider].supportsNative(purpose == .reauthenticate ? .connect : purpose) == true
+            && (purpose != .reauthenticate || provider != .google)
     }
 
     public func begin(
         provider: NativeOAuthProvider,
         purpose: NativeOAuthAuthorizationPurpose,
+        reAuthToken: String? = nil,
         openAuthorizationURL: @escaping @MainActor (URL) -> Void
     ) async {
         guard canBeginAuthorization else { return }
@@ -75,16 +78,23 @@ public final class NativeOAuthAuthorizationCoordinator {
         isWorking = true
         errorMessage = nil
         defer { isWorking = false }
+        let epoch = freshConfirmationEpoch
         do {
             let proof = try NativeAuthorizationCompletionProof.generate()
-            let response: BeginNativeOAuthAuthorizationResponse = try await client.send(
-                .beginNativeOAuthAuthorization(
-                    provider: provider,
-                    purpose: purpose,
+            let endpoint: Endpoint = purpose == .reauthenticate
+                ? .beginReAuthProviderAuthorization(
+                    provider: provider.rawValue,
                     completionProofChallenge: proof.challenge
                 )
-            )
-            guard hasNoAuthorizationState else { return }
+                : .beginNativeOAuthAuthorization(
+                    provider: provider,
+                    purpose: purpose,
+                    completionProofChallenge: proof.challenge,
+                    reAuthToken: reAuthToken
+                )
+            let response: BeginNativeOAuthAuthorizationResponse = try await client.send(endpoint)
+            // A fresh-confirmation cancel while this start was in flight must not save or open anything.
+            guard hasNoAuthorizationState, purpose != .reauthenticate || epoch == freshConfirmationEpoch else { return }
             guard let url = URL(string: response.redirectUrl),
                   url.scheme?.lowercased() == "https",
                   response.expiresAt > now(),

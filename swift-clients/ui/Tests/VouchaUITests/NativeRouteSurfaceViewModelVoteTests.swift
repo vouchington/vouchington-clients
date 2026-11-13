@@ -31,7 +31,7 @@ extension NativeRouteSurfaceViewModelTests {
             """.utf8),
             200
         )
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail),
             client: makeClient(),
@@ -79,7 +79,7 @@ extension NativeRouteSurfaceViewModelTests {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/vote"] = (Data("{}".utf8), 500)
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail),
             client: makeClient(),
@@ -115,7 +115,7 @@ extension NativeRouteSurfaceViewModelTests {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/vote"] = (Data("{}".utf8), 200)
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail),
             client: makeClient(),
@@ -158,7 +158,7 @@ extension NativeRouteSurfaceViewModelTests {
         let votePath = "/api/v1/topics/topic-1/vote"
         CannedFeedURLProtocol.handlers[votePath] = (Data("{}".utf8), 200)
         CannedFeedURLProtocol.suspendResponse(path: votePath)
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift")?.match)
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail),
             client: makeClient(),

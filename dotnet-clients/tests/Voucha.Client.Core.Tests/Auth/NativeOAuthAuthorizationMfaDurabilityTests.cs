@@ -62,7 +62,7 @@ public sealed class NativeOAuthAuthorizationMfaDurabilityTests
           new VouchaApiClient(new HttpClient(new UnusedHandler())
           {
             BaseAddress = new Uri("https://api.test"),
-          }),
+          }, new TestAccountChangeConfirmation()),
           persistence,
           new UnusedBrowser(),
           sessionStore);
