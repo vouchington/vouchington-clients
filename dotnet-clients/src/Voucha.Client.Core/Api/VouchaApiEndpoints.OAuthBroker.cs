@@ -8,13 +8,14 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest BeginOAuthAuthorization(
       OAuthBrokerProvider provider,
       OAuthAuthorizationPurpose purpose,
-      string completionProofChallenge) =>
-      new(
+      string completionProofChallenge, string? reAuthToken = null) =>
+      new ApiRequest(
           HttpMethod.Post,
           $"/api/v1/auth/oauth/{Path(OAuthProviderValue(provider))}/authorizations")
       {
-        Body = new BeginOAuthAuthorizationBody(purpose, "native", completionProofChallenge),
-      };
+        Body = new BeginOAuthAuthorizationBody(purpose, "native", completionProofChallenge, reAuthToken),
+      }.ConfirmWith(reAuthToken, proof => BeginOAuthAuthorization(provider, purpose, completionProofChallenge, proof),
+          required: purpose == OAuthAuthorizationPurpose.Connect);
 
   public static ApiRequest CompleteOAuthAuthorization(
       string flowId,
@@ -25,10 +26,12 @@ public static partial class VouchaApiEndpoints
         Body = new CompleteOAuthAuthorizationBody(completionToken, completionProofVerifier),
       };
 
-  public static ApiRequest DisconnectOAuthAccount(OAuthBrokerProvider provider) =>
-      new(
+  public static ApiRequest DisconnectOAuthAccount(OAuthBrokerProvider provider, string? reAuthToken = null) =>
+      new ApiRequest(
           HttpMethod.Delete,
-          $"/api/v1/auth/oauth/{Path(OAuthProviderValue(provider))}/connect");
+          $"/api/v1/auth/oauth/{Path(OAuthProviderValue(provider))}/connect")
+      { Body = reAuthToken is null ? null : new ReAuthTokenBody(reAuthToken) }
+      .ConfirmWith(reAuthToken, proof => DisconnectOAuthAccount(provider, proof));
 
   private static string OAuthProviderValue(OAuthBrokerProvider provider) => provider switch
   {

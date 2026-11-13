@@ -28,6 +28,12 @@ public static class ProfileNavigationTargets
     return NativeEntityDetailPaths.Source(row.Id, row.Topic?.Id, row.Topic?.Slug);
   }
 
+  public static string ReferralLink(ProfileReferralLinkRow row)
+  {
+    ArgumentNullException.ThrowIfNull(row);
+    return NativeEntityDetailPaths.Topic(row.ReferralProgramId, row.ReferralProgramSlug, "referral_program");
+  }
+
   public static string Community(CommunityBrowseRow row)
   {
     ArgumentNullException.ThrowIfNull(row);

@@ -54,6 +54,7 @@ public sealed partial class ProfileViewModel
     NativeUserProfileCollectionKind.SourcesAll or NativeUserProfileCollectionKind.SourcesNews or
         NativeUserProfileCollectionKind.SourcesPodcasts or NativeUserProfileCollectionKind.SourcesVideos => NativeUserProfileSection.Sources,
     NativeUserProfileCollectionKind.CommunitiesMember => NativeUserProfileSection.Communities,
+    NativeUserProfileCollectionKind.ReferralLinks => NativeUserProfileSection.ReferralLinks,
     _ => NativeUserProfileSection.Overview,
   };
 

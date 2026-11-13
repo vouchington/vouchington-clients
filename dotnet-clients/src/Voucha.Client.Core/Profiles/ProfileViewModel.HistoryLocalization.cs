@@ -9,6 +9,7 @@ public sealed partial class ProfileViewModel
 
   public void OnUiLocaleChanged()
   {
+    TimeRange.RefreshLabels();
     OnPropertyChanged(nameof(MuteUserButtonText));
     OnPropertyChanged(nameof(BlockUserButtonText));
     OnPropertyChanged(nameof(DisplayName));

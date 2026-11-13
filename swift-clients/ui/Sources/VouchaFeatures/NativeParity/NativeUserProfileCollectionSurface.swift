@@ -108,6 +108,12 @@ extension NativeUserProfileSurface {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("public-profile-community-row")
             }
+        case let .referralLinks(links):
+            ForEach(links) { link in
+                NativeUserProfileReferralLinkRow(link: link) {
+                    NativeUserProfileNavigationTarget.referralLink(link).map(onNavigate)
+                }
+            }
         }
     }
 }

@@ -19,6 +19,8 @@ extension NativeRouteSurfaceViewModel {
             try await userSourcePage(userId: userId, filter: filter, after: after, client: client)
         case .communitiesMember:
             try await userCommunityPage(userId: userId, after: after, client: client)
+        case .referralLinks:
+            try await userReferralLinkPage(userId: userId, after: after, client: client)
         case .overview:
             .init(collection: .none, pageInfo: .init(hasNextPage: false, endCursor: nil))
         }

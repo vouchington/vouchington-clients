@@ -14,7 +14,7 @@ public sealed class NativeOAuthAuthorizationDisconnectRecoveryTests
     var handler = new DisconnectHandler();
     var session = new FailingRefreshSessionStore();
     using var coordinator = new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
         new UnusedPersistence(),
         new UnusedBrowser(),
         session);

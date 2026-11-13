@@ -23,10 +23,13 @@ final class NativeContentEndpointTests: XCTestCase {
         ])
     }
 
-    func testPostsFeedOmitsCursorAndFiltersWhenNotGiven() {
+    func testOrdinaryPostListDefaultsToMonthAndOmitsCursorAndOptionalFilters() {
         let endpoint = Endpoint.postsFeed()
 
-        XCTAssertEqual(endpoint.queryItems, [.init(name: "limit", value: "25")])
+        XCTAssertEqual(endpoint.queryItems, [
+            .init(name: "limit", value: "25"),
+            .init(name: "time_range", value: "1m")
+        ])
         XCTAssertFalse(endpoint.queryItems.contains { $0.name == "after" })
     }
 

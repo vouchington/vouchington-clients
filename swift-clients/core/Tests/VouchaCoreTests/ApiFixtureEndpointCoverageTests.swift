@@ -189,6 +189,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             ),
             "web.referral-links.feed.default": Endpoint.referralLinksFeed(feedType: "follow_users"),
             "native.referral-links.mine.default": Endpoint.referralLinks(),
+            "native.referral-links.user.public": Endpoint.userReferralLinks(userId: "user-2"),
             "native.referral-clicks.mine.default": Endpoint.myReferralClicks(),
             "web.referral-links.prioritized.default": Endpoint.prioritizedReferralLinks(
                 referralProgramId: "referral-program-1",
@@ -333,7 +334,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 userId: "user-abc",
                 listType: "proxy-following"
             ),
-            "swift.posts.feed.default": Endpoint.posts(feedType: "any"),
+            "swift.posts.feed.default": Endpoint.posts(
+                feedType: "any",
+                timeRange: ApiFixtureLoader.optionalQueryValue("swift.posts.feed.default", "time_range")
+            ),
             "swift.notifications.default": Endpoint.notifications(),
             "native.notifications.redirect-target.default": Endpoint
                 .notificationRedirectTarget(notificationId: "notification-1"),

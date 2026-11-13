@@ -52,6 +52,12 @@ public sealed partial class ProfileViewModel
         CommunityItems = Merge(CommunityItems, communities.Results.Select(ToCommunityRow), append, row => row.Id);
         collectionPageInfo = communities.PageInfo;
         break;
+      case NativeUserProfileCollectionKind.ReferralLinks:
+        var referralLinks = await profileCollectionsService!.FetchReferralLinksAsync(userId, after, cancellationToken).ConfigureAwait(true);
+        if (!IsCurrent(version, scope)) return;
+        ReferralLinkItems = Merge(ReferralLinkItems, referralLinks.Results.Select(ProfileReferralLinkRow.From), append, row => row.Id);
+        collectionPageInfo = referralLinks.PageInfo;
+        break;
       default:
         throw new InvalidOperationException("The selected profile scope is not a collection.");
     }

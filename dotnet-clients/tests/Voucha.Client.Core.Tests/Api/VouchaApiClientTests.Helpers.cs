@@ -10,14 +10,14 @@ public sealed partial class VouchaApiClientTests
   private static (VouchaApiClient Client, RecordingHandler Handler) CreateClient(string fixtureId)
   {
     var handler = new RecordingHandler(ApiFixtureLoader.LoadResponse(fixtureId));
-    return (new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }), handler);
+    return (new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()), handler);
   }
 
   private static (VouchaApiClient Client, RecordingHandler Handler) CreateClient(params string[] fixtureIds)
   {
     var responses = fixtureIds.Select(id => new RecordedResponse(ApiFixtureLoader.LoadResponse(id)));
     var handler = new RecordingHandler(responses);
-    return (new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }), handler);
+    return (new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()), handler);
   }
 
   private static void AssertRequest(RecordingHandler handler, HttpMethod method, string pathAndQuery)
