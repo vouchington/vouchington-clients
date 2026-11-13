@@ -67,6 +67,51 @@ extension NativeOAuthAuthorizationCoordinatorTests {
         XCTAssertNil(fixture.coordinator.pending)
     }
 
+    func testCancelingFreshBrokerStopsPollingAndIgnoresALateCompletion() async throws {
+        let fixture = try makeFixture()
+        let pending = try claim(
+            store: fixture.store,
+            flowId: "polling-flow",
+            provider: .github,
+            purpose: .reauthenticate,
+            now: fixture.now
+        )
+        let path = "/api/v1/auth/oauth/authorizations/polling-flow/complete"
+        func pollCount() -> Int {
+            OAuthCoordinatorURLProtocol.lock.withLock {
+                OAuthCoordinatorURLProtocol.requests.filter { $0.url?.path == path }.count
+            }
+        }
+        OAuthCoordinatorURLProtocol.lock.withLock {
+            OAuthCoordinatorURLProtocol.responses[path] = Array(
+                repeating: (Data(#"{"status":"pending"}"#.utf8), 200),
+                count: 20
+            )
+        }
+        fixture.coordinator.synchronizeFromStore()
+        let task = Task { await fixture.coordinator.finalize(pending) }
+        for _ in 0 ..< 500 where pollCount() < 1 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertGreaterThanOrEqual(pollCount(), 1)
+
+        fixture.coordinator.cancelFreshAccountConfirmation()
+        let pollsAtCancel = pollCount()
+        OAuthCoordinatorURLProtocol.lock.withLock {
+            OAuthCoordinatorURLProtocol.responses[path] = [
+                (Data(#"{"oauth_account":{"id":"linked-account","name":null,"email_address":null}}"#.utf8), 200)
+            ]
+        }
+        await task.value
+
+        XCTAssertEqual(pollCount(), pollsAtCancel)
+        XCTAssertFalse(fixture.coordinator.isWorking)
+        XCTAssertNil(fixture.coordinator.result)
+        XCTAssertNil(fixture.coordinator.pending)
+        XCTAssertNil(fixture.coordinator.errorMessage)
+        XCTAssertTrue(fixture.coordinator.canStartAuthorization)
+    }
+
     func testRestoredConfirmationWithoutLiveOwnerIsDiscardedButOwnedOneIsKept() async throws {
         let fixture = try makeFixture()
         let pending = try claim(
