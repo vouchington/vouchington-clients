@@ -32,11 +32,15 @@ extension ApiFixtureEndpointCoverageTests {
     }
 
     func testEverySwiftRouteFixtureIsRegistered() {
-        let consumed = Set(ApiFixtureLoader.swiftRouteFixtures.map(\.id))
+        let routeFixtures = ApiFixtureLoader.swiftRouteFixtures
+        let consumed = Set(routeFixtures.map(\.id))
         let accountedFor = Set(Self.registry.keys)
 
         XCTAssertEqual(
-            consumed.subtracting(accountedFor).sorted(),
+            ApiFixtureCoveragePolicy.unregistered(
+                routeFixtures.map { FixtureCoverageCandidate(id: $0.id, pending: $0.pending) },
+                registered: accountedFor
+            ),
             [],
             "Route-bearing fixtures consumed by Swift need endpoint coverage."
         )

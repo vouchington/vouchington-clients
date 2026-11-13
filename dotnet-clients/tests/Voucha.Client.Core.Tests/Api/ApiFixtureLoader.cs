@@ -49,16 +49,29 @@ internal static class ApiFixtureLoader
   /// no-content statuses). Feeds the DTO field-completeness coverage gate, which asserts each
   /// id is accounted for in <c>ApiFixtureCoverage.Registry</c>.
   /// </summary>
-  public static IReadOnlyCollection<string> DotnetCoreFixtureIdsWithBody =>
-      Manifest.Value.Fixtures
+  public static IReadOnlyCollection<FixtureCoverageCandidate> DotnetCoreBodyFixtures =>
+      DotnetCoreBodyFixturesIn(Manifest.Value.Fixtures);
+
+  internal static IReadOnlyCollection<FixtureCoverageCandidate> DotnetCoreBodyFixturesIn(
+      IEnumerable<ApiFixtureManifestEntry> entries) =>
+      entries
           .Where(entry =>
               entry.Consumers.Contains("dotnet-core", StringComparer.Ordinal) &&
               entry.Status is not (204 or 304))
-          .Select(entry => entry.Id)
+          .Select(entry => new FixtureCoverageCandidate(entry.Id, entry.Pending))
           .ToList();
 
+  /// <summary>Parses a manifest document. A missing <c>pending</c> property means not pending.</summary>
+  internal static IReadOnlyList<ApiFixtureManifestEntry> ParseManifest(string json) =>
+      (JsonSerializer.Deserialize<ApiFixtureManifest>(json, JsonOptions)
+          ?? throw new InvalidOperationException("Manifest is empty.")).Fixtures;
+
   public static IReadOnlyCollection<ApiFixtureEndpointEntry> DotnetCoreRouteFixtures =>
-      Manifest.Value.Fixtures
+      DotnetCoreRouteFixturesIn(Manifest.Value.Fixtures);
+
+  internal static IReadOnlyCollection<ApiFixtureEndpointEntry> DotnetCoreRouteFixturesIn(
+      IEnumerable<ApiFixtureManifestEntry> entries) =>
+      entries
           .Where(entry =>
               entry.Consumers.Contains("dotnet-core", StringComparer.Ordinal) &&
               entry.Route is not null)
@@ -73,7 +86,8 @@ internal static class ApiFixtureLoader
               QueryDictionary(entry.Query),
               entry.RequestBody is not null,
               entry.RequestBody is null ? null : JsonNode.Parse(entry.RequestBody.Value.GetRawText()),
-              route.RouteTemplate);
+              route.RouteTemplate,
+              entry.Pending);
           })
           .ToList();
 
@@ -102,7 +116,8 @@ internal static class ApiFixtureLoader
       [property: JsonPropertyName("route")] ApiFixtureRouteContract? Route,
       [property: JsonPropertyName("bodyFile")] string BodyFile,
       [property: JsonPropertyName("consumers")] IReadOnlyList<string> Consumers,
-      [property: JsonPropertyName("status")] int Status);
+      [property: JsonPropertyName("status")] int Status,
+      [property: JsonPropertyName("pending")] bool Pending = false);
 
   internal sealed record ApiFixtureRouteContract(
       [property: JsonPropertyName("routeTemplate")] string RouteTemplate);
@@ -115,4 +130,5 @@ internal sealed record ApiFixtureEndpointEntry(
     IReadOnlyDictionary<string, string> Query,
     bool HasBody,
     JsonNode? RequestBody,
-    string RouteTemplate);
+    string RouteTemplate,
+    bool Pending = false);

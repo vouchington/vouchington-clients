@@ -50,30 +50,28 @@ public sealed class ApiFixtureCoverageTests
   [Fact]
   public void EveryConsumedFixtureIsRegistered()
   {
-    var consumed = new HashSet<string>(ApiFixtureLoader.DotnetCoreFixtureIdsWithBody, StringComparer.Ordinal);
-    var registered = new HashSet<string>(ApiFixtureCoverage.Registry.Keys, StringComparer.Ordinal);
-
-    var unaccounted = new HashSet<string>(consumed, StringComparer.Ordinal);
-    unaccounted.ExceptWith(registered);
+    var unaccounted = ApiFixtureCoveragePolicy.Unregistered(
+        ApiFixtureLoader.DotnetCoreBodyFixtures,
+        ApiFixtureCoverage.Registry.Keys);
     Assert.True(
         unaccounted.Count == 0,
         "Fixtures consumed by dotnet-core but not in ApiFixtureCoverage.Registry: " +
-            string.Join(", ", unaccounted.OrderBy(id => id, StringComparer.Ordinal)));
+            string.Join(", ", unaccounted));
   }
 
   [Fact]
   public void EveryManifestFixtureIsRepresentedByTheEndpointRegistry()
   {
-    var manifestIds = new HashSet<string>(ApiFixtureLoader.DotnetCoreRouteFixtures.Select(entry => entry.Id), StringComparer.Ordinal);
     var registryIds = new HashSet<string>(ApiFixtureCoverage.EndpointRegistry.Keys, StringComparer.Ordinal);
 
-    var missing = new HashSet<string>(manifestIds, StringComparer.Ordinal);
-    missing.ExceptWith(registryIds);
+    var missing = ApiFixtureCoveragePolicy.Unregistered(
+        ApiFixtureLoader.DotnetCoreRouteFixtures.Select(entry => new FixtureCoverageCandidate(entry.Id, entry.Pending)),
+        registryIds);
 
     Assert.True(
         missing.Count == 0,
         "Manifest fixtures missing from ApiFixtureCoverage.EndpointRegistry: " +
-            string.Join(", ", missing.OrderBy(id => id, StringComparer.Ordinal)));
+            string.Join(", ", missing));
 
     var stale = new HashSet<string>(registryIds, StringComparer.Ordinal);
     stale.ExceptWith(ApiFixtureLoader.ManifestFixtures.Select(entry => entry.Id));
@@ -114,8 +112,12 @@ public sealed class ApiFixtureCoverageTests
     var consumedIds = new HashSet<string>(
         ApiFixtureLoader.DotnetCoreRouteFixtures.Select(entry => entry.Id),
         StringComparer.Ordinal);
+    var registryIds = ApiFixtureCoverage.EndpointRegistry.Keys;
     return ApiFixtureLoader.ManifestFixtures
         .Where(entry => consumedIds.Contains(entry.Id))
+        .Where(entry => !ApiFixtureCoveragePolicy.IsExemptPending(
+            new FixtureCoverageCandidate(entry.Id, entry.Pending),
+            registryIds))
         .Select(entry => new object[] { entry });
   }
 

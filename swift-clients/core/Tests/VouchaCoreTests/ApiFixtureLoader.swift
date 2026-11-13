@@ -34,17 +34,30 @@ enum ApiFixtureLoader {
     /// Every fixture id this client consumes that has a response body (excludes 204/304
     /// no-content statuses). Feeds `ApiFixtureCoverageTests`'s coverage-gate, which asserts
     /// each id is accounted for in `ApiFixtureCoverage.registry`.
-    static var swiftFixtureIdsWithBody: [String] {
-        manifest
+    static var swiftBodyFixtures: [FixtureCoverageCandidate] {
+        swiftBodyFixtures(in: manifest)
+    }
+
+    static func swiftBodyFixtures(in entries: [ApiFixtureManifestEntry]) -> [FixtureCoverageCandidate] {
+        entries
             .filter { entry in
                 (entry.consumers.contains("swift-core") || entry.consumers.contains("swift-ui")) &&
                     entry.status != 204 && entry.status != 304
             }
-            .map(\.id)
+            .map { FixtureCoverageCandidate(id: $0.id, pending: $0.isPending) }
+    }
+
+    /// Decodes a manifest document. A missing `pending` property means the fixture is not pending.
+    static func decodeManifest(_ data: Data) throws -> [ApiFixtureManifestEntry] {
+        try JSONDecoder().decode(ApiFixtureManifest.self, from: data).fixtures
     }
 
     static var swiftRouteFixtures: [ApiFixtureEndpointEntry] {
-        manifest
+        swiftRouteFixtures(in: manifest)
+    }
+
+    static func swiftRouteFixtures(in entries: [ApiFixtureManifestEntry]) -> [ApiFixtureEndpointEntry] {
+        entries
             .filter { entry in
                 (entry.consumers.contains("swift-core") || entry.consumers.contains("swift-ui")) &&
                     entry.route != nil
@@ -56,7 +69,8 @@ enum ApiFixtureLoader {
                     path: entry.path,
                     query: entry.query ?? [:],
                     requestBody: entry.requestBody,
-                    routeTemplate: entry.route?.routeTemplate ?? ""
+                    routeTemplate: entry.route?.routeTemplate ?? "",
+                    pending: entry.isPending
                 )
             }
     }
@@ -122,9 +136,10 @@ struct ApiFixtureEndpointEntry {
     let query: [String: String]
     let requestBody: JSONValue?
     let routeTemplate: String
+    var pending = false
 }
 
-private struct ApiFixtureManifestEntry: Decodable {
+struct ApiFixtureManifestEntry: Decodable {
     let id: String
     let method: String
     let path: String
@@ -134,9 +149,15 @@ private struct ApiFixtureManifestEntry: Decodable {
     let bodyFile: String?
     let consumers: [String]
     let status: Int
+    /// Producer flag: the fixture may ship before any client registers it. Absent means false.
+    let pending: Bool?
+
+    var isPending: Bool {
+        pending ?? false
+    }
 }
 
-private struct ApiFixtureRouteContract: Decodable {
+struct ApiFixtureRouteContract: Decodable {
     let routeTemplate: String
 }
 
