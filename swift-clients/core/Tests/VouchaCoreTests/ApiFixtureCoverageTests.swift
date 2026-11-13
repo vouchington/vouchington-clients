@@ -52,25 +52,17 @@ final class ApiFixtureCoverageTests: XCTestCase {
     }
 
     func testRegisteredFixturesRoundTripThroughTheirDTO() {
-        for fixture in ApiFixtureCoverage.registry {
-            XCTContext.runActivity(named: fixture.id) { _ in
-                do {
-                    try fixture.run(fixture.id)
-                } catch {
-                    XCTFail("\(fixture.id) failed fixture coverage: \(error)")
-                }
-            }
-        }
+        XCTAssertEqual(ApiFixtureCoveragePolicy.roundTripFailures(ApiFixtureCoverage.registry), [])
     }
 
     func testEveryConsumedFixtureIsRegistered() {
-        let consumed = Set(ApiFixtureLoader.swiftFixtureIdsWithBody)
-        let registered = Set(ApiFixtureCoverage.registry.map(\.id))
-
-        let unaccounted = consumed.subtracting(registered)
+        let unaccounted = ApiFixtureCoveragePolicy.unregistered(
+            ApiFixtureLoader.swiftBodyFixtures,
+            registered: Set(ApiFixtureCoverage.registry.map(\.id))
+        )
         XCTAssertTrue(
             unaccounted.isEmpty,
-            "Fixtures consumed by swift-core/swift-ui but not registered: \(unaccounted.sorted())"
+            "Fixtures consumed by swift-core/swift-ui but not registered: \(unaccounted)"
         )
     }
 }

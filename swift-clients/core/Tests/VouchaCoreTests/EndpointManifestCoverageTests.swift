@@ -5,7 +5,6 @@ import XCTest
 
 final class EndpointManifestCoverageTests: XCTestCase {
     func testEveryManifestFixtureIsRepresentedInTheSwiftCoverageRegistry() {
-        let manifestIds = Set(ManifestLoader.swiftRouteFixtures.map(\.id))
         let registeredIds = Set(EndpointManifestCoverage.registry.map(\.id))
         let duplicateIds = Dictionary(grouping: EndpointManifestCoverage.registry, by: \.id)
             .filter { $0.value.count > 1 }
@@ -13,11 +12,14 @@ final class EndpointManifestCoverageTests: XCTestCase {
 
         XCTAssertTrue(duplicateIds.isEmpty, "Duplicate Swift endpoint registrations: \(duplicateIds)")
 
-        let unaccounted = manifestIds.subtracting(registeredIds)
+        let unaccounted = ApiFixtureCoveragePolicy.unregistered(
+            ManifestLoader.swiftRouteFixtures.map { FixtureCoverageCandidate(id: $0.id, pending: $0.pending) },
+            registered: registeredIds
+        )
         XCTAssertTrue(
             unaccounted.isEmpty,
             "Swift-consumed route fixtures not represented in the Swift coverage registry: " +
-                "\(unaccounted.sorted())"
+                "\(unaccounted)"
         )
 
         let stale = registeredIds.subtracting(Set(ManifestLoader.fixtures.map(\.id)))
@@ -42,6 +44,7 @@ private struct ManifestFixture {
     let requestBody: Any?
     let consumers: [String]
     let hasRoute: Bool
+    let pending: Bool
 }
 
 private enum ManifestLoader {
@@ -91,6 +94,7 @@ private extension ManifestFixture {
         requestBody = raw["requestBody"]
         consumers = raw["consumers"] as? [String] ?? []
         hasRoute = raw["route"] is [String: Any]
+        pending = raw["pending"] as? Bool ?? false
     }
 }
 
