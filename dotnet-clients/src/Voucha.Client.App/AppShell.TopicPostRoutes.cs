@@ -17,12 +17,14 @@ public sealed partial class AppShell
   /// <summary>Applies a post route to an already-open Posts page; returns true when the match must be stored.</summary>
   private async Task<bool> TryStorePostsRouteMatchAsync(NativeRouteMatch? match)
   {
-    if (PostBrowseRoute.FromMatch(match) is not { } scope) return true;
+    var scope = PostBrowseRoute.FromMatch(match);
+    var isFeed = match?.Path.StartsWith("/feed", StringComparison.Ordinal) == true;
+    if (scope is null && !isFeed) return true;
     foreach (var page in EnumerateShellContentPages("posts"))
     {
       if (page is PostsPage postsPage)
       {
-        await postsPage.ApplyBrowseScopeAsync(scope).ConfigureAwait(true);
+        await (scope is null ? postsPage.ApplyFeedModeAsync() : postsPage.ApplyBrowseScopeAsync(scope)).ConfigureAwait(true);
         return false;
       }
     }

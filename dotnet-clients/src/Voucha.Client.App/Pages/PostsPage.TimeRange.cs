@@ -25,6 +25,17 @@ public partial class PostsPage
     return LoadCurrentAsync();
   }
 
+  /// <summary>Switches this already-open page back to the personal feed and clears browse filters.</summary>
+  public Task ApplyFeedModeAsync()
+  {
+    browseScope = null;
+    mode = "feed";
+    postTypes = null;
+    hasHackerNewsReferences = null;
+    FeedButton.IsVisible = AllButton.IsVisible = ReviewsButton.IsVisible = DiscussionsButton.IsVisible = true;
+    return LoadCurrentAsync();
+  }
+
   private async void OnTimeRangeSelected(object? sender, string value) =>
       await viewModel.SelectBrowseTimeRangeAsync(value).ConfigureAwait(true);
 }
