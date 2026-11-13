@@ -11,6 +11,9 @@ namespace Voucha.Client.Core.HackerNews;
 public sealed class HackerNewsReferenceGate
 {
   private readonly Func<CancellationToken, Task<HackerNewsConfigResponse>> fetch;
+  private readonly object listenersGate = new();
+  private readonly Dictionary<long, WeakReference<IHackerNewsReferenceListener>> listeners = [];
+  private long nextListenerId;
   private volatile bool referencesVisible;
 
   public HackerNewsReferenceGate(Func<CancellationToken, Task<HackerNewsConfigResponse>> fetch) =>
@@ -19,6 +22,18 @@ public sealed class HackerNewsReferenceGate
   public bool ReferencesVisible => referencesVisible;
 
   public event EventHandler? Changed;
+
+  /// <summary>
+  /// Subscribes weakly so a page's view model that is never disposed is not kept alive by this
+  /// app-lifetime gate; disposing the returned handle removes the subscription.
+  /// </summary>
+  public IDisposable Subscribe(IHackerNewsReferenceListener listener)
+  {
+    ArgumentNullException.ThrowIfNull(listener);
+    var id = Interlocked.Increment(ref nextListenerId);
+    lock (listenersGate) listeners.Add(id, new WeakReference<IHackerNewsReferenceListener>(listener));
+    return new Subscription(this, id);
+  }
 
   [SuppressMessage(
       "Design",
@@ -46,5 +61,35 @@ public sealed class HackerNewsReferenceGate
     if (referencesVisible == value) return;
     referencesVisible = value;
     Changed?.Invoke(this, EventArgs.Empty);
+    foreach (var listener in LiveListeners()) listener.OnHackerNewsReferencesChanged();
+  }
+
+  private List<IHackerNewsReferenceListener> LiveListeners()
+  {
+    lock (listenersGate)
+    {
+      var live = new List<IHackerNewsReferenceListener>(listeners.Count);
+      foreach (var (id, reference) in listeners.ToList())
+      {
+        if (reference.TryGetTarget(out var listener)) live.Add(listener);
+        else listeners.Remove(id);
+      }
+      return live;
+    }
+  }
+
+  private void Unsubscribe(long id)
+  {
+    lock (listenersGate) listeners.Remove(id);
+  }
+
+  private sealed class Subscription(HackerNewsReferenceGate gate, long id) : IDisposable
+  {
+    private int disposed;
+
+    public void Dispose()
+    {
+      if (Interlocked.Exchange(ref disposed, 1) == 0) gate.Unsubscribe(id);
+    }
   }
 }

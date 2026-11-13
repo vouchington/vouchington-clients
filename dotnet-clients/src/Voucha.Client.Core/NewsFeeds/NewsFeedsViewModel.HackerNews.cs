@@ -1,7 +1,11 @@
+using Voucha.Client.Core.HackerNews;
+
 namespace Voucha.Client.Core.NewsFeeds;
 
-public sealed partial class NewsFeedsViewModel
+public sealed partial class NewsFeedsViewModel : IHackerNewsReferenceListener
 {
+  private IDisposable? hackerNewsSubscription;
+
   public bool IsHackerNewsFilterSelected => hasHackerNewsReferences == true;
 
   // Fails closed: hidden until the backend flag has been fetched and reports references visible.
@@ -23,7 +27,7 @@ public sealed partial class NewsFeedsViewModel
   private Task RefreshHackerNewsReferencesAsync(CancellationToken cancellationToken) =>
       hackerNewsReferences?.RefreshAsync(cancellationToken) ?? Task.CompletedTask;
 
-  private void OnHackerNewsReferencesChanged(object? sender, EventArgs e)
+  void IHackerNewsReferenceListener.OnHackerNewsReferencesChanged()
   {
     if (!hackerNewsReferences!.ReferencesVisible && hasHackerNewsReferences is not null)
     {

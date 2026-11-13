@@ -1,7 +1,11 @@
+using Voucha.Client.Core.HackerNews;
+
 namespace Voucha.Client.Core.Posts;
 
-public sealed partial class PostsListViewModel
+public sealed partial class PostsListViewModel : IHackerNewsReferenceListener
 {
+  private IDisposable? hackerNewsSubscription;
+
   // Fails closed: hidden until the backend flag has been fetched and reports references visible.
   public bool IsHackerNewsFilterVisible => browsing && hackerNewsReferences?.ReferencesVisible == true;
 
@@ -23,7 +27,7 @@ public sealed partial class PostsListViewModel
     await config.ConfigureAwait(true);
   }
 
-  private void OnHackerNewsReferencesChanged(object? sender, EventArgs e)
+  void IHackerNewsReferenceListener.OnHackerNewsReferencesChanged()
   {
     var clearedFilter = !hackerNewsReferences!.ReferencesVisible && activeHackerNewsFilter is not null;
     if (clearedFilter) HackerNewsFilter = null;

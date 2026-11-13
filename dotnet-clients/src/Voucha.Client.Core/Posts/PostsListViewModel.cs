@@ -37,7 +37,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
       HackerNewsReferenceGate? hackerNewsReferences = null)
   {
     this.hackerNewsReferences = hackerNewsReferences;
-    if (hackerNewsReferences is not null) hackerNewsReferences.Changed += OnHackerNewsReferencesChanged;
+    hackerNewsSubscription = hackerNewsReferences?.Subscribe(this);
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.localization = localization ?? UiLocalization.English;
     TimeRange = new(this.localization);
@@ -46,7 +46,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public void Dispose()
   {
-    if (hackerNewsReferences is not null) hackerNewsReferences.Changed -= OnHackerNewsReferencesChanged;
+    hackerNewsSubscription?.Dispose();
     localeSubscription?.Dispose();
   }
 
