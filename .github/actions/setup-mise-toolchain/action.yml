@@ -40,6 +40,104 @@ runs:
       with:
         path: ${{ runner.temp }}/mise-data/installs/dotnet/${{ steps.dotnet-pin.outputs.version }}
         key: mise-dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ steps.dotnet-pin.outputs.version }}-${{ hashFiles(format('{0}/global.json', inputs.client-root)) }}
+    - name: Seed .NET SDK from builds.dotnet.microsoft.com
+      if: runner.os != 'Windows' && inputs.tool == 'dotnet' && steps.dotnet-sdk.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        DOTNET_VERSION: ${{ steps.dotnet-pin.outputs.version }}
+        RUNNER_ARCH_NAME: ${{ runner.arch }}
+        RUNNER_OS_NAME: ${{ runner.os }}
+      run: |
+        set -euo pipefail
+        # mise's dotnet installer always fetches dot.net/v1/dotnet-install.sh, which is a single point of
+        # failure. Pre-populate the exact install directory from the release CDN so mise finds it installed.
+        case "$RUNNER_OS_NAME/$RUNNER_ARCH_NAME" in
+          Linux/X64) rid=linux-x64 ;;
+          Linux/ARM64) rid=linux-arm64 ;;
+          macOS/X64) rid=osx-x64 ;;
+          macOS/ARM64) rid=osx-arm64 ;;
+          *) echo "unsupported runner: $RUNNER_OS_NAME/$RUNNER_ARCH_NAME" >&2; exit 2 ;;
+        esac
+        channel="$(echo "$DOTNET_VERSION" | cut -d. -f1,2)"
+        curl_get() { curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 600 "$@"; }
+        work="$(mktemp -d)"
+        curl_get --output "$work/releases.json" "https://builds.dotnet.microsoft.com/dotnet/release-metadata/${channel}/releases.json"
+        entry="$(jq -er --arg v "$DOTNET_VERSION" --arg rid "$rid" '[.releases[] | (.sdk, (.sdks // [])[]) | select(.version == $v) | .files[] | select(.rid == $rid and (.name | test("[.](tar[.]gz|zip)$")))][0] | "\(.url) \(.hash)"' "$work/releases.json")"
+        url="${entry% *}"
+        expected_hash="${entry##* }"
+        [[ "$url" == "https://builds.dotnet.microsoft.com/dotnet/Sdk/$DOTNET_VERSION/"* && ${#expected_hash} -eq 128 ]]
+        curl_get --output "$work/sdk.tar.gz" "$url"
+        actual_hash="$(openssl dgst -sha512 -r "$work/sdk.tar.gz" | cut -d' ' -f1)"
+        [[ "$actual_hash" == "$expected_hash" ]] || {
+          echo "SHA-512 mismatch for $url: got $actual_hash, expected $expected_hash." >&2
+          exit 1
+        }
+        install_dir="$RUNNER_TEMP/mise-data/installs/dotnet/$DOTNET_VERSION"
+        mkdir -p -- "$work/extract" "$(dirname "$install_dir")"
+        tar -xzf "$work/sdk.tar.gz" -C "$work/extract"
+        [[ -x "$work/extract/dotnet" ]]
+        rm -rf -- "$install_dir"
+        mv -- "$work/extract" "$install_dir"
+        rm -rf -- "$work"
+    - name: Seed .NET SDK from builds.dotnet.microsoft.com on Windows
+      if: runner.os == 'Windows' && inputs.tool == 'dotnet' && steps.dotnet-sdk.outputs.cache-hit != 'true'
+      shell: pwsh
+      env:
+        DOTNET_VERSION: ${{ steps.dotnet-pin.outputs.version }}
+        RUNNER_ARCH_NAME: ${{ runner.arch }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        # mise's dotnet installer always fetches dot.net/v1/dotnet-install.ps1, which is a single point of
+        # failure. Pre-populate the exact install directory from the release CDN so mise finds it installed.
+        $rid = switch ($env:RUNNER_ARCH_NAME) {
+          'X64' { 'win-x64' }
+          'ARM64' { 'win-arm64' }
+          default { throw "unsupported runner architecture: $env:RUNNER_ARCH_NAME" }
+        }
+        $version = $env:DOTNET_VERSION
+        $channel = ($version -split '\.')[0..1] -join '.'
+        $work = Join-Path $env:RUNNER_TEMP "dotnet-seed-$([guid]::NewGuid())"
+        New-Item -ItemType Directory -Force -Path $work | Out-Null
+        function Get-WithRetry($uri, $outFile) {
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $uri -OutFile $outFile -TimeoutSec 600
+              return
+            }
+            catch {
+              if ($attempt -eq 5) { throw }
+              Start-Sleep -Seconds 5
+            }
+          }
+        }
+        $releasesPath = Join-Path $work 'releases.json'
+        Get-WithRetry "https://builds.dotnet.microsoft.com/dotnet/release-metadata/$channel/releases.json" $releasesPath
+        $releases = (Get-Content $releasesPath -Raw | ConvertFrom-Json).releases
+        $file = $releases |
+          ForEach-Object { $_.sdk; $_.sdks } |
+          Where-Object { $_ -and $_.version -eq $version } |
+          ForEach-Object { $_.files } |
+          Where-Object { $_.rid -eq $rid -and $_.name -like '*.zip' } |
+          Select-Object -First 1
+        if (-not $file -or $file.url -notlike "https://builds.dotnet.microsoft.com/dotnet/Sdk/$version/*" -or $file.hash.Length -ne 128) {
+          throw "No verifiable .NET SDK $version archive for $rid in release metadata."
+        }
+        $archive = Join-Path $work 'sdk.zip'
+        Get-WithRetry $file.url $archive
+        $actualHash = (Get-FileHash -Algorithm SHA512 -Path $archive).Hash
+        if ($actualHash -ne $file.hash.ToUpperInvariant()) {
+          throw "SHA-512 mismatch for $($file.url): got $actualHash, expected $($file.hash)."
+        }
+        $extract = Join-Path $work 'extract'
+        Expand-Archive -Path $archive -DestinationPath $extract
+        if (-not (Test-Path (Join-Path $extract 'dotnet.exe'))) {
+          throw 'Extracted .NET SDK is missing dotnet.exe at its root.'
+        }
+        $installDir = Join-Path $env:RUNNER_TEMP "mise-data/installs/dotnet/$version"
+        New-Item -ItemType Directory -Force -Path (Split-Path $installDir) | Out-Null
+        if (Test-Path $installDir) { Remove-Item -Recurse -Force $installDir }
+        Move-Item -Path $extract -Destination $installDir
+        Remove-Item -Recurse -Force $work
     - name: Install candidate-pinned toolchain
       if: runner.os != 'Windows'
       shell: bash
