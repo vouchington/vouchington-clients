@@ -23,13 +23,22 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var focusedRssFeedItemVote: ElectionVoteChoice?
     var hackerNewsFilterRevision = 0
     var hackerNewsFilterTask: Task<Void, Never>?
+    var selectedPostTimeRange: PostTimeRange?
     var hasHackerNewsReferences = false {
         didSet {
+            guard hasHackerNewsReferences != oldValue else { return }
+            if hasHackerNewsReferences, supportsHackerNewsFilter { selectedPostTimeRange = .lastYear }
+            if !hasHackerNewsReferences, oldValue, supportsHackerNewsFilter {
+                selectedPostTimeRange = selectedPostTimeRange ?? boundedHackerNewsTimeRange
+            }
             hackerNewsFilterRevision += 1
             state = .idle
             hackerNewsFilterTask = Task { await load() }
         }
     }
+
+    /// The backend flag; the filter stays hidden until a request reports references visible.
+    public internal(set) var hackerNewsReferencesVisible = false
 
     var profileHackerNewsReferences: [String: HackerNewsReferences] = [:]
     public internal(set) var focusedHackerNewsReferences: HackerNewsReferences?
@@ -121,6 +130,9 @@ public final class NativeRouteSurfaceViewModel {
         self.client = client
         self.routeMatch = routeMatch
         self.routeQuery = routeQuery
+        hasHackerNewsReferences = nativeRouteQueryItems(fromEncodedQuery: routeQuery)[
+            "has_hacker_news_references"
+        ] == "true"
         self.isAdministrator = isAdministrator
         isStaffViewer = isAdministrator || isSiteModerator
         self.isSignedIn = isSignedIn

@@ -34,7 +34,9 @@ extension SettingsViewModelOAuthTests {
         )
         var openedURL: URL?
 
-        await fixture.viewModel.beginOAuthConnection(provider: .microsoft) { openedURL = $0 }
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.beginOAuthConnection(provider: .microsoft) { openedURL = $0 }
+        }
 
         XCTAssertEqual(openedURL?.host, "login.microsoftonline.com")
         XCTAssertEqual(fixture.coordinator.pending?.provider, .microsoft)
@@ -66,7 +68,9 @@ extension SettingsViewModelOAuthTests {
             200
         )
 
-        await fixture.viewModel.disconnectOAuthAccount(provider: .microsoft)
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.disconnectOAuthAccount(provider: .microsoft)
+        }
 
         XCTAssertNil(fixture.viewModel.account(for: .microsoft))
         XCTAssertNil(fixture.viewModel.oauthErrorMessage)

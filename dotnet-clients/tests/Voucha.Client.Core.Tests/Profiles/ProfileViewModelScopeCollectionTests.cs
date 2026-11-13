@@ -20,6 +20,7 @@ public sealed partial class ProfileViewModelSafetyTests
     { NativeUserProfileCollectionKind.SourcesPodcasts, "sources:podcast" },
     { NativeUserProfileCollectionKind.SourcesVideos, "sources:video" },
     { NativeUserProfileCollectionKind.CommunitiesMember, "communities" },
+    { NativeUserProfileCollectionKind.ReferralLinks, "referral-links" },
   };
 
   [Theory]
@@ -83,7 +84,7 @@ public sealed partial class ProfileViewModelSafetyTests
       Assert.Contains(viewModel.ContextualTabs, row => row.Collection == collection && row.IsSelected && row.IsVisible);
     }
     Assert.True(viewModel.TopicItems.Count + viewModel.FriendItems.Count +
-        viewModel.SourceItems.Count + viewModel.CommunityItems.Count > 0);
+        viewModel.SourceItems.Count + viewModel.CommunityItems.Count + viewModel.ReferralLinkItems.Count > 0);
   }
 
   [Fact]
@@ -370,6 +371,7 @@ public sealed partial class ProfileViewModelSafetyTests
     NativeUserProfileCollectionKind.SourcesAll or NativeUserProfileCollectionKind.SourcesNews or
         NativeUserProfileCollectionKind.SourcesPodcasts or NativeUserProfileCollectionKind.SourcesVideos => NativeUserProfileSection.Sources,
     NativeUserProfileCollectionKind.CommunitiesMember => NativeUserProfileSection.Communities,
+    NativeUserProfileCollectionKind.ReferralLinks => NativeUserProfileSection.ReferralLinks,
     _ => throw new ArgumentOutOfRangeException(nameof(collection)),
   };
 
@@ -419,6 +421,11 @@ public sealed partial class ProfileViewModelSafetyTests
             null, null, false, false, "user-1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
             Provenance: IncludeProvenance ? new PublicContentProvenance("mcp", null) : null,
             StaffProvenance: IncludeProvenance ? new StaffContentProvenance("mcp") : null));
+
+    public Task<ProfileCollectionPage<ReferralLink>> FetchReferralLinksAsync(string userId, string? after, CancellationToken cancellationToken = default) =>
+        Result("referral-links", after, new ReferralLink(
+            "link-1", userId, "program-1", "url-1", "https://example.com/apply", null, null, null,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, "Program", "program"));
 
     private Task<ProfileCollectionPage<T>> Result<T>(string call, string? after, T item)
     {

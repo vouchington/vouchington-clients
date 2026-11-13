@@ -28,6 +28,11 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/RssFeedItemDetailPage.EmbedPreview.cs" Link="Pages/RssFeedItemDetailPage.EmbedPreview.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HackerNewsReferencesView.cs" Link="Controls/HackerNewsReferencesView.cs" />
     <Compile Include="../../src/Voucha.Client.App/CatalystGuiLaunchOptions.cs" Link="CatalystGuiLaunchOptions.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Pages/FreshAccountConfirmationPage.xaml" Link="Pages/FreshAccountConfirmationPage.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/FreshAccountConfirmationPage.xaml.cs" Link="Pages/FreshAccountConfirmationPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/PlatformReAuthProviderAssertion.cs" Link="PlatformReAuthProviderAssertion.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Support/TestAccountChangeConfirmation.cs" Link="TestSupport/TestAccountChangeConfirmation.cs" />
+    <Compile Include="../Voucha.Client.Core.Tests/Support/FreshAccountProofTestSupport.cs" Link="TestSupport/FreshAccountProofTestSupport.cs" />
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PublicLandingPagePage.cs" Link="Pages/PublicLandingPagePage.cs" />
     <Compile Include="../Voucha.Client.Core.Tests/LandingPages/PublicLandingPageTestSupport.cs" Link="TestSupport/PublicLandingPageTestSupport.cs" />
@@ -94,6 +99,7 @@
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml" Link="Pages/EmailAddressManagerView.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Pages/EmailAddressManagerView.xaml.cs" Link="Pages/EmailAddressManagerView.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml.cs" Link="Pages/PostsPage.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.TimeRange.cs" Link="Pages/PostsPage.TimeRange.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/PostsPage.EmbedPreview.cs" Link="Pages/PostsPage.EmbedPreview.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostsPage.xaml" Link="Pages/PostsPage.xaml" />
     <MauiXaml Include="../../src/Voucha.Client.App/Pages/PostDetailPage.xaml" Link="Pages/PostDetailPage.xaml" />
@@ -189,6 +195,9 @@
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunityAutomodFlagsView.cs" Link="Pages/CommunityAutomodFlagsView.cs" />
     <Compile Include="../../src/Voucha.Client.App/Pages/CommunitySectionPage*.cs" Link="Pages/%(Filename)%(Extension)" />
     <Compile Include="../../src/Voucha.Client.App/Pages/ModerationPage.cs" Link="Pages/ModerationPage.cs" />
+    <MauiXaml Include="../../src/Voucha.Client.App/Controls/PostTimeRangePicker.xaml" Link="Controls/PostTimeRangePicker.xaml" />
+    <Compile Include="../../src/Voucha.Client.App/Controls/PostTimeRangePicker.xaml.cs" Link="Controls/PostTimeRangePicker.xaml.cs" />
+    <Compile Include="../../src/Voucha.Client.App/Pages/ProfilePage.TimeRange.cs" Link="Pages/ProfilePage.TimeRange.cs" />
     <MauiXaml Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml" Link="Controls/HybridPaginationControl.xaml" />
     <Compile Include="../../src/Voucha.Client.App/Controls/HybridPaginationControl.xaml.cs" Link="Controls/HybridPaginationControl.xaml.cs" />
     <Compile Include="../../src/Voucha.Client.App/Controls/ViewportPaginationTrigger.cs" Link="Controls/ViewportPaginationTrigger.cs" />

@@ -104,7 +104,11 @@ test('every caller isolates symbol collection and upload from pull requests', ()
     const caller = source.split(`  ${job}:\n`)[1].split(/\n  [\w-]+:\n/)[0]
     assert.match(caller, /permissions:\n      contents: read\n      actions: read/)
     const artifact = `sentry-${platform}-\${{ github.run_id }}-\${{ github.run_attempt }}`
-    assert.ok(caller.includes(`artifact: ${artifact}`))
+    const callerArtifact =
+      filename === 'native-contract-tests.yml'
+        ? 'sentry-dotnet-${{ github.run_id }}-${{ needs.dotnet-maui.outputs.artifact-attempt }}'
+        : artifact
+    assert.ok(caller.includes(`artifact: ${callerArtifact}`))
     assert.ok(source.includes(`name: ${artifact}`))
     const gateExpressions = [
       ...source.matchAll(
@@ -186,7 +190,11 @@ test('Windows symbols come from the existing unsigned Release build with isolate
   assert.match(upload, /project: \$\{\{ vars\.SENTRY_PROJECT_DOTNET \}\}/)
   const artifact = 'sentry-dotnet-windows-${{ github.run_id }}-${{ github.run_attempt }}'
   assert.ok(windows.includes(`name: ${artifact}`))
-  assert.ok(upload.includes(`artifact: ${artifact}`))
+  assert.ok(
+    upload.includes(
+      'artifact: sentry-dotnet-windows-${{ github.run_id }}-${{ needs.dotnet-windows-maui.outputs.artifact-attempt }}',
+    ),
+  )
   for (const block of [windows, upload]) assert.doesNotMatch(block, /secrets\./)
   assert.match(upload, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/)
   for (const gate of windows.matchAll(/        if: (github\.event_name[^\n]+)/g)) {

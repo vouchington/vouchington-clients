@@ -61,6 +61,10 @@ enum ApiFixtureLoader {
             }
     }
 
+    static func optionalQueryValue(_ id: String, _ name: String) -> String? {
+        manifestEntry(for: id)?.query?[name]
+    }
+
     /// A query parameter the manifest declares for the fixture's request, for cursor-bearing routes.
     static func queryValue(_ id: String, _ name: String) -> String {
         manifestEntry(for: id)?.query?[name] ?? ""

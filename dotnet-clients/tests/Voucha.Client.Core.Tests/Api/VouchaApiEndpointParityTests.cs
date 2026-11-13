@@ -268,7 +268,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("rssFeedsForTopic", VouchaApiEndpoints.RssFeedsForTopic("topic-1", includeDescendants: true, enabled: true, discoverable: false), HttpMethod.Get, "/api/v1/rss-feeds", Query(("topic", "topic-1"), ("include_descendants", "true"), ("enabled", "true"), ("discoverable", "false")));
     yield return Case("rssFeedsForTopicAllStates", VouchaApiEndpoints.RssFeedsForTopic("topic-1", enabled: RssFeedEnabledFilter.All), HttpMethod.Get, "/api/v1/rss-feeds", Query(("topic", "topic-1"), ("enabled", "null")));
     yield return Case("rssFeedItems", VouchaApiEndpoints.RssFeedItems("any", "cursor-1", 12, "video"), HttpMethod.Get, "/api/v1/feeds/rss_feed_items/any", Query(("limit", "12"), ("after", "cursor-1"), ("media_type", "video")));
-    yield return Case("posts", VouchaApiEndpoints.Posts("home", "cursor-2", 13, "discussion"), HttpMethod.Get, "/api/v1/feeds/posts/home", Query(("limit", "13"), ("sort", "hot"), ("after", "cursor-2"), ("post_types", "discussion")));
+    yield return Case("posts", VouchaApiEndpoints.Posts("home", "cursor-2", 13, "discussion"), HttpMethod.Get, "/api/v1/feeds/posts/home", Query(("limit", "13"), ("sort", "hot"), ("after", "cursor-2"), ("post_types", "discussion"), ("time_range", "1w")));
     yield return Case("notifications", VouchaApiEndpoints.Notifications("cursor-3", 14), HttpMethod.Get, "/api/v1/my/notifications", Query(("limit", "14"), ("after", "cursor-3")));
     yield return Case("myIdentity", VouchaApiEndpoints.MyIdentity(), HttpMethod.Get, "/api/v1/my/identity", Query());
     yield return Case("emailPreferences", VouchaApiEndpoints.EmailPreferences(), HttpMethod.Get, "/api/v1/my/email-preferences", Query());
@@ -371,6 +371,7 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("topicRecommendations", VouchaApiEndpoints.TopicRecommendations("cursor-5", 16), HttpMethod.Get, "/api/v1/posts", Query(("limit", "16"), ("after", "cursor-5"), ("post_types", "topic_recommendation")));
     yield return Case("myCommunities", VouchaApiEndpoints.MyCommunities(), HttpMethod.Get, "/api/v1/my/communities", Query());
     yield return Case("myReferralClicks", VouchaApiEndpoints.MyReferralClicks("cursor-6", 17), HttpMethod.Get, "/api/v1/my/referral-clicks", Query(("limit", "17"), ("after", "cursor-6")));
+    yield return Case("userReferralLinks", VouchaApiEndpoints.UserReferralLinks("user 1", "cursor-7", 18), HttpMethod.Get, "/api/v1/referral-links", Query(("limit", "18"), ("user_id", "user 1"), ("after", "cursor-7")));
     yield return Case("referralLinks", VouchaApiEndpoints.ReferralLinks("cursor-7", 18), HttpMethod.Get, "/api/v1/referral-links", Query(("limit", "18"), ("after", "cursor-7")));
     yield return Case("createReferralLink", VouchaApiEndpoints.CreateReferralLink(new CreateReferralLinkBody("program-1", new Uri("https://example.com/apply"), "Apply")), HttpMethod.Post, "/api/v1/referral-links", Query(), true);
     yield return Case("updateReferralLink", VouchaApiEndpoints.UpdateReferralLink("link 1", new UpdateReferralLinkBody("Apply")), HttpMethod.Patch, "/api/v1/referral-links/link%201", Query(), true);

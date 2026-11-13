@@ -68,7 +68,9 @@ extension SettingsViewModelOAuthTests {
             200
         )
         var openedURL: URL?
-        await fixture.viewModel.beginOAuthConnection(provider: .google) { openedURL = $0 }
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.beginOAuthConnection(provider: .google) { openedURL = $0 }
+        }
 
         XCTAssertEqual(openedURL?.host, "accounts.google.com")
         XCTAssertEqual(fixture.coordinator.pending?.provider, .google)

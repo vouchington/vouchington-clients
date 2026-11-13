@@ -51,6 +51,9 @@ public final class RSSFeedListViewModel {
         didSet { hackerNewsFilterTask = Task { await reload() } }
     }
 
+    /// The backend flag; the filter stays hidden until a request reports references visible.
+    public internal(set) var hackerNewsReferencesVisible = false
+
     public let feedSource: FeedSource
 
     var itemElectionsById: [String: RssFeedItemElection] = [:]

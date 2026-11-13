@@ -65,6 +65,7 @@ public sealed class ProfileNavigationTargetsTests
           null)), NativeRouteDestinationId.TopicDetail),
       (ProfileNavigationTargets.Source(new RssFeedSource("source-1", "Source", null, null, null, null, null, null, null, null)), NativeRouteDestinationId.SourceDetail),
       (ProfileNavigationTargets.Community(new CommunityBrowseRow("community-1", "Voucha", "voucha", 0, 0, false)), NativeRouteDestinationId.CommunityDetail),
+      (ProfileNavigationTargets.ReferralLink(new ProfileReferralLinkRow("link-1", "Program", "program-1", "program")), NativeRouteDestinationId.TopicDetail),
       (ProfileNavigationTargets.SignIn, NativeRouteDestinationId.SignIn),
     };
 

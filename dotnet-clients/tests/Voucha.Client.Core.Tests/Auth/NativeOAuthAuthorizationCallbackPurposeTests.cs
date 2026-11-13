@@ -64,7 +64,7 @@ public sealed class NativeOAuthAuthorizationCallbackPurposeTests
         new VouchaApiClient(new HttpClient(new ConnectedHandler())
         {
           BaseAddress = new Uri("https://api.test"),
-        }),
+        }, new TestAccountChangeConfirmation()),
         persistence,
         new UnusedBrowser(),
         new ConnectedSessionStore());
@@ -183,7 +183,7 @@ public sealed class NativeOAuthAuthorizationCallbackPurposeTests
           new VouchaApiClient(new HttpClient(new ConnectedHandler())
           {
             BaseAddress = new Uri("https://api.test"),
-          }),
+          }, new TestAccountChangeConfirmation()),
           persistence,
           new UnusedBrowser(),
           new ConnectedSessionStore());

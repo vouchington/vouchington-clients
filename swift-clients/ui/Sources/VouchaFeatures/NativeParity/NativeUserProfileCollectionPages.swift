@@ -11,7 +11,8 @@ extension NativeRouteSurfaceViewModel {
         let response: UserProfilePostFeedResponse = try await client.send(.userPosts(
             userId: userId,
             postTypes: filter.queryValue,
-            after: after
+            after: after,
+            timeRange: postTimeRangeQueryValue
         ))
         let hydratedPosts = response.posts.mapValues { post in
             post.hydrated(
@@ -71,6 +72,12 @@ extension NativeRouteSurfaceViewModel {
         -> NativeUserProfileCollectionPage {
         let response: Page<Community> = try await client.send(.userCommunitiesMember(userId: userId, after: after))
         return collectionPage(response.pageInfo, collection: .communities(response.results))
+    }
+
+    func userReferralLinkPage(userId: String, after: String?, client: APIClient) async throws
+        -> NativeUserProfileCollectionPage {
+        let response: Page<NativeReferralLink> = try await client.send(.userReferralLinks(userId: userId, after: after))
+        return collectionPage(response.pageInfo, collection: .referralLinks(response.results))
     }
 
     private func collectionPage(

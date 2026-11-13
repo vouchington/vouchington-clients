@@ -210,7 +210,7 @@ public sealed class MicrosoftOAuthRenderedControlsTests
   {
     var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example.test") };
     return new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(httpClient),
+        new VouchaApiClient(httpClient, new TestAccountChangeConfirmation()),
         persistence ?? new OAuthPersistence(),
         new OAuthBrowser(),
         store,
