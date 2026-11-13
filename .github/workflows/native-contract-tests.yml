@@ -524,8 +524,8 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 22
     outputs:
-      artifact-attempt: ${{ github.run_attempt }}
       dto-fixture-parity-outcome: ${{ steps.swift-dto-fixture-parity.outcome }}
+      artifact-attempt: ${{ github.run_attempt }}
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -1134,6 +1134,7 @@ jobs:
       - name: Verify and restore UI test products
         timeout-minutes: 3
         env:
+          EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-swift-ui-tests.outputs.artifact-attempt }}
           EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: >-
           python3 scripts/swift-ui-test-artifact.py verify
@@ -1606,13 +1607,14 @@ jobs:
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
+          EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-ios-tests.outputs.artifact-attempt }}
           EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
           set -euo pipefail
           artifact="$RUNNER_TEMP/ios-test-artifact"
           manifest="$artifact/ios-test-manifest.json"
           test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
-          test "$(jq -r '.attempt' "$manifest")" = "$GITHUB_RUN_ATTEMPT"
+          test "$(jq -r '.attempt' "$manifest")" = "$EXPECTED_ARTIFACT_RUN_ATTEMPT"
           test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
           test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
@@ -1787,13 +1789,14 @@ jobs:
       - name: Verify and unpack iOS test products
         timeout-minutes: 3
         env:
+          EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-ios-tests.outputs.artifact-attempt }}
           EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
           set -euo pipefail
           artifact="$RUNNER_TEMP/ios-test-artifact"
           manifest="$artifact/ios-test-manifest.json"
           test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
-          test "$(jq -r '.attempt' "$manifest")" = "$GITHUB_RUN_ATTEMPT"
+          test "$(jq -r '.attempt' "$manifest")" = "$EXPECTED_ARTIFACT_RUN_ATTEMPT"
           test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
           test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
