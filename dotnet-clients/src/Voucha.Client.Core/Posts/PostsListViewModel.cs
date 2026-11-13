@@ -196,4 +196,5 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   {
     if (currentRequest != Volatile.Read(ref requestId)) return;
     State = LoadState.Idle;
-  }}
+  }
+}
