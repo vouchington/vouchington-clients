@@ -60,6 +60,11 @@ extension NativeEngineeringPostgresqlViewModel {
     }
 
     /// Freezes the family's draft into a create or retire selection; retire never sends a row budget.
+    /// Whether a range create/retire request can be prepared right now.
+    var canPrepareRange: Bool {
+        isRangeAuthorized && actionLoadingKeys.isEmpty && pendingAction == nil
+    }
+
     func prepareRange(family: NativePostgresqlRangeFamily, retire: Bool) {
         let draft = rangeDrafts[family] ?? NativePostgresqlRangeDraft()
         var rows: Int?
@@ -90,7 +95,7 @@ extension NativeEngineeringPostgresqlViewModel {
         type: EngineeringPsqlJobType,
         range: EngineeringClassifierRange
     ) {
-        guard isRangeAuthorized, actionLoadingKeys.isEmpty, pendingAction == nil else { return }
+        guard canPrepareRange else { return }
         rangeQueued = false
         rangeError = nil
         rangeErrorFamily = family
