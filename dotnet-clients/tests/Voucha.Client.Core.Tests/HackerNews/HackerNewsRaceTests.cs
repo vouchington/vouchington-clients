@@ -33,6 +33,10 @@ public sealed class HackerNewsRaceTests
     Assert.Equal(2, paths.Count);
     Assert.Contains("creator=scope-b", paths[1], StringComparison.Ordinal);
     Assert.DoesNotContain("has_hacker_news_references", paths[1], StringComparison.Ordinal);
+    // The rejected filter had narrowed the ranges; the unfiltered page offers the ordinary ones again.
+    Assert.Equal(PostTimeRangeSelection.BrowseOptions, model.TimeRange.Options.Select(option => option.Value));
+    Assert.Equal(PostTimeRanges.LastYear, model.TimeRange.RequestValue);
+    Assert.Contains("time_range=1y", paths[1], StringComparison.Ordinal);
   }
 
   [Fact]

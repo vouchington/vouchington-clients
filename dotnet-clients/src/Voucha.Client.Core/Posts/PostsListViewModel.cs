@@ -142,6 +142,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     if (currentRequest != Volatile.Read(ref requestId)) return;
     var filter = hackerNewsReferences?.ReferencesVisible == true ? hasHackerNewsReferences : null;
     HackerNewsFilter = filter;
+    timeRange = ReconcileBrowseTimeRange(timeRange, hasHackerNewsReferences, filter);
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
     activeBrowseRequest = (scope ?? new()) with { PostTypes = postTypes, TimeRange = timeRange, HasHackerNewsReferences = filter, After = null };
     var request = activeBrowseRequest;
