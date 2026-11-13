@@ -1,8 +1,5 @@
 namespace Voucha.Client.Core.Tests.Api;
 
-/// <summary>A manifest fixture a client must account for, with the producer's <c>pending</c> flag.</summary>
-internal sealed record FixtureCoverageCandidate(string Id, bool Pending);
-
 /// <summary>
 /// Pending-aware rules shared by the fixture coverage gates. A producer may ship a fixture marked
 /// <c>pending: true</c> before any client uses it; only unregistered fixtures are exempted.
