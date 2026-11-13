@@ -9,6 +9,14 @@ struct FreshAccountConfirmationView: View {
     var model: FreshAccountConfirmationViewModel
 
     var body: some View {
+        // Accounts with many passkeys list one button per credential; scroll so every method and
+        // the Cancel button stay reachable on small screens.
+        ScrollView { content.padding(Spacing.lg) }
+            .interactiveDismissDisabled(model.isWorking)
+            .onDisappear { model.cancel() }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text(UiMessages.string(.extractedMyMfaReauthDialogReAuthenticate3887afa4, locale: locale))
                 .font(.headline)
@@ -40,9 +48,6 @@ struct FreshAccountConfirmationView: View {
             }
             Button(UiMessages.string(.nativeSwiftCommonCancel, locale: locale)) { model.cancel() }
         }
-        .padding(Spacing.lg)
-        .interactiveDismissDisabled(model.isWorking)
-        .onDisappear { model.cancel() }
     }
 
     @ViewBuilder
