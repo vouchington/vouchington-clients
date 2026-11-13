@@ -16,7 +16,13 @@ public sealed partial class PostsListViewModel
 
   private void OnHackerNewsReferencesChanged(object? sender, EventArgs e)
   {
-    if (!hackerNewsReferences!.ReferencesVisible) HackerNewsFilter = null;
+    var clearedFilter = !hackerNewsReferences!.ReferencesVisible && activeHackerNewsFilter is not null;
+    if (clearedFilter) HackerNewsFilter = null;
     OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
+    // The loaded page and cursor belong to the filtered query: invalidate it and restart unfiltered.
+    if (clearedFilter && browsing)
+    {
+      _ = LoadBrowseAsync(activePostTypes, activeTimeRange, null, activeBrowseRequest);
+    }
   }
 }

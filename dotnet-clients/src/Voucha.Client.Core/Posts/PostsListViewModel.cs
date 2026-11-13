@@ -134,9 +134,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     timeRange = ConfigureBrowseTimeRange(timeRange, hasHackerNewsReferences);
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
+    // Claim the generation before any await so a newer selection always wins.
+    var currentRequest = NextRequestId();
     var config = RefreshHackerNewsReferencesAsync(cancellationToken);
     // A requested filter is only sent once the backend flag is known to be on.
     if (hasHackerNewsReferences is not null) await config.ConfigureAwait(true);
+    if (currentRequest != Volatile.Read(ref requestId)) return;
     var filter = hackerNewsReferences?.ReferencesVisible == true ? hasHackerNewsReferences : null;
     HackerNewsFilter = filter;
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
@@ -144,7 +147,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     var request = activeBrowseRequest;
     endCursor = null;
     HasMore = true;
-    var currentRequest = BeginLoad();
+    BeginLoad(currentRequest);
     await ClientLoadAttempt.RunAsync(
         async () =>
         {
@@ -159,9 +162,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
-  private int BeginLoad()
+  private int NextRequestId() => Interlocked.Increment(ref requestId);
+
+  private int BeginLoad() => BeginLoad(NextRequestId());
+
+  private int BeginLoad(int currentRequest)
   {
-    var currentRequest = Interlocked.Increment(ref requestId);
     State = LoadState.Loading;
     ErrorMessage = null;
     return currentRequest;

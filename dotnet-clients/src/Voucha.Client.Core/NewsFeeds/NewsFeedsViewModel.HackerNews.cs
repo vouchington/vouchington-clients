@@ -29,6 +29,10 @@ public sealed partial class NewsFeedsViewModel
     {
       hasHackerNewsReferences = null;
       OnPropertyChanged(nameof(IsHackerNewsFilterSelected));
+      OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
+      // The loaded page and cursor belong to the filtered query: restart unfiltered from the top.
+      _ = LoadAsync();
+      return;
     }
     OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
   }
