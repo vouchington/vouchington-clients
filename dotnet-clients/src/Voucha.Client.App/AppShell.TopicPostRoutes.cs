@@ -14,6 +14,21 @@ public sealed partial class AppShell
     return page;
   }
 
+  /// <summary>Applies a post route to an already-open Posts page; returns true when the match must be stored.</summary>
+  private async Task<bool> TryStorePostsRouteMatchAsync(NativeRouteMatch? match)
+  {
+    if (PostBrowseRoute.FromMatch(match) is not { } scope) return true;
+    foreach (var page in EnumerateShellContentPages("posts"))
+    {
+      if (page is PostsPage postsPage)
+      {
+        await postsPage.ApplyBrowseScopeAsync(scope).ConfigureAwait(true);
+        return false;
+      }
+    }
+    return true;
+  }
+
   private async Task OpenTopicPostsAsync(TopicPostsRoute route)
   {
     var scope = await route.ResolveRequestAsync(

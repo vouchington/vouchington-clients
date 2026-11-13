@@ -163,19 +163,7 @@ public sealed partial class AppShell
     }
 
     if (intentId == NavigationCatalog.SettingsIntentId) return await TryApplySettingsRouteMatchAsync(match).ConfigureAwait(true);
-
-    if (intentId == "posts" && PostBrowseRoute.FromMatch(match) is { } postScope)
-    {
-      foreach (var page in EnumerateShellContentPages(intentId))
-      {
-        if (page is PostsPage postsPage)
-        {
-          await postsPage.ApplyBrowseScopeAsync(postScope).ConfigureAwait(true);
-          return false;
-        }
-      }
-      return true;
-    }
+    if (intentId == "posts") return await TryStorePostsRouteMatchAsync(match).ConfigureAwait(true);
 
     var kind = intentId switch
     {
