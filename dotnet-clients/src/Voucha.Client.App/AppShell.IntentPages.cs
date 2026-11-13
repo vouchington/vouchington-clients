@@ -1,6 +1,7 @@
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Moderation;
 using Voucha.Client.Core.NewsFeeds;
@@ -74,6 +75,7 @@ public sealed partial class AppShell
           serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>(),
           serviceProvider.GetRequiredService<IUiLocalization>(),
           serviceProvider.GetRequiredService<IUiLocaleController>(),
+          serviceProvider.GetRequiredService<HackerNewsReferenceGate>(),
           GetInitialMediaScope(NewsFeedKind.Podcasts, match));
 
   private VideosPage CreateVideosPage(NativeRouteMatch? match) =>
@@ -85,6 +87,7 @@ public sealed partial class AppShell
           serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>(),
           serviceProvider.GetRequiredService<IUiLocalization>(),
           serviceProvider.GetRequiredService<IUiLocaleController>(),
+          serviceProvider.GetRequiredService<HackerNewsReferenceGate>(),
           GetInitialMediaScope(NewsFeedKind.Videos, match));
 
   private NativeRouteMatch? ConsumePendingIntentRouteMatch(string intentId)

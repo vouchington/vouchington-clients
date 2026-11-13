@@ -23,6 +23,7 @@ public final class NativeOAuthAuthorizationCoordinator {
     var secureStateReadUnavailable = false
     var resultAcknowledgementNeedsRetry = false
     var freshConfirmationEpoch = 0
+    public var hasFreshConfirmationOwner = false
 
     public init(
         client: APIClient,
@@ -69,16 +70,17 @@ public final class NativeOAuthAuthorizationCoordinator {
         openAuthorizationURL: @escaping @MainActor (URL) -> Void
     ) async {
         guard canBeginAuthorization else { return }
+        let epoch = freshConfirmationEpoch
         if capabilities == nil {
             await loadCapabilities()
         }
         guard canBeginAuthorization,
+              purpose != .reauthenticate || epoch == freshConfirmationEpoch,
               supports(provider: provider, purpose: purpose)
         else { return }
         isWorking = true
         errorMessage = nil
         defer { isWorking = false }
-        let epoch = freshConfirmationEpoch
         do {
             let proof = try NativeAuthorizationCompletionProof.generate()
             let endpoint: Endpoint = purpose == .reauthenticate
@@ -137,18 +139,6 @@ public final class NativeOAuthAuthorizationCoordinator {
         do {
             try store.clearPending()
             retainedCallbackURL = nil
-            errorMessage = nil
-            synchronizeFromStore()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    public func discardAuthorizationAfterSuccessfulSignIn() {
-        do {
-            try store.discardAuthorization()
-            retainedCallbackURL = nil
-            resultAcknowledgementNeedsRetry = false
             errorMessage = nil
             synchronizeFromStore()
         } catch {

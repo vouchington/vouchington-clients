@@ -58,7 +58,7 @@ public struct PostsListView: View {
         .navigationTitle(UiMessages.string(.nativeSwiftPostsListPosts, locale: nativeUiLocale))
         .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .task(id: isStaffViewer) { await viewModel.reload() }
-        .refreshable { await viewModel.reload() }
+        .refreshable { await viewModel.refresh() }
         .emailVerificationRecovery(
             client: viewModel.client,
             gate: viewModel.emailVerificationGate
@@ -72,7 +72,7 @@ public struct PostsListView: View {
             LoadingView()
         case let .error(error):
             ErrorStateView(error: error) {
-                await viewModel.reload()
+                await viewModel.refresh()
             }
         default:
             VStack {

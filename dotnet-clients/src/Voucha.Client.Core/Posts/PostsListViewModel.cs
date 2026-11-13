@@ -37,7 +37,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
       HackerNewsReferenceGate? hackerNewsReferences = null)
   {
     this.hackerNewsReferences = hackerNewsReferences;
-    if (hackerNewsReferences is not null) hackerNewsReferences.Changed += OnHackerNewsReferencesChanged;
+    hackerNewsSubscription = hackerNewsReferences?.Subscribe(this);
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.localization = localization ?? UiLocalization.English;
     TimeRange = new(this.localization);
@@ -46,7 +46,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public void Dispose()
   {
-    if (hackerNewsReferences is not null) hackerNewsReferences.Changed -= OnHackerNewsReferencesChanged;
+    hackerNewsSubscription?.Dispose();
     localeSubscription?.Dispose();
   }
 
@@ -138,10 +138,11 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     var currentRequest = NextRequestId();
     var config = RefreshHackerNewsReferencesAsync(cancellationToken);
     // A requested filter is only sent once the backend flag is known to be on.
-    if (hasHackerNewsReferences is not null) await config.ConfigureAwait(true);
+    if (hasHackerNewsReferences is not null) await HoldForHackerNewsConfigAsync(currentRequest, config).ConfigureAwait(true);
     if (currentRequest != Volatile.Read(ref requestId)) return;
     var filter = hackerNewsReferences?.ReferencesVisible == true ? hasHackerNewsReferences : null;
     HackerNewsFilter = filter;
+    timeRange = ReconcileBrowseTimeRange(timeRange, hasHackerNewsReferences, filter);
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
     activeBrowseRequest = (scope ?? new()) with { PostTypes = postTypes, TimeRange = timeRange, HasHackerNewsReferences = filter, After = null };
     var request = activeBrowseRequest;

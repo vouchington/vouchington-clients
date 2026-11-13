@@ -18,7 +18,8 @@ describe('cross-job artifact attempts survive failed-job reruns', () => {
       const name = lines.slice(index, index + 8).find(item => item.trim().startsWith('name:'))
       assert.ok(name, `download at line ${index + 1} has a name`)
       assert.doesNotMatch(name, /github\.run_attempt/u)
-      assert.match(name, /needs\.[\w-]+\.outputs\.(artifact|contract-run)-attempt/u)
+      if (name.endsWith('name: native-contract-${{ github.run_id }}')) return
+      assert.match(name, /needs\.[\w-]+\.outputs\.artifact-attempt/u)
     })
     assert.equal(downloads, 7)
     assert.doesNotMatch(
@@ -40,9 +41,15 @@ describe('cross-job artifact attempts survive failed-job reruns', () => {
     ]) {
       assert.match(jobBlock(workflow, name), /artifact-attempt: \$\{\{ github\.run_attempt \}\}/u)
     }
+    const produce = jobBlock(workflow, 'produce')
     assert.match(
-      jobBlock(workflow, 'produce'),
-      /contract-run-attempt: \$\{\{ github\.run_attempt \}\}/u,
+      produce,
+      /contract-run-attempt: \$\{\{ steps\.artifact\.outputs\.run_attempt \}\}/u,
+    )
+    assert.match(produce, /printf 'run_attempt=%s\\n' "\$GITHUB_RUN_ATTEMPT"/u)
+    assert.match(
+      produce,
+      /name: native-contract-\$\{\{ github\.run_id \}\}\n[\s\S]*?overwrite: true/u,
     )
     assert.match(
       jobBlock(workflow, 'verify'),

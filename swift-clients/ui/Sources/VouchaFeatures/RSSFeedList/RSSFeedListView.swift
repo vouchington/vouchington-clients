@@ -52,7 +52,7 @@ public struct RSSFeedListView: View {
         .navigationTitle(UiMessages.string(navigationTitle, locale: nativeUiLocale))
         .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .task { await viewModel.load() }
-        .refreshable { await viewModel.reload() }
+        .refreshable { await viewModel.refresh() }
         .navigationDestination(item: $storyDiscussionDestination) { destination in
             storyDiscussionDestinationView(destination)
         }
@@ -69,7 +69,7 @@ public struct RSSFeedListView: View {
             LoadingView()
         case let .error(error):
             ErrorStateView(error: error) {
-                await viewModel.reload()
+                await viewModel.refresh()
             }
         default:
             EmptyStateView(

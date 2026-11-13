@@ -62,7 +62,7 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
     this.hackerNewsReferences = hackerNewsReferences;
-    if (hackerNewsReferences is not null) hackerNewsReferences.Changed += OnHackerNewsReferencesChanged;
+    hackerNewsSubscription = hackerNewsReferences?.Subscribe(this);
     this.feedKind = feedKind;
     selectedSourceFeedType = feedKind.GetDefaultSourceFeedType();
     selectedScope = initialScope ?? feedKind.GetAuthenticatedScope();
@@ -158,7 +158,7 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
 
   public void Dispose()
   {
-    if (hackerNewsReferences is not null) hackerNewsReferences.Changed -= OnHackerNewsReferencesChanged;
+    hackerNewsSubscription?.Dispose();
     localeSubscription?.Dispose();
   }
 

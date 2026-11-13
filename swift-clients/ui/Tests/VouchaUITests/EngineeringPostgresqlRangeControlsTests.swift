@@ -125,6 +125,23 @@ final class EngineeringPostgresqlRangeControlsTests: NativeRouteSurfaceViewModel
         XCTAssertNil(json["requestRange"])
     }
 
+    func testRangeButtonsDisableWhileAnyActionBlocksPreparation() throws {
+        let model = try makeModel(administrator: true)
+        let create = UiMessages.string(.engineeringClassifierRangeCreate, locale: locale)
+        let view = NativeEngineeringPostgresqlRangeSection(viewModel: model)
+        XCTAssertTrue(model.canPrepareRange)
+        XCTAssertFalse(try view.inspect().find(button: create).isDisabled())
+
+        model.actionLoadingKeys = ["retry-failed"]
+        XCTAssertFalse(model.canPrepareRange)
+        XCTAssertTrue(try view.inspect().find(button: create).isDisabled())
+        model.actionLoadingKeys = []
+
+        model.pendingAction = .cleanupPartitions
+        XCTAssertFalse(model.canPrepareRange)
+        XCTAssertTrue(try view.inspect().find(button: create).isDisabled())
+    }
+
     func testRequestConfirmationWithoutSelectionIsInert() throws {
         let model = try makeModel(administrator: true)
         model.requestRangeConfirmation()

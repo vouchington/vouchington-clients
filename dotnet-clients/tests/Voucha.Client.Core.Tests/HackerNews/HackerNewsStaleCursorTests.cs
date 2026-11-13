@@ -81,6 +81,34 @@ public sealed class HackerNewsStaleCursorTests
     Assert.DoesNotContain(Param, path, StringComparison.Ordinal);
   }
 
+  [Fact]
+  public async Task PostsLoadMoreDuringPendingFilterConfigDoesNotAppendTheOldQuery()
+  {
+    var pending = new TaskCompletionSource<HackerNewsConfigResponse>();
+    var calls = 0;
+    var gate = new HackerNewsReferenceGate(_ => ++calls == 2
+        ? pending.Task
+        : Task.FromResult(new HackerNewsConfigResponse(true, "1y")));
+    var handler = new CursorHandler();
+    using var model = new PostsListViewModel(new ApiPostsService(handler.Client()), hackerNewsReferences: gate);
+    await model.LoadBrowseAsync(cancellationToken: TestContext.Current.CancellationToken);
+    Assert.True(model.HasMore);
+
+    var filtered = model.LoadBrowseAsync(hasHackerNewsReferences: true, cancellationToken: TestContext.Current.CancellationToken);
+    Assert.True(model.IsLoading);
+    await model.LoadMoreAsync(TestContext.Current.CancellationToken);
+    Assert.Single(handler.PostPaths);
+
+    pending.SetResult(new HackerNewsConfigResponse(true, "1y"));
+    await filtered;
+
+    Assert.Equal(2, handler.PostPaths.Count);
+    Assert.Contains(Param, handler.PostPaths[1], StringComparison.Ordinal);
+    Assert.DoesNotContain("after=", handler.PostPaths[1], StringComparison.Ordinal);
+    Assert.True(model.HackerNewsFilter);
+    Assert.Equal(LoadState.Loaded, model.State);
+  }
+
   private static async Task WaitUntilAsync(Func<bool> condition)
   {
     for (var i = 0; i < 200 && !condition(); i++) await Task.Delay(10, TestContext.Current.CancellationToken);
