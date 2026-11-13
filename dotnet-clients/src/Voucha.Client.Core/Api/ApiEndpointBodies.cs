@@ -169,4 +169,5 @@ public sealed record UpdatePodcastPlaybackPositionBody(
     [property: JsonPropertyName("position_seconds")] double PositionSeconds,
     [property: JsonPropertyName("completed")] bool Completed);
 
-public sealed record BeginBlueskyAccountLinkBody([property: JsonPropertyName("handle")] string Handle);
+public sealed record BeginBlueskyAccountLinkBody([property: JsonPropertyName("handle")] string Handle,
+    [property: JsonPropertyName("re_auth_token")] string? ReAuthToken = null);

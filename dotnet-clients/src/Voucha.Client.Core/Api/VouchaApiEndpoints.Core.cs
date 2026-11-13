@@ -83,12 +83,6 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest RevokeAuthSessions() =>
       new(HttpMethod.Post, "/api/v1/auth/sessions/revocations");
 
-  public static ApiRequest BeginBlueskyAccountLink(string handle) =>
-      new(HttpMethod.Post, "/api/v1/auth/bluesky/link") { Body = new BeginBlueskyAccountLinkBody(handle) };
-
-  public static ApiRequest DisconnectBlueskyAccount() =>
-      new(HttpMethod.Delete, "/api/v1/auth/bluesky/link");
-
   public static ApiRequest UserFollowing(string userId, int limit = 100, string? after = null) =>
       Get($"/api/v1/users/{Path(userId)}/users/following", Query(("limit", limit), ("after", after)));
 

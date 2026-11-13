@@ -138,9 +138,11 @@ public sealed partial class EmailAddressManagerViewModel :
       await operation().ConfigureAwait(true);
       return true;
     }
+    catch (OperationCanceledException) { return false; }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
     {
-      ErrorMessage = ex is VouchaApiException { ApiMessage: { Length: > 0 } message } ? message : ex.Message;
+      ErrorMessage = ex is VouchaApiException
+          ? localization.Localize(UiMessageKey.ExtractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96) : ex.Message;
       return false;
     }
     finally

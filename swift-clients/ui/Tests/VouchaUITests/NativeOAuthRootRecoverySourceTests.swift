@@ -24,6 +24,14 @@ final class NativeOAuthRootRecoverySourceTests: XCTestCase {
         XCTAssertFalse(macOSAppSource.contains(".task {"))
     }
 
+    func testRootDiscardsConfirmationResultsWithoutALiveOwner() throws {
+        let source = try repoSource("swift-clients/apps/shared-app/RootView+OAuth.swift")
+        XCTAssertTrue(source.contains("case .confirmationReady, .expired(_, .reauthenticate):"))
+        XCTAssertTrue(source.contains(
+            "viewModelFactory.nativeOAuthAuthorizationCoordinator.discardFreshConfirmationWithoutOwner()"
+        ))
+    }
+
     func testHandledCallbackRoutesPendingPurposeToRecoverySurface() throws {
         let source = try repoSource("swift-clients/apps/shared-app/RootView+Bluesky.swift")
 
