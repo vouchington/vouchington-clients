@@ -11,6 +11,8 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
         super.setUp()
         OAuthCoordinatorURLProtocol.responses = [:]
         OAuthCoordinatorURLProtocol.requests = []
+        OAuthCoordinatorURLProtocol.heldPath = nil
+        OAuthCoordinatorURLProtocol.holdGate = nil
     }
 
     func testLoadsCapabilitiesAndBeginsThenCancelsAuthorization() async throws {
@@ -437,6 +439,9 @@ final class OAuthCoordinatorURLProtocol: URLProtocol {
     static let lock = NSLock()
     static var responses: [String: [(Data, Int)]] = [:]
     static var requests: [URLRequest] = []
+    /// When set, responses for this path wait for the gate after the request is recorded.
+    static var heldPath: String?
+    static var holdGate: DispatchSemaphore?
 
     override class func canInit(with _: URLRequest) -> Bool {
         true
@@ -461,6 +466,7 @@ final class OAuthCoordinatorURLProtocol: URLProtocol {
             Self.responses[path] = queued
             return next
         }
+        if let gate = Self.lock.withLock({ Self.heldPath == path ? Self.holdGate : nil }) { gate.wait() }
         let http = HTTPURLResponse(
             url: request.url!,
             statusCode: response.1,

@@ -67,7 +67,7 @@ extension NativeOAuthAuthorizationCoordinatorTests {
         XCTAssertNil(fixture.coordinator.pending)
     }
 
-    func testCancelingFreshBrokerStopsPollingAndIgnoresALateCompletion() async throws {
+    func testCancelingFreshBrokerStopsPolling() async throws {
         let fixture = try makeFixture()
         let pending = try claim(
             store: fixture.store,
@@ -110,6 +110,47 @@ extension NativeOAuthAuthorizationCoordinatorTests {
         XCTAssertNil(fixture.coordinator.pending)
         XCTAssertNil(fixture.coordinator.errorMessage)
         XCTAssertTrue(fixture.coordinator.canStartAuthorization)
+    }
+
+    func testCompletionInFlightWhenConfirmationIsCanceledIsNotPublished() async throws {
+        let fixture = try makeFixture()
+        let pending = try claim(
+            store: fixture.store,
+            flowId: "inflight-flow",
+            provider: .github,
+            purpose: .reauthenticate,
+            now: fixture.now
+        )
+        let path = "/api/v1/auth/oauth/authorizations/inflight-flow/complete"
+        let gate = DispatchSemaphore(value: 0)
+        OAuthCoordinatorURLProtocol.lock.withLock {
+            OAuthCoordinatorURLProtocol.responses[path] = [
+                (Data(#"{"oauth_account":{"id":"linked-account","name":null,"email_address":null}}"#.utf8), 200)
+            ]
+            OAuthCoordinatorURLProtocol.heldPath = path
+            OAuthCoordinatorURLProtocol.holdGate = gate
+        }
+        func requestCount() -> Int {
+            OAuthCoordinatorURLProtocol.lock.withLock {
+                OAuthCoordinatorURLProtocol.requests.filter { $0.url?.path == path }.count
+            }
+        }
+        fixture.coordinator.synchronizeFromStore()
+        let task = Task { await fixture.coordinator.finalize(pending) }
+        for _ in 0 ..< 500 where requestCount() < 1 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(requestCount(), 1)
+
+        fixture.coordinator.cancelFreshAccountConfirmation()
+        gate.signal()
+        await task.value
+
+        XCTAssertEqual(requestCount(), 1)
+        XCTAssertNil(fixture.coordinator.result)
+        XCTAssertNil(fixture.coordinator.pending)
+        XCTAssertNil(fixture.coordinator.errorMessage)
+        XCTAssertFalse(fixture.coordinator.isWorking)
     }
 
     func testRestoredConfirmationWithoutLiveOwnerIsDiscardedButOwnedOneIsKept() async throws {
