@@ -109,7 +109,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     SetProperty(ref browsing, false, nameof(IsHackerNewsFilterVisible));
     endCursor = null;
     HasMore = true;
-    var currentRequest = BeginLoad();
+    var currentRequest = BeginLoad(NextRequestId());
     await ClientLoadAttempt.RunAsync(
         async () =>
         {
@@ -164,8 +164,6 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   private int NextRequestId() => Interlocked.Increment(ref requestId);
 
-  private int BeginLoad() => BeginLoad(NextRequestId());
-
   private int BeginLoad(int currentRequest)
   {
     State = LoadState.Loading;
@@ -198,6 +196,4 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   {
     if (currentRequest != Volatile.Read(ref requestId)) return;
     State = LoadState.Idle;
-  }
-
-}
+  }}
