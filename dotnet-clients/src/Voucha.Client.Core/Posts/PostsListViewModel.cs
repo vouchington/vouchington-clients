@@ -138,7 +138,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     var currentRequest = NextRequestId();
     var config = RefreshHackerNewsReferencesAsync(cancellationToken);
     // A requested filter is only sent once the backend flag is known to be on.
-    if (hasHackerNewsReferences is not null) await config.ConfigureAwait(true);
+    if (hasHackerNewsReferences is not null) await HoldForHackerNewsConfigAsync(currentRequest, config).ConfigureAwait(true);
     if (currentRequest != Volatile.Read(ref requestId)) return;
     var filter = hackerNewsReferences?.ReferencesVisible == true ? hasHackerNewsReferences : null;
     HackerNewsFilter = filter;

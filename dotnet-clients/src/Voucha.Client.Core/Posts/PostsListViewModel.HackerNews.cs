@@ -14,6 +14,15 @@ public sealed partial class PostsListViewModel
   private Task RefreshHackerNewsReferencesAsync(CancellationToken cancellationToken) =>
       hackerNewsReferences?.RefreshAsync(cancellationToken) ?? Task.CompletedTask;
 
+  // Enter the loading state and drop the previous query's cursor before suspending on the config,
+  // so LoadMoreAsync cannot append the old page while the filtered first page is pending.
+  private async Task HoldForHackerNewsConfigAsync(int currentRequest, Task config)
+  {
+    endCursor = null;
+    BeginLoad(currentRequest);
+    await config.ConfigureAwait(true);
+  }
+
   private void OnHackerNewsReferencesChanged(object? sender, EventArgs e)
   {
     var clearedFilter = !hackerNewsReferences!.ReferencesVisible && activeHackerNewsFilter is not null;

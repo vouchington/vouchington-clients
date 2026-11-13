@@ -19,8 +19,16 @@ extension NativeRouteSurfaceViewModel {
     func refreshHackerNewsReferencesVisibility() async {
         guard let client,
               let visible = await HackerNewsReferencesVisibility.fetch(client: client) else { return }
+        let wasVisible = hackerNewsReferencesVisible
         hackerNewsReferencesVisible = visible
         if !visible, hasHackerNewsReferences { hasHackerNewsReferences = false }
+        // A route-selected filter now changes the effective query: restart the first page and
+        // supersede the unfiltered load so its rows and cursor are discarded.
+        if visible, !wasVisible, hasHackerNewsReferences, supportsHackerNewsFilter {
+            hackerNewsFilterRevision += 1
+            state = .idle
+            hackerNewsFilterTask = Task { await load() }
+        }
     }
 
     func hackerNewsDetail(_ detail: UiVerbatimText, references: HackerNewsReferences?) -> UiVerbatimText {
