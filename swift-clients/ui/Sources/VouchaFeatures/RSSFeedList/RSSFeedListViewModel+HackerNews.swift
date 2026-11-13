@@ -14,4 +14,13 @@ public extension RSSFeedListViewModel {
             hackerNewsFilterTask = Task { await reload() }
         }
     }
+
+    /// User-initiated first-page load (pull-to-refresh or retry). Also retries the Hacker News
+    /// flag so a failed initial fetch does not hide the filter forever; the two run independently,
+    /// so an unavailable config never blocks the list.
+    func refresh() async {
+        async let config: Void = refreshHackerNewsReferencesVisibility()
+        await reload()
+        await config
+    }
 }

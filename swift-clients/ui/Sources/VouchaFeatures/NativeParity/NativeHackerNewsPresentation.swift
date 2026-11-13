@@ -31,6 +31,14 @@ extension NativeRouteSurfaceViewModel {
         }
     }
 
+    /// User-initiated retry: reload the surface and retry the flag independently, so a failed
+    /// initial config fetch does not hide the filter forever.
+    func retryLoad() async {
+        async let config: Void = refreshHackerNewsReferencesVisibility()
+        await load()
+        await config
+    }
+
     func hackerNewsDetail(_ detail: UiVerbatimText, references: HackerNewsReferences?) -> UiVerbatimText {
         guard let references else { return detail }
         var parts = [detail]

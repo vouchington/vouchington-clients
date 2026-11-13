@@ -14,6 +14,7 @@ public sealed class HackerNewsReferenceGate
   private readonly object listenersGate = new();
   private readonly Dictionary<long, WeakReference<IHackerNewsReferenceListener>> listeners = [];
   private long nextListenerId;
+  private long refreshGeneration;
   private volatile bool referencesVisible;
 
   public HackerNewsReferenceGate(Func<CancellationToken, Task<HackerNewsConfigResponse>> fetch) =>
@@ -41,10 +42,12 @@ public sealed class HackerNewsReferenceGate
       Justification = "A failed flag fetch must leave the filter hidden instead of failing the feed load that triggered it.")]
   public async Task RefreshAsync(CancellationToken cancellationToken = default)
   {
+    // Overlapping refreshes: only the most recently started one may apply its result.
+    var generation = Interlocked.Increment(ref refreshGeneration);
     try
     {
       var config = await fetch(cancellationToken).ConfigureAwait(true);
-      Set(config.ReferencesVisible);
+      if (generation == Volatile.Read(ref refreshGeneration)) Set(config.ReferencesVisible);
     }
     catch (OperationCanceledException)
     {
