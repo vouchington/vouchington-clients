@@ -19,6 +19,8 @@ concurrency:
 jobs:
   produce:
     name: Publish verified native contracts
+    outputs:
+      contract-run-attempt: ${{ github.run_attempt }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -205,6 +207,7 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
+      contract-run-attempt: ${{ needs.produce.outputs.contract-run-attempt }}
       base-sha: ${{ steps.identity.outputs.base_sha }}
       revision-sha: ${{ steps.identity.outputs.revision_sha }}
       windows-image-preview: ${{ steps.windows-image-preview-route.outputs.windows-image-preview }}
@@ -222,7 +225,7 @@ jobs:
       - name: Download exact producer artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: native-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-contract-${{ github.run_id }}-${{ needs.produce.outputs.contract-run-attempt }}
           path: ${{ runner.temp }}/native-contract
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -231,7 +234,7 @@ jobs:
         env:
           ARTIFACT_ROOT: ${{ runner.temp }}/native-contract
           PRODUCER_RUN_ID: ${{ github.run_id }}
-          PRODUCER_RUN_ATTEMPT: ${{ github.run_attempt }}
+          PRODUCER_RUN_ATTEMPT: ${{ needs.produce.outputs.contract-run-attempt }}
         run: >-
           node scripts/contract-artifact.mjs verify
           --artifact-root "$ARTIFACT_ROOT"
@@ -350,7 +353,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -431,7 +434,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
@@ -468,7 +471,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
@@ -497,7 +500,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Test core and test-support packages
         working-directory: candidate-clients
@@ -521,6 +524,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 22
     outputs:
+      artifact-attempt: ${{ github.run_attempt }}
       dto-fixture-parity-outcome: ${{ steps.swift-dto-fixture-parity.outcome }}
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
@@ -536,7 +540,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
@@ -573,6 +577,8 @@ jobs:
   build-swift-android:
     name: Swift Android app
     needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
     timeout-minutes: 35
     steps:
@@ -587,7 +593,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
@@ -751,7 +757,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
       - name: Set up mise-managed Swift compiler
@@ -806,7 +812,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
       - name: Install mise for the pinned host compiler
@@ -984,7 +990,7 @@ jobs:
       - name: Download exact candidate Android APKs
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: android-cookie-apks-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: android-cookie-apks-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ needs.build-swift-android.outputs.artifact-attempt }}
           path: ${{ runner.temp }}/android-cookie-apks
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -1042,6 +1048,8 @@ jobs:
   build-swift-ui-tests:
     name: Swift UI build for testing
     needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
     timeout-minutes: 13
     permissions:
@@ -1061,7 +1069,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
@@ -1095,6 +1103,8 @@ jobs:
   test-swift-ui:
     name: Swift UI tests and coverage
     needs: [verify, build-swift-ui-tests]
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
     timeout-minutes: 10
     env:
@@ -1111,7 +1121,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
@@ -1119,7 +1129,7 @@ jobs:
       - name: Download exact UI test products
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: swift-ui-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          name: swift-ui-test-products-${{ github.run_id }}-${{ needs.build-swift-ui-tests.outputs.artifact-attempt }}
           path: ${{ runner.temp }}/swift-ui-test-artifact
       - name: Verify and restore UI test products
         timeout-minutes: 3
@@ -1197,17 +1207,17 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Download Core LCOV
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          name: swift-core-lcov-${{ github.run_id }}-${{ needs.test-swift-core.outputs.artifact-attempt }}
           path: candidate-clients/coverage/core
       - name: Download UI LCOV
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: swift-ui-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          name: swift-ui-lcov-${{ github.run_id }}-${{ needs.test-swift-ui.outputs.artifact-attempt }}
           path: candidate-clients/coverage/ui
       - name: Enforce 90% Swift patch coverage
         working-directory: candidate-clients
@@ -1230,7 +1240,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore checksummed Swift Android archives
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1273,7 +1283,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Install pinned XcodeGen
         working-directory: candidate-clients
@@ -1373,6 +1383,8 @@ jobs:
   build-ios-tests:
     name: Swift iOS Simulator build for testing
     needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
     timeout-minutes: 13
     permissions:
@@ -1391,7 +1403,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
@@ -1479,7 +1491,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
@@ -1551,7 +1563,7 @@ jobs:
       - name: Download iOS test products
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ios-test-products-${{ github.run_id }}-${{ needs.build-ios-tests.outputs.artifact-attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
       - name: Start iPhone Simulator for launch smoke
         timeout-minutes: 3
@@ -1582,7 +1594,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
           skip-candidate-checkout: true
@@ -1731,7 +1743,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
           skip-candidate-checkout: true
@@ -1765,7 +1777,7 @@ jobs:
       - name: Download iOS test products
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ios-test-products-${{ github.run_id }}-${{ needs.build-ios-tests.outputs.artifact-attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
       - name: Wait for iPad Simulator readiness
         timeout-minutes: 4
@@ -1910,7 +1922,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -2018,6 +2030,8 @@ jobs:
   dotnet-maui:
     name: .NET MAUI Mac Catalyst
     needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
     timeout-minutes: 30
     env:
@@ -2039,7 +2053,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         id: maui-nuget-cache
@@ -2171,7 +2185,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/sentry-symbols.yml
     with:
-      artifact: sentry-dotnet-${{ github.run_id }}-${{ github.run_attempt }}
+      artifact: sentry-dotnet-${{ github.run_id }}-${{ needs.dotnet-maui.outputs.artifact-attempt }}
       project: ${{ vars.SENTRY_PROJECT_DOTNET }}
 
   dotnet-catalyst-gui:
@@ -2193,7 +2207,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -2417,7 +2431,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         id: windows-image-preview-nuget-cache
@@ -2460,6 +2474,8 @@ jobs:
     name: .NET MAUI Windows
     needs: verify
     if: needs.verify.outputs.windows-maui == 'true'
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: windows-latest
     timeout-minutes: 30
     env:
@@ -2483,7 +2499,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         id: windows-maui-nuget-cache
@@ -2580,7 +2596,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/sentry-symbols.yml
     with:
-      artifact: sentry-dotnet-windows-${{ github.run_id }}-${{ github.run_attempt }}
+      artifact: sentry-dotnet-windows-${{ github.run_id }}-${{ needs.dotnet-windows-maui.outputs.artifact-attempt }}
       project: ${{ vars.SENTRY_PROJECT_DOTNET }}
 
   dotnet-windows-language-model-surface:
@@ -2606,7 +2622,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         id: windows-language-model-surface-nuget-cache
