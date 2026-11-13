@@ -154,8 +154,6 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
           var response = await postsService
               .FetchPostsAsync(request, cancellationToken)
               .ConfigureAwait(true);
-          // The flag fetch runs alongside the page fetch; settle it so the filter is final with the list.
-          await config.ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);
         },
         () => CompleteCanceled(currentRequest),
