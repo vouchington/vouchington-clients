@@ -73,7 +73,9 @@ public sealed record TopicMetrics(
     [property: JsonPropertyName("ratings")] TopicRatingMetrics? Ratings = null,
     [property: JsonPropertyName("ratings__updated_at")] DateTimeOffset? RatingsUpdatedAt = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, int>? Bookmarks = null,
-    [property: JsonPropertyName("bookmarks__updated_at")] DateTimeOffset? BookmarksUpdatedAt = null);
+    [property: JsonPropertyName("bookmarks__updated_at")] DateTimeOffset? BookmarksUpdatedAt = null,
+    [property: JsonPropertyName("viewer_count_capped")] IReadOnlyDictionary<string, bool>? ViewerCountCapped = null,
+    [property: JsonPropertyName("count_capped")] IReadOnlyDictionary<string, bool>? CountCapped = null);
 
 public sealed record TopicRatingMetrics(
     [property: JsonPropertyName("count")] IReadOnlyDictionary<string, int> Count);

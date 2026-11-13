@@ -16,6 +16,7 @@
             app.launchEnvironment["VOUCHA_API_BASE_URL"] = "https://ui-testing.voucha.invalid"
             app.launchEnvironment["VOUCHA_UI_TESTING_FEED_RESPONSE_BASE64"] = fixture.feed.base64EncodedString()
             app.launchEnvironment["VOUCHA_UI_TESTING_IDENTITY_RESPONSE_BASE64"] = fixture.identity.base64EncodedString()
+            try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
             XCTAssertTrue(app.otherElements["root-shell"].waitForExistence(timeout: 20))

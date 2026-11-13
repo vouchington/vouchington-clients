@@ -4,19 +4,31 @@ using Voucha.Client.Core;
 
 namespace Voucha.Client.App;
 
-public interface ITurnstileTokenProvider
-{
-  Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default);
-}
-
-public sealed class MauiTurnstileTokenProvider : ITurnstileTokenProvider
+public sealed class MauiTurnstileTokenProvider : ITurnstileTokenProvider, IDisposable
 {
   private readonly AppConfig appConfig;
+  private readonly SemaphoreSlim presentationGate = new(1, 1);
 
   public MauiTurnstileTokenProvider(AppConfig appConfig) =>
       this.appConfig = appConfig ?? throw new ArgumentNullException(nameof(appConfig));
 
   public async Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default)
+  {
+    await presentationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+    try
+    {
+      return await MainThread.InvokeOnMainThreadAsync(
+          () => PresentAsync(routeAction, cancellationToken)).ConfigureAwait(false);
+    }
+    finally
+    {
+      presentationGate.Release();
+    }
+  }
+
+  public void Dispose() => presentationGate.Dispose();
+
+  private async Task<string> PresentAsync(string routeAction, CancellationToken cancellationToken)
   {
     cancellationToken.ThrowIfCancellationRequested();
 

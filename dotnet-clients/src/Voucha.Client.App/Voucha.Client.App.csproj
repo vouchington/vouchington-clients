@@ -46,6 +46,10 @@
     <BundleResource Include="Platforms/MacCatalyst/pt.lproj/InfoPlist.strings" LogicalName="pt.lproj/InfoPlist.strings" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <Compile Remove="CatalystGuiLaunchOptions.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Maui.MediaElement" />
     <PackageReference Include="Sentry.Maui" />

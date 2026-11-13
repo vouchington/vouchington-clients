@@ -12,6 +12,12 @@ public sealed record ApiRequest(HttpMethod Method, string Path)
       new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
   public object? Body { get; init; }
+
+  public bool AllowsBotChallenge { get; init; } = true;
+
+  internal bool IsCoordinatedSessionRotation { get; init; }
+
+  internal bool IsCoordinatedSignOut { get; init; }
 }
 
 public sealed record SearchCommunitiesRequest(string Query);

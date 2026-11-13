@@ -50,6 +50,6 @@ public static partial class VouchaApiEndpoints
         Body = new ReAuthProviderProofBody(flowId),
       };
 
-  public static ApiRequest RefreshSession(string deviceToken, string sessionToken) =>
+  public static ApiRequest RefreshSession(string deviceToken, string? sessionToken) =>
       new(HttpMethod.Patch, "/api/v1/session") { Body = new RefreshSessionBody(deviceToken, sessionToken) };
 }

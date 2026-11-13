@@ -14,7 +14,10 @@ final class MockURLProtocol: URLProtocol {
 
     override func startLoading() {
         let path = request.url?.path ?? ""
-        let (data, status) = Self.handlers[path] ?? (Data("{}".utf8), 200)
+        let (data, status) = Self.handlers[path] ?? (
+            path == "/api/v1/session" ? ApiFixtureLoader.data("native.auth.session.refresh.rotated") : Data("{}".utf8),
+            200
+        )
         let response = HTTPURLResponse(
             url: request.url!,
             statusCode: status,

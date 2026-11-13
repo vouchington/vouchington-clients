@@ -56,6 +56,8 @@ public struct RootView: View {
     @State
     var showingSignIn = false
     @State
+    var nativeChatMCPConnectTask: Task<Void, Never>?
+    @State
     var podcastPlaybackController: PodcastPlaybackController
     @Environment(\.openURL)
     var openURL
@@ -90,6 +92,14 @@ public struct RootView: View {
 
     public var body: some View {
         appBody
+            .mutationChallengeSheet(
+                broker: viewModelFactory.mutationChallengeBroker,
+                siteKey: viewModelFactory.config.requiredTurnstileSiteKey,
+                baseURL: viewModelFactory.config.baseURL
+            )
+            .task {
+                await viewModelFactory.installMutationChallengeHandler()
+            }
             .environment(viewModelFactory.uiLocaleController)
             .environment(\.locale, viewModelFactory.uiLocaleController.locale.foundationLocale)
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -99,9 +109,7 @@ public struct RootView: View {
             }
             .task {
                 await restoreSessionAndNativeAuthorizationsOnLaunch()
-                await viewModelFactory.nativeChatMCPSession?.useAccount(
-                    viewModelFactory.sessionManager.currentUserId
-                )
+                startNativeChatMCPConnect(for: viewModelFactory.sessionManager.currentUserId)
                 await refreshLocalization()
                 await refreshFeatureFlags()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
@@ -112,10 +120,8 @@ public struct RootView: View {
                 Task { await refreshLocalization() }
             }
             .onChange(of: viewModelFactory.sessionManager.currentUserId) { _, accountId in
-                Task {
-                    guard accountId == viewModelFactory.sessionManager.currentUserId else { return }
-                    await viewModelFactory.nativeChatMCPSession?.useAccount(accountId)
-                }
+                viewModelFactory.mutationChallengeBroker.cancel()
+                startNativeChatMCPConnect(for: accountId)
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }

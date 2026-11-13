@@ -6,8 +6,13 @@ public sealed partial class VouchaApiClient
 {
   private readonly HttpClient httpClient;
 
-  public VouchaApiClient(HttpClient httpClient) =>
-      this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+  private readonly BotChallengeReplay? botChallengeReplay;
+
+  public VouchaApiClient(HttpClient httpClient, BotChallengeReplay? botChallengeReplay = null)
+  {
+    this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    this.botChallengeReplay = botChallengeReplay;
+  }
 
   public Task<CommunitySearchResponse> SearchCommunitiesAsync(
       SearchCommunitiesRequest request,

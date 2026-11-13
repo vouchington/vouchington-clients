@@ -1,4 +1,6 @@
 import Foundation
+import Observation
+import ViewInspector
 @testable import VouchaFeatures
 import VouchaLocalization
 import XCTest
@@ -77,7 +79,9 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
 
         XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
         XCTAssertEqual(judgementRunGets, 0)
-        XCTAssertNil(viewModel.actionErrors[reportId])
+        XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
     }
 
     func testRunReadFailureDoesNotAdmitAgain() async throws {
@@ -116,6 +120,172 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
         XCTAssertNil(viewModel.actionErrors[reportId])
     }
 
+    func testFailedFirstReadRetainsAdmissionAndManualRefreshNeverPostsAgain() async throws {
+        let viewModel = try await loadedStaff(reads: 1)
+        stubAdmission(ModerationReportsTestFixtures.judgement)
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = (Data("{}".utf8), 500)
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = (pendingRun, 200)
+        await viewModel.refreshPendingJudgement(reportId)
+        XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = try (
+            schemaRun(status: "failed", judgementId: nil),
+            200
+        )
+        await viewModel.refreshPendingJudgement(reportId)
+        XCTAssertFalse(viewModel.isJudgementPending(reportId))
+        XCTAssertEqual(viewModel.actionErrors[reportId], .message(.nativeSwiftModerationReportsAiJudgementRunFailed))
+        XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
+        XCTAssertEqual(requestCount(method: "GET", path: runPath(admittedRunId)), 3)
+    }
+
+    func testPendingRowRendersRefreshAndDisablesRerun() async throws {
+        let viewModel = try await loadedStaff(reads: 1)
+        stubAdmission(ModerationReportsTestFixtures.judgement)
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = (pendingRun, 200)
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        let report = try XCTUnwrap(viewModel.staffReports.first { $0.id == reportId })
+        let row = ModerationReportActionButtons(
+            report: report,
+            viewModel: viewModel,
+            onWarning: {},
+            onConfirm: { _ in }
+        )
+        try await ViewHosting.host(row) {
+            let inspected = try row.inspect()
+            XCTAssertTrue(try inspected.find(button: "Re-run judgement").isDisabled())
+            XCTAssertNoThrow(try inspected.find(text: "Pending"))
+            XCTAssertFalse(try inspected.find(button: "Refresh").isDisabled())
+            let path = runPath(admittedRunId)
+            CannedFeedURLProtocol.suspendResponse(path: path)
+            defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+            let requested = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
+            try await Task { @MainActor in
+                try row.inspect().find(button: "Refresh").tap()
+            }.value
+            _ = try await requested.wait()
+            XCTAssertTrue(viewModel.isQueueActionInProgress)
+            let refreshed = expectation(description: "Refresh finishes updating the pending run")
+            @MainActor
+            func observeRefresh() {
+                if !viewModel.isQueueActionInProgress {
+                    refreshed.fulfill()
+                    return
+                }
+                withObservationTracking {
+                    _ = viewModel.isMutatingQueue
+                } onChange: {
+                    Task { @MainActor in observeRefresh() }
+                }
+            }
+            observeRefresh()
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await fulfillment(of: [refreshed], timeout: 2)
+            XCTAssertEqual(requestCount(method: "GET", path: path), 2)
+            XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
+            XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        }
+    }
+
+    func testMismatchedTerminalRunCannotReleaseAdmission() async throws {
+        let viewModel = try await loadedStaff(reads: 1)
+        stubAdmission(ModerationReportsTestFixtures.judgement)
+        var body = try XCTUnwrap(JSONSerialization.jsonObject(with: schemaRun(
+            status: "failed",
+            judgementId: nil
+        )) as? [String: Any])
+        body["run_id"] = "00000000-0000-7000-8000-000000000399"
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = try (JSONSerialization.data(withJSONObject: body), 200)
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        XCTAssertNil(viewModel.actionErrors[reportId])
+    }
+
+    func testAmbiguousAdmissionFailureBlocksAnotherPost() async throws {
+        let viewModel = try await loadedStaff(reads: 1)
+        CannedFeedURLProtocol.errors[admissionPath] = URLError(.cancelled)
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        XCTAssertTrue(viewModel.isJudgementPending(reportId))
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        await viewModel.refreshPendingJudgement(reportId)
+        let report = try XCTUnwrap(viewModel.staffReports.first { $0.id == reportId })
+        let row = ModerationReportActionButtons(
+            report: report,
+            viewModel: viewModel,
+            onWarning: {},
+            onConfirm: { _ in }
+        )
+        XCTAssertTrue(try row.inspect().find(button: "Refresh").isDisabled())
+        XCTAssertTrue(try row.inspect().find(button: "Re-run judgement").isDisabled())
+        XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
+        XCTAssertEqual(judgementRunGets, 0)
+    }
+
+    func testSharedStoreWithoutIdentitySurfacesLocalizedFailureWithoutAdmission() async throws {
+        for identity in [nil, ""] as [String?] {
+            let viewModel = try await loadedStaff(reads: 1, userId: identity, store: ReportJudgementAdmissionStore())
+            await viewModel.perform(.rerunJudgement, reportId: reportId)
+            XCTAssertEqual(viewModel.actionErrors[reportId], .message(.nativeSwiftModerationReportsActionUnavailable))
+            XCTAssertFalse(viewModel.isJudgementPending(reportId))
+            XCTAssertFalse(viewModel.isQueueActionInProgress)
+            XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 0)
+            XCTAssertEqual(judgementRunGets, 0)
+            let report = try XCTUnwrap(viewModel.staffReports.first { $0.id == reportId })
+            let row = StaffModerationReportCard(
+                report: report, viewModel: viewModel, onNavigate: { _ in }, onConfirm: { _ in }
+            )
+            try await ViewHosting.host(row) {
+                XCTAssertNoThrow(try row.inspect().find(text: UiMessages.string(
+                    .nativeSwiftModerationReportsActionUnavailable, locale: Locale(identifier: "en")
+                )))
+            }
+        }
+    }
+
+    func testReopenedOwnerRetainsExactRunWhileOtherOwnerCannotReadIt() async throws {
+        let store = ReportJudgementAdmissionStore()
+        let original = try await loadedStaff(reads: 1, userId: "alice", store: store)
+        stubAdmission(ModerationReportsTestFixtures.judgement)
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = (pendingRun, 200)
+        await original.perform(.rerunJudgement, reportId: reportId)
+        let other = try await loadedStaff(reads: 1, userId: "bob", store: store)
+        XCTAssertFalse(other.isJudgementPending(reportId))
+        await other.refreshPendingJudgement(reportId)
+        let reopened = try await loadedStaff(reads: 1, userId: "alice", store: store)
+        XCTAssertTrue(reopened.isJudgementPending(reportId))
+        await reopened.perform(.rerunJudgement, reportId: reportId)
+        await reopened.refreshPendingJudgement(reportId)
+        XCTAssertEqual(requestCount(method: "POST", path: admissionPath), 1)
+        XCTAssertEqual(requestCount(method: "GET", path: runPath(admittedRunId)), 2)
+        XCTAssertTrue(original.isJudgementPending(reportId))
+        XCTAssertFalse(other.isJudgementPending(reportId))
+    }
+
+    func testRemovedItemDoesNotReconcileTerminalResponse() async throws {
+        let viewModel = try await loadedStaff(reads: 2, delay: {})
+        stubAdmission(ModerationReportsTestFixtures.judgement)
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = (pendingRun, 200)
+        await viewModel.perform(.rerunJudgement, reportId: reportId)
+        viewModel.staffReports.removeAll()
+        CannedFeedURLProtocol.handlers[runPath(admittedRunId)] = try (
+            schemaRun(status: "failed", judgementId: nil),
+            200
+        )
+        await viewModel.refreshPendingJudgement(reportId)
+        XCTAssertTrue(viewModel.isJudgementPending(reportId))
+    }
+
+    func testKnownRejectionReleasesAdmissionWhileTimeoutAndServerErrorRetainIt() async throws {
+        for status in [400, 401, 403, 404, 408, 500] {
+            let viewModel = try await loadedStaff(reads: 1)
+            CannedFeedURLProtocol.handlers[admissionPath] = (Data("{}".utf8), status)
+            await viewModel.perform(.rerunJudgement, reportId: reportId)
+            XCTAssertEqual(viewModel.isJudgementPending(reportId), status == 408 || status == 500)
+        }
+    }
+
     private var admissionPath: String {
         "/api/v1/reports/\(reportId)/judgements"
     }
@@ -136,12 +306,16 @@ final class ModerationReportJudgementRunTests: NativeRouteSurfaceViewModelTestCa
 
     private func loadedStaff(
         reads: Int,
+        userId: String? = nil,
+        store: ReportJudgementAdmissionStore? = nil,
         delay: @escaping @Sendable () async throws -> Void = {}
     ) async throws -> ModerationReportsViewModel {
         CannedFeedURLProtocol.handlers["/api/v1/reports"] = (ModerationReportsTestFixtures.staffFlat, 200)
         let viewModel = try ModerationReportsViewModel(
             client: makeClient(),
             viewerTier: .administrator,
+            currentUserId: userId,
+            judgementAdmissions: store,
             judgementRunReads: reads,
             judgementRunDelay: delay
         )

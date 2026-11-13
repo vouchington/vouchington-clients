@@ -13,6 +13,12 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
             ignoring: ["topic_elections.topic-1.__entity_type", "topics.topic-1.hero_image_placement"]
         )
     },
+    RegisteredFixture(id: "web.topics.show.viewer-lower-bound") {
+        try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
+    },
+    RegisteredFixture(id: "web.topics.show.viewer-review-data-lower-bound") {
+        try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
+    },
     RegisteredFixture(id: "web.topics.show.default") {
         try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
     },

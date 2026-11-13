@@ -18,6 +18,7 @@ public partial class TopicDetailPage : ContentPage
   private readonly AppConfig config;
   private readonly string? sourceCrawlId;
   private bool lastStaffViewer;
+  private string? lastViewerId;
   private bool isVisible;
 
   public TopicDetailPage(
@@ -41,6 +42,7 @@ public partial class TopicDetailPage : ContentPage
     this.sourceCrawlId = sourceCrawlId;
     this.isSourceDetail = isSourceDetail;
     lastStaffViewer = IsStaffViewer;
+    lastViewerId = sessionStore.Current.Identity?.Id;
     BindingContext = viewModel;
     AttachTopicChanges();
     RefreshTopicLogo();
@@ -51,6 +53,7 @@ public partial class TopicDetailPage : ContentPage
   {
     base.OnAppearing();
     isVisible = true;
+    viewModel.Activate();
     sessionStore.SessionChanged += sessionChangedHandler;
     AttachTopicChanges();
     RefreshViewerState();
@@ -71,6 +74,7 @@ public partial class TopicDetailPage : ContentPage
   protected override void OnDisappearing()
   {
     isVisible = false;
+    viewModel.Deactivate();
     sessionStore.SessionChanged -= sessionChangedHandler;
     if (isTopicChangeAttached)
     {
@@ -88,11 +92,19 @@ public partial class TopicDetailPage : ContentPage
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "MAUI session handlers must not throw.")]
   internal async Task RefreshAfterSessionChangedAsync()
   {
+    var viewerId = sessionStore.Current.Identity?.Id;
+    var viewerChanged = viewerId != lastViewerId;
+    if (viewerChanged)
+    {
+      viewModel.Deactivate();
+      if (isVisible) viewModel.Activate();
+      lastViewerId = viewerId;
+    }
     var isStaffViewer = IsStaffViewer;
     var gainedStaffAccess = isStaffViewer && !lastStaffViewer;
     lastStaffViewer = isStaffViewer;
     RefreshViewerState();
-    if (!isVisible || !gainedStaffAccess) return;
+    if (!isVisible || (!viewerChanged && !gainedStaffAccess)) return;
     try
     {
       await viewModel.LoadAsync(topicIdOrSlug, followSource: true, isSourceDetail: isSourceDetail).ConfigureAwait(true);

@@ -370,8 +370,7 @@ final class NativeOAuthAuthorizationCallbackPersistenceTests: XCTestCase {
             coordinator: NativeOAuthAuthorizationCoordinator(
                 client: client,
                 sessionManager: SessionManager(
-                    client: client,
-                    cookieStorage: IsolatedHTTPCookieStorage.make()
+                    client: client
                 ),
                 store: store,
                 now: { now }
@@ -466,7 +465,11 @@ private final class CallbackPersistenceURLProtocol: URLProtocol {
 
     override func startLoading() {
         let response = Self.lock.withLock {
-            Self.responses[request.url?.path ?? ""] ?? (Data("{}".utf8), 200)
+            Self.responses[request.url?.path ?? ""] ?? (
+                request.url?.path == "/api/v1/session" ? ApiFixtureLoader
+                    .data("native.auth.session.refresh.rotated") : Data("{}".utf8),
+                200
+            )
         }
         let http = HTTPURLResponse(
             url: request.url!,

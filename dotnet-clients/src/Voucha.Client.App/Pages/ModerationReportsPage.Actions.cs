@@ -83,7 +83,17 @@ public sealed partial class ModerationReportsPage
       row.Children.Add(ActionButton(UiMessageKey.NativeSwiftModerationReportsReview, () => viewModel.ReviewAsync(report.Id)));
       row.Children.Add(ActionButton(UiMessageKey.NativeSwiftModerationReportsDismiss, () => viewModel.DismissAsync(report.Id)));
     }
-    row.Children.Add(ActionButton(UiMessageKey.NativeSwiftModerationReportsRerunJudgement, () => viewModel.RerunJudgementAsync(report.Id)));
+    var rerun = ActionButton(UiMessageKey.NativeSwiftModerationReportsRerunJudgement, () => viewModel.RerunJudgementAsync(report.Id));
+    rerun.IsEnabled &= !viewModel.IsJudgementPending(report.Id);
+    row.Children.Add(rerun);
+    if (viewModel.IsJudgementPending(report.Id))
+    {
+      row.Children.Add(UiCopy.Bind(new Label(), Label.TextProperty, UiMessageKey.NativeSwiftModerationReportsPending));
+      var refresh = ActionButton(UiMessageKey.NativeDotnetCommonRefresh,
+          () => viewModel.RefreshPendingJudgementAsync(report.Id));
+      refresh.IsEnabled &= viewModel.HasAdmittedJudgementRun(report.Id);
+      row.Children.Add(refresh);
+    }
     if (viewModel.CanHandleBanEvasion(report))
     {
       row.Children.Add(ActionButton(UiMessageKey.NativeSwiftModerationReportsConfirmBanEvasion, () => viewModel.ConfirmBanEvasionAsync(report.Id)));

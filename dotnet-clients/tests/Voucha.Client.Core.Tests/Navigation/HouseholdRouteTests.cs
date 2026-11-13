@@ -6,6 +6,18 @@ namespace Voucha.Client.Core.Tests.Navigation;
 public sealed class HouseholdRouteTests
 {
   [Fact]
+  public void ReceivedInvitationRouteRequiresAuthenticationAndRestoresExactList()
+  {
+    var signedOut = NativeDeepLinkResolver.Resolve("voucha://my/household-invitations", NavigationViewer.Anonymous);
+    Assert.True(signedOut.ShouldQueueUntilAuthenticated);
+    Assert.False(signedOut.CanNavigate);
+    var signedIn = NativeDeepLinkResolver.Resolve("voucha://my/household-invitations", new NavigationViewer(true, []));
+    Assert.True(signedIn.CanNavigate);
+    Assert.Equal(NativeRouteDestinationId.Household, signedIn.DestinationId);
+    Assert.Equal("/my/household-invitations", signedIn.PathAndQuery);
+  }
+
+  [Fact]
   public void HouseholdHasAnExactAuthenticatedNativeDestination()
   {
     var resolution = NativeDeepLinkResolver.Resolve("voucha://my/household", new NavigationViewer(true, []));

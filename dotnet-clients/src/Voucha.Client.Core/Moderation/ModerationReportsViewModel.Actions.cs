@@ -26,26 +26,6 @@ public sealed partial class ModerationReportsViewModel
         }).ConfigureAwait(true);
   }
 
-  public async Task<bool> RerunJudgementAsync(string reportId, CancellationToken cancellationToken = default)
-  {
-    if (!IsStaff || FindStaffReport(reportId) is null) return false;
-    return await RunActionAsync(
-        reportId,
-        async () =>
-        {
-          var admission = await service.RerunReportJudgementAsync(reportId, cancellationToken)
-              .ConfigureAwait(true);
-          if (!admission.Queued || string.IsNullOrEmpty(admission.RunId)) return;
-          await ReportJudgementRunReconciliation.ReadAsync(
-              reportId,
-              admission.RunId,
-              judgementRunReads,
-              judgementRunDelay,
-              (id, runId, token) => service.GetReportJudgementRunAsync(id, runId, token),
-              cancellationToken).ConfigureAwait(true);
-        }).ConfigureAwait(true);
-  }
-
   public async Task<bool> IssueWarningAsync(
       string reportId,
       string reason,

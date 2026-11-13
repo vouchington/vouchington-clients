@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -12,16 +11,7 @@ public sealed partial class VouchaApiClient
   {
     ArgumentNullException.ThrowIfNull(request);
 
-    using var message = new HttpRequestMessage(request.Method, BuildUri(request));
-    ApplyHeaders(message, request);
-    if (request.Body is not null)
-    {
-      message.Content = JsonContent.Create(request.Body, options: VouchaApiJson.Options);
-    }
-
-    using var response = await httpClient
-        .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-        .ConfigureAwait(false);
+    using var response = await SendMutationAsync(request, cancellationToken).ConfigureAwait(false);
     if (!response.IsSuccessStatusCode)
     {
       var responseBody = await ReadErrorBodyAsync(response.Content, cancellationToken).ConfigureAwait(false);
@@ -60,16 +50,7 @@ public sealed partial class VouchaApiClient
   {
     ArgumentNullException.ThrowIfNull(request);
 
-    using var message = new HttpRequestMessage(request.Method, BuildUri(request));
-    ApplyHeaders(message, request);
-    if (request.Body is not null)
-    {
-      message.Content = JsonContent.Create(request.Body, options: VouchaApiJson.Options);
-    }
-
-    using var response = await httpClient
-        .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-        .ConfigureAwait(false);
+    using var response = await SendMutationAsync(request, cancellationToken).ConfigureAwait(false);
     if (!response.IsSuccessStatusCode)
     {
       var responseBody = await ReadErrorBodyAsync(response.Content, cancellationToken).ConfigureAwait(false);
@@ -90,6 +71,7 @@ public sealed partial class VouchaApiClient
 
     using var message = new HttpRequestMessage(request.Method, BuildUri(request));
     ApplyHeaders(message, request);
+    message.Options.Set(ClientMetadataHandler.RepeatableJson, request.Method == HttpMethod.Get && request.Body is null);
     using var response = await httpClient
         .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
         .ConfigureAwait(false);
@@ -152,13 +134,14 @@ public sealed partial class VouchaApiClient
 
   private static void ApplyHeaders(HttpRequestMessage message, ApiRequest request)
   {
+    message.Options.Set(ClientMetadataHandler.CoordinatedSignOut, request.IsCoordinatedSignOut);
     foreach (var (name, value) in request.Headers)
     {
       message.Headers.TryAddWithoutValidation(name, value);
     }
   }
 
-  private static async Task<string?> ReadErrorBodyAsync(
+  internal static async Task<string?> ReadErrorBodyAsync(
       HttpContent? content,
       CancellationToken cancellationToken)
   {

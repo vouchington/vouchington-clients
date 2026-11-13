@@ -27,6 +27,11 @@ public sealed partial class ProfileViewModel
     ("communities_proxy_muted", "/my/communities/proxy-muted"),
   ];
 
+  private static readonly (string Key, UiMessageKey Label)[] AggregatePrivateMetricLabels =
+  [
+    ("rss_feed_items_hidden", UiMessageKey.ExtractedUsersUserRssFeedItemRoutesHiddenRssItems28d66515),
+  ];
+
   public IReadOnlyList<ProfilePrivateMetricRow> PrivateMetricRows
   {
     get
@@ -34,13 +39,16 @@ public sealed partial class ProfileViewModel
       var metrics = userMetrics;
       if (!CanEdit || Identity is null || currentViewerUserId != Identity.Id || User?.Id != Identity.Id || !IsOverviewScope ||
           metrics?.PrivateCount is not { } counts) return [];
-      return PrivateMetricRoutes.Where(entry => counts.ContainsKey(entry.Key)).Select(entry =>
+      var routeLabels = PrivateMetricRoutes.Select(entry =>
       {
         if (!BookmarkCollectionRoutes.TryResolve(entry.Route, out var route))
           throw new InvalidOperationException();
-        var capped = metrics.PrivateCountCapped?.GetValueOrDefault(entry.Key) == true;
-        return new ProfilePrivateMetricRow(entry.Key, route.TitleText, counts[entry.Key], capped, localization);
-      }).ToArray();
+        return (entry.Key, Label: route.TitleText);
+      });
+      var aggregateLabels = AggregatePrivateMetricLabels.Select(entry => (entry.Key, Label: UiText.Localized(entry.Label)));
+      return routeLabels.Concat(aggregateLabels).Where(entry => counts.ContainsKey(entry.Key)).Select(entry =>
+          new ProfilePrivateMetricRow(entry.Key, entry.Label, counts[entry.Key],
+              metrics.PrivateCountCapped?.GetValueOrDefault(entry.Key) == true, localization)).ToArray();
     }
   }
 

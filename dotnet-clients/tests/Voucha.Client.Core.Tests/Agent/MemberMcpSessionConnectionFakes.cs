@@ -8,6 +8,8 @@ public sealed partial class MemberMcpSessionTests
   private sealed class FakeFactory(params TaskCompletionSource[] disconnectHolds) : IMemberMcpSessionConnectionFactory
   {
     public List<FakeConnection> Connections { get; } = [];
+    public FakeFactory? Legacy { get; set; }
+    public IMemberMcpSessionConnectionFactory? LegacyGrantRevocationFactory => Legacy;
     public int Created => Connections.Count;
     public bool HoldConnect { get; set; }
     public bool HoldRefresh { get; set; }

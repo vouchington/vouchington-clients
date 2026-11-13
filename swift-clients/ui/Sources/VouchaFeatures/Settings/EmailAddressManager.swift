@@ -71,7 +71,7 @@ public struct EmailAddressManager: View {
             case .enterCode:
                 Text(viewModel.emailAddress).font(Typography.subheadline)
                 TextField(
-                    UiMessages.string(.nativeSwiftSettingsMessage8CharacterCode, locale: nativeUiLocale),
+                    UiMessages.string(.nativeSwiftSettingsVerificationCodeLength, locale: nativeUiLocale),
                     text: $viewModel.verificationCode
                 )
                 .textFieldStyle(.roundedBorder)

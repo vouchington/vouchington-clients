@@ -30,6 +30,11 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
 
 ## Shared native behavior
 
+- Household invitations have native owner and invitee controls in Swift and .NET: invite by
+  username with an optional relationship, browse and revoke sent invitations, and accept or
+  decline received invitations. Notification activation reaches the received invitation list.
+  Rows use the embedded usernames with a translated member fallback, never an identity UUID.
+  Both lists forward opaque cursors and retain loaded rows on continuation failures.
 - Both clients forward opaque `after` cursors, append pages by stable entity id, preserve rows on
   continuation failure, and reset traversal when filters change. The API and parity requirements
   are defined by Vouchington's [pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
@@ -46,6 +51,14 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   local generation is text-only and never silently falls back to another provider.
 - Session cookies are stored through platform-secure stores and keyed by API origin. Native OAuth,
   passkey, and deep-link callbacks remain inside their platform app boundaries.
+- An explicit HTTP 403 `BOT_CHALLENGE_REQUIRED` response with action `bot-challenge.mutation`
+  can open the existing provider-controlled Turnstile challenge. After a fresh proof, the native
+  transports replay the captured mutation method, URL, and body bytes once with
+  `x-voucha-bot-challenge-token`. Cancellation, session changes, unrelated failures, and another
+  challenge do not trigger another attempt. Analytics delivery does not open an interactive
+  challenge. This implements the Turnstile proof slice of
+  [#486](https://github.com/vouchington/vouchington-clients/issues/486); dedicated generic App Attest
+  proof and its assertion-order acceptance remain separate from existing route-specific attestation.
 - Public landing pages render native item actions in Swift and .NET. Signed-in viewers send one
   visit per activation and click requests at item activation, including the outer item and member
   identifiers for topic-group entries. Existing RSS source and focused-item view requests use the
