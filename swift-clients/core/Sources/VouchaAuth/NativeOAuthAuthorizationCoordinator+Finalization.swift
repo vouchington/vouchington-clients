@@ -5,6 +5,7 @@ import VouchaModels
 
 extension NativeOAuthAuthorizationCoordinator {
     public func cancelFreshAccountConfirmation() {
+        freshConfirmationEpoch &+= 1
         let hasConfirmationResult = switch result {
         case .confirmationReady, .expired(_, .reauthenticate): true
         default: false

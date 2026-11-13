@@ -3,7 +3,8 @@ import Observation
 import SwiftUI
 import ViewInspector
 import VouchaAPI
-import VouchaCore
+import VouchaAuth
+@testable import VouchaCore
 @testable import VouchaFeatures
 import VouchaLocalization
 import VouchaModels
@@ -52,7 +53,17 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
             }
             try view.inspect().find(button: "Send verification code").tap()
             await waitForManagerControl {
-                (try? view.inspect().find(button: "Verify")) != nil
+                ((try? view.inspect().findAll(ViewType.TextField.self).count) ?? 0) > 1
+            }
+            // The request is gated by fresh account confirmation; confirm with the authenticator code.
+            try XCTUnwrap(view.inspect().findAll(ViewType.TextField.self).last).setInput("123456")
+            await waitForManagerControl {
+                (try? view.inspect().find(button: "Verify").isDisabled()) == false
+            }
+            try view.inspect().find(button: "Verify").tap()
+            await waitForManagerControl {
+                (try? view.inspect().findAll(ViewType.TextField.self).count) == 1
+                    && (try? view.inspect().find(button: "Verify")) != nil
             }
             XCTAssertEqual(
                 try view.inspect().find(ViewType.TextField.self).labelView().text().string(),
@@ -94,6 +105,20 @@ final class EmailAddressManagerViewModelTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let address = try decoder.decode(EmailAddress.self, from: data)
         XCTAssertEqual(address.id, "identity@example.com")
+    }
+
+    func testRecoverySheetGivesTheRecoveryManagerTheBroker() throws {
+        let client = makeClient()
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
+        let broker = NativeOAuthAuthorizationCoordinator(
+            client: client, sessionManager: SessionManager(client: client),
+            store: NativeOAuthAuthorizationStore(secureState: UserDefaultsNativePendingState(
+                key: "recovery", defaults: defaults
+            ))
+        )
+        let view = EmailVerificationRecoverySheet(client: client, broker: broker) {}
+        let manager = try view.inspect().find(EmailAddressManager.self).actualView()
+        XCTAssertTrue(manager.broker === broker)
     }
 
     func testRecoveryModifierPreservesContentWhileDismissed() throws {

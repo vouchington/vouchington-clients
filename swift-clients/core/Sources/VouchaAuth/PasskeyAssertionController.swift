@@ -31,25 +31,6 @@ struct PasskeyAuthenticationResponse: Encodable {
         let userHandle: String
     }
 
-    init(id: String, rawId: String, response: AssertionResponse) {
-        self.id = id
-        self.rawId = rawId
-        self.response = response
-    }
-
-    init(assertion: any ASAuthorizationPublicKeyCredentialAssertion) {
-        let credentialID = assertion.credentialID.base64URLEncodedString()
-        let userID: Data? = assertion.userID
-        id = credentialID
-        rawId = credentialID
-        response = .init(
-            authenticatorData: assertion.rawAuthenticatorData.base64URLEncodedString(),
-            clientDataJSON: assertion.rawClientDataJSON.base64URLEncodedString(),
-            signature: assertion.signature.base64URLEncodedString(),
-            userHandle: (userID ?? Data()).base64URLEncodedString()
-        )
-    }
-
     func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(PasskeyAuthenticationJSONValue.object([
@@ -64,6 +45,21 @@ struct PasskeyAuthenticationResponse: Encodable {
             "type": .string("public-key"),
             "clientExtensionResults": .object([:])
         ]))
+    }
+}
+
+extension PasskeyAuthenticationResponse {
+    init(assertion: any ASAuthorizationPublicKeyCredentialAssertion) {
+        let credentialID = assertion.credentialID.base64URLEncodedString()
+        let userID: Data? = assertion.userID
+        id = credentialID
+        rawId = credentialID
+        response = .init(
+            authenticatorData: assertion.rawAuthenticatorData.base64URLEncodedString(),
+            clientDataJSON: assertion.rawClientDataJSON.base64URLEncodedString(),
+            signature: assertion.signature.base64URLEncodedString(),
+            userHandle: (userID ?? Data()).base64URLEncodedString()
+        )
     }
 }
 

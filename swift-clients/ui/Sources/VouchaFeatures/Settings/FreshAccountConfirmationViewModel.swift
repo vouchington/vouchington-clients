@@ -28,6 +28,7 @@ public final class FreshAccountConfirmationViewModel {
     let broker: NativeOAuthAuthorizationCoordinator?
     private var context: AccountConfirmationContext?
     private var continuation: CheckedContinuation<String, Error>?
+    private var isAdmitting = false
     var generation = UUID()
 
     public init(
@@ -41,8 +42,12 @@ public final class FreshAccountConfirmationViewModel {
     }
 
     public func authorize() async throws -> String {
-        guard continuation == nil, !isPresented else { throw AccountConfirmationError.invalidProof }
-        guard let context = await service.client.accountConfirmationContext() else {
+        guard continuation == nil, !isPresented, !isAdmitting else { throw AccountConfirmationError.invalidProof }
+        // Reserve the slot before suspending so a concurrent call cannot overwrite our continuation.
+        isAdmitting = true
+        let admittedContext = await service.client.accountConfirmationContext()
+        isAdmitting = false
+        guard let context = admittedContext else {
             throw AccountConfirmationError.contextChanged
         }
         if case .confirmationReady = broker?.result { broker?.acknowledgeResult() }

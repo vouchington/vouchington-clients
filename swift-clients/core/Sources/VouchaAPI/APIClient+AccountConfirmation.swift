@@ -5,7 +5,9 @@ import Foundation
 
 /// An opaque snapshot used only to reject account confirmation after a cookie context change.
 public struct AccountConfirmationContext: Equatable, Sendable {
+    // periphery:ignore - compared only through the synthesized Equatable conformance
     let device: String
+    // periphery:ignore - compared only through the synthesized Equatable conformance
     let session: String
 }
 

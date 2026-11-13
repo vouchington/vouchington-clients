@@ -102,6 +102,7 @@ public struct RootView: View {
             }
             .environment(viewModelFactory.uiLocaleController)
             .environment(\.locale, viewModelFactory.uiLocaleController.locale.foundationLocale)
+            .environment(\.freshConfirmationBroker, viewModelFactory.nativeOAuthAuthorizationCoordinator)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if podcastPlaybackController.currentItem != nil {
                     PodcastMiniPlayerView(controller: podcastPlaybackController)

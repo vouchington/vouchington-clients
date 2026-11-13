@@ -143,6 +143,31 @@ extension FreshAccountConfirmationTests {
         } catch is CancellationError {}
     }
 
+    func testCancelWhileBrokerStartIsInFlightNeverOpensProviderOrLeavesPendingAuthorization() async throws {
+        let fixture = try makeFixture(brokerEnabled: true)
+        let broker = try XCTUnwrap(fixture.broker)
+        seedFreshBroker()
+        let waiting = Task { try await fixture.model.authorize() }
+        await waitForMethods(fixture.model)
+        let path = "/api/v1/auth/re-auth/providers/github/authorizations"
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "POST")
+        var opened: URL?
+        let starting = Task { await fixture.model.beginBroker(provider: .github) { opened = $0 } }
+        _ = try await barrier.wait()
+
+        fixture.model.cancel()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await starting.value
+
+        XCTAssertNil(opened)
+        XCTAssertNil(broker.pending)
+        XCTAssertTrue(broker.canStartAuthorization)
+        do { _ = try await waiting.value
+            XCTFail("Canceled confirmation must fail")
+        } catch is CancellationError {}
+    }
+
     private func seedFreshBroker() {
         CannedFeedURLProtocol.handlers["/api/v1/auth/re-auth/methods"] = (
             Data(#"{"has_email":false,"has_passkey":false,"has_totp":false,"providers":["github"]}"#.utf8), 200

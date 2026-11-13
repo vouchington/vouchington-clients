@@ -9,6 +9,7 @@ public struct EmailAddressManager: View {
     var nativeUiLocale
     @State
     private var viewModel: EmailAddressManagerViewModel
+    let broker: NativeOAuthAuthorizationCoordinator?
     private let recoveryMode: Bool
     private let onVerified: () -> Void
 
@@ -24,6 +25,7 @@ public struct EmailAddressManager: View {
             broker: broker,
             googleAssertion: googleAssertion
         ))
+        self.broker = broker
         self.recoveryMode = recoveryMode
         self.onVerified = onVerified
     }

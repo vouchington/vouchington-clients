@@ -22,6 +22,7 @@ public final class NativeOAuthAuthorizationCoordinator {
     var retainedCallbackURL: URL?
     var secureStateReadUnavailable = false
     var resultAcknowledgementNeedsRetry = false
+    var freshConfirmationEpoch = 0
 
     public init(
         client: APIClient,
@@ -77,6 +78,7 @@ public final class NativeOAuthAuthorizationCoordinator {
         isWorking = true
         errorMessage = nil
         defer { isWorking = false }
+        let epoch = freshConfirmationEpoch
         do {
             let proof = try NativeAuthorizationCompletionProof.generate()
             let endpoint: Endpoint = purpose == .reauthenticate
@@ -91,7 +93,8 @@ public final class NativeOAuthAuthorizationCoordinator {
                     reAuthToken: reAuthToken
                 )
             let response: BeginNativeOAuthAuthorizationResponse = try await client.send(endpoint)
-            guard hasNoAuthorizationState else { return }
+            // A fresh-confirmation cancel while this start was in flight must not save or open anything.
+            guard hasNoAuthorizationState, purpose != .reauthenticate || epoch == freshConfirmationEpoch else { return }
             guard let url = URL(string: response.redirectUrl),
                   url.scheme?.lowercased() == "https",
                   response.expiresAt > now(),

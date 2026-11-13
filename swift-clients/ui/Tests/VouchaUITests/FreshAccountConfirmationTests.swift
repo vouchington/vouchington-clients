@@ -40,6 +40,21 @@ final class FreshAccountConfirmationTests: XCTestCase {
         )
     }
 
+    func testConcurrentAuthorizeIsRejectedWithoutStrandingTheFirstRequest() async throws {
+        let fixture = try makeFixture()
+        let first = Task { try await fixture.model.authorize() }
+        let second = Task { try await fixture.model.authorize() }
+        do { _ = try await second.value
+            XCTFail("A concurrent authorization must be rejected")
+        } catch AccountConfirmationError.invalidProof {}
+        await waitForMethods(fixture.model)
+        fixture.model.usingEmail = false
+        fixture.model.code = "123456"
+        await fixture.model.verifyCode()
+        let proof = try await first.value
+        XCTAssertEqual(proof, "one-use-proof")
+    }
+
     func testTOTPRejectsEmailCodeWithoutSendingVerification() async throws {
         let fixture = try makeFixture()
         let waiting = Task { try await fixture.model.authorize() }
