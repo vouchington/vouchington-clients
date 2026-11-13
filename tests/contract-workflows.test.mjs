@@ -61,7 +61,7 @@ describe('native contract workflow boundary', () => {
       /path: candidate-clients/u,
       /persist-credentials: false/u,
       /run-id: \$\{\{ inputs\.producer-run-id \}\}/u,
-      /native-contract-\$\{\{ inputs\.producer-run-id \}\}-\$\{\{ inputs\.producer-run-attempt \}\}/u,
+      /name: native-contract-\$\{\{ inputs\.producer-run-id \}\}\n/u,
       /EXPECTED_REVISION_SHA: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
       /EXPECTED_CONTRACT_REPOSITORY: \$\{\{ inputs\.expected-contract-repository \}\}/u,
       /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u,
