@@ -24,6 +24,13 @@ final class FreshAccountConfirmationViewTests: XCTestCase {
         XCTAssertNoThrow(try view.inspect().find(text: "Invalid or expired verification code"))
     }
 
+    func testConfirmationContentScrollsSoEveryMethodAndCancelStayReachable() throws {
+        let model = try makeModel()
+        let scroll = try FreshAccountConfirmationView(model: model).inspect().find(ViewType.ScrollView.self)
+        XCTAssertNoThrow(try scroll.find(text: "Re-authenticate"))
+        XCTAssertNoThrow(try scroll.find(button: "Cancel"))
+    }
+
     func testAuthenticatorPaneChangesInputPurposeAndCancelClearsPresentation() throws {
         let model = try makeModel()
         let view = FreshAccountConfirmationView(model: model)
