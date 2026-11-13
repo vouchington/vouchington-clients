@@ -72,6 +72,80 @@ extension FreshAccountConfirmationTests {
         XCTAssertFalse(paths.contains("/api/v1/auth/re-auth/providers/github/proofs"))
     }
 
+    func testAnotherMethodSucceedingClearsPendingBrokerAuthorization() async throws {
+        let fixture = try makeFixture(brokerEnabled: true)
+        let broker = try XCTUnwrap(fixture.broker)
+        seedFreshBroker()
+        CannedFeedURLProtocol.handlers["/api/v1/auth/re-auth/methods"] = (
+            Data(#"{"has_email":false,"has_passkey":false,"has_totp":true,"providers":["github"]}"#.utf8), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/auth/mfa/re-auth/totp/verification"] = (
+            Data(#"{"re_auth_token":"totp-proof"}"#.utf8), 200
+        )
+        let waiting = Task { try await fixture.model.authorize() }
+        await waitForMethods(fixture.model)
+        await fixture.model.beginBroker(provider: .github) { _ in }
+        XCTAssertEqual(broker.pending?.purpose, .reauthenticate)
+        fixture.model.usingEmail = false
+        fixture.model.code = "123456"
+        await fixture.model.verifyCode()
+        let token = try await waiting.value
+        XCTAssertEqual(token, "totp-proof")
+        XCTAssertNil(broker.pending)
+        XCTAssertTrue(broker.canStartAuthorization)
+        XCTAssertFalse(broker.hasFreshConfirmationOwner)
+    }
+
+    func testCancelWhileCapabilitiesLoadNeverStartsOrOpensBrokerFlow() async throws {
+        let fixture = try makeFixture(brokerEnabled: true)
+        let broker = try XCTUnwrap(fixture.broker)
+        seedFreshBroker()
+        let waiting = Task { try await fixture.model.authorize() }
+        await waitForMethods(fixture.model)
+        let path = "/api/v1/auth/oauth/providers"
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        let barrier = CannedFeedURLProtocol.requestBarrier(path: path, method: "GET")
+        var opened: URL?
+        let starting = Task { await fixture.model.beginBroker(provider: .github) { opened = $0 } }
+        _ = try await barrier.wait()
+
+        fixture.model.cancel()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await starting.value
+
+        XCTAssertNil(opened)
+        XCTAssertNil(broker.pending)
+        XCTAssertTrue(broker.canStartAuthorization)
+        XCTAssertFalse(paths.contains("/api/v1/auth/re-auth/providers/github/authorizations"))
+        do { _ = try await waiting.value
+            XCTFail("Canceled confirmation must fail")
+        } catch is CancellationError {}
+    }
+
+    func testBrokerResultIsKeptWhileAnotherProofOperationIsBusy() async throws {
+        let fixture = try makeFixture(brokerEnabled: true)
+        let broker = try XCTUnwrap(fixture.broker)
+        seedFreshBroker()
+        let waiting = Task { try await fixture.model.authorize() }
+        await waitForMethods(fixture.model)
+        await fixture.model.beginBroker(provider: .github) { _ in }
+        XCTAssertTrue(try broker.handleIncomingURL(XCTUnwrap(URL(
+            string: "voucha://auth/oauth/callback?flow_id=broker-flow&completion_token=completion"
+        ))))
+        await waitForAccountConfirmationState { broker.result != nil }
+
+        fixture.model.isWorking = true
+        await fixture.model.consumeBrokerResult(broker.result)
+        XCTAssertNotNil(broker.result)
+        XCTAssertEqual(fixture.model.brokerFlowID, "broker-flow")
+        XCTAssertFalse(paths.contains("/api/v1/auth/re-auth/providers/github/proofs"))
+
+        fixture.model.isWorking = false
+        await fixture.model.consumeBrokerResult(broker.result)
+        let token = try await waiting.value
+        XCTAssertEqual(token, "broker-proof")
+    }
+
     func testFailedBrokerCompletionIsVisibleAndOnlyExplicitRetryStartsANewFlow() async throws {
         let fixture = try makeFixture(brokerEnabled: true)
         let broker = try XCTUnwrap(fixture.broker)

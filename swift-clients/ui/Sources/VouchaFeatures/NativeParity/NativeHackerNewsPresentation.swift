@@ -17,10 +17,30 @@ extension NativeRouteSurfaceViewModel {
 
     /// Refresh the backend flag. A failed request keeps the last known value (hidden initially).
     func refreshHackerNewsReferencesVisibility() async {
+        // Overlapping refreshes (initial load and pull-to-refresh) can finish out of order.
+        hackerNewsConfigGeneration += 1
+        let generation = hackerNewsConfigGeneration
         guard let client,
               let visible = await HackerNewsReferencesVisibility.fetch(client: client) else { return }
+        guard generation == hackerNewsConfigGeneration else { return }
+        let wasVisible = hackerNewsReferencesVisible
         hackerNewsReferencesVisible = visible
         if !visible, hasHackerNewsReferences { hasHackerNewsReferences = false }
+        // A route-selected filter now changes the effective query: restart the first page and
+        // supersede the unfiltered load so its rows and cursor are discarded.
+        if visible, !wasVisible, hasHackerNewsReferences, supportsHackerNewsFilter {
+            hackerNewsFilterRevision += 1
+            state = .idle
+            hackerNewsFilterTask = Task { await load() }
+        }
+    }
+
+    /// User-initiated retry: reload the surface and retry the flag independently, so a failed
+    /// initial config fetch does not hide the filter forever.
+    func retryLoad() async {
+        async let config: Void = refreshHackerNewsReferencesVisibility()
+        await load()
+        await config
     }
 
     func hackerNewsDetail(_ detail: UiVerbatimText, references: HackerNewsReferences?) -> UiVerbatimText {

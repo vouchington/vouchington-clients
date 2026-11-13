@@ -39,6 +39,8 @@ public final class NativeRouteSurfaceViewModel {
 
     /// The backend flag; the filter stays hidden until a request reports references visible.
     public internal(set) var hackerNewsReferencesVisible = false
+    /// Bumped per config request; only the newest request may publish its result.
+    @ObservationIgnored var hackerNewsConfigGeneration = 0
 
     var profileHackerNewsReferences: [String: HackerNewsReferences] = [:]
     public internal(set) var focusedHackerNewsReferences: HackerNewsReferences?

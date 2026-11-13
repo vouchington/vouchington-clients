@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using Voucha.Client.App.Controls;
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Posts;
 using Xunit;
@@ -18,7 +19,8 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     using var locale = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var handler = new TimeRangePostHandler();
     using var model = new PostsListViewModel(new ApiPostsService(new(new HttpClient(handler)
-    { BaseAddress = new Uri("https://api.test") })), new UiLocalization(locale), locale);
+    { BaseAddress = new Uri("https://api.test") })), new UiLocalization(locale), locale,
+        new HackerNewsReferenceGate(_ => Task.FromResult(new HackerNewsConfigResponse(true, "1y"))));
     var page = new PostsPage(model, new FilterSession(true), null!, Recovery(locale));
     var scope = new FetchPostsRequest(PostTypes: "review", ReviewTopic: "canonical-topic", Sort: "following_new");
     page.ConfigureBrowseScope(scope, topicScope: true);
