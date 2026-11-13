@@ -1,10 +1,18 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.App.Pages;
 
 public partial class PostsPage
 {
   private FetchPostsRequest? browseScope;
+
+  // The view model clears the filter when the backend flag turns off; mirror it so the page never
+  // re-sends (or toggles against) a selection the view model already dropped.
+  private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+  {
+    if (e.PropertyName == nameof(PostsListViewModel.HackerNewsFilter)) hasHackerNewsReferences = viewModel.HackerNewsFilter;
+  }
 
   public void ConfigureBrowseScope(FetchPostsRequest scope, bool topicScope = false)
   {

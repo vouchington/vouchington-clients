@@ -48,7 +48,7 @@ final class UserProfileCappedCountTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(rows.map(\.capped), [true, false, true, false])
         let view = surface.privateCollectionCountsView(profile)
         XCTAssertNoThrow(try view.inspect().find(text: "Saved posts"))
-        XCTAssertNoThrow(try view.inspect().find(text: "Saved feed items"))
+        XCTAssertNoThrow(try view.inspect().find(text: "Saved RSS Items"))
         XCTAssertNoThrow(try view.inspect().find(text: "5+"))
         XCTAssertNoThrow(try view.inspect().find(text: "1,000+"))
         XCTAssertNoThrow(try view.inspect().find(text: "1,000"))
@@ -82,19 +82,26 @@ final class UserProfileCappedCountTests: NativeRouteSurfaceViewModelTestCase {
         let expected: [(String, UiMessageKey)] = [
             ("posts_saved", .nativeSwiftRouteSurfaceSavedPosts),
             ("communities_saved", .nativeSwiftRouteSurfaceSavedCommunities),
-            ("rss_feed_items_saved", .nativeSwiftRouteSurfaceSavedFeedItems),
+            ("rss_feed_items_saved", .nativeDotnetBookmarksSavedRssItems),
             ("urls_saved", .nativeSwiftRouteSurfaceSavedUrls),
             ("posts_hidden", .nativeDotnetBookmarksHiddenPosts),
             ("posts_following", .nativeDotnetBookmarksFollowedPosts),
+            ("posts_subscribed", .nativeDotnetBookmarksSubscribedToPosts),
             ("topics_blocked", .nativeDotnetBookmarksBlockedTopics),
             ("topics_muted", .nativeDotnetBookmarksMutedTopics),
             ("topics_viewed", .nativeDotnetBookmarksViewedTopics),
             ("topics_dismissed_recommendations", .nativeDotnetBookmarksDismissedTopicRecommendations),
             ("users_blocked", .nativeDotnetBookmarksBlockedUsers),
             ("users_muted", .nativeDotnetBookmarksMutedUsers),
-            ("users_subscribed_posts", .nativeDotnetBookmarksSubscribedToPosts),
+            ("users_subscribed_posts", .nativeDotnetBookmarksSubscribedUsersForPosts),
             ("users_dismissed_recommendations", .nativeDotnetBookmarksDismissedFriendRecommendations),
             ("rss_feed_items_hidden", .extractedUsersUserRssFeedItemRoutesHiddenRssItems28d66515),
+            ("rss_feed_items_viewed", .nativeDotnetBookmarksViewedRssItems),
+            ("rss_feeds_subscribed", .nativeDotnetBookmarksSubscribedRssFeeds),
+            ("rss_feeds_muted", .nativeDotnetBookmarksMutedRssFeeds),
+            ("rss_feeds_viewed", .nativeDotnetBookmarksViewedRssFeeds),
+            ("topics_subscribed_posts", .nativeDotnetBookmarksSubscribedTopicsForPosts),
+            ("topics_subscribed_news", .nativeDotnetBookmarksSubscribedTopicsForNews),
             ("domains_blocked", .nativeDotnetBookmarksBlockedDomains),
             ("domains_muted", .nativeDotnetBookmarksMutedDomains),
             ("communities_proxy_following", .nativeDotnetBookmarksProxyFollowedCommunities),

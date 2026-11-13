@@ -30,6 +30,13 @@ public sealed partial class ProfileViewModel
   private static readonly (string Key, UiMessageKey Label)[] AggregatePrivateMetricLabels =
   [
     ("rss_feed_items_hidden", UiMessageKey.ExtractedUsersUserRssFeedItemRoutesHiddenRssItems28d66515),
+    ("rss_feed_items_saved", UiMessageKey.NativeDotnetBookmarksSavedRssItems),
+    ("rss_feed_items_viewed", UiMessageKey.NativeDotnetBookmarksViewedRssItems),
+    ("rss_feeds_subscribed", UiMessageKey.NativeDotnetBookmarksSubscribedRssFeeds),
+    ("rss_feeds_muted", UiMessageKey.NativeDotnetBookmarksMutedRssFeeds),
+    ("rss_feeds_viewed", UiMessageKey.NativeDotnetBookmarksViewedRssFeeds),
+    ("topics_subscribed_posts", UiMessageKey.NativeDotnetBookmarksSubscribedTopicsForPosts),
+    ("topics_subscribed_news", UiMessageKey.NativeDotnetBookmarksSubscribedTopicsForNews),
   ];
 
   public IReadOnlyList<ProfilePrivateMetricRow> PrivateMetricRows

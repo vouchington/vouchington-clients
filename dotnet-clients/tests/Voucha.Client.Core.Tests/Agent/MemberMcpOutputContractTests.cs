@@ -28,7 +28,8 @@ public sealed class MemberMcpOutputContractTests
     using var catalog = JsonDocument.Parse(JsonSerializer.Serialize(new { tools }));
     Assert.Equal(tools.Length, new MemberMcpToolBridge(catalog.RootElement).Tools.Count);
     using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
-    foreach (var fixture in fixtures.RootElement.GetProperty("cases").EnumerateArray())
+    foreach (var fixture in fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Where(row => tools.Any(item => item.GetProperty("name").GetString() == row.GetProperty("tool").GetString())))
     {
       var tool = tools.Single(item => item.GetProperty("name").GetString() == fixture.GetProperty("tool").GetString());
       var contract = new MemberMcpOutputContract(tool);

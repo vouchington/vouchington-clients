@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Settings;
 
 namespace Voucha.Client.Core.Auth;
 
@@ -7,6 +9,7 @@ public sealed partial class NativeOAuthAuthorizationCoordinator
 {
   private readonly object committedDisconnectSync = new();
   private readonly HashSet<OAuthBrokerProvider> committedDisconnects = [];
+  private readonly IUiLocalization localization;
 
   public bool IsProviderConnected(OAuthBrokerProvider provider)
   {
@@ -51,7 +54,8 @@ public sealed partial class NativeOAuthAuthorizationCoordinator
     }
     catch (Exception ex)
     {
-      RecordFailure(ex.Message);
+      var key = AccountChangeFailureMessage.KeyFor(ex, AccountChangeContext.SignInMethodRemoval);
+      RecordFailure(key is { } known ? localization.Localize(known) : ex.Message);
     }
     finally
     {

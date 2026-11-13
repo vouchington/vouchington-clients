@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using Voucha.Client.Core.Bookmarks;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
 
@@ -25,6 +26,7 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
   private bool? hasHackerNewsReferences;
+  private readonly HackerNewsReferenceGate? hackerNewsReferences;
 
   public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();
 
@@ -52,12 +54,15 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
       NewsFeedScope? initialScope,
       IBookmarkService? bookmarkService = null,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      HackerNewsReferenceGate? hackerNewsReferences = null)
   {
     this.newsFeedService = newsFeedService;
     this.bookmarkService = bookmarkService ?? NullBookmarkService.Instance;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    this.hackerNewsReferences = hackerNewsReferences;
+    hackerNewsSubscription = hackerNewsReferences?.Subscribe(this);
     this.feedKind = feedKind;
     selectedSourceFeedType = feedKind.GetDefaultSourceFeedType();
     selectedScope = initialScope ?? feedKind.GetAuthenticatedScope();
@@ -100,17 +105,6 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
   public string AllSourcesScopeLabel => feedKind.GetAllSourcesScopeLabel(localization);
 
   public string HackerNewsFilterLabel => localization.Localize(UiMessageKey.SharedHackerNewsFilterLabel);
-
-  public bool IsHackerNewsFilterSelected => hasHackerNewsReferences == true;
-
-  public bool IsHackerNewsFilterVisible => !SelectedScope.IsSourcesScope();
-
-  public async Task ToggleHackerNewsFilterAsync(CancellationToken cancellationToken = default)
-  {
-    hasHackerNewsReferences = IsHackerNewsFilterSelected ? null : true;
-    OnPropertyChanged(nameof(IsHackerNewsFilterSelected));
-    await LoadAsync(cancellationToken).ConfigureAwait(true);
-  }
 
   public IReadOnlyList<NewsFeedItem> Items
   {
@@ -157,9 +151,16 @@ public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, 
       "CA1031:Do not catch general exception types",
       Justification = "LoadAsync converts service load failures into state before callers such as MAUI async event handlers observe them.")]
   public async Task LoadAsync(CancellationToken cancellationToken = default)
-      => await LoadFeedPageAsync(replace: true, cancellationToken).ConfigureAwait(true);
+      => await LoadFeedPageAsync(
+          replace: true,
+          cancellationToken,
+          RefreshHackerNewsReferencesAsync(cancellationToken)).ConfigureAwait(true);
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    hackerNewsSubscription?.Dispose();
+    localeSubscription?.Dispose();
+  }
 
   public void OnUiLocaleChanged()
   {

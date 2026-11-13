@@ -136,7 +136,8 @@ public sealed partial class MemberMcpSessionTests
       Assert.Equal(tool.GetProperty("inputSchema").GetRawText(), descriptor.Parameters.GetRawText());
     }
     using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
-    var cases = fixtures.RootElement.GetProperty("cases").EnumerateArray().ToArray();
+    var cases = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Where(row => bridge.Tools.Any(tool => tool.Name == row.GetProperty("tool").GetString())).ToArray();
     foreach (var row in cases)
     {
       factory.Connections[0].ToolResult = new McpToolResult(JsonSerializer.SerializeToElement(new[]

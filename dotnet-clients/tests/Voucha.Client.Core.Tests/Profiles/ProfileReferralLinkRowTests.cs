@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Profiles;
 using Voucha.Client.Core.Tests.Api;
 using Xunit;
@@ -29,6 +30,7 @@ public sealed class ProfileReferralLinkRowTests
         DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, "Program", "program");
 
     Assert.Equal("My link", ProfileReferralLinkRow.From(link).Title);
+    Assert.Equal("My link", UiLocalization.English.Resolve(ProfileReferralLinkRow.From(link).TitleText));
     Assert.Throws<ArgumentNullException>(() => ProfileReferralLinkRow.From(null!));
     Assert.Throws<ArgumentNullException>(() => ProfileNavigationTargets.ReferralLink(null!));
   }

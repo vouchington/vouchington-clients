@@ -30,6 +30,10 @@ public enum VouchaError: LocalizedError, Sendable {
     public static let identityRequired = "IDENTITY_REQUIRED"
     public static let emailVerificationRequired = "EMAIL_VERIFICATION_REQUIRED"
     public static let mfaReauthRequired = "MFA_REAUTH_REQUIRED"
+    /// 400 on email remove, OAuth disconnect, and passkey delete when it would leave no sign-in method.
+    public static let lastSignInMethodRemovalForbidden = "LAST_SIGN_IN_METHOD_REMOVAL_FORBIDDEN"
+    /// 403 on passkey/TOTP delete when an administrator would be left without an MFA factor.
+    public static let administratorMfaRequired = "ADMINISTRATOR_MFA_REQUIRED"
     /// Backend code on the 403 that `verifyCaptchaOrAttestation` throws when the App Attest
     /// Turnstile bypass itself is rejected (e.g. disabled via config) — see
     /// `backend/services/captcha/verify-or-attestation.mts`. Callers use this to distinguish a
@@ -123,6 +127,35 @@ public enum VouchaError: LocalizedError, Sendable {
         case let .api(_, preconditionCode): preconditionCode == VouchaError.tagLimitReached
         case let .apiMessage(_, preconditionCode, _): preconditionCode == VouchaError.tagLimitReached
         default: false
+        }
+    }
+
+    /// The stable backend `code` of any API-shaped error, or nil for transport and local failures.
+    public var apiCode: String? {
+        switch self {
+        case let .forbidden(code), let .api(_, code), let .apiMessage(_, code, _): code
+        default: nil
+        }
+    }
+
+    public var isMfaReauthRequired: Bool {
+        apiCode == VouchaError.mfaReauthRequired
+    }
+
+    public var isLastSignInMethodRemovalForbidden: Bool {
+        apiCode == VouchaError.lastSignInMethodRemovalForbidden
+    }
+
+    public var isAdministratorMfaRequired: Bool {
+        apiCode == VouchaError.administratorMfaRequired
+    }
+
+    /// HTTP status of API-shaped errors; `.forbidden` is always 403.
+    public var apiStatusCode: Int? {
+        switch self {
+        case .forbidden: 403
+        case let .api(status, _), let .apiMessage(status, _, _): status
+        default: nil
         }
     }
 }

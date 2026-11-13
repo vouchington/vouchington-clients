@@ -55,7 +55,7 @@ public sealed partial class ProfileViewModel
       case NativeUserProfileCollectionKind.ReferralLinks:
         var referralLinks = await profileCollectionsService!.FetchReferralLinksAsync(userId, after, cancellationToken).ConfigureAwait(true);
         if (!IsCurrent(version, scope)) return;
-        ReferralLinkItems = Merge(ReferralLinkItems, referralLinks.Results.Select(ProfileReferralLinkRow.From), append, row => row.Id);
+        ReferralLinkItems = Merge(ReferralLinkItems, referralLinks.Results.Select(link => ProfileReferralLinkRow.From(link, localization)), append, row => row.Id);
         collectionPageInfo = referralLinks.PageInfo;
         break;
       default:

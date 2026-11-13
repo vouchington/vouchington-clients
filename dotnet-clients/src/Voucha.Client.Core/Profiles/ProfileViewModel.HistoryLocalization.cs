@@ -23,6 +23,7 @@ public sealed partial class ProfileViewModel
     TopicItems = TopicItems.Select(row => row.WithLocalization(localization)).ToArray();
     SourceItems = SourceItems.Select(row => row with { Localization = localization }).ToArray();
     CommunityItems = CommunityItems.Select(row => row with { Localization = localization }).ToArray();
+    ReferralLinkItems = ReferralLinkItems.Select(row => row with { Localization = localization }).ToArray();
   }
 
   private IReadOnlyList<ProfileHistoryTabRow> BuildTabs(

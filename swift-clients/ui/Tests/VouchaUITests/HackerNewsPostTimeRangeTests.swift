@@ -17,6 +17,7 @@ final class HackerNewsPostTimeRangeTests: NativeRouteSurfaceViewModelTestCase {
     func testPostToggleForcesYearDropsCursorAndRendersOnlyBoundedOptions() async throws {
         registerPages()
         let model = try PostsListViewModel(client: makeClient(), feedType: "all", timeRange: .lastWeek)
+        model.hackerNewsReferencesVisible = true
         await model.load()
         await model.loadNextPage()
         model.hasHackerNewsReferences = true
@@ -71,6 +72,7 @@ final class HackerNewsPostTimeRangeTests: NativeRouteSurfaceViewModelTestCase {
             entry: route.entry, client: makeClient(), routeMatch: route.match,
             routeQuery: "time_range=1w&after=old"
         )
+        model.hackerNewsReferencesVisible = true
         let surface = NativeListSurface(viewModel: model)
         try surface.inspect().find(ViewType.Toggle.self).tap()
         await model.hackerNewsFilterTask?.value
@@ -100,6 +102,7 @@ final class HackerNewsPostTimeRangeTests: NativeRouteSurfaceViewModelTestCase {
             entry: route.entry, client: makeClient(), routeMatch: route.match,
             routeQuery: "has_hacker_news_references=true&time_range=all"
         )
+        model.hackerNewsReferencesVisible = true
         await model.load()
         XCTAssertEqual(query("review_topic"), "topic-1")
         XCTAssertEqual(query("post_types"), "review")

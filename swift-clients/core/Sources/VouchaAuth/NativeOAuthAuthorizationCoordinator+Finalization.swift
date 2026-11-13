@@ -4,49 +4,13 @@ import VouchaCore
 import VouchaModels
 
 extension NativeOAuthAuthorizationCoordinator {
-    public func cancelFreshAccountConfirmation() {
-        freshConfirmationEpoch &+= 1
-        let hasConfirmationResult = switch result {
-        case .confirmationReady, .expired(_, .reauthenticate): true
-        default: false
-        }
-        guard pending?.purpose == .reauthenticate || hasConfirmationResult else { return }
-        do {
-            try store.discardAuthorization()
-            retainedCallbackURL = nil
-            synchronizeFromStore()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    public func discardAuthorizationAfterSuccessfulSignIn() {
-        do {
-            try store.discardAuthorization()
-            retainedCallbackURL = nil
-            resultAcknowledgementNeedsRetry = false
-            errorMessage = nil
-            synchronizeFromStore()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// Drops a restored or late fresh-confirmation result when no confirmation view model is waiting for it.
-    public func discardFreshConfirmationWithoutOwner() {
-        guard !hasFreshConfirmationOwner else { return }
-        switch result {
-        case .confirmationReady, .expired(_, .reauthenticate): cancelFreshAccountConfirmation()
-        default: break
-        }
-    }
-
     func finalize(_ pending: PendingNativeOAuthAuthorization) async {
         guard let completionToken = pending.completionToken,
               acquireFinalizationLease(for: pending)
         else { return }
         isWorking = true
         errorMessage = nil
+        let epoch = freshConfirmationEpoch
         defer {
             store.releaseFinalizationLease(flowId: pending.flowId)
             isWorking = false
@@ -55,6 +19,7 @@ extension NativeOAuthAuthorizationCoordinator {
 
         do {
             while now() < pending.expiresAt {
+                if isFreshConfirmationAbandoned(pending, since: epoch) { return }
                 let response: NativeOAuthCompletionResponse = try await client.send(
                     .completeNativeOAuthAuthorization(
                         flowId: pending.flowId,
@@ -62,9 +27,11 @@ extension NativeOAuthAuthorizationCoordinator {
                         completionProofVerifier: pending.completionProofVerifier
                     )
                 )
+                if isFreshConfirmationAbandoned(pending, since: epoch) { return }
                 if try await handleCompletion(response, pending: pending) { return }
                 try await Task.sleep(for: .seconds(1))
             }
+            if isFreshConfirmationAbandoned(pending, since: epoch) { return }
             persistExpiration(for: pending)
         } catch is CancellationError {
             return

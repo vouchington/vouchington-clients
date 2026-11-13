@@ -74,6 +74,21 @@ final class UserProfileEndpointTests: XCTestCase {
         XCTAssertFalse(metrics.isVisibleCountCapped("unknown"))
     }
 
+    func testOwnerFixtureDecodesAllPrivateCountsWithCapFlags() throws {
+        let response = try makeVouchaDecoder().decode(
+            UserProfileResponse.self,
+            from: ApiFixtureLoader.data("native.users.profile.private-counts.owner")
+        )
+        let metrics = try XCTUnwrap(response.userMetrics)
+        let counts = try XCTUnwrap(metrics.privateCount)
+        let caps = try XCTUnwrap(metrics.privateCountCapped)
+        XCTAssertEqual(counts.count, 26)
+        XCTAssertEqual(Set(counts.keys), Set(caps.keys))
+        let capped = Set(caps.filter(\.value).keys)
+        XCTAssertEqual(capped, ["rss_feed_items_hidden", "rss_feed_items_saved", "topics_viewed"])
+        XCTAssertTrue(capped.allSatisfy { counts[$0] == 1_000 })
+    }
+
     func testAbsentCapMapsKeepCountsExact() throws {
         let metrics = try makeVouchaDecoder().decode(UserProfileMetrics.self, from: Data(#"""
         {"id":"user-1","count":{"reviews":4},"private_count":{"posts_saved":1000}}

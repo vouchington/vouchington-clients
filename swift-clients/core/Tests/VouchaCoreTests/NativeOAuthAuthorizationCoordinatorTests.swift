@@ -11,6 +11,8 @@ final class NativeOAuthAuthorizationCoordinatorTests: XCTestCase {
         super.setUp()
         OAuthCoordinatorURLProtocol.responses = [:]
         OAuthCoordinatorURLProtocol.requests = []
+        OAuthCoordinatorURLProtocol.heldPath = nil
+        OAuthCoordinatorURLProtocol.holdGate = nil
     }
 
     func testLoadsCapabilitiesAndBeginsThenCancelsAuthorization() async throws {
@@ -431,46 +433,4 @@ struct CoordinatorFixture {
     let sessionManager: SessionManager
     let store: NativeOAuthAuthorizationStore
     let now: Date
-}
-
-final class OAuthCoordinatorURLProtocol: URLProtocol {
-    static let lock = NSLock()
-    static var responses: [String: [(Data, Int)]] = [:]
-    static var requests: [URLRequest] = []
-
-    override class func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        let path = request.url?.path ?? ""
-        let response = Self.lock.withLock { () -> (Data, Int) in
-            Self.requests.append(request)
-            guard var queued = Self.responses[path], !queued.isEmpty else {
-                return (
-                    path == "/api/v1/session" ? ApiFixtureLoader
-                        .data("native.auth.session.refresh.rotated") : Data("{}".utf8),
-                    200
-                )
-            }
-            let next = queued.removeFirst()
-            Self.responses[path] = queued
-            return next
-        }
-        let http = HTTPURLResponse(
-            url: request.url!,
-            statusCode: response.1,
-            httpVersion: "HTTP/1.1",
-            headerFields: ["Content-Type": "application/json"]
-        )!
-        client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: response.0)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
 }

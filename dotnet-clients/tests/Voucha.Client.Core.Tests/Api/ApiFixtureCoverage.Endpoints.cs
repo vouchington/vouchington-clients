@@ -31,6 +31,7 @@ internal static partial class ApiFixtureCoverage
         ["native.import-export.topics.export.download"] = VouchaApiEndpoints.ExportTopicsDownload(),
         ["native.feature-flags.default"] = VouchaApiEndpoints.FeatureFlags(),
         ["native.captcha-config.default"] = VouchaApiEndpoints.CaptchaConfig(),
+        ["native.hacker-news-config.default"] = VouchaApiEndpoints.HackerNewsConfig(),
         ["native.topic-recommendations.top-hashtags.default"] = VouchaApiEndpoints.TopHashtags(),
         ["native.dynamic-config.namespaces.developer"] = VouchaApiEndpoints.DynamicConfigNamespaces(),
         ["native.dynamic-config.namespace.typed"] = VouchaApiEndpoints.DynamicConfigNamespace("recaptcha-config"),
@@ -274,6 +275,7 @@ internal static partial class ApiFixtureCoverage
         ["swift.users.following.default"] = VouchaApiEndpoints.UserFollowing("user-abc"),
         ["native.users.profile.default"] = VouchaApiEndpoints.User("alice", true),
         ["native.users.profile.restricted"] = VouchaApiEndpoints.User("restricted", true),
+        ["native.users.profile.private-counts.owner"] = VouchaApiEndpoints.User("alice", true),
         ["native.users.vouch-context.default"] = VouchaApiEndpoints.UserTrustContext("user-abc"),
         ["native.users.profile.posts.all"] = VouchaApiEndpoints.AllPosts(new FetchPostsRequest(
             PostTypes: "review,discussion,comment",

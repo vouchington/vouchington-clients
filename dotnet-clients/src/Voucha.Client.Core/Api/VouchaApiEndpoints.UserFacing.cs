@@ -12,6 +12,8 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest CaptchaConfig() => Get("/api/v1/captcha-config");
 
+  public static ApiRequest HackerNewsConfig() => Get("/api/v1/hacker-news-config");
+
   public static ApiRequest FediverseSearch(
       string query,
       string? providers = null,

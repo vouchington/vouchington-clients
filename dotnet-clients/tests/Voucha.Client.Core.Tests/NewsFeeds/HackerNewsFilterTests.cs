@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Tests.Api;
 using Xunit;
@@ -15,7 +16,12 @@ public sealed class HackerNewsFilterTests
     var handler = new PageHandler(Page("first"), Page("filtered"), Page(null));
     var service = new ApiNewsFeedService(
         new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
-    var viewModel = new NewsFeedsViewModel(service, NewsFeedKind.Podcasts, NewsFeedScope.AllPodcasts);
+    var viewModel = new NewsFeedsViewModel(
+        service,
+        NewsFeedKind.Podcasts,
+        NewsFeedScope.AllPodcasts,
+        hackerNewsReferences: new HackerNewsReferenceGate(
+            _ => Task.FromResult(new HackerNewsConfigResponse(true, "1y"))));
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     await viewModel.ToggleHackerNewsFilterAsync(TestContext.Current.CancellationToken);
@@ -27,6 +33,35 @@ public sealed class HackerNewsFilterTests
         path => ApiQueryAssertions.Equal("/api/v1/rss-feed-items?limit=20&media_type=audio&has_hacker_news_references=true", path),
         path => ApiQueryAssertions.Equal("/api/v1/rss-feed-items?limit=20&after=filtered&media_type=audio&has_hacker_news_references=true", path));
     Assert.False(viewModel.HasMore);
+  }
+
+  [Fact]
+  public async Task FlagTurningOffDuringRefreshNeverMixesFilteredCursorWithUnfilteredQuery()
+  {
+    var handler = new PageHandler(Page("first"), Page("filtered"), Page("unfiltered"), Page("stale"), Page(null));
+    var service = new ApiNewsFeedService(
+        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
+    var configFlip = new TaskCompletionSource<HackerNewsConfigResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var fetches = 0;
+    var viewModel = new NewsFeedsViewModel(
+        service,
+        NewsFeedKind.Podcasts,
+        NewsFeedScope.AllPodcasts,
+        hackerNewsReferences: new HackerNewsReferenceGate(
+            _ => ++fetches <= 2 ? Task.FromResult(new HackerNewsConfigResponse(true, "1y")) : configFlip.Task));
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.ToggleHackerNewsFilterAsync(TestContext.Current.CancellationToken);
+    Assert.True(viewModel.IsHackerNewsFilterSelected);
+
+    var refresh = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, handler.Paths.Count);
+    configFlip.SetResult(new HackerNewsConfigResponse(false, "1y"));
+    await refresh;
+    await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsHackerNewsFilterSelected);
+    Assert.All(handler.Paths.Skip(2), path => Assert.DoesNotContain("has_hacker_news_references", path));
+    Assert.Contains("after=unfiltered", handler.Paths[^1], StringComparison.Ordinal);
   }
 
   [Fact]

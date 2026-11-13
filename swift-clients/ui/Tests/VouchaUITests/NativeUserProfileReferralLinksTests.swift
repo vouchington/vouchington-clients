@@ -51,7 +51,7 @@ final class NativeUserProfileReferralLinksTests: NativeRouteSurfaceViewModelTest
     func testRowWithoutProgramIdHasNoNavigationTarget() throws {
         let link = try JSONDecoder().decode(NativeReferralLink.self, from: Data(#"{"id":"link-1"}"#.utf8))
         XCTAssertNil(NativeUserProfileNavigationTarget.referralLink(link))
-        XCTAssertEqual(NativeUserProfileReferralLinkRow(link: link, onOpen: {}).title, "link-1")
+        XCTAssertEqual(NativeUserProfileReferralLinkRow(link: link, onOpen: {}).title, .verbatim("link-1"))
     }
 
     func testLoadMoreKeepsSingleRowWhenNoNextPage() async throws {
