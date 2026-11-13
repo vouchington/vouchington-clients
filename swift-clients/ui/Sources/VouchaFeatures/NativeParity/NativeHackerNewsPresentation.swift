@@ -1,5 +1,4 @@
 import Foundation
-import VouchaAPI
 import VouchaLocalization
 import VouchaModels
 

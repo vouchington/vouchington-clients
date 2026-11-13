@@ -38,9 +38,9 @@ extension NativeRouteSurfaceViewModel {
 
     func postTimeRangePath(_ range: PostTimeRange) -> String {
         var components = URLComponents()
-        components.path = routeMatch?.path ?? "/posts"
+        components.percentEncodedPath = routeMatch?.path ?? "/posts"
         components.percentEncodedQuery = routeQuery
-        var items = components.queryItems ?? []
+        var items = components.percentEncodedQueryItems ?? []
         items.removeAll { $0.name == "time_range" || $0.name == "after" || $0.name == "has_hacker_news_references" }
         if hasHackerNewsReferences, supportsHackerNewsFilter {
             items.append(.init(name: "has_hacker_news_references", value: "true"))
@@ -48,7 +48,7 @@ extension NativeRouteSurfaceViewModel {
         if range != .last30Days || (hasHackerNewsReferences && supportsHackerNewsFilter) {
             items.append(.init(name: "time_range", value: range.rawValue))
         }
-        components.queryItems = items.isEmpty ? nil : items
+        components.percentEncodedQueryItems = items.isEmpty ? nil : items
         return components.string ?? components.path
     }
 }

@@ -40,4 +40,53 @@ public sealed partial class ProfileViewModelSafetyTests
       Assert.Equal("review", request.PostTypes);
     });
   }
+  [Fact]
+  public async Task ProfileRangeChangeKeepsTheSelectedHistoryTab()
+  {
+    var requests = new List<FetchPostsRequest>();
+    var posts = new RecordingPostsService
+    {
+      FetchPostsAsyncOverride = (_, request) =>
+      {
+        requests.Add(request);
+        return Task.FromResult(new PostsFeedResponse(
+            [Reference("row")], new PageInfo(null, false, null),
+            new Dictionary<string, Post> { ["row"] = new("row", "discussion", "row", "Body", request.Creator) },
+            new Dictionary<string, User>(), new Dictionary<string, Community>()));
+      },
+    };
+    using var model = NewViewModel(new User("user-2", "bob", "Hello"), posts: posts);
+    await model.LoadPublicScopeAsync("bob", new(NativeUserProfileSection.Posts,
+        NativeUserProfileCollectionKind.Reviews), TestContext.Current.CancellationToken);
+    await model.SelectHistoryTabAsync(ProfileHistoryTab.Discussions, TestContext.Current.CancellationToken);
+    await model.SelectTimeRangeAsync("1y", TestContext.Current.CancellationToken);
+    Assert.Equal(ProfileHistoryTab.Discussions, model.SelectedHistoryTab);
+    Assert.Equal("discussion", requests[^1].PostTypes);
+    Assert.Equal("1y", requests[^1].TimeRange);
+  }
+
+  [Fact]
+  public async Task FailedProfileRangeChangeClearsThePreviousRangeRows()
+  {
+    var fail = false;
+    var posts = new RecordingPostsService
+    {
+      FetchPostsAsyncOverride = (_, request) =>
+      {
+        if (fail) throw new HttpRequestException("offline");
+        return Task.FromResult(new PostsFeedResponse(
+            [Reference("old")], new PageInfo(null, false, null),
+            new Dictionary<string, Post> { ["old"] = new("old", "review", "old", "Body", request.Creator) },
+            new Dictionary<string, User>(), new Dictionary<string, Community>()));
+      },
+    };
+    using var model = NewViewModel(new User("user-2", "bob", "Hello"), posts: posts);
+    await model.LoadPublicScopeAsync("bob", new(NativeUserProfileSection.Posts,
+        NativeUserProfileCollectionKind.Reviews), TestContext.Current.CancellationToken);
+    Assert.Single(model.HistoryItems);
+    fail = true;
+    await model.SelectTimeRangeAsync("1y", TestContext.Current.CancellationToken);
+    Assert.Empty(model.HistoryItems);
+    Assert.Equal("offline", model.CollectionErrorMessage);
+  }
 }

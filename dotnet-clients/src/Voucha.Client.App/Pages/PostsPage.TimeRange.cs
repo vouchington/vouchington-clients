@@ -18,6 +18,13 @@ public partial class PostsPage
     DiscussionsButton.IsVisible = !topicScope;
   }
 
+  /// <summary>Applies a later post route to this already-open page and reloads it.</summary>
+  public Task ApplyBrowseScopeAsync(FetchPostsRequest scope)
+  {
+    ConfigureBrowseScope(scope);
+    return LoadCurrentAsync();
+  }
+
   private async void OnTimeRangeSelected(object? sender, string value) =>
       await viewModel.SelectBrowseTimeRangeAsync(value).ConfigureAwait(true);
 }

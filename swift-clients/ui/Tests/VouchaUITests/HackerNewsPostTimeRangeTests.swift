@@ -120,6 +120,19 @@ final class HackerNewsPostTimeRangeTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNil(month.queryItems?.first { $0.name == "after" })
     }
 
+    func testTimeRangePathKeepsPercentEncodedRouteAndQuery() throws {
+        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/a%2Fb/reviews"))
+        let model = try NativeRouteSurfaceViewModel(
+            entry: route.entry, client: makeClient(), routeMatch: route.match,
+            routeQuery: "tag=C%2B%2B&after=cursor"
+        )
+        let path = model.postTimeRangePath(.lastYear)
+        XCTAssertTrue(path.hasPrefix("/topic/a%2Fb/reviews?"), path)
+        XCTAssertTrue(path.contains("tag=C%2B%2B"), path)
+        XCTAssertFalse(path.contains("after="), path)
+        XCTAssertTrue(path.contains("time_range=1y"), path)
+    }
+
     private func query(_ name: String) -> String? {
         CannedFeedURLProtocol.capturedURLs.last
             .flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?
