@@ -42,7 +42,7 @@ def command(*args: str) -> str:
 def identity(package: Path) -> dict[str, str]:
     return {
         "run": os.environ["GITHUB_RUN_ID"],
-        "attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+        "attempt": os.environ.get("EXPECTED_ARTIFACT_RUN_ATTEMPT") or os.environ["GITHUB_RUN_ATTEMPT"],
         "revision": command("git", "-C", str(package), "rev-parse", "HEAD"),
         "xcode": command("xcodebuild", "-version"),
         "sdk": command("xcrun", "--sdk", "macosx", "--show-sdk-version"),
