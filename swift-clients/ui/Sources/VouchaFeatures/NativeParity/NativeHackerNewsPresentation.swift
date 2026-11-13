@@ -17,8 +17,12 @@ extension NativeRouteSurfaceViewModel {
 
     /// Refresh the backend flag. A failed request keeps the last known value (hidden initially).
     func refreshHackerNewsReferencesVisibility() async {
+        // Overlapping refreshes (initial load and pull-to-refresh) can finish out of order.
+        hackerNewsConfigGeneration += 1
+        let generation = hackerNewsConfigGeneration
         guard let client,
               let visible = await HackerNewsReferencesVisibility.fetch(client: client) else { return }
+        guard generation == hackerNewsConfigGeneration else { return }
         let wasVisible = hackerNewsReferencesVisible
         hackerNewsReferencesVisible = visible
         if !visible, hasHackerNewsReferences { hasHackerNewsReferences = false }

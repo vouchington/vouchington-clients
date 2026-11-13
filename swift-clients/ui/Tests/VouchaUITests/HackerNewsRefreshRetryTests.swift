@@ -82,4 +82,37 @@ final class HackerNewsRefreshRetryTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertTrue(model.isHackerNewsFilterVisible)
     }
+
+    /// A config response that arrives after a newer request started must not publish: the newer
+    /// request owns the flag. A generation bump while the first request is in flight stands in for
+    /// the newer request, which keeps the ordering deterministic.
+    func testSupersededConfigResponsesDoNotPublish() async throws {
+        serveVisibleConfig()
+        serveContent()
+        let posts = try PostsListViewModel(client: makeClient(), feedType: "all")
+        let rss = try RSSFeedListViewModel(client: makeClient(), contentType: .news, feedSource: .all)
+        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/posts"))
+        let surface = try NativeRouteSurfaceViewModel(entry: route.entry, client: makeClient(), routeMatch: route.match)
+
+        let stalePosts = Task { await posts.refreshHackerNewsReferencesVisibility() }
+        let staleRss = Task { await rss.refreshHackerNewsReferencesVisibility() }
+        let staleSurface = Task { await surface.refreshHackerNewsReferencesVisibility() }
+        for _ in 0 ..< 500 where posts.hackerNewsConfigGeneration == 0
+            || rss.hackerNewsConfigGeneration == 0 || surface.hackerNewsConfigGeneration == 0 {
+            await Task.yield()
+        }
+        posts.hackerNewsConfigGeneration += 1
+        rss.hackerNewsConfigGeneration += 1
+        surface.hackerNewsConfigGeneration += 1
+        await stalePosts.value
+        await staleRss.value
+        await staleSurface.value
+
+        XCTAssertFalse(posts.hackerNewsReferencesVisible)
+        XCTAssertFalse(rss.hackerNewsReferencesVisible)
+        XCTAssertFalse(surface.hackerNewsReferencesVisible)
+
+        await posts.refreshHackerNewsReferencesVisibility()
+        XCTAssertTrue(posts.hackerNewsReferencesVisible)
+    }
 }
