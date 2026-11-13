@@ -41,14 +41,14 @@ public sealed partial class NewsFeedsViewModel
 
     try
     {
+      // A requested filter is only sent once the flag is known on; an unfiltered load never waits for it.
+      if (hackerNewsConfig is not null && hasHackerNewsReferences is not null) await hackerNewsConfig.ConfigureAwait(true);
       var page = await LoadNewsFeedPageAsync(
           scope,
           sourceFeedType,
           request.Cursor,
           EffectiveHackerNewsReferences,
           cancellationToken).ConfigureAwait(true);
-      // The flag fetch runs alongside the page fetch; settle it so the filter is final with the list.
-      if (hackerNewsConfig is not null) await hackerNewsConfig.ConfigureAwait(true);
       if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) ||
           !feedPages.Complete(request, (replace ? page.Items : KeepDisplayedStoryPrimaries(page.Items)).Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
       Items = feedPages.Items;
