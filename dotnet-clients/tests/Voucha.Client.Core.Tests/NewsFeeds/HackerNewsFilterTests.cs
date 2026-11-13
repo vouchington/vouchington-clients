@@ -36,6 +36,35 @@ public sealed class HackerNewsFilterTests
   }
 
   [Fact]
+  public async Task FlagTurningOffDuringRefreshNeverMixesFilteredCursorWithUnfilteredQuery()
+  {
+    var handler = new PageHandler(Page("first"), Page("filtered"), Page("unfiltered"), Page("stale"), Page(null));
+    var service = new ApiNewsFeedService(
+        new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
+    var configFlip = new TaskCompletionSource<HackerNewsConfigResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var fetches = 0;
+    var viewModel = new NewsFeedsViewModel(
+        service,
+        NewsFeedKind.Podcasts,
+        NewsFeedScope.AllPodcasts,
+        hackerNewsReferences: new HackerNewsReferenceGate(
+            _ => ++fetches <= 2 ? Task.FromResult(new HackerNewsConfigResponse(true, "1y")) : configFlip.Task));
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.ToggleHackerNewsFilterAsync(TestContext.Current.CancellationToken);
+    Assert.True(viewModel.IsHackerNewsFilterSelected);
+
+    var refresh = viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(2, handler.Paths.Count);
+    configFlip.SetResult(new HackerNewsConfigResponse(false, "1y"));
+    await refresh;
+    await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsHackerNewsFilterSelected);
+    Assert.All(handler.Paths.Skip(2), path => Assert.DoesNotContain("has_hacker_news_references", path));
+    Assert.Contains("after=unfiltered", handler.Paths[^1], StringComparison.Ordinal);
+  }
+
+  [Fact]
   public async Task UnsupportedFeedServiceFailsClosedWhenFilterIsSelected()
   {
     var service = new SampleNewsFeedService();

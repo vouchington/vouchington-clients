@@ -34,6 +34,29 @@ public sealed partial class ProfileViewModelSafetyTests
     Assert.Equal(requests, service.Calls.Count);
   }
 
+  [Fact]
+  public async Task ReferralLinkTitleStaysVerbatimUserContentAcrossLocaleChange()
+  {
+    using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
+    var service = new RecordingProfileCollectionsService();
+    using var viewModel = NewViewModel(new User("user-2", "bob", "Hello"),
+        localization: new UiLocalization(controller), localeController: controller);
+    viewModel.ConfigureProfileCollectionsService(service);
+    await viewModel.LoadPublicScopeAsync("bob",
+        new NativeUserProfileScope(NativeUserProfileSection.ReferralLinks, NativeUserProfileCollectionKind.ReferralLinks),
+        TestContext.Current.CancellationToken);
+    var before = Assert.Single(viewModel.ReferralLinkItems);
+    var requests = service.Calls.Count;
+
+    controller.ApplySavedLocale("es");
+
+    var after = Assert.Single(viewModel.ReferralLinkItems);
+    Assert.NotNull(after.Localization);
+    Assert.Equal(before.Title, after.Title);
+    Assert.Equal(before.Title, new UiLocalization(controller).Resolve(after.TitleText));
+    Assert.Equal(requests, service.Calls.Count);
+  }
+
   private static (string? Public, string? Staff) Labels(
       ProfileViewModel model, NativeUserProfileCollectionKind collection) => collection switch
       {
