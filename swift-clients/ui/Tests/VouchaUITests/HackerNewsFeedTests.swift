@@ -129,7 +129,7 @@ final class HackerNewsFeedTests: XCTestCase {
         XCTAssertEqual(
             URLComponents(url: request, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "time_range" }?
                 .value,
-            "1m"
+            "1y"
         )
         XCTAssertEqual(
             URLComponents(url: request, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "post_types" }?

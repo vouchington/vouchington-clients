@@ -65,13 +65,13 @@ public sealed class ApiFeatureClientCoverageTests
         new FetchPostsRequest(Query: "reward", Limit: 5),
         TestContext.Current.CancellationToken);
 
-    Assert.Equal("/api/v1/posts?limit=5&q=reward&sort=hot", handler.PathAndQuery);
+    Assert.Equal("/api/v1/posts?limit=5&q=reward&sort=hot&time_range=1m", handler.PathAndQuery);
     Assert.Equal("post-1", feed.Results[0].Id);
 
     await service.FetchFeedAsync(
         new FetchPostsFeedRequest("follow_users", Limit: 3, PostTypes: "review"),
         TestContext.Current.CancellationToken);
-    Assert.Equal("/api/v1/feeds/posts/follow_users?limit=3&post_types=review&sort=hot", handler.PathAndQuery);
+    Assert.Equal("/api/v1/feeds/posts/follow_users?limit=3&post_types=review&sort=hot&time_range=1w", handler.PathAndQuery);
 
     handler.ResponseBody = PostJson;
     Assert.Equal("post-1", (await service.FetchPostAsync("post-1", TestContext.Current.CancellationToken)).Post.Id);

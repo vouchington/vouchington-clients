@@ -26,6 +26,17 @@ public sealed class AppleAuthorizationUrlTests
     Assert.False(string.IsNullOrWhiteSpace(values["nonce"]));
   }
 
+  [Fact]
+  public void FreshAppleChallengeUsesTheExistingHashedNonceAndCallbackProtocol()
+  {
+    var config = new AppConfig(new Uri("https://api.test"), AppleClientId: "apple-client");
+    var values = ParseQuery(AppleAuthorizationUrl.Create(config, "state", "server-challenge").Query);
+    const string expected = "d432e595a538c3b01fb1d33bc08f9fd5b64faebcd786637217c556049fec337a";
+    Assert.Equal(expected, values["nonce"]);
+    Assert.EndsWith("/auth/callback/apple", values["redirect_uri"], StringComparison.Ordinal);
+    Assert.Equal("state", values["state"]);
+  }
+
   private static Dictionary<string, string> ParseQuery(string query)
   {
     var result = new Dictionary<string, string>(StringComparer.Ordinal);

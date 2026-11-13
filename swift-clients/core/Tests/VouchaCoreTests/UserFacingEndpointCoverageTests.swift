@@ -105,7 +105,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
         XCTAssertEqual(postsEndpoint.queryItems, [
             URLQueryItem(name: "limit", value: "5"),
             URLQueryItem(name: "sort", value: "relevance"),
-            URLQueryItem(name: "q", value: "swift")
+            URLQueryItem(name: "q", value: "swift"),
+            URLQueryItem(name: "time_range", value: "1m")
         ])
         let urlsEndpoint = Endpoint.urls(query: "swift", limit: 5)
         assertEndpoint(urlsEndpoint, path: "/api/v1/urls")

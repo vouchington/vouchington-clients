@@ -18,6 +18,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   private string? activePostTypes;
   private string? activeTimeRange;
   private bool? activeHackerNewsFilter;
+  private FetchPostsRequest activeBrowseRequest = new();
   private bool browsing;
   private int requestId;
   private readonly HashSet<string> votingIds = new(StringComparer.Ordinal);
@@ -42,6 +43,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   {
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.localization = localization ?? UiLocalization.English;
+    TimeRange = new(this.localization);
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
@@ -49,9 +51,12 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public void OnUiLocaleChanged()
   {
+    TimeRange.RefreshLabels();
     Items = Items.ToArray();
     OnPropertyChanged(nameof(HackerNewsFilterLabel));
   }
+
+  public PostTimeRangeSelection TimeRange { get; }
 
   public IReadOnlyList<PostRow> Items
   {
@@ -92,9 +97,10 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   public async Task LoadFeedAsync(
       string feedType = "any",
       string? postTypes = null,
-      string? timeRange = null,
+      string? timeRange = PostTimeRanges.LastWeek,
       CancellationToken cancellationToken = default)
   {
+    timeRange ??= PostTimeRanges.LastWeek;
     activeFeedType = feedType;
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
@@ -121,12 +127,16 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
       string? postTypes = null,
       string? timeRange = null,
       bool? hasHackerNewsReferences = null,
+      FetchPostsRequest? scope = null,
       CancellationToken cancellationToken = default)
   {
+    timeRange = ConfigureBrowseTimeRange(timeRange, hasHackerNewsReferences);
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
     HackerNewsFilter = hasHackerNewsReferences;
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
+    activeBrowseRequest = (scope ?? new()) with { PostTypes = postTypes, TimeRange = timeRange, HasHackerNewsReferences = hasHackerNewsReferences, After = null };
+    var request = activeBrowseRequest;
     endCursor = null;
     HasMore = true;
     var currentRequest = BeginLoad();
@@ -134,8 +144,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         async () =>
         {
           var response = await postsService
-              .FetchPostsAsync(new FetchPostsRequest(PostTypes: postTypes, TimeRange: timeRange,
-                  HasHackerNewsReferences: hasHackerNewsReferences), cancellationToken)
+              .FetchPostsAsync(request, cancellationToken)
               .ConfigureAwait(true);
           CompleteLoad(currentRequest, response, append: false);
         },

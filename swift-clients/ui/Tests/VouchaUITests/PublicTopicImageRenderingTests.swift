@@ -34,7 +34,7 @@ final class PublicTopicImageRenderingTests: NativeRouteSurfaceViewModelTestCase 
         CannedFeedURLProtocol.handlers["/api/v1/topics/test-topic"] = (
             ApiFixtureLoader.data("web.topics.show.default"), 200
         )
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/test-topic/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/test-topic")?.match)
         let detailViewModel = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail), client: client, routeMatch: match
         )

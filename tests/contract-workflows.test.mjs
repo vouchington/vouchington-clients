@@ -10,7 +10,7 @@ const readAction = name =>
 const preparedCandidateInputs = [
   'candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}',
   'expected-contract-repository: vouchington/vouchington',
-  'producer-run-attempt: ${{ github.run_attempt }}',
+  'producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}',
   'producer-run-id: ${{ github.run_id }}',
 ]
 

@@ -20,6 +20,10 @@ public static partial class MauiProgram
     services.AddSingleton<IPasskeyAssertionProvider, PlatformPasskeyAssertionProvider>();
     services.AddSingleton<AuthenticationService>();
     services.AddTransient<AuthViewModel>();
+    services.AddSingleton<IAccountChangeConfirmation, MauiAccountChangeConfirmation>();
+    services.AddSingleton<IReAuthProviderAssertion, PlatformReAuthProviderAssertion>();
+    services.AddSingleton<FreshAccountBroker>();
+    services.AddSingleton<IFreshAccountProofService, FreshAccountProofService>();
   }
 
   private static void AddAuthSessionServices(IServiceCollection services)

@@ -115,7 +115,7 @@ test('host and library shards skip Node dependencies while preserving contract i
       job,
       /prepare-native-contract[\s\S]*candidate-revision-sha:.*needs\.verify\.outputs\.revision-sha/u,
     )
-    assert.match(job, /producer-run-attempt:.*github\.run_attempt/u)
+    assert.match(job, /producer-run-attempt:.*needs\.verify\.outputs\.contract-run-attempt/u)
     assert.match(job, /producer-run-id:.*github\.run_id/u)
     assert.match(job, /skip-candidate-install: true/u)
     assert.match(job, /--force-resolved-versions/u)
