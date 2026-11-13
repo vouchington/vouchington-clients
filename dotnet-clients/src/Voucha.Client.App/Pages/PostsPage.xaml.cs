@@ -33,6 +33,7 @@ public partial class PostsPage : ContentPage
     TimeRangePicker.IsVisible = mode == "browse";
     BindingContext = new PostsPageBinding(viewModel, sessionStore, LoadCurrentAsync);
     PaginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
+    viewModel.PropertyChanged += OnViewModelPropertyChanged;
   }
 
   [SuppressMessage(

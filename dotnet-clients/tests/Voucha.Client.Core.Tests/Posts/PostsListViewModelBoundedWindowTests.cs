@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Navigation;
 using Voucha.Client.Core.Support;
@@ -62,11 +63,17 @@ public sealed class PostsListViewModelBoundedWindowTests
     Assert.Equal("false", VouchaApiEndpoints.AllRssFeedItems(hasHackerNewsReferences: false).Query["has_hacker_news_references"]);
   }
 
+  private static HackerNewsReferenceGate VisibleHackerNewsGate() =>
+      new(_ => Task.FromResult(new HackerNewsConfigResponse(true, "1y")));
+
   [Fact]
   public async Task HackerNewsFilterReloadsFromFirstPageAndContinuesWithSameFilter()
   {
     var service = new ScriptedPostsService(Page(["old"], "old-cursor"), Page(["new"], "new-cursor"), Page(["next"], null));
-    var viewModel = new PostsListViewModel(service);
+    var viewModel = new PostsListViewModel(
+        service,
+        hackerNewsReferences: new HackerNewsReferenceGate(
+            _ => Task.FromResult(new HackerNewsConfigResponse(true, "1y"))));
 
     await viewModel.LoadFeedAsync(cancellationToken: TestContext.Current.CancellationToken);
     await viewModel.LoadBrowseAsync(hasHackerNewsReferences: true, cancellationToken: TestContext.Current.CancellationToken);
@@ -282,7 +289,7 @@ public sealed class PostsListViewModelBoundedWindowTests
   public async Task HackerNewsLoadsClampMissingOrAllAndRetainExplicitFiniteRanges(string? requested, string expected)
   {
     var service = new ScriptedPostsService(Page(["first"], "cursor"), Page(["more"], null));
-    using var model = new PostsListViewModel(service);
+    using var model = new PostsListViewModel(service, hackerNewsReferences: VisibleHackerNewsGate());
     await model.LoadBrowseAsync("review", requested, true, cancellationToken: TestContext.Current.CancellationToken);
     await model.LoadMoreAsync(TestContext.Current.CancellationToken);
     Assert.Equal(new[] { "1w", "1m", "1y" }, model.TimeRange.Options.Select(option => option.Value));
@@ -301,7 +308,7 @@ public sealed class PostsListViewModelBoundedWindowTests
   {
     var service = new ScriptedPostsService(Page(["year"], "old"), Page(["month"], "month-cursor"),
         Page(["more"], null), Page(["ordinary"], null), Page(["feed"], null));
-    using var model = new PostsListViewModel(service);
+    using var model = new PostsListViewModel(service, hackerNewsReferences: VisibleHackerNewsGate());
     var scope = new TopicPostsRoute("travel", "data-points").RequestForTopic("canonical-topic");
     await model.LoadBrowseAsync("data_point", hasHackerNewsReferences: true,
         cancellationToken: TestContext.Current.CancellationToken, scope: scope);

@@ -31,6 +31,7 @@ internal static partial class ApiFixtureCoverage
         ["native.import-export.topics.export.download"] = VouchaApiEndpoints.ExportTopicsDownload(),
         ["native.feature-flags.default"] = VouchaApiEndpoints.FeatureFlags(),
         ["native.captcha-config.default"] = VouchaApiEndpoints.CaptchaConfig(),
+        ["native.hacker-news-config.default"] = VouchaApiEndpoints.HackerNewsConfig(),
         ["native.topic-recommendations.top-hashtags.default"] = VouchaApiEndpoints.TopHashtags(),
         ["native.dynamic-config.namespaces.developer"] = VouchaApiEndpoints.DynamicConfigNamespaces(),
         ["native.dynamic-config.namespace.typed"] = VouchaApiEndpoints.DynamicConfigNamespace("recaptcha-config"),

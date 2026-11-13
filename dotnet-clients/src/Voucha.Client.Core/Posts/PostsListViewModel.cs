@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
@@ -20,6 +21,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
   private bool? activeHackerNewsFilter;
   private FetchPostsRequest activeBrowseRequest = new();
   private bool browsing;
+  private readonly HackerNewsReferenceGate? hackerNewsReferences;
   private int requestId;
   private readonly HashSet<string> votingIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> bookmarkingKeys = new(StringComparer.Ordinal);
@@ -28,26 +30,25 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
 
   public string HackerNewsFilterLabel => localization.Localize(UiMessageKey.SharedHackerNewsFilterLabel);
 
-  public bool IsHackerNewsFilterVisible => browsing;
-
-  public bool? HackerNewsFilter
-  {
-    get => activeHackerNewsFilter;
-    private set => SetProperty(ref activeHackerNewsFilter, value);
-  }
-
   public PostsListViewModel(
       IPostsService postsService,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      HackerNewsReferenceGate? hackerNewsReferences = null)
   {
+    this.hackerNewsReferences = hackerNewsReferences;
+    hackerNewsSubscription = hackerNewsReferences?.Subscribe(this);
     this.postsService = postsService ?? throw new ArgumentNullException(nameof(postsService));
     this.localization = localization ?? UiLocalization.English;
     TimeRange = new(this.localization);
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    hackerNewsSubscription?.Dispose();
+    localeSubscription?.Dispose();
+  }
 
   public void OnUiLocaleChanged()
   {
@@ -108,7 +109,7 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     SetProperty(ref browsing, false, nameof(IsHackerNewsFilterVisible));
     endCursor = null;
     HasMore = true;
-    var currentRequest = BeginLoad();
+    var currentRequest = BeginLoad(NextRequestId());
     await ClientLoadAttempt.RunAsync(
         async () =>
         {
@@ -133,13 +134,21 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     timeRange = ConfigureBrowseTimeRange(timeRange, hasHackerNewsReferences);
     activePostTypes = postTypes;
     activeTimeRange = timeRange;
-    HackerNewsFilter = hasHackerNewsReferences;
+    // Claim the generation before any await so a newer selection always wins.
+    var currentRequest = NextRequestId();
+    var config = RefreshHackerNewsReferencesAsync(cancellationToken);
+    // A requested filter is only sent once the backend flag is known to be on.
+    if (hasHackerNewsReferences is not null) await HoldForHackerNewsConfigAsync(currentRequest, config).ConfigureAwait(true);
+    if (currentRequest != Volatile.Read(ref requestId)) return;
+    var filter = hackerNewsReferences?.ReferencesVisible == true ? hasHackerNewsReferences : null;
+    HackerNewsFilter = filter;
+    timeRange = ReconcileBrowseTimeRange(timeRange, hasHackerNewsReferences, filter);
     SetProperty(ref browsing, true, nameof(IsHackerNewsFilterVisible));
-    activeBrowseRequest = (scope ?? new()) with { PostTypes = postTypes, TimeRange = timeRange, HasHackerNewsReferences = hasHackerNewsReferences, After = null };
+    activeBrowseRequest = (scope ?? new()) with { PostTypes = postTypes, TimeRange = timeRange, HasHackerNewsReferences = filter, After = null };
     var request = activeBrowseRequest;
     endCursor = null;
     HasMore = true;
-    var currentRequest = BeginLoad();
+    BeginLoad(currentRequest);
     await ClientLoadAttempt.RunAsync(
         async () =>
         {
@@ -152,9 +161,10 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
         message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
-  private int BeginLoad()
+  private int NextRequestId() => Interlocked.Increment(ref requestId);
+
+  private int BeginLoad(int currentRequest)
   {
-    var currentRequest = Interlocked.Increment(ref requestId);
     State = LoadState.Loading;
     ErrorMessage = null;
     return currentRequest;
@@ -186,5 +196,4 @@ public sealed partial class PostsListViewModel : ObservableObject, IDisposable, 
     if (currentRequest != Volatile.Read(ref requestId)) return;
     State = LoadState.Idle;
   }
-
 }

@@ -17,7 +17,7 @@ public sealed partial class PostsListViewModel
   public async Task LoadMoreAsync(CancellationToken cancellationToken = default)
   {
     if (IsLoading || !HasMore || endCursor is not { } after) return;
-    var currentRequest = BeginLoad();
+    var currentRequest = BeginLoad(NextRequestId());
     await ClientLoadAttempt.RunAsync(
         async () =>
         {

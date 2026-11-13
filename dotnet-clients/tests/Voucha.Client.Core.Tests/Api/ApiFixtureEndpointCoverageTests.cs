@@ -32,6 +32,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.import-export.topics.export.download"] = VouchaApiEndpoints.ExportTopicsDownload(),
         ["native.feature-flags.default"] = VouchaApiEndpoints.FeatureFlags(),
         ["native.captcha-config.default"] = VouchaApiEndpoints.CaptchaConfig(),
+        ["native.hacker-news-config.default"] = VouchaApiEndpoints.HackerNewsConfig(),
         ["native.dynamic-config.namespaces.developer"] = VouchaApiEndpoints.DynamicConfigNamespaces(),
         ["native.dynamic-config.namespace.typed"] = VouchaApiEndpoints.DynamicConfigNamespace("recaptcha-config"),
         ["native.dynamic-config.namespace.string"] = VouchaApiEndpoints.DynamicConfigNamespace("app-attestation-config"),
