@@ -18,6 +18,7 @@ public sealed class EmailAddressManagerViewModelTests
     Assert.True(await viewModel.RequestVerificationAsync(TestContext.Current.CancellationToken));
     Assert.Equal("user@example.com", viewModel.EmailAddress);
     Assert.True(viewModel.IsAwaitingVerification);
+    Assert.Equal("Enter the code we sent to user@example.com.", viewModel.SuccessMessage);
 
     viewModel.Otp = "abcdefgh23";
     Assert.True(await viewModel.VerifyAsync(TestContext.Current.CancellationToken));

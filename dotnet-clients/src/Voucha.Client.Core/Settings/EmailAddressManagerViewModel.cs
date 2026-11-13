@@ -108,6 +108,7 @@ public sealed partial class EmailAddressManagerViewModel :
       var response = await service.RequestEmailVerificationAsync(EmailAddress, cancellationToken).ConfigureAwait(true);
       EmailAddress = response.EmailAddress;
       IsAwaitingVerification = true;
+      SuccessMessage = localization.Format(UiMessageKey.NativeAuthCodeSent, ("email", EmailAddress));
     }).ConfigureAwait(true);
   }
 

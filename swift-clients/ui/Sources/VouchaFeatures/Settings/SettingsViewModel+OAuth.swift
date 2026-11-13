@@ -112,7 +112,7 @@ public extension SettingsViewModel {
             }
             apply(identity: response.identity)
         } catch {
-            oauthErrorMessage = .verbatim(error.localizedDescription)
+            oauthErrorMessage = disconnectErrorMessage(for: error)
         }
         oauthProviderInFlight = nil
     }

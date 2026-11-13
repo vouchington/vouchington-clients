@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Fediverse;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Auth;
@@ -30,8 +31,10 @@ public sealed partial class NativeOAuthAuthorizationCoordinator :
       INativeExternalBrowser browser,
       ISessionStore sessionStore,
       Func<DateTimeOffset>? now = null,
-      Func<TimeSpan, CancellationToken, Task>? delay = null)
+      Func<TimeSpan, CancellationToken, Task>? delay = null,
+      IUiLocalization? localization = null)
   {
+    this.localization = localization ?? UiLocalization.English;
     this.client = client ?? throw new ArgumentNullException(nameof(client));
     this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
     this.browser = browser ?? throw new ArgumentNullException(nameof(browser));

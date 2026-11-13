@@ -43,6 +43,14 @@ public sealed class VouchaApiException : HttpRequestException
   public bool IsEmailVerificationRequired =>
       string.Equals(ErrorCode, "EMAIL_VERIFICATION_REQUIRED", StringComparison.Ordinal);
 
+  public bool IsMfaReauthRequired => HasCode("MFA_REAUTH_REQUIRED");
+
+  public bool IsLastSignInMethodRemovalForbidden => HasCode("LAST_SIGN_IN_METHOD_REMOVAL_FORBIDDEN");
+
+  public bool IsAdministratorMfaRequired => HasCode("ADMINISTRATOR_MFA_REQUIRED");
+
+  private bool HasCode(string code) => string.Equals(ErrorCode, code, StringComparison.Ordinal);
+
   public bool IsRelationLimitReached =>
       StatusCode == HttpStatusCode.Conflict &&
       string.Equals(ErrorCode, "RELATION_LIMIT_REACHED", StringComparison.Ordinal);

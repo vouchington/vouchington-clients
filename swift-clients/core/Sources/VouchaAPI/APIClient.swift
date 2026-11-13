@@ -154,7 +154,8 @@ public actor APIClient {
                 )
             }
             switch status {
-            case 401: throw VouchaError.unauthorized
+            // MFA_REAUTH_REQUIRED on 401 is re-auth challenge expiry, not session expiry: keep the code.
+            case 401 where code != VouchaError.mfaReauthRequired: throw VouchaError.unauthorized
             case 403: throw VouchaError.forbidden(preconditionCode: code)
             case 404: throw VouchaError.notFound
             default:
