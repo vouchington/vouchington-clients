@@ -132,7 +132,7 @@ public extension SettingsViewModel {
         } catch is CancellationError {
             oauthErrorMessage = nil
         } catch {
-            oauthErrorMessage = .verbatim(error.localizedDescription)
+            oauthErrorMessage = disconnectErrorMessage(for: error)
         }
         oauthProviderInFlight = nil
     }
