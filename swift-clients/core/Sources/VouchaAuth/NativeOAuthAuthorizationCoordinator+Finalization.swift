@@ -20,6 +20,27 @@ extension NativeOAuthAuthorizationCoordinator {
         }
     }
 
+    public func discardAuthorizationAfterSuccessfulSignIn() {
+        do {
+            try store.discardAuthorization()
+            retainedCallbackURL = nil
+            resultAcknowledgementNeedsRetry = false
+            errorMessage = nil
+            synchronizeFromStore()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Drops a restored or late fresh-confirmation result when no confirmation view model is waiting for it.
+    public func discardFreshConfirmationWithoutOwner() {
+        guard !hasFreshConfirmationOwner else { return }
+        switch result {
+        case .confirmationReady, .expired(_, .reauthenticate): cancelFreshAccountConfirmation()
+        default: break
+        }
+    }
+
     func finalize(_ pending: PendingNativeOAuthAuthorization) async {
         guard let completionToken = pending.completionToken,
               acquireFinalizationLease(for: pending)

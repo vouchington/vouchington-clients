@@ -26,8 +26,8 @@ public final class FreshAccountConfirmationViewModel {
     public var usingEmail = true
     let service: FreshAccountConfirmationService
     let broker: NativeOAuthAuthorizationCoordinator?
-    private var context: AccountConfirmationContext?
-    private var continuation: CheckedContinuation<String, Error>?
+    var context: AccountConfirmationContext?
+    var continuation: CheckedContinuation<String, Error>?
     private var isAdmitting = false
     var generation = UUID()
 
@@ -52,6 +52,7 @@ public final class FreshAccountConfirmationViewModel {
         }
         if case .confirmationReady = broker?.result { broker?.acknowledgeResult() }
         broker?.cancelFreshAccountConfirmation()
+        broker?.hasFreshConfirmationOwner = true
         self.context = context
         generation = UUID()
         let request = generation
@@ -87,10 +88,11 @@ public final class FreshAccountConfirmationViewModel {
         cancel(request: generation)
     }
 
-    private func cancel(request: UUID) {
+    func cancel(request: UUID) {
         guard generation == request, isPresented else { return }
         generation = UUID()
         broker?.cancelFreshAccountConfirmation()
+        broker?.hasFreshConfirmationOwner = false
         isPresented = false
         isWorking = false
         code = ""
@@ -139,32 +141,6 @@ public final class FreshAccountConfirmationViewModel {
                 return try await self.service.verifyEmail(entered)
             }
             return try await self.service.verifyTOTP(entered)
-        }
-    }
-
-    func verifyOperation(emailCode: Bool = false, _ operation: () async throws -> String?) async {
-        guard !isWorking, isPresented, context != nil else { return }
-        let request = generation
-        isWorking = true
-        errorMessage = nil
-        defer { if generation == request { isWorking = false } }
-        do {
-            guard await hasCurrentContext(request) else { return }
-            let token = try await operation()
-            guard await hasCurrentContext(request) else { return }
-            if let token {
-                guard !token.isEmpty else { throw AccountConfirmationError.invalidProof }
-                let waiting = continuation
-                continuation = nil
-                isPresented = false
-                code = ""
-                waiting?.resume(returning: token)
-            }
-        } catch is CancellationError {
-            cancel(request: request)
-        } catch {
-            guard await hasCurrentContext(request) else { return }
-            errorMessage = failureMessage(error, emailCode: emailCode)
         }
     }
 }
