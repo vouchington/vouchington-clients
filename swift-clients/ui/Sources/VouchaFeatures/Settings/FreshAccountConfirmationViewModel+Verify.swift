@@ -3,7 +3,6 @@ import VouchaAPI
 import VouchaAuth
 import VouchaCore
 import VouchaLocalization
-import VouchaModels
 
 extension FreshAccountConfirmationViewModel {
     func verifyOperation(emailCode: Bool = false, _ operation: () async throws -> String?) async {
