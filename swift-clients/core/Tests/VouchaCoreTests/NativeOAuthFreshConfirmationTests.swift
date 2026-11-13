@@ -66,4 +66,51 @@ extension NativeOAuthAuthorizationCoordinatorTests {
         XCTAssertNil(fixture.coordinator.result)
         XCTAssertNil(fixture.coordinator.pending)
     }
+
+    func testRestoredConfirmationWithoutLiveOwnerIsDiscardedButOwnedOneIsKept() async throws {
+        let fixture = try makeFixture()
+        let pending = try claim(
+            store: fixture.store,
+            flowId: "orphan-flow",
+            provider: .github,
+            purpose: .reauthenticate,
+            now: fixture.now
+        )
+        OAuthCoordinatorURLProtocol.responses["/api/v1/auth/oauth/authorizations/orphan-flow/complete"] = [
+            (Data(#"{"oauth_account":{"id":"linked-account","name":null,"email_address":null}}"#.utf8), 200)
+        ]
+        await fixture.coordinator.finalize(pending)
+        XCTAssertEqual(fixture.coordinator.result, .confirmationReady(provider: .github, flowId: "orphan-flow"))
+
+        fixture.coordinator.hasFreshConfirmationOwner = true
+        fixture.coordinator.discardFreshConfirmationWithoutOwner()
+        XCTAssertNotNil(fixture.coordinator.result)
+
+        fixture.coordinator.hasFreshConfirmationOwner = false
+        fixture.coordinator.discardFreshConfirmationWithoutOwner()
+        XCTAssertNil(fixture.coordinator.result)
+        XCTAssertTrue(fixture.coordinator.canStartAuthorization)
+        fixture.coordinator.discardFreshConfirmationWithoutOwner()
+        XCTAssertNil(fixture.coordinator.result)
+    }
+
+    func testRestoredConfirmationExpiryWithoutLiveOwnerIsDiscarded() throws {
+        let fixture = try makeFixture()
+        let pending = try claim(
+            store: fixture.store,
+            flowId: "expired-orphan",
+            provider: .github,
+            purpose: .reauthenticate,
+            now: fixture.now
+        )
+        XCTAssertEqual(pending.purpose, .reauthenticate)
+        try fixture.store.record(.expired(provider: .github, purpose: .reauthenticate))
+        fixture.coordinator.synchronizeFromStore()
+        XCTAssertEqual(fixture.coordinator.result, .expired(provider: .github, purpose: .reauthenticate))
+        XCTAssertFalse(fixture.coordinator.canStartAuthorization)
+
+        fixture.coordinator.discardFreshConfirmationWithoutOwner()
+        XCTAssertNil(fixture.coordinator.result)
+        XCTAssertTrue(fixture.coordinator.canStartAuthorization)
+    }
 }

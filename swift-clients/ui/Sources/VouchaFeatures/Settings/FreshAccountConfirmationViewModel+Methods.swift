@@ -147,6 +147,8 @@ extension FreshAccountConfirmationViewModel {
         }
         guard case let .confirmationReady(provider, flowId) = result,
               brokerFlowID == flowId, methods?.providers.contains(provider.rawValue) == true else { return }
+        // Keep the result until the busy operation ends; verifyOperation re-delivers it.
+        guard !isWorking else { return }
         brokerFlowID = nil
         defer { broker?.acknowledgeResult() }
         await verifyOperation {
