@@ -15,6 +15,13 @@ let userProfileApiFixtureCoverage: [RegisteredFixture] = [
             ignoring: userProfileIgnoredFields
         )
     },
+    RegisteredFixture(id: "native.users.profile.private-counts.owner") {
+        try assertFixtureCoversDTO(
+            $0,
+            as: UserProfileResponse.self,
+            ignoring: userProfileIgnoredFields
+        )
+    },
     RegisteredFixture(id: "native.users.vouch-context.default") {
         try assertFixtureCoversDTO($0, as: UserTrustContext.self)
     },
