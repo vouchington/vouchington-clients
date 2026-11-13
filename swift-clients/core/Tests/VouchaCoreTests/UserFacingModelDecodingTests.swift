@@ -120,6 +120,16 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(mine.results.first?.referralProgramName, "Test Card")
         XCTAssertNil(mine.results.first?.deactivatedAt)
 
+        let publicLinks = try decoder.decode(
+            Page<NativeReferralLink>.self,
+            from: ApiFixtureLoader.data("native.referral-links.user.public")
+        )
+        XCTAssertEqual(publicLinks.results.first?.id, "referral-link-2")
+        XCTAssertEqual(publicLinks.results.first?.userId, "user-2")
+        XCTAssertEqual(publicLinks.results.first?.referralProgramSlug, "test-card")
+        XCTAssertNil(publicLinks.results.first?.label)
+        XCTAssertNil(publicLinks.results.first?.activatedAt)
+
         let prioritized = try decoder.decode(
             PrioritizedReferralLinksResponse.self,
             from: ApiFixtureLoader.data("web.referral-links.prioritized.default")

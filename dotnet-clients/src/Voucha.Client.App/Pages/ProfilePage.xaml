@@ -387,6 +387,17 @@
                 <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
             </CollectionView>
 
+            <CollectionView ItemsSource="{Binding ReferralLinkItems}" SelectionMode="None" IsVisible="{Binding IsReferralLinksScope}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="profiles:ProfileReferralLinkRow">
+                        <VerticalStackLayout>
+                            <Button Text="{Binding Title}" CommandParameter="{Binding .}" Clicked="OnProfileReferralLinkClicked" AutomationId="public-profile-referral-link-row" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
+            </CollectionView>
+
             <Label Text="{app:UiLocalizedValue Path=CollectionErrorMessage, Format=message:native.dotnet.profile.collectionError}" TextColor="#991B1B" Style="{StaticResource Body}" />
             <Button Text="{DynamicResource native.swift.common.loadMore}" Clicked="OnLoadMoreClicked" IsVisible="{Binding CanLoadMore}" />
         </VerticalStackLayout>
