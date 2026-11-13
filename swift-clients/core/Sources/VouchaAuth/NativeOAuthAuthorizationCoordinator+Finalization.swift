@@ -4,6 +4,43 @@ import VouchaCore
 import VouchaModels
 
 extension NativeOAuthAuthorizationCoordinator {
+    public func cancelFreshAccountConfirmation() {
+        freshConfirmationEpoch &+= 1
+        let hasConfirmationResult = switch result {
+        case .confirmationReady, .expired(_, .reauthenticate): true
+        default: false
+        }
+        guard pending?.purpose == .reauthenticate || hasConfirmationResult else { return }
+        do {
+            try store.discardAuthorization()
+            retainedCallbackURL = nil
+            synchronizeFromStore()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    public func discardAuthorizationAfterSuccessfulSignIn() {
+        do {
+            try store.discardAuthorization()
+            retainedCallbackURL = nil
+            resultAcknowledgementNeedsRetry = false
+            errorMessage = nil
+            synchronizeFromStore()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Drops a restored or late fresh-confirmation result when no confirmation view model is waiting for it.
+    public func discardFreshConfirmationWithoutOwner() {
+        guard !hasFreshConfirmationOwner else { return }
+        switch result {
+        case .confirmationReady, .expired(_, .reauthenticate): cancelFreshAccountConfirmation()
+        default: break
+        }
+    }
+
     func finalize(_ pending: PendingNativeOAuthAuthorization) async {
         guard let completionToken = pending.completionToken,
               acquireFinalizationLease(for: pending)
@@ -25,34 +62,52 @@ extension NativeOAuthAuthorizationCoordinator {
                         completionProofVerifier: pending.completionProofVerifier
                     )
                 )
-                switch response {
-                case .pending:
-                    try await Task.sleep(for: .seconds(1))
-                case .authenticated:
-                    guard await sessionManager.refresh() else {
-                        throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
-                    }
-                    try persistResult(.authenticated(provider: pending.provider), for: pending)
-                    return
-                case let .mfaRequired(loginAttemptId):
-                    try persistResult(
-                        .mfaRequired(provider: pending.provider, loginAttemptId: loginAttemptId),
-                        for: pending
-                    )
-                    return
-                case .connected:
-                    guard await confirmConnectedProvider(pending.provider) else {
-                        throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
-                    }
-                    try persistResult(.connected(provider: pending.provider), for: pending)
-                    return
-                }
+                if try await handleCompletion(response, pending: pending) { return }
+                try await Task.sleep(for: .seconds(1))
             }
             persistExpiration(for: pending)
         } catch is CancellationError {
             return
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleCompletion(
+        _ response: NativeOAuthCompletionResponse, pending: PendingNativeOAuthAuthorization
+    ) async throws -> Bool {
+        if pending.purpose == .reauthenticate {
+            return try handleConfirmationCompletion(response, pending: pending)
+        }
+        switch response {
+        case .pending:
+            return false
+        case .authenticated:
+            guard await sessionManager.refresh() else {
+                throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
+            }
+            try persistResult(.authenticated(provider: pending.provider), for: pending)
+        case let .mfaRequired(loginAttemptId):
+            try persistResult(.mfaRequired(provider: pending.provider, loginAttemptId: loginAttemptId), for: pending)
+        case .connected:
+            guard await confirmConnectedProvider(pending.provider) else {
+                throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
+            }
+            try persistResult(.connected(provider: pending.provider), for: pending)
+        }
+        return true
+    }
+
+    private func handleConfirmationCompletion(
+        _ response: NativeOAuthCompletionResponse, pending: PendingNativeOAuthAuthorization
+    ) throws -> Bool {
+        switch response {
+        case .pending: return false
+        case .connected:
+            try persistResult(.confirmationReady(provider: pending.provider, flowId: pending.flowId), for: pending)
+            return true
+        case .authenticated, .mfaRequired:
+            throw NativeOAuthAuthorizationCoordinatorError.invalidAuthorization
         }
     }
 

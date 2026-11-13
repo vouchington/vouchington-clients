@@ -325,7 +325,7 @@ public sealed partial class NativeOAuthAuthorizationCoordinatorTests
       ISessionStore session,
       DateTimeOffset? now = null) =>
       new(
-          new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+          new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
           persistence,
           browser,
           session,

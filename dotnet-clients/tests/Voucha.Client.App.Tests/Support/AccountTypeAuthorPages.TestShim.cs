@@ -84,6 +84,7 @@ public partial class ProfilePage : ContentPage
   private void OnMuteUserClicked(object? sender, EventArgs args) { }
   private void OnProfileCommunityClicked(object? sender, EventArgs args) { }
   private void OnProfileFriendClicked(object? sender, EventArgs args) { }
+  private void OnProfileReferralLinkClicked(object? sender, EventArgs args) { }
   private void OnProfileScopeClicked(object? sender, EventArgs args) { }
   private void OnProfileSourceClicked(object? sender, EventArgs args) { }
   private void OnProfileTopicClicked(object? sender, EventArgs args) { }

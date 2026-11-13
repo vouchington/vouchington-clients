@@ -21,7 +21,8 @@ public final class SettingsViewModel {
     public internal(set) var apiKeyCreationInFlight = false
     public internal(set) var apiKeySecretOperationInFlight = false
     public internal(set) var apiKeyRotationInFlight: Set<String> = []
-    @ObservationIgnored var apiKeyRotationOwnerState = ApiKeyRotationOwnerState()
+    @ObservationIgnored
+    var apiKeyRotationOwnerState = ApiKeyRotationOwnerState()
     @ObservationIgnored
     var activeMainSettingsLoadGeneration: Int?
     @ObservationIgnored
@@ -103,6 +104,7 @@ public final class SettingsViewModel {
     public internal(set) var localLLMDraftEndpointID = UUID()
 
     let client: APIClient?
+    let freshConfirmation: FreshAccountConfirmationViewModel?
     let onLogoutRequired: @MainActor () -> Void
     let localLLMSettingsStore: LocalLLMSettingsStore
     let localLLMFeaturePolicy: LocalLLMFeaturePolicy
@@ -121,6 +123,7 @@ public final class SettingsViewModel {
         uiLocaleController: UiLocaleController? = nil,
         onLogoutRequired: @escaping @MainActor () -> Void = {},
         nativeOAuthAuthorizationCoordinator: NativeOAuthAuthorizationCoordinator? = nil,
+        freshGoogleAssertion: (any FreshProviderAssertion)? = nil,
         localLLMSettingsStore: LocalLLMSettingsStore = LocalLLMSettingsStore(),
         localLLMFeaturePolicy: LocalLLMFeaturePolicy = LocalLLMFeaturePolicy(),
         localLLMResponsesClient: OpenAICompatibleResponsesClient = OpenAICompatibleResponsesClient(),
@@ -128,6 +131,11 @@ public final class SettingsViewModel {
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.client = client
+        freshConfirmation = client.map { FreshAccountConfirmationViewModel(
+            client: $0,
+            broker: nativeOAuthAuthorizationCoordinator,
+            googleAssertion: freshGoogleAssertion
+        ) }
         self.uiLocaleController = uiLocaleController
         self.onLogoutRequired = onLogoutRequired
         self.nativeOAuthAuthorizationCoordinator = nativeOAuthAuthorizationCoordinator

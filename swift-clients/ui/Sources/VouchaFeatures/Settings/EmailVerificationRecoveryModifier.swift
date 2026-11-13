@@ -1,9 +1,24 @@
 import SwiftUI
 import VouchaAPI
+import VouchaAuth
+
+private struct FreshConfirmationBrokerKey: EnvironmentKey {
+    static let defaultValue: NativeOAuthAuthorizationCoordinator? = nil
+}
+
+public extension EnvironmentValues {
+    /// Broker used by email recovery so provider-backed accounts can finish fresh confirmation.
+    var freshConfirmationBroker: NativeOAuthAuthorizationCoordinator? {
+        get { self[FreshConfirmationBrokerKey.self] }
+        set { self[FreshConfirmationBrokerKey.self] = newValue }
+    }
+}
 
 struct EmailVerificationRecoveryModifier: ViewModifier {
     let client: APIClient?
     let gate: EmailVerificationGatedMutation
+    @Environment(\.freshConfirmationBroker)
+    private var broker
 
     func body(content: Content) -> some View {
         @Bindable
@@ -17,12 +32,20 @@ struct EmailVerificationRecoveryModifier: ViewModifier {
             }
         )) {
             if let client {
-                EmailAddressManager(client: client, recoveryMode: true) {
-                    gate.dismissRecovery()
-                }
-                .padding()
+                EmailVerificationRecoverySheet(client: client, broker: broker) { gate.dismissRecovery() }
             }
         }
+    }
+}
+
+struct EmailVerificationRecoverySheet: View {
+    let client: APIClient
+    let broker: NativeOAuthAuthorizationCoordinator?
+    let onVerified: () -> Void
+
+    var body: some View {
+        EmailAddressManager(client: client, broker: broker, recoveryMode: true, onVerified: onVerified)
+            .padding()
     }
 }
 

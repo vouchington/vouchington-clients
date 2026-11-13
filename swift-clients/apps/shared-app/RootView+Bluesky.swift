@@ -13,6 +13,9 @@ extension RootView {
                 showingSignIn = true
             case .connect:
                 routeNativeTargetPath("/my/identity")
+            case .reauthenticate:
+                // The presented fresh-account confirmation observes the broker result itself.
+                break
             case nil:
                 showingSignIn = true
             }

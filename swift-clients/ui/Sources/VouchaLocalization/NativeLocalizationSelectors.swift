@@ -1,6 +1,8 @@
 public enum NativeLocalizationSelectors {
     public static let chrome = [
         "common.*",
+        "engineering.classifierRange.*",
+        "engineering.requestRange.*",
         "moderation.communityBans.*",
         "nav.*",
         "settings.*",

@@ -74,6 +74,12 @@ extension NativeRouteSurfaceViewModel {
         return collectionPage(response.pageInfo, collection: .communities(response.results))
     }
 
+    func userReferralLinkPage(userId: String, after: String?, client: APIClient) async throws
+        -> NativeUserProfileCollectionPage {
+        let response: Page<NativeReferralLink> = try await client.send(.userReferralLinks(userId: userId, after: after))
+        return collectionPage(response.pageInfo, collection: .referralLinks(response.results))
+    }
+
     private func collectionPage(
         _ pageInfo: Page<some Decodable & Sendable>.PageInfo,
         collection: NativeUserProfileCollection,

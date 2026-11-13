@@ -46,6 +46,15 @@ public extension Endpoint {
         profileCollection(userId: userId, path: "communities/member", after: after, limit: limit)
     }
 
+    static func userReferralLinks(userId: String, after: String? = nil, limit: Int = 25) -> Endpoint {
+        pagedGet(
+            path: "/api/v1/referral-links",
+            after: after,
+            limit: limit,
+            queryItems: [URLQueryItem(name: "user_id", value: userId)]
+        )
+    }
+
     private static func profileCollection(
         userId: String,
         path: String,

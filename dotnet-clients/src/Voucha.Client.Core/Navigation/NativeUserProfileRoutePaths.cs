@@ -17,6 +17,7 @@ public static class NativeUserProfileRoutePaths
     "/users/followers",
     "/rss-feeds/following",
     "/communities/member",
+    "/referral-links",
   ];
 
   public static bool IsUserProfilePath(string path)
