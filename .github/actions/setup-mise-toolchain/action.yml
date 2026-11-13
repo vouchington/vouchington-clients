@@ -24,11 +24,28 @@ runs:
       with:
         cache: false
         install: false
+    - name: Resolve pinned .NET SDK version
+      id: dotnet-pin
+      if: inputs.tool == 'dotnet'
+      shell: bash
+      env:
+        CLIENT_ROOT: ${{ inputs.client-root }}
+      run: |
+        set -euo pipefail
+        echo "version=$(jq -er '.sdk.version' "$GITHUB_WORKSPACE/$CLIENT_ROOT/global.json")" >> "$GITHUB_OUTPUT"
+    - name: Restore mise-managed .NET SDK
+      id: dotnet-sdk
+      if: inputs.tool == 'dotnet'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/mise-data/installs/dotnet/${{ steps.dotnet-pin.outputs.version }}
+        key: mise-dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ steps.dotnet-pin.outputs.version }}-${{ hashFiles(format('{0}/global.json', inputs.client-root)) }}
     - name: Install candidate-pinned toolchain
       if: runner.os != 'Windows'
       shell: bash
       env:
         CLIENT_ROOT: ${{ inputs.client-root }}
+        MISE_HTTP_TIMEOUT: 120s
         MISE_TOOL: ${{ inputs.tool }}
       run: |
         set -euo pipefail
@@ -86,6 +103,7 @@ runs:
       shell: pwsh
       env:
         CLIENT_ROOT: ${{ inputs.client-root }}
+        MISE_HTTP_TIMEOUT: 120s
         MISE_TOOL: ${{ inputs.tool }}
       run: |
         $ErrorActionPreference = 'Stop'
@@ -141,3 +159,10 @@ runs:
         finally {
           Pop-Location
         }
+    - name: Save mise-managed .NET SDK from main
+      if: inputs.tool == 'dotnet' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.dotnet-sdk.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/mise-data/installs/dotnet/${{ steps.dotnet-pin.outputs.version }}
+        key: ${{ steps.dotnet-sdk.outputs.cache-primary-key }}
