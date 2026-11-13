@@ -4,7 +4,7 @@ public extension Endpoint {
     /// `GET /api/v1/posts` with the time-range and Hacker News reference filters.
     static func postsFeed(
         postTypes: String? = nil,
-        timeRange: String? = nil,
+        timeRange: String? = "1m",
         hasHackerNewsReferences: Bool? = nil,
         sort: String? = nil,
         after: String? = nil,

@@ -342,6 +342,7 @@ internal static partial class ApiFixtureCoverage
     ["native.bookmarks.domains.muted.default"] = typeof(BookmarkCollectionResponse<Hostname>),
     ["native.bookmarks.communities.proxy-following.default"] = typeof(BookmarkCollectionResponse<Community>),
     ["native.referral-links.mine.default"] = typeof(ReferralLinksResponse),
+    ["native.referral-links.user.public"] = typeof(ReferralLinksResponse),
     ["native.referral-clicks.mine.default"] = typeof(ReferralClickLogResponse),
     ["native.hostnames.default"] = typeof(HostnamesResponse),
     ["native.hostname.default"] = typeof(HostnameDetailResponse),

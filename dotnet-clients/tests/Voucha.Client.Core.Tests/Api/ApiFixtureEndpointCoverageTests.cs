@@ -54,6 +54,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["web.topics.search.referral-programs.default"] = VouchaApiEndpoints.SearchTopics("test", "referral_program", 10),
         ["web.referral-links.feed.default"] = VouchaApiEndpoints.ReferralLinksFeed("follow_users"),
         ["native.referral-links.mine.default"] = VouchaApiEndpoints.ReferralLinks(),
+        ["native.referral-links.user.public"] = VouchaApiEndpoints.UserReferralLinks("user-2"),
         ["native.referral-clicks.mine.default"] = VouchaApiEndpoints.MyReferralClicks(),
         ["web.topics.link-count.default"] = VouchaApiEndpoints.ReferralProgramsByLinkCount(5),
         ["web.referral-links.prioritized.default"] = VouchaApiEndpoints.PrioritizedReferralLinks("referral-program-1", true),

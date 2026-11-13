@@ -39,7 +39,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     if (authenticated)
       Assert.Contains("time_range=1w", handler.Paths[^1], StringComparison.Ordinal);
     else
-      Assert.DoesNotContain("time_range", handler.Paths[^1], StringComparison.Ordinal);
+      Assert.Contains("time_range=1m", handler.Paths[^1], StringComparison.Ordinal);
     await ClickAndLoadAsync(all, model, () => model.IsLoading);
     Assert.True(filter.IsVisible);
     Assert.True(binding.IsHackerNewsFilterVisible);
@@ -47,7 +47,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     Assert.True(binding.IsHackerNewsFilterSelected);
     Assert.Contains("has_hacker_news_references=true", handler.Paths[^1], StringComparison.Ordinal);
     Assert.StartsWith("/api/v1/posts?", handler.Paths[^1], StringComparison.Ordinal);
-    Assert.DoesNotContain("time_range", handler.Paths[^1], StringComparison.Ordinal);
+    Assert.Contains("time_range=1y", handler.Paths[^1], StringComparison.Ordinal);
     await ClickAndLoadAsync(filter, model, () => model.IsLoading);
     Assert.False(binding.IsHackerNewsFilterSelected);
     Assert.DoesNotContain("has_hacker_news_references", handler.Paths[^1], StringComparison.Ordinal);
@@ -119,7 +119,10 @@ public sealed partial class PublicEntityProvenanceRenderingTests
       Application.Current!.Resources[key.Value] = UiLocalization.English.Localize(key);
   }
 
-  private static async Task ClickAndLoadAsync(Button button, INotifyPropertyChanged model, Func<bool> loading)
+  private static Task ClickAndLoadAsync(Button button, INotifyPropertyChanged model, Func<bool> loading) =>
+      ActAndLoadAsync(button.SendClicked, model, loading);
+
+  private static async Task ActAndLoadAsync(Action action, INotifyPropertyChanged model, Func<bool> loading)
   {
     var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     var started = false;
@@ -131,7 +134,7 @@ public sealed partial class PublicEntityProvenanceRenderingTests
     model.PropertyChanged += Changed;
     try
     {
-      button.SendClicked();
+      action();
       await completed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }
     finally { model.PropertyChanged -= Changed; }

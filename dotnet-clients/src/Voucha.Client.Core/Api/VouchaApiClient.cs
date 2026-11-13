@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Content;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Api;
 
@@ -8,10 +9,14 @@ public sealed partial class VouchaApiClient
 
   private readonly BotChallengeReplay? botChallengeReplay;
 
-  public VouchaApiClient(HttpClient httpClient, BotChallengeReplay? botChallengeReplay = null)
+  public VouchaApiClient(
+      HttpClient httpClient,
+      BotChallengeReplay? botChallengeReplay = null,
+      IAccountChangeConfirmation? accountChangeConfirmation = null)
   {
     this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     this.botChallengeReplay = botChallengeReplay;
+    this.accountChangeConfirmation = accountChangeConfirmation ?? new UnavailableAccountChangeConfirmation();
   }
 
   public Task<CommunitySearchResponse> SearchCommunitiesAsync(

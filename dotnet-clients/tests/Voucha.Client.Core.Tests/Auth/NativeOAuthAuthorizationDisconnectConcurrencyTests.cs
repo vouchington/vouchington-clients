@@ -16,7 +16,7 @@ public sealed class NativeOAuthAuthorizationDisconnectConcurrencyTests
         new VouchaApiClient(new HttpClient(handler)
         {
           BaseAddress = new Uri("https://api.test"),
-        }),
+        }, new TestAccountChangeConfirmation()),
         new UnusedPersistence(),
         new UnusedBrowser(),
         new SessionStore());

@@ -8,7 +8,7 @@ final class UserProfileEndpointTests: XCTestCase {
         XCTAssertEqual(posts.path, "/api/v1/posts")
         XCTAssertEqual(query(posts), [
             "after": "post-cursor", "creator": "user/id", "limit": "25",
-            "post_types": "review", "sort": "new"
+            "post_types": "review", "sort": "new", "time_range": "1m"
         ])
 
         let topics = Endpoint.userTopicsFollowing(userId: "user/id", after: "topic-cursor")
@@ -18,6 +18,10 @@ final class UserProfileEndpointTests: XCTestCase {
         let communities = Endpoint.userCommunitiesMember(userId: "user/id", after: "community-cursor")
         XCTAssertEqual(communities.path, "/api/v1/users/user%2Fid/communities/member")
         XCTAssertEqual(query(communities), ["after": "community-cursor", "limit": "25"])
+
+        let referralLinks = Endpoint.userReferralLinks(userId: "user/id", after: "link-cursor")
+        XCTAssertEqual(referralLinks.path, "/api/v1/referral-links")
+        XCTAssertEqual(query(referralLinks), ["after": "link-cursor", "limit": "25", "user_id": "user/id"])
 
         let sources = Endpoint.userRssFeeds(
             userId: "user/id", feedType: "article", after: "source-cursor", limit: 25

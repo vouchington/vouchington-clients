@@ -63,6 +63,11 @@ struct NativeUserProfileSurface: View {
                 showsRows: currentScope == .overview
             )
             if currentScope != .overview {
+                if viewModel.showsPostTimeRangePicker {
+                    PostTimeRangePicker(range: viewModel.postTimeRange) { range in
+                        onNavigate(viewModel.postTimeRangePath(range))
+                    }
+                }
                 scopedCollection
             }
             paginationControls

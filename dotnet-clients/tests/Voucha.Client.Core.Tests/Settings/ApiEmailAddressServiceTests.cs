@@ -9,14 +9,14 @@ namespace Voucha.Client.Core.Tests.Settings;
 public sealed class ApiEmailAddressServiceTests
 {
   [Fact]
-  public async Task ExistingServiceCallsForwardEmailAndVerificationWithoutInventingReauthentication()
+  public async Task ExistingServiceCallsRequestASeparateFreshProofForEachEmailMutation()
   {
     var handler = new RecordingHandler([
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.my.email-addresses.request.default")),
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.my.email-addresses.verify.default")),
     ]);
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
-    var service = new ApiEmailAddressService(new VouchaApiClient(http));
+    var service = new ApiEmailAddressService(new VouchaApiClient(http, new TestAccountChangeConfirmation()));
     var token = TestContext.Current.CancellationToken;
 
     var requested = await service.RequestEmailVerificationAsync("Tests+Native-User@Voucha.ai", token);
@@ -30,8 +30,8 @@ public sealed class ApiEmailAddressServiceTests
     using var verification = JsonDocument.Parse(handler.Requests[1].Body!);
     Assert.Equal("Tests+Native-User@Voucha.ai", request.RootElement.GetProperty("email_address").GetString());
     Assert.Equal("ABCDEFGH23", verification.RootElement.GetProperty("token").GetString());
-    Assert.False(request.RootElement.TryGetProperty("re_auth_token", out _));
-    Assert.False(verification.RootElement.TryGetProperty("re_auth_token", out _));
+    Assert.Equal(TestAccountChangeConfirmation.Token, request.RootElement.GetProperty("re_auth_token").GetString());
+    Assert.Equal(TestAccountChangeConfirmation.Token, verification.RootElement.GetProperty("re_auth_token").GetString());
     Assert.All(handler.Requests, item => Assert.Equal(HttpMethod.Post, item.Method));
   }
 
@@ -43,7 +43,7 @@ public sealed class ApiEmailAddressServiceTests
       new RecordedResponse(ApiFixtureLoader.LoadResponse("native.my.email-addresses.verify.default")),
     ]);
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
-    var client = new VouchaApiClient(http);
+    var client = new VouchaApiClient(http, new TestAccountChangeConfirmation());
     var token = TestContext.Current.CancellationToken;
 
     await client.RequestEmailAddressVerificationAsync("alice@example.test", "request-auth", token);
@@ -65,7 +65,7 @@ public sealed class ApiEmailAddressServiceTests
     using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
     using var handler = new CancellationHandler();
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.test") };
-    var service = new ApiEmailAddressService(new VouchaApiClient(http));
+    var service = new ApiEmailAddressService(new VouchaApiClient(http, new TestAccountChangeConfirmation()));
     Task operation = verify
         ? service.VerifyEmailAddressAsync("alice@example.test", "ABCDEFGH23", cancellation.Token)
         : service.RequestEmailVerificationAsync("alice@example.test", cancellation.Token);

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+ xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+ xmlns:households="clr-namespace:Voucha.Client.Core.Households;assembly=Voucha.Client.Core"
+ x:Class="Voucha.Client.App.Pages.HouseholdInvitationsPage"
+ x:DataType="households:HouseholdInvitationsViewModel"
+ Title="{DynamicResource settings.householdInvitations.receivedTitle}">
+ <ScrollView>
+  <VerticalStackLayout Padding="20" Spacing="12">
+   <Label Text="{DynamicResource settings.householdInvitations.receivedTitle}" IsVisible="{Binding IsReceived}" />
+   <VerticalStackLayout IsVisible="{Binding IsSent}" Spacing="8" IsEnabled="{Binding CanMutate}">
+    <Label Text="{DynamicResource settings.householdInvitations.sentTitle}" />
+    <Label Text="{DynamicResource settings.householdInvitations.searchByUsername}" />
+    <Entry x:Name="UsernameEntry" Placeholder="{DynamicResource settings.householdInvitations.username}" />
+    <Entry x:Name="RelationshipEntry" Placeholder="{DynamicResource settings.householdInvitations.relationshipOptional}" />
+    <Button Text="{DynamicResource settings.householdInvitations.sendInvitation}" Clicked="OnSendClicked" />
+   </VerticalStackLayout>
+   <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+   <Label Text="{Binding Message}" />
+   <VerticalStackLayout IsVisible="{Binding HasError}">
+    <Label Text="{Binding LoadError}" />
+    <Label Text="{DynamicResource settings.householdInvitations.retryLoading}" />
+    <Button Text="{DynamicResource settings.householdInvitations.retry}" Clicked="OnLoadMoreClicked" />
+   </VerticalStackLayout>
+   <Label Text="{DynamicResource settings.householdInvitations.noPendingInvitations}" IsVisible="{Binding ShowsEmpty}" />
+   <VerticalStackLayout BindableLayout.ItemsSource="{Binding Rows}" IsEnabled="{Binding CanMutate}" Spacing="12">
+    <BindableLayout.ItemTemplate>
+     <DataTemplate x:DataType="households:HouseholdInvitationRow">
+      <VerticalStackLayout Spacing="8">
+       <Label Text="{Binding LocalizedTitle}" />
+       <Label Text="{Binding LocalizedRelationship}" />
+       <Button Text="{DynamicResource settings.householdInvitations.revokeInvitation}" IsVisible="{Binding IsSent}" Clicked="OnRevokeClicked" CommandParameter="{Binding Invitation}" />
+       <Button Text="{DynamicResource settings.householdInvitations.accept}" IsVisible="{Binding IsReceived}" Clicked="OnAcceptClicked" CommandParameter="{Binding Invitation}" />
+       <Button Text="{DynamicResource settings.householdInvitations.decline}" IsVisible="{Binding IsReceived}" Clicked="OnDeclineClicked" CommandParameter="{Binding Invitation}" />
+      </VerticalStackLayout>
+     </DataTemplate>
+    </BindableLayout.ItemTemplate>
+   </VerticalStackLayout>
+   <Button Text="{DynamicResource settings.householdInvitations.loadMore}" IsVisible="{Binding HasMore}" IsEnabled="{Binding CanMutate}" Clicked="OnLoadMoreClicked" />
+  </VerticalStackLayout>
+ </ScrollView>
+</ContentPage>

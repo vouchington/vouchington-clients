@@ -38,7 +38,8 @@ extension NativeUserProfileSurface {
                 title: .nativeSwiftNavigationTitlesCommunities,
                 path: "\(basePath)/communities/member",
                 count: metrics?.visibleCount("communities_member")
-            )
+            ),
+            .init(title: .nativeSwiftLandingPagesReferralLinks, path: "\(basePath)/referral-links", count: nil)
         ]
         return candidates.compactMap { candidate in
             let selected = currentScope?.primaryTitle == candidate.title

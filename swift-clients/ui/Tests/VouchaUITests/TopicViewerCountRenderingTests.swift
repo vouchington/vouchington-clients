@@ -61,7 +61,7 @@ final class TopicViewerCountRenderingTests: NativeRouteSurfaceViewModelTestCase 
 
     private func loadTopic(_ data: Data) async throws -> NativeRouteSurfaceViewModel {
         CannedFeedURLProtocol.handlers["/api/v1/topics/test-topic"] = (data, 200)
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/test-topic/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/test-topic")?.match)
         let model = try NativeRouteSurfaceViewModel(
             entry: entry(for: .topicDetail), client: makeClient(), routeMatch: match
         )

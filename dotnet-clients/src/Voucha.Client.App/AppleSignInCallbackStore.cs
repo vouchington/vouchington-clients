@@ -15,7 +15,7 @@ public sealed class AppleSignInCallbackStore
   public AppleSignInCallbackStore(AppConfig config) =>
       this.config = config;
 
-  public async Task<AppleSignInCredential> StartAsync(CancellationToken cancellationToken = default)
+  public async Task<AppleSignInCredential> StartAsync(CancellationToken cancellationToken = default, string? serverNonce = null)
   {
     if (string.IsNullOrWhiteSpace(config.AppleClientId))
     {
@@ -23,7 +23,7 @@ public sealed class AppleSignInCallbackStore
     }
 
     var state = NewUrlToken();
-    var rawNonce = NewUrlToken();
+    var rawNonce = serverNonce ?? NewUrlToken();
     var completion = new TaskCompletionSource<AppleSignInCredential>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     lock (gate)

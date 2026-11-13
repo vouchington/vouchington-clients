@@ -27,3 +27,5 @@ public sealed record ReAuthProviderProofBody([property: JsonPropertyName("flow_i
 public sealed record RefreshSessionBody(
     [property: JsonPropertyName("dt")] string Dt,
     [property: JsonPropertyName("st"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? St);
+
+public sealed record ReAuthTokenBody([property: JsonPropertyName("re_auth_token")] string ReAuthToken);

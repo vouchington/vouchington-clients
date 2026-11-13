@@ -8,6 +8,8 @@ public static class NativeLocalizationSelectors
   [
       "common.*",
       "extracted.*",
+      "engineering.classifierRange.*",
+      "engineering.requestRange.*",
       "images.uploadPreviewUnavailable",
       "moderation.communityBans.*",
       "nav.*",

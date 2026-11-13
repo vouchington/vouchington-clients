@@ -22,6 +22,7 @@ public sealed class NativeUserProfileScopeTests
     { "/user/alice/rss-feeds/following?feed_type=podcast", NativeUserProfileSection.Sources, NativeUserProfileCollectionKind.SourcesPodcasts },
     { "/user/alice/rss-feeds/following?feed_type=video", NativeUserProfileSection.Sources, NativeUserProfileCollectionKind.SourcesVideos },
     { "/user/alice/communities/member", NativeUserProfileSection.Communities, NativeUserProfileCollectionKind.CommunitiesMember },
+    { "/user/alice/referral-links", NativeUserProfileSection.ReferralLinks, NativeUserProfileCollectionKind.ReferralLinks },
   };
 
   [Theory]

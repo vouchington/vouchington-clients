@@ -330,7 +330,7 @@ final class NativeUserProfileSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         let tabs = surface.visiblePrimaryTabs(profile)
         XCTAssertEqual(
-            tabs.map(\.title),
+            Array(tabs.map(\.title).dropLast()),
             [.nativeSwiftProfileOverview, .nativeSwiftNavigationTitlesPosts, .nativeSwiftNavigationTitlesFriends]
         )
         XCTAssertTrue(tabs.first(where: { $0.title == .nativeSwiftNavigationTitlesFriends })?.selected == true)

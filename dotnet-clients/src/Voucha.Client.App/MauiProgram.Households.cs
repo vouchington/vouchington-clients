@@ -17,5 +17,10 @@ public static partial class MauiProgram
         sp.GetRequiredService<IUiLocalization>(),
         sp.GetRequiredService<IUiLocaleController>()));
     services.AddTransient<HouseholdPage>();
+    services.AddSingleton<IHouseholdInvitationService, ApiHouseholdInvitationService>();
+    // ActivatorUtilities keeps the disposable view model out of the root provider's tracking;
+    // the page disposes it when popped.
+    services.AddTransient(sp => new HouseholdInvitationsPage(
+        ActivatorUtilities.CreateInstance<HouseholdInvitationsViewModel>(sp)));
   }
 }

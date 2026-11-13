@@ -41,6 +41,7 @@ public static partial class NativeRouteCatalog
     "/users/followers",
     "/rss-feeds/following",
     "/communities/member",
+    "/referral-links",
   ];
 
   private static readonly string[] PostCreatePaths =

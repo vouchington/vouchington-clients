@@ -7,7 +7,7 @@ public sealed record CopyrightAssociationTarget(
     [property: JsonPropertyName("claimant_display_name"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? ClaimantDisplayName,
     [property: JsonPropertyName("jurisdiction"), JsonRequired] string Jurisdiction,
     [property: JsonPropertyName("received_at"), JsonRequired] DateTimeOffset ReceivedAt,
-    [property: JsonPropertyName("work_description"), JsonRequired] string WorkDescription);
+    [property: JsonPropertyName("work_description"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? WorkDescription);
 
 public sealed record CopyrightAssociationTargetsResponse(
     [property: JsonPropertyName("copyright_notices"), JsonRequired] IReadOnlyList<CopyrightAssociationTarget> CopyrightNotices,

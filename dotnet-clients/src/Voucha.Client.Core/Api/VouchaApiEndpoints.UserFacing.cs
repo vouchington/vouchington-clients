@@ -75,6 +75,9 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest ReferralLinks(string? after = null, int limit = 25) =>
       Get("/api/v1/referral-links", Query(("limit", limit), ("after", after)));
 
+  public static ApiRequest UserReferralLinks(string userId, string? after = null, int limit = 25) =>
+      Get("/api/v1/referral-links", Query(("limit", limit), ("user_id", userId), ("after", after)));
+
   public static ApiRequest CreateReferralLink(CreateReferralLinkBody body) =>
       new(HttpMethod.Post, "/api/v1/referral-links") { Body = body };
 

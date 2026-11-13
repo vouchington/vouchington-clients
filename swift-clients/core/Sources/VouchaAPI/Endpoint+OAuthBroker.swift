@@ -2,6 +2,7 @@ import VouchaCore
 
 private struct BeginNativeOAuthAuthorizationBody: Encodable {
     let purpose: NativeOAuthAuthorizationPurpose
+    let reAuthToken: String?
     let callbackMode = "native"
     let completionProofChallenge: String
 }
@@ -19,13 +20,15 @@ public extension Endpoint {
     static func beginNativeOAuthAuthorization(
         provider: NativeOAuthProvider,
         purpose: NativeOAuthAuthorizationPurpose,
-        completionProofChallenge: String
+        completionProofChallenge: String,
+        reAuthToken: String? = nil
     ) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/auth/oauth/\(pathSegment(provider.rawValue))/authorizations",
             body: BeginNativeOAuthAuthorizationBody(
                 purpose: purpose,
+                reAuthToken: reAuthToken,
                 completionProofChallenge: completionProofChallenge
             )
         )
@@ -46,10 +49,11 @@ public extension Endpoint {
         )
     }
 
-    static func disconnectOAuthAccount(provider: NativeOAuthProvider) -> Endpoint {
+    static func disconnectOAuthAccount(provider: NativeOAuthProvider, reAuthToken: String? = nil) -> Endpoint {
         Endpoint(
             .DELETE,
-            path: "/api/v1/auth/oauth/\(pathSegment(provider.rawValue))/connect"
+            path: "/api/v1/auth/oauth/\(pathSegment(provider.rawValue))/connect",
+            body: reAuthToken.map { ["re_auth_token": $0] }
         )
     }
 }
