@@ -24,11 +24,159 @@ runs:
       with:
         cache: false
         install: false
+    - name: Resolve pinned .NET SDK version
+      id: dotnet-pin
+      if: inputs.tool == 'dotnet'
+      shell: bash
+      env:
+        CLIENT_ROOT: ${{ inputs.client-root }}
+      run: |
+        set -euo pipefail
+        echo "version=$(jq -er '.sdk.version' "$GITHUB_WORKSPACE/$CLIENT_ROOT/global.json")" >> "$GITHUB_OUTPUT"
+    - name: Restore mise-managed .NET SDK
+      id: dotnet-sdk
+      if: inputs.tool == 'dotnet'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/mise-data/dotnet-root
+        key: mise-dotnet-sdk-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.dotnet-pin.outputs.version }}-${{ hashFiles(format('{0}/global.json', inputs.client-root)) }}
+    - name: Seed .NET SDK from builds.dotnet.microsoft.com
+      if: runner.os != 'Windows' && inputs.tool == 'dotnet' && steps.dotnet-sdk.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        DOTNET_VERSION: ${{ steps.dotnet-pin.outputs.version }}
+        RUNNER_ARCH_NAME: ${{ runner.arch }}
+        RUNNER_OS_NAME: ${{ runner.os }}
+      run: |
+        set -euo pipefail
+        # mise's dotnet installer always fetches dot.net/v1/dotnet-install.sh, which is a single point of
+        # failure. Pre-populate mise's shared dotnet-root from the release CDN; the link step below makes mise
+        # find it installed.
+        case "$RUNNER_OS_NAME/$RUNNER_ARCH_NAME" in
+          Linux/X64) rid=linux-x64 ;;
+          Linux/ARM64) rid=linux-arm64 ;;
+          macOS/X64) rid=osx-x64 ;;
+          macOS/ARM64) rid=osx-arm64 ;;
+          *) echo "unsupported runner: $RUNNER_OS_NAME/$RUNNER_ARCH_NAME" >&2; exit 2 ;;
+        esac
+        channel="$(echo "$DOTNET_VERSION" | cut -d. -f1,2)"
+        curl_get() { curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 600 "$@"; }
+        work="$(mktemp -d)"
+        curl_get --output "$work/releases.json" "https://builds.dotnet.microsoft.com/dotnet/release-metadata/${channel}/releases.json"
+        entry="$(jq -er --arg v "$DOTNET_VERSION" --arg rid "$rid" '[.releases[] | (.sdk, (.sdks // [])[]) | select(.version == $v) | .files[] | select(.rid == $rid and (.name | test("[.](tar[.]gz|zip)$")))][0] | "\(.url) \(.hash)"' "$work/releases.json")"
+        url="${entry% *}"
+        expected_hash="${entry##* }"
+        [[ "$url" == "https://builds.dotnet.microsoft.com/dotnet/Sdk/$DOTNET_VERSION/"* && ${#expected_hash} -eq 128 ]]
+        curl_get --output "$work/sdk.tar.gz" "$url"
+        actual_hash="$(openssl dgst -sha512 -r "$work/sdk.tar.gz" | cut -d' ' -f1)"
+        [[ "$actual_hash" == "$expected_hash" ]] || {
+          echo "SHA-512 mismatch for $url: got $actual_hash, expected $expected_hash." >&2
+          exit 1
+        }
+        install_dir="$RUNNER_TEMP/mise-data/dotnet-root"
+        mkdir -p -- "$work/extract" "$(dirname "$install_dir")"
+        tar -xzf "$work/sdk.tar.gz" -C "$work/extract"
+        [[ -x "$work/extract/dotnet" ]]
+        rm -rf -- "$install_dir"
+        mv -- "$work/extract" "$install_dir"
+        rm -rf -- "$work"
+    - name: Seed .NET SDK from builds.dotnet.microsoft.com on Windows
+      if: runner.os == 'Windows' && inputs.tool == 'dotnet' && steps.dotnet-sdk.outputs.cache-hit != 'true'
+      shell: pwsh
+      env:
+        DOTNET_VERSION: ${{ steps.dotnet-pin.outputs.version }}
+        RUNNER_ARCH_NAME: ${{ runner.arch }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        # mise's dotnet installer always fetches dot.net/v1/dotnet-install.ps1, which is a single point of
+        # failure. Pre-populate mise's shared dotnet-root from the release CDN; the link step below makes mise
+        # find it installed.
+        $rid = switch ($env:RUNNER_ARCH_NAME) {
+          'X64' { 'win-x64' }
+          'ARM64' { 'win-arm64' }
+          default { throw "unsupported runner architecture: $env:RUNNER_ARCH_NAME" }
+        }
+        $version = $env:DOTNET_VERSION
+        $channel = ($version -split '\.')[0..1] -join '.'
+        $work = Join-Path $env:RUNNER_TEMP "dotnet-seed-$([guid]::NewGuid())"
+        New-Item -ItemType Directory -Force -Path $work | Out-Null
+        function Get-WithRetry($uri, $outFile) {
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $uri -OutFile $outFile -TimeoutSec 600
+              return
+            }
+            catch {
+              if ($attempt -eq 5) { throw }
+              Start-Sleep -Seconds 5
+            }
+          }
+        }
+        $releasesPath = Join-Path $work 'releases.json'
+        Get-WithRetry "https://builds.dotnet.microsoft.com/dotnet/release-metadata/$channel/releases.json" $releasesPath
+        $releases = (Get-Content $releasesPath -Raw | ConvertFrom-Json).releases
+        $file = $releases |
+          ForEach-Object { $_.sdk; $_.sdks } |
+          Where-Object { $_ -and $_.version -eq $version } |
+          ForEach-Object { $_.files } |
+          Where-Object { $_.rid -eq $rid -and $_.name -like '*.zip' } |
+          Select-Object -First 1
+        if (-not $file -or $file.url -notlike "https://builds.dotnet.microsoft.com/dotnet/Sdk/$version/*" -or $file.hash.Length -ne 128) {
+          throw "No verifiable .NET SDK $version archive for $rid in release metadata."
+        }
+        $archive = Join-Path $work 'sdk.zip'
+        Get-WithRetry $file.url $archive
+        $actualHash = (Get-FileHash -Algorithm SHA512 -Path $archive).Hash
+        if ($actualHash -ne $file.hash.ToUpperInvariant()) {
+          throw "SHA-512 mismatch for $($file.url): got $actualHash, expected $($file.hash)."
+        }
+        $extract = Join-Path $work 'extract'
+        Expand-Archive -Path $archive -DestinationPath $extract
+        if (-not (Test-Path (Join-Path $extract 'dotnet.exe'))) {
+          throw 'Extracted .NET SDK is missing dotnet.exe at its root.'
+        }
+        $installDir = Join-Path $env:RUNNER_TEMP 'mise-data/dotnet-root'
+        New-Item -ItemType Directory -Force -Path (Split-Path $installDir) | Out-Null
+        if (Test-Path $installDir) { Remove-Item -Recurse -Force $installDir }
+        Move-Item -Path $extract -Destination $installDir
+        Remove-Item -Recurse -Force $work
+    - name: Link mise .NET install to the seeded SDK
+      if: runner.os != 'Windows' && inputs.tool == 'dotnet'
+      shell: bash
+      env:
+        DOTNET_VERSION: ${{ steps.dotnet-pin.outputs.version }}
+      run: |
+        set -euo pipefail
+        # mise's dotnet backend keeps the SDK in <data>/dotnet-root and tracks each version through an
+        # installs/dotnet/<version> symlink to it. Recreate that link after both cache hits and fresh seeds.
+        data="$RUNNER_TEMP/mise-data"
+        [[ -x "$data/dotnet-root/dotnet" ]]
+        mkdir -p -- "$data/installs/dotnet"
+        ln -sfn -- "$data/dotnet-root" "$data/installs/dotnet/$DOTNET_VERSION"
+    - name: Link mise .NET install to the seeded SDK on Windows
+      if: runner.os == 'Windows' && inputs.tool == 'dotnet'
+      shell: pwsh
+      env:
+        DOTNET_VERSION: ${{ steps.dotnet-pin.outputs.version }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        # mise tracks each version through an installs/dotnet/<version> directory junction to <data>/dotnet-root.
+        $data = Join-Path $env:RUNNER_TEMP 'mise-data'
+        $root = Join-Path $data 'dotnet-root'
+        if (-not (Test-Path (Join-Path $root 'dotnet.exe'))) {
+          throw "Seeded .NET SDK is missing dotnet.exe under $root."
+        }
+        $parent = Join-Path $data 'installs/dotnet'
+        New-Item -ItemType Directory -Force -Path $parent | Out-Null
+        $link = Join-Path $parent $env:DOTNET_VERSION
+        if (Test-Path $link) { (Get-Item $link -Force).Delete() }
+        New-Item -ItemType Junction -Path $link -Target $root | Out-Null
     - name: Install candidate-pinned toolchain
       if: runner.os != 'Windows'
       shell: bash
       env:
         CLIENT_ROOT: ${{ inputs.client-root }}
+        MISE_HTTP_TIMEOUT: 120s
         MISE_TOOL: ${{ inputs.tool }}
       run: |
         set -euo pipefail
@@ -53,6 +201,11 @@ runs:
           echo "MISE_DATA_DIR=$MISE_DATA_DIR"
           echo "MISE_CACHE_DIR=$MISE_CACHE_DIR"
         } >> "$GITHUB_ENV"
+        if [[ "$MISE_TOOL" == dotnet ]]; then
+          # mise prefers an inherited DOTNET_ROOT (runner images set one) over its own dotnet-root.
+          export MISE_DOTNET_ROOT="$mise_data_dir/dotnet-root"
+          echo "MISE_DOTNET_ROOT=$MISE_DOTNET_ROOT" >> "$GITHUB_ENV"
+        fi
         cd "$client_root"
         mise trust "$client_root/.mise.toml"
         mise install "$MISE_TOOL"
@@ -86,6 +239,7 @@ runs:
       shell: pwsh
       env:
         CLIENT_ROOT: ${{ inputs.client-root }}
+        MISE_HTTP_TIMEOUT: 120s
         MISE_TOOL: ${{ inputs.tool }}
       run: |
         $ErrorActionPreference = 'Stop'
@@ -102,6 +256,9 @@ runs:
         New-Item -ItemType Directory -Force -Path $env:MISE_DATA_DIR, $env:MISE_CACHE_DIR | Out-Null
         "MISE_DATA_DIR=$env:MISE_DATA_DIR" >> $env:GITHUB_ENV
         "MISE_CACHE_DIR=$env:MISE_CACHE_DIR" >> $env:GITHUB_ENV
+        # mise prefers an inherited DOTNET_ROOT (runner images set one) over its own dotnet-root.
+        $env:MISE_DOTNET_ROOT = Join-Path $env:MISE_DATA_DIR 'dotnet-root'
+        "MISE_DOTNET_ROOT=$env:MISE_DOTNET_ROOT" >> $env:GITHUB_ENV
         Push-Location $clientRoot
         try {
           mise trust (Join-Path $clientRoot '.mise.toml')
@@ -141,3 +298,10 @@ runs:
         finally {
           Pop-Location
         }
+    - name: Save mise-managed .NET SDK from main
+      if: inputs.tool == 'dotnet' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.dotnet-sdk.outputs.cache-hit != 'true'
+      continue-on-error: true
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/mise-data/dotnet-root
+        key: ${{ steps.dotnet-sdk.outputs.cache-primary-key }}
