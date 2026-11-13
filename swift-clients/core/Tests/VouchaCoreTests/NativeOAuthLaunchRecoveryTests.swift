@@ -64,7 +64,7 @@ final class NativeOAuthLaunchRecoveryTests: XCTestCase {
         )
         return NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: cookies),
+            sessionManager: SessionManager(client: client),
             store: store,
             now: { now }
         )

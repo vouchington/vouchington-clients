@@ -27,6 +27,7 @@ public partial class App : Application
 #if WINDOWS
         // Construct before navigation so sign-out/account-switch cleanup also works before chat opens.
         _ = serviceProvider.GetRequiredService<MemberMcpSession>();
+        _ = serviceProvider.GetRequiredService<MemberMcpAutoConnector>();
 #endif
         localeController.AttachSession(sessionStore);
         localeController.LocaleChanged += OnLocaleChanged;

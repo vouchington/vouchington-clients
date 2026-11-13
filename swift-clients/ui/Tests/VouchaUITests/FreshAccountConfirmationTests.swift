@@ -182,7 +182,7 @@ final class FreshAccountConfirmationTests: XCTestCase {
         if brokerEnabled {
             let defaults = try XCTUnwrap(UserDefaults(suiteName: UUID().uuidString))
             broker = NativeOAuthAuthorizationCoordinator(
-                client: client, sessionManager: SessionManager(client: client, cookieStorage: cookies),
+                client: client, sessionManager: SessionManager(client: client),
                 store: NativeOAuthAuthorizationStore(secureState: UserDefaultsNativePendingState(
                     key: "reauth",
                     defaults: defaults

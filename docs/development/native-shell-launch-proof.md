@@ -26,7 +26,8 @@ marker; this change retains that assertion and adds a visible, hittable control.
 ## Required launch contracts
 
 - macOS requires WindowServer and ownership of the GUI console, then runs the actual Xcode app
-  UI-test target. The result gate requires five passed tests, zero failures, and zero skips.
+  UI-test target. The result gate requires seven passed tests, zero failures, and zero skips, including the
+  [Videos error/Retry recovery case](macos-app-shell-flows.md).
 - iPhone and iPad use actual Simulator app launches followed by the Xcode UI-test target. Each
   dedicated root execution must report exactly one passed case, zero failures, and zero skips.
   Failure diagnostics and `.xcresult` artifacts remain available.

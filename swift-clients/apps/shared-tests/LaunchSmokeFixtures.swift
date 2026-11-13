@@ -14,15 +14,25 @@ enum LaunchSmokeFixtures {
         return (root, fixtures)
     }
 
+    static func configureSession(in app: XCUIApplication) throws {
+        let contract = try manifest()
+        let data = try fixtureData(
+            id: "native.auth.session.refresh.rotated", path: "/api/v1/session", query: [:],
+            root: contract.root, fixtures: contract.fixtures, method: "PATCH"
+        )
+        app.launchEnvironment["VOUCHA_UI_TESTING_SESSION_RESPONSE_BASE64"] = data.base64EncodedString()
+    }
+
     static func fixtureData(
         id: String,
         path: String,
         query: [String: String],
         root: URL,
-        fixtures: [[String: Any]]
+        fixtures: [[String: Any]],
+        method: String = "GET"
     ) throws -> Data {
         let fixture = try XCTUnwrap(fixtures.first { $0["id"] as? String == id })
-        XCTAssertEqual(fixture["method"] as? String, "GET")
+        XCTAssertEqual(fixture["method"] as? String, method)
         XCTAssertEqual(fixture["path"] as? String, path)
         XCTAssertEqual(fixture["query"] as? [String: String] ?? [:], query)
         XCTAssertEqual(fixture["auth"] as? String, "fixture-user")
@@ -32,25 +42,3 @@ enum LaunchSmokeFixtures {
         return try Data(contentsOf: root.appendingPathComponent(bodyFile))
     }
 }
-
-#if os(macOS)
-    enum LaunchSmokeSidebar {
-        static func click(_ label: String, in app: XCUIApplication) {
-            let row = app.outlines.staticTexts.matching(displayedText(label)).firstMatch
-            XCTAssertTrue(row.waitForExistence(timeout: 20), "Missing sidebar row \(label)")
-            if row.isHittable {
-                row.click()
-            } else {
-                row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-            }
-        }
-
-        static func visibleText(_ value: String, in app: XCUIApplication) -> XCUIElement {
-            app.staticTexts.matching(displayedText(value)).firstMatch
-        }
-
-        private static func displayedText(_ value: String) -> NSPredicate {
-            NSPredicate(format: "value == %@ OR label == %@", value, value)
-        }
-    }
-#endif

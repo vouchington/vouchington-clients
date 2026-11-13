@@ -86,8 +86,7 @@ final class HackerNewsFeedTests: XCTestCase {
             let view = RSSFeedListView(
                 viewModel: viewModel,
                 playbackController: PodcastPlaybackController(client: client(), sessionManager: SessionManager(
-                    client: client(),
-                    cookieStorage: HTTPCookieStorage()
+                    client: client()
                 )),
                 isSignedIn: false
             )
@@ -130,7 +129,7 @@ final class HackerNewsFeedTests: XCTestCase {
         XCTAssertEqual(
             URLComponents(url: request, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "time_range" }?
                 .value,
-            "1m"
+            "1y"
         )
         XCTAssertEqual(
             URLComponents(url: request, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "post_types" }?

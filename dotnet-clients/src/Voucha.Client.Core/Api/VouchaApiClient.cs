@@ -7,9 +7,15 @@ public sealed partial class VouchaApiClient
 {
   private readonly HttpClient httpClient;
 
-  public VouchaApiClient(HttpClient httpClient, IAccountChangeConfirmation? accountChangeConfirmation = null)
+  private readonly BotChallengeReplay? botChallengeReplay;
+
+  public VouchaApiClient(
+      HttpClient httpClient,
+      BotChallengeReplay? botChallengeReplay = null,
+      IAccountChangeConfirmation? accountChangeConfirmation = null)
   {
     this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    this.botChallengeReplay = botChallengeReplay;
     this.accountChangeConfirmation = accountChangeConfirmation ?? new UnavailableAccountChangeConfirmation();
   }
 

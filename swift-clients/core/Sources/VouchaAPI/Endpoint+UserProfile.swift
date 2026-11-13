@@ -18,13 +18,17 @@ public extension Endpoint {
         userId: String,
         postTypes: String? = nil,
         after: String? = nil,
-        limit: Int = 25
+        limit: Int = 25,
+        timeRange: String? = "1m"
     ) -> Endpoint {
         var items = [
             URLQueryItem(name: "creator", value: userId),
             URLQueryItem(name: "limit", value: "\(limit)"),
             URLQueryItem(name: "sort", value: "new")
         ]
+        if let timeRange {
+            items.append(.init(name: "time_range", value: timeRange))
+        }
         if let postTypes {
             items.append(.init(name: "post_types", value: postTypes))
         }

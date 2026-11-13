@@ -22,7 +22,7 @@ final class MFAChallengeViewModelTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         let service = SignInService(client: apiClient, sessionManager: sessionManager)
         return MFAChallengeViewModel(loginAttemptId: loginAttemptId, signInService: service)
     }
@@ -305,7 +305,7 @@ final class ProfileEditTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         return ProfileViewModel(client: apiClient, config: config, sessionManager: sessionManager)
     }
 

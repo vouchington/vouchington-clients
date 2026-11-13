@@ -377,7 +377,10 @@ final class CannedFeedURLProtocol: URLProtocol {
             _queuedHandlers[path] = queued
             return (next.0, next.1, next.2, sequence)
         }
-        let (data, status) = _handlers[path] ?? (Data("{}".utf8), 200)
+        let (data, status) = _handlers[path] ?? (
+            path == "/api/v1/session" ? ApiFixtureLoader.data("native.auth.session.refresh.rotated") : Data("{}".utf8),
+            200
+        )
         return (data, status, 0, sequence)
     }
 

@@ -7,8 +7,9 @@ final class EndpointPostTimeRangeTests: XCTestCase {
         endpoint.queryItems.first { $0.name == "time_range" }?.value
     }
 
-    func testPostsOmitsTimeRangeByDefault() {
-        XCTAssertFalse(Endpoint.posts().queryItems.contains { $0.name == "time_range" })
+    func testGenericFeedEndpointDefaultsToExplicitWeekButAllowsDeliberateOmission() {
+        XCTAssertEqual(timeRange(.posts(feedType: "any")), "1w")
+        XCTAssertFalse(Endpoint.posts(feedType: "any", timeRange: nil).queryItems.contains { $0.name == "time_range" })
     }
 
     func testPostsSendsSelectedTimeRangeExactly() {
@@ -16,8 +17,14 @@ final class EndpointPostTimeRangeTests: XCTestCase {
         XCTAssertEqual(timeRange(.posts(timeRange: "1w")), "1w")
     }
 
+    func testUserPostsDefaultAndContinuationAreExplicitlyBounded() {
+        XCTAssertEqual(timeRange(.userPosts(userId: "alice")), "1m")
+        XCTAssertEqual(timeRange(.userPosts(userId: "alice", after: "next==")), "1m")
+        XCTAssertEqual(timeRange(.userPosts(userId: "alice", timeRange: "all")), "all")
+    }
+
     func testPostSearchExplicitAllTimePreservesQueryAndCursor() {
-        XCTAssertNil(timeRange(.posts(query: "ordinary search")))
+        XCTAssertEqual(timeRange(.posts(query: "ordinary search")), "1m")
         let endpoint = Endpoint.posts(query: "old post", limit: 8, after: "opaque==", timeRange: "all")
         XCTAssertEqual(timeRange(endpoint), "all")
         XCTAssertEqual(endpoint.queryItems.first { $0.name == "q" }?.value, "old post")

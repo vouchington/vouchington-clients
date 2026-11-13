@@ -17,6 +17,9 @@ public sealed partial class AppShell
 {
   private Task? TryOpenTopicRouteAsync(NativeDeepLinkResolution resolution)
   {
+    if (TopicPostsRoute.FromResolution(resolution) is { } postRoute)
+      return OpenTopicPostsAsync(postRoute);
+
     if (resolution.Match is { Path: var instancePath } match &&
         instancePath.StartsWith("/instance/", StringComparison.Ordinal) &&
         match.Param("idOrSlug", "id") is { Length: > 0 } instanceId)

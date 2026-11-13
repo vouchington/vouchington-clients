@@ -6,7 +6,7 @@ public sealed partial class AppShell
   {
     foreach (var content in EnumerateShellContents(route))
     {
-      if (content.Content is Page page)
+      if (((IShellContentController)content).Page is Page page)
       {
         yield return page;
       }

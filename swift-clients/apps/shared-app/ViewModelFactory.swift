@@ -16,6 +16,7 @@ public final class ViewModelFactory {
     private static let keychainAccessGroupSuffix = "ai.voucha.macos"
 
     /// The shared API client used for all HTTP requests.
+    public let mutationChallengeBroker = MutationChallengeBroker()
     public let apiClient: APIClient
     /// The shared session manager tracking sign-in state.
     public let sessionManager: SessionManager
@@ -90,7 +91,7 @@ public final class ViewModelFactory {
                 metadata: NativeClientMetadata.current()
             )
         #endif
-        let session = SessionManager(client: client, cookieStorage: cookieStorage)
+        let session = SessionManager(client: client)
         let cache = MemoryDiskCacheStore()
         let factory = ViewModelFactory(
             apiClient: client,
@@ -99,7 +100,10 @@ public final class ViewModelFactory {
             config: config,
             nativeOAuthAuthorizationStore: NativeOAuthAuthorizationStore()
         )
-        factory.nativeChatMCPSession = makeNativeChatMCPSession(config: config, accessGroup: keychainAccessGroup)
+        factory.nativeChatMCPSession = makeNativeChatMCPSession(
+            config: config, apiClient: client, accessGroup: keychainAccessGroup,
+            currentAccountId: { [weak factory] in factory?.sessionManager.currentUserId }
+        )
         factory.installMCPSignOutCleanup()
         #if canImport(DeviceCheck)
             factory.appAttestationService = appAttestationService
@@ -161,7 +165,7 @@ public final class ViewModelFactory {
     ///
     /// - Parameter feedType: Feed path segment (e.g. `"any"`, `"follow_users"`). Defaults to `"any"`.
     public func makePostsListViewModel(feedType: String = "any") -> PostsListViewModel {
-        PostsListViewModel(client: apiClient, feedType: feedType, timeRange: .lastWeek)
+        PostsListViewModel(client: apiClient, feedType: feedType)
     }
 
     /// Creates a view model for the notifications feed.

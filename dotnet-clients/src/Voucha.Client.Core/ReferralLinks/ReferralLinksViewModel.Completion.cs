@@ -127,10 +127,16 @@ public sealed partial class ReferralLinksViewModel
           item.Id,
           UiText.Verbatim(item.Label ?? item.Url),
           ParseUri(item.Url),
-          UiText.Localized(
-              UiMessageKey.NativeDotnetReferralLinksPriorityGroup,
-              ("group", item.PriorityGroup)),
-          Localization: localization);
+          item.PriorityGroup switch
+          {
+            5 => UiText.Localized(UiMessageKey.ExtractedReferralLinksReferralLinkListUseOurOfficialLinks1626a49d),
+            6 => UiText.Localized(UiMessageKey.ExtractedReferralLinksReferralLinkListEveryoneElse919112f4),
+            _ => UiText.Localized(UiMessageKey.NativeDotnetReferralLinksPriorityGroup, ("group", item.PriorityGroup)),
+          },
+          Localization: localization,
+          OfficialBadgeText: item.IsOfficial
+              ? UiText.Localized(UiMessageKey.ExtractedReferralLinksReferralLinkCardOfficialVouchaA2d311b4)
+              : null);
 
   private ReferralLinkRow RowFromProgram(string id, string? name) =>
       new(

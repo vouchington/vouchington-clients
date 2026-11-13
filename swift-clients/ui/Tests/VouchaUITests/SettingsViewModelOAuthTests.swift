@@ -422,7 +422,7 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         let client = try makeFreshAccountSettingsTestClient()
         let coordinator = try NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
+            sessionManager: SessionManager(client: client),
             store: NativeOAuthAuthorizationStore(
                 secureState: UserDefaultsNativePendingState(
                     key: "nativeOAuthPendingAuthorization",

@@ -6,10 +6,11 @@ import XCTest
 final class APIClientCookiePersistenceTests: XCTestCase {
     private struct Empty: Decodable {}
 
-    func testProvidedConfigurationKeepsItsExactJarAndCopiesSettings() async throws {
+    func testProvidedConfigurationSelectsCanonicalJarAndCopiesTransportSettings() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         let jar = try XCTUnwrap(configuration.httpCookieStorage)
         configuration.timeoutIntervalForRequest = 17
+        configuration.httpShouldSetCookies = true
         configuration.protocolClasses = [CookiePersistenceURLProtocol.self]
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
@@ -21,7 +22,9 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         let storedJar = await client.cookieStorage
         let session = await client.session
         XCTAssertTrue(storedJar === jar)
-        XCTAssertTrue(session.configuration.httpCookieStorage === jar)
+        XCTAssertTrue(configuration.httpCookieStorage === jar)
+        XCTAssertTrue(configuration.httpShouldSetCookies)
+        XCTAssertNil(session.configuration.httpCookieStorage)
         XCTAssertEqual(session.configuration.timeoutIntervalForRequest, 17)
         let _: Empty = try await client.send(Endpoint(.GET, path: "/empty"))
     }
@@ -118,28 +121,29 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         async let response: Void = server.respondOnce()
         let _: Empty = try await client.send(Endpoint(.GET, path: "/response-cookie"))
         await response
+        XCTAssertEqual(jar.cookies?.first { $0.name == "response_session" }?.value, "updated")
         XCTAssertEqual(recorder.snapshots.last?["response_session"], "updated")
     }
 
-    func testNonSuccessAndNetworkErrorsStillSnapshotCookies() async throws {
+    func testNonSuccessPersistsChangedCookiesButNetworkErrorsNeverWrite() async throws {
         for path in ["/error", "/network-error"] {
             let (client, recorder) = try makeClient()
             do {
                 let _: Empty = try await client.send(Endpoint(.GET, path: path))
                 XCTFail("Expected request failure")
             } catch {
-                XCTAssertFalse(recorder.snapshots.isEmpty)
+                XCTAssertEqual(recorder.snapshots.count, path == "/error" ? 1 : 0)
             }
         }
     }
 
-    func testFailedBootstrapAlsoSnapshotsBeforeReturningItsError() async throws {
+    func testFailedBootstrapWithoutCookiesDoesNotWriteUnchangedSnapshot() async throws {
         let (client, recorder) = try makeClient(bootstrap: true, basePath: "/bootstrap-error")
         do {
             let _: Empty = try await client.send(Endpoint(.GET, path: "/empty"))
             XCTFail("Expected bootstrap failure")
         } catch {
-            XCTAssertFalse(recorder.snapshots.isEmpty)
+            XCTAssertTrue(recorder.snapshots.isEmpty)
         }
     }
 
@@ -156,7 +160,7 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         XCTAssertGreaterThan(recorder.snapshots.count, afterRaw)
     }
 
-    func testResponseLinesSnapshotAtHeadersAndStreamCompletion() async throws {
+    func testResponseLinesPersistsHeaderCookiesOnceWithoutCompletionRewrite() async throws {
         let (client, recorder) = try makeClient()
         let request = try URLRequest(url: XCTUnwrap(URL(string: "http://localhost:2999/lines")))
         let response = try await client.responseLines(for: request)
@@ -167,10 +171,10 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         }
 
         XCTAssertEqual(lines, ["first", "second"])
-        XCTAssertGreaterThanOrEqual(recorder.snapshots.count, 2)
+        XCTAssertEqual(recorder.snapshots.count, 1)
     }
 
-    func testDelegateResponseLinesSnapshotAtHeadersAndCompletion() async throws {
+    func testDelegateResponseLinesPersistsHeaderCookiesOnceWithoutCompletionRewrite() async throws {
         let (client, recorder) = try makeClient()
         let request = try URLRequest(url: XCTUnwrap(URL(string: "http://localhost:2999/lines")))
         let response = try await client.responseLinesUsingURLSessionDataDelegate(for: request)
@@ -181,10 +185,10 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         }
 
         XCTAssertEqual(lines, ["first", "second"])
-        XCTAssertGreaterThanOrEqual(recorder.snapshots.count, 2)
+        XCTAssertEqual(recorder.snapshots.count, 1)
     }
 
-    func testCancelledDelegateStreamSnapshotsBeforeItsConsumerFinishes() async throws {
+    func testCancelledDelegateStreamDoesNotRewriteItsPersistedHeaderCookies() async throws {
         let (client, recorder) = try makeClient()
         let request = try URLRequest(url: XCTUnwrap(URL(string: "http://localhost:2999/hold")))
         let response = try await client.responseLinesUsingURLSessionDataDelegate(for: request)
@@ -198,7 +202,8 @@ final class APIClientCookiePersistenceTests: XCTestCase {
         consumer.cancel()
         _ = await consumer.result
 
-        XCTAssertGreaterThan(recorder.snapshots.count, beforeCancellation)
+        XCTAssertEqual(recorder.snapshots.count, beforeCancellation)
+        XCTAssertEqual(beforeCancellation, 1)
     }
 
     #if canImport(Darwin)

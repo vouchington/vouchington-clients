@@ -176,6 +176,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.topics.publisher-types.default": Endpoint.publisherTypes(),
             "web.topics.search.default": Endpoint.topics(query: "tech"),
             "web.topics.show.default": Endpoint.topic(id: "test-topic"),
+            "web.topics.show.viewer-lower-bound": Endpoint.topic(id: "test-topic"),
+            "web.topics.show.viewer-review-data-lower-bound": Endpoint.topic(id: "test-topic"),
             "web.topics.mutation.default": Endpoint.createTopic(
                 body: CreateTopicBody(name: "Tech", slug: "tech", topicType: "topic")
             ),
@@ -331,7 +333,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 userId: "user-abc",
                 listType: "proxy-following"
             ),
-            "swift.posts.feed.default": Endpoint.posts(feedType: "any"),
+            "swift.posts.feed.default": Endpoint.posts(
+                feedType: "any",
+                timeRange: ApiFixtureLoader.optionalQueryValue("swift.posts.feed.default", "time_range")
+            ),
             "swift.notifications.default": Endpoint.notifications(),
             "native.notifications.redirect-target.default": Endpoint
                 .notificationRedirectTarget(notificationId: "notification-1"),

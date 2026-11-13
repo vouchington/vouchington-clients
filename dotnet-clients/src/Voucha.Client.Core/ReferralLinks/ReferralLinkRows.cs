@@ -15,8 +15,15 @@ public sealed record ReferralLinkRow(
     UiText? SignupStatusText = null,
     DateTimeOffset? DetailInstant = null,
     string? ProgramName = null,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    UiText? OfficialBadgeText = null)
 {
+  public bool HasOfficialBadge => OfficialBadgeText is not null;
+
+  public string? LocalizedOfficialBadge => OfficialBadgeText is { } text
+      ? EffectiveLocalization.Resolve(text)
+      : null;
+
   private IUiLocalization EffectiveLocalization => Localization ?? UiLocalization.English;
 
   public string Title => EffectiveLocalization.Resolve(TitleText);

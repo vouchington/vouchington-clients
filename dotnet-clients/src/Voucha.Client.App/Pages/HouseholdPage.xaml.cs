@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Voucha.Client.Core.Households;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
@@ -21,6 +22,17 @@ public partial class HouseholdPage : ContentPage
   {
     base.OnAppearing();
     await PageLoadGuard.RunAsync(() => viewModel.LoadAsync());
+  }
+
+  private async void OnReceivedInvitationsClicked(object? sender, EventArgs e) =>
+      await Navigation.PushAsync(Handler!.MauiContext!.Services.GetRequiredService<HouseholdInvitationsPage>());
+
+  private async void OnSentInvitationsClicked(object? sender, EventArgs e)
+  {
+    if (sender is not Button { CommandParameter: string id }) return;
+    var page = Handler!.MauiContext!.Services.GetRequiredService<HouseholdInvitationsPage>();
+    page.ConfigureSent(id);
+    await Navigation.PushAsync(page);
   }
 
   private async void OnRetryHouseholdClicked(object? sender, EventArgs e) => await viewModel.LoadAsync();

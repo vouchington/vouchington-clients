@@ -132,6 +132,8 @@ public sealed partial class TopicDetailViewModel
   private void ApplyTopicResponse(TopicResponse response)
   {
     Topic = response.Topic;
+    topicMetrics = response.TopicMetrics;
+    NotifyCategoryCountsChanged();
     TopicElection = response.TopicElection;
     ElectionVote = response.ElectionVote;
     IsFollowingTopic = BookmarkSidecar.IsActive(response.Bookmarks, response.Topic.Id, BookmarkPredicate.Follow);

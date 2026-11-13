@@ -33,23 +33,37 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
   )
   assert.ok(
     macJob.indexOf('- name: Build macOS app shell') <
-      macJob.indexOf('- name: Run Sentry SDK boundary tests'),
+      macJob.indexOf('- name: Run Sentry SDK boundary and launch transport tests'),
   )
   assert.ok(
-    macJob.indexOf('- name: Run Sentry SDK boundary tests') <
+    macJob.indexOf('- name: Run Sentry SDK boundary and launch transport tests') <
       macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
   )
   const boundary = macJob.slice(
-    macJob.indexOf('- name: Run Sentry SDK boundary tests'),
-    macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
+    macJob.indexOf('- name: Run Sentry SDK boundary and launch transport tests'),
+    macJob.indexOf('- name: Run feed transport boundary tests'),
   )
   assert.match(boundary, /timeout-minutes: 10/u)
   assert.match(boundary, /-only-testing:VouchaSentryBoundaryTests/u)
+  assert.match(boundary, /-only-testing:VouchaLaunchTransportTests/u)
   assert.match(
     boundary,
-    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 4 and \.passedTests == 4 and \.failedTests == 0 and \.skippedTests == 0/u,
   )
   assert.doesNotMatch(boundary, /VouchaLaunchSmoke\.entitlements|continue-on-error/u)
+  const transport = macJob.slice(
+    macJob.indexOf('- name: Run feed transport boundary tests'),
+    macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
+  )
+  assert.match(transport, /-only-testing:VouchaFeedTransportTests/u)
+  assert.match(transport, /VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
+  assert.match(transport, /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO/u)
+  assert.match(
+    transport,
+    /\.totalTestCount == 5 and \.passedTests == 5 and \.failedTests == 0 and \.skippedTests == 0/u,
+  )
+  assert.doesNotMatch(transport, /continue-on-error/u)
+
   assert.match(macJob, /generate\.sh macOS/u)
   assert.match(macJob, /-destination 'platform=macOS' build/u)
   assert.match(launch, /-destination 'platform=macOS'/u)
@@ -77,6 +91,11 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
     launch,
     /-only-testing:VouchaLaunchSmokeTests\/SourceCreationSmokeTests\/testCreatesAndOpensSourceFromEveryVertical/u,
   )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarFeedRecoveryTests\/testVideoFeedRetryRecoversCanonicalRow/u,
+  )
+  assert.equal((launch.match(/-only-testing:/gu) ?? []).length, 7)
   assert.match(launch, /VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
   const macProject = readFileSync(
     new URL('../swift-clients/apps/macOS/project.yml', import.meta.url),
@@ -88,7 +107,7 @@ test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in'
   assert.match(launch, /platform:macOS/u)
   assert.match(
     launch,
-    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 6 and \.passedTests == 6 and \.failedTests == 0 and \.skippedTests == 0/u,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 7 and \.passedTests == 7 and \.failedTests == 0 and \.skippedTests == 0/u,
   )
   assert.doesNotMatch(launch, /continue-on-error/u)
   assert.match(

@@ -42,7 +42,7 @@ public sealed class EmailAddressManagerViewModelTests
     viewModel.Otp = code;
 
     Assert.False(await viewModel.VerifyAsync(TestContext.Current.CancellationToken));
-    Assert.Equal("Enter the 8-character verification code.", viewModel.ErrorMessage);
+    Assert.Equal("Enter the 10-character verification code.", viewModel.ErrorMessage);
     Assert.Equal(0, service.VerifyCalls);
   }
 

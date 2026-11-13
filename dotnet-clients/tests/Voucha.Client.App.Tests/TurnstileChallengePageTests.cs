@@ -19,6 +19,17 @@ public sealed class TurnstileChallengePageTests
         },
       };
 
+  [Fact]
+  public void GenericMutationChallengeUsesItsDedicatedCanonicalAction()
+  {
+    var page = new TurnstileChallengePage(
+        new AppConfig(new Uri("https://api.example.test"), "public-site-key"),
+        "bot-challenge.mutation");
+    var webView = page.GetVisualTreeDescendants().OfType<WebView>().Single();
+    var source = Assert.IsType<HtmlWebViewSource>(webView.Source);
+    Assert.Contains("action: \"bot-challenge-mutation\"", source.Html, StringComparison.Ordinal);
+  }
+
   [Theory]
   [InlineData("https://voucha.ai/settings?tab=security#challenge", "https://voucha.ai/")]
   [InlineData("https://user:secret@staging.example.test:8443/custom/?q=1#fragment", "https://staging.example.test:8443/")]

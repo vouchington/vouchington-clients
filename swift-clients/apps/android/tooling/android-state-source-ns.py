@@ -16,7 +16,27 @@ MAX_INPUT = 4 * 1024 * 1024
 MAX_NS = 9_223_372_036_854_775_807
 MAX_SOURCE_DIRECTORIES = 256
 SOURCE_ROOT = "swift-clients/apps/android/Sources"
-deadline = time.monotonic() + 60
+started = time.monotonic()
+deadline = started + 60
+phase_started = started
+phase_times = {}
+progress = {"phase": "startup", "files": 0, "directories": 0, "bytes": 0,
+            "revalidatedFiles": 0, "applied": 0, "rolledBack": 0}
+
+
+def report(phase):
+    global phase_started
+    now = time.monotonic()
+    previous = progress["phase"]
+    phase_times[previous] = round((now - phase_started) * 1000)
+    event = dict(progress, phase=phase, elapsedMs=round((now - started) * 1000),
+                 phaseMs=dict(phase_times))
+    if phase == "failed":
+        event["during"] = previous
+    print("Android source metadata progress: " + json.dumps(event, separators=(",", ":")),
+          file=sys.stderr, flush=True)
+    progress["phase"] = phase
+    phase_started = now
 
 
 def checked_time():
@@ -24,23 +44,64 @@ def checked_time():
         raise ValueError("Android source metadata validation deadline exceeded")
 
 
-def checked_file(root_fd, path):
-    parts = path.split("/")
-    directory = root_fd
-    try:
-        for part in parts[:-1]:
-            next_dir = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
-            if directory != root_fd:
-                os.close(directory)
-            directory = next_dir
-        fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
+class SourceFiles:
+    """Reuse one no-follow parent during scanning, then revalidate all paths."""
+
+    def __init__(self, root_fd):
+        self.root_fd = root_fd
+        self.parent_fd = None
+        self.parent_path = None
+        self.parents = {}
+
+    def open(self, path):
+        parent, name = path.rsplit("/", 1)
+        if parent != self.parent_path:
+            self.close()
+            self.parent_fd = checked_directory(self.root_fd, parent)
+            self.parent_path = parent
+            info = os.fstat(self.parent_fd)
+            identity = (info.st_dev, info.st_ino)
+            record = self.parents.setdefault(parent, (identity, []))
+            if record[0] != identity:
+                raise ValueError("Android source parent changed during validation")
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=self.parent_fd)
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             os.close(fd)
             raise ValueError(f"Android source is not a regular file: {path}")
         return fd
-    finally:
-        if directory != root_fd:
-            os.close(directory)
+
+    def remember(self, path, fd, info):
+        self.parents[self.parent_path][1].append((path.rsplit("/", 1)[1], fd, info))
+
+    def revalidate(self):
+        self.close()
+        for parent, (identity, entries) in self.parents.items():
+            checked_time()
+            directory = checked_directory(self.root_fd, parent)
+            try:
+                info = os.fstat(directory)
+                if (info.st_dev, info.st_ino) != identity:
+                    raise ValueError("Android source parent changed before replay")
+                for name, fd, before in entries:
+                    checked_time()
+                    current = os.stat(name, dir_fd=directory, follow_symlinks=False)
+                    retained = os.fstat(fd)
+                    expected = self.fingerprint(before)
+                    if self.fingerprint(current) != expected or self.fingerprint(retained) != expected:
+                        raise ValueError("Android source file changed before replay")
+                    progress["revalidatedFiles"] += 1
+            finally:
+                os.close(directory)
+
+    @staticmethod
+    def fingerprint(info):
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns)
+
+    def close(self):
+        if self.parent_fd is not None:
+            os.close(self.parent_fd)
+            self.parent_fd = None
+            self.parent_path = None
 
 
 def checked_directory(root_fd, path):
@@ -139,6 +200,10 @@ def main():
             raise ValueError("Android source metadata requires more file descriptors")
         resource.setrlimit(resource.RLIMIT_NOFILE, (needed, hard))
     root_fd = os.open(".", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    progress.update(expectedFiles=len(entries), expectedDirectories=len(directories),
+                    operation="inventory" if inventory else "replay")
+    report("validation")
+    files = SourceFiles(root_fd)
     opened = []
     opened_directories = []
     emitted = []
@@ -164,7 +229,10 @@ def main():
                                   int(timestamp) > MAX_NS):
                 raise ValueError("Android source metadata path or value invalid")
             previous = path
-            fd = checked_file(root_fd, path)
+            # Inventory closes each file immediately; preserve its full path walk.
+            if inventory:
+                files.close()
+            fd = files.open(path)
             before = os.fstat(fd)
             if inventory:
                 size = before.st_size
@@ -179,6 +247,8 @@ def main():
                     after.st_dev != before.st_dev or after.st_ino != before.st_ino or
                     after.st_size != before.st_size or after.st_mtime_ns != before.st_mtime_ns):
                 raise ValueError(f"Android source bytes differ from producer: {path}")
+            progress["files"] += 1
+            progress["bytes"] = total
             if inventory:
                 if after.st_mtime_ns < 0 or after.st_mtime_ns > MAX_NS:
                     raise ValueError(f"Android source timestamp out of range: {path}")
@@ -186,6 +256,7 @@ def main():
                                 "mtimeNs": str(after.st_mtime_ns)})
                 os.close(fd)
             else:
+                files.remember(path, fd, before)
                 opened.append((fd, path, int(timestamp), before.st_mtime_ns, before.st_atime_ns))
         # All tracked file hashes are valid before examining any directory. The
         # complete immediate-child graph rejects untracked or generated members.
@@ -207,6 +278,7 @@ def main():
                     (not inventory and mode != entry["mode"])):
                 os.close(fd)
                 raise ValueError("Android source directory graph or mode differs from producer")
+            progress["directories"] += 1
             if inventory:
                 if after.st_mtime_ns < 0 or after.st_mtime_ns > MAX_NS:
                     os.close(fd)
@@ -224,6 +296,9 @@ def main():
             sys.stdout.write(json.dumps({"entries": emitted[:file_count], "directories": emitted[file_count:]},
                                         separators=(",", ":")))
         else:
+            report("revalidation")
+            files.revalidate()
+            report("replay")
             applied = []
             try:
                 for fd, path, timestamp, original_mtime, original_atime in opened:
@@ -232,6 +307,7 @@ def main():
                     os.utime(fd, ns=(original_atime, timestamp))
                     if os.fstat(fd).st_mtime_ns != timestamp:
                         raise ValueError(f"Android source timestamp precision lost: {path}")
+                    progress["applied"] += 1
                 for record in sorted(opened_directories, key=lambda item: (-item[1].count("/"), item[1])):
                     checked_time()
                     fd, path, timestamp, original_mtime, original_atime, device, inode, mode, digest = record
@@ -247,11 +323,14 @@ def main():
                     os.utime(fd, ns=(original_atime, timestamp))
                     if os.fstat(fd).st_mtime_ns != timestamp:
                         raise ValueError(f"Android source directory timestamp precision lost: {path}")
+                    progress["applied"] += 1
             except Exception:
                 for fd, original_atime, original_mtime in reversed(applied):
                     os.utime(fd, ns=(original_atime, original_mtime))
+                    progress["rolledBack"] += 1
                 raise
     finally:
+        files.close()
         for fd, *_ in opened_directories:
             os.close(fd)
         for fd, *_ in opened:
@@ -260,4 +339,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        report("failed")
+        raise
+    report("complete")

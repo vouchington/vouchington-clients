@@ -434,7 +434,7 @@ final class NativeRouteSurfaceViewTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/topics/topic-1/vote"] = (Data("{}".utf8), 200)
-        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift/posts")?.match)
+        let match = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/topic/swift")?.match)
         let entry = try entry(for: .topicDetail)
         let viewModel = try NativeRouteSurfaceViewModel(entry: entry, client: makeClient(), routeMatch: match)
         await viewModel.load()

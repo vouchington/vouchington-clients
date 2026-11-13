@@ -31,9 +31,17 @@ public static partial class MauiProgram
     services.AddSingleton<CookieContainer>();
     services.AddSingleton(PublicKeyPinningPolicy.VouchaDefault);
     services.AddSingleton<ISessionCookiePersistence>(sp =>
-        new MauiSecureSessionCookiePersistence(
-            sp.GetRequiredService<AppConfig>().ApiBaseUrl,
-            sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>()));
+    {
+      ISessionCookiePersistence Production() => new MauiSecureSessionCookiePersistence(
+          sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+          sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>());
+#if DEBUG
+      if (CatalystAuthNewsLaunch.IsRequested) return new CatalystAuthNewsSessionPersistence();
+      return CatalystGuiSessionCookiePersistence.Select(CatalystGuiPreflight.IsActive(), Production);
+#else
+      return Production();
+#endif
+    });
     services.AddSingleton(sp => new SessionCookieJar(
         sp.GetRequiredService<CookieContainer>(),
         sp.GetRequiredService<AppConfig>().ApiBaseUrl,
@@ -66,6 +74,7 @@ public static partial class MauiProgram
       HttpMessageHandler transport = sp.GetRequiredService<SocketsHttpHandler>();
 #if DEBUG
       transport = CatalystGuiFixtureHandler.Wrap(transport);
+      if (CatalystAuthNewsLaunch.IsRequested) transport = new CatalystAuthNewsHandler();
 #endif
       return new HttpClient(
           new ClientMetadataHandler(
@@ -80,6 +89,9 @@ public static partial class MauiProgram
         BaseAddress = sp.GetRequiredService<AppConfig>().ApiBaseUrl,
       };
     });
+    services.AddSingleton(sp => new BotChallengeReplay(
+        () => sp.GetRequiredService<ISessionStore>(),
+        (action, token) => sp.GetRequiredService<ITurnstileTokenProvider>().GetTokenAsync(action, token)));
     services.AddSingleton<VouchaApiClient>();
     services.AddSingleton<IProductSurfaceAnalytics, SessionProductSurfaceAnalytics>();
     services.AddSingleton<CookieSessionStore>();
