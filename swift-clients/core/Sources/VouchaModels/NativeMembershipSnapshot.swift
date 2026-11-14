@@ -30,7 +30,7 @@ public struct NativeMembershipSwitch: Codable, Sendable {
 
 public struct NativeMembershipPendingVerification: Codable, Sendable {
     public let id: String
-    @RequiredNullable public var nextProcessingAt: String?
+    public let nextProcessingAt: String?
     public let provider: String
     @RequiredNullable public var reasonCode: String?
     public let status: String

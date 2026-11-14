@@ -35,16 +35,14 @@ public final class SettingsViewModel {
     var revokedOAuthGrantIds: Set<String> = []
     var pushSubscriptionPagination = CursorPaginationState<WebPushSubscription>()
     var sessionPagination = CursorPaginationState<AuthSession>()
-    @ObservationIgnored
-    var settingsLoadGeneration = 0
+    @ObservationIgnored var settingsLoadGeneration = 0
     @ObservationIgnored
     var revokedApiKeyIds: Set<String> = []
     @ObservationIgnored
     var revokedPushSubscriptionIds: Set<String> = []
     @ObservationIgnored
     var revokedSessionIds: Set<String> = []
-    @ObservationIgnored
-    var revokedAllSessions = false
+    @ObservationIgnored var revokedAllSessions = false
     public internal(set) var membership: NativeMembershipEntitlement?
     public internal(set) var membershipOverview: NativeMembershipOverview?
     public internal(set) var membershipSnapshotIsStale = false

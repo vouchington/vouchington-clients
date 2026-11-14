@@ -14,7 +14,7 @@ internal static class MembershipFixture
   };
 
   internal static string Json(string name) =>
-      File.ReadAllText(FilamentsContractPaths.ApiFixture($"responses/{name}.json"));
+      File.ReadAllText(ContractPaths.ApiFixture($"responses/{name}.json"));
 
   internal static T Decode<T>(string name) =>
       JsonSerializer.Deserialize<T>(Json(name), VouchaApiJson.Options)

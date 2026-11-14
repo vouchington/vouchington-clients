@@ -57,8 +57,8 @@ final class SettingsMembershipLifecycleTests: NativeRouteSurfaceViewModelTestCas
     }
 
     private func fixture(_ name: String) throws -> Data {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
-        let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/responses/\(name).json", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+        let url = try ContractRoot.requiredURL("api-fixtures/v1/responses/\(name).json", root: root)
         return try Data(contentsOf: url)
     }
 }

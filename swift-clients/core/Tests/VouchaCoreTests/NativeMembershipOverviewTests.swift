@@ -23,7 +23,7 @@ final class NativeMembershipOverviewTests: XCTestCase {
         XCTAssertEqual(overview.pending.switches.first?.eligibleAt, "2027-01-01T00:00:00.000Z")
         XCTAssertEqual(
             overview.pending.verifications.map(\.reasonCode),
-            ["competing_direct_source", "wrong_account"]
+            ["competing_direct_source", "wrong_account", "provider_unavailable"]
         )
         XCTAssertEqual(overview.sources.map(\.isEffective), [false, false])
         XCTAssertNil(overview.sources[1].renewal?.price)
@@ -144,8 +144,8 @@ final class NativeMembershipOverviewTests: XCTestCase {
 }
 
 func nativeMembershipFixture(_ name: String) throws -> Data {
-    let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
-    let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/responses/\(name).json", root: root)
+    let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+    let url = try ContractRoot.requiredURL("api-fixtures/v1/responses/\(name).json", root: root)
     return try Data(contentsOf: url)
 }
 

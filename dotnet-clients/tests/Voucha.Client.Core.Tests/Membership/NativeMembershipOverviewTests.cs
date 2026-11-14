@@ -28,7 +28,7 @@ public sealed class NativeMembershipOverviewTests
     Assert.Equal(["automatic_refund"], overview.Pending.FinancialOperations.Select(item => item.Kind));
     Assert.Equal("2027-01-01T00:00:00.000Z", overview.Pending.Switches[0].EligibleAt);
     Assert.Equal(
-        ["competing_direct_source", "wrong_account"],
+        ["competing_direct_source", "wrong_account", "provider_unavailable"],
         overview.Pending.Verifications.Select(item => item.ReasonCode));
     Assert.Equal([false, false], overview.Sources.Select(source => source.IsEffective));
     Assert.Null(overview.Sources[1].Renewal?.Price);
