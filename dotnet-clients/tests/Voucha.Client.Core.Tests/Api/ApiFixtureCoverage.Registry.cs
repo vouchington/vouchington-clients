@@ -266,7 +266,7 @@ internal static partial class ApiFixtureCoverage
     ["native.messages.policy.default"] = typeof(DirectConversationPolicyResponse),
     ["native.messages.user-search.default"] = typeof(UsersSearchResponse),
     ["native.memberships.plans.default"] = typeof(MembershipPlansResponse),
-    ["native.memberships.me.default"] = typeof(JsonElement),
+    ["native.memberships.me.default"] = typeof(NativeMembershipOverview),
     ["native.memberships.grant.default"] = typeof(GrantMembershipResponse),
     ["native.lists.default"] = typeof(ListsSearchResponse),
     ["native.list-items.default"] = typeof(ListItemsResponse),

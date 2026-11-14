@@ -84,6 +84,9 @@ public partial interface ISettingsService
 
   Task<MembershipResponse?> FetchMembershipAsync(CancellationToken cancellationToken = default);
 
+  Task<NativeMembershipOverview?> FetchMembershipOverviewAsync(CancellationToken cancellationToken = default) =>
+      Task.FromResult<NativeMembershipOverview?>(null);
+
   Task<MembershipPlansResponse> FetchMembershipPlansAsync(
       CancellationToken cancellationToken = default);
 

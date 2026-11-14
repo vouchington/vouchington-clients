@@ -157,6 +157,7 @@ public sealed class SettingsApiKeyLifecycleViewTests
       nameof(ISettingsService.FetchAuthSessionsAsync) => Task.FromResult(new AuthSessionListResponse([], new PageInfo(null, false, null))),
       nameof(ISettingsService.FetchMembershipPlansAsync) => Task.FromResult(new MembershipPlansResponse([])),
       nameof(ISettingsService.FetchMembershipAsync) => Task.FromResult<MembershipResponse?>(null),
+      nameof(ISettingsService.FetchMembershipOverviewAsync) => Task.FromResult<NativeMembershipOverview?>(null),
       nameof(ISettingsService.FetchPushSubscriptionsAsync) => Task.FromResult(new WebPushSubscriptionListResponse([], new PageInfo(null, false, null))),
       nameof(ISettingsService.FetchUserDataRequestAsync) => Task.FromResult<UserDataRequestResponse?>(null),
       nameof(ISettingsService.FetchScopeCatalogAsync) => Task.FromResult(new ScopeCatalogResponse([

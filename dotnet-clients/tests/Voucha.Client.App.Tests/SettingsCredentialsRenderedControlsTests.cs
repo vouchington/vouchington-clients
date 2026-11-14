@@ -283,6 +283,7 @@ public sealed class SettingsCredentialsRenderedControlsTests
       nameof(ISettingsService.FetchAuthSessionsAsync) => Task.FromResult(new AuthSessionListResponse([], EmptyPage())),
       nameof(ISettingsService.FetchMembershipPlansAsync) => Task.FromResult(new MembershipPlansResponse([])),
       nameof(ISettingsService.FetchMembershipAsync) => Task.FromResult<MembershipResponse?>(null),
+      nameof(ISettingsService.FetchMembershipOverviewAsync) => Task.FromResult<NativeMembershipOverview?>(null),
       nameof(ISettingsService.FetchPushSubscriptionsAsync) => Task.FromResult(new WebPushSubscriptionListResponse([], EmptyPage())),
       nameof(ISettingsService.FetchUserDataRequestAsync) => Task.FromResult<UserDataRequestResponse?>(null),
       nameof(ISettingsService.FetchScopeCatalogAsync) => Task.FromResult(Catalog),

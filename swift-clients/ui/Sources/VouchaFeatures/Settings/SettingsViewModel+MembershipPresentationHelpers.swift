@@ -49,6 +49,17 @@ extension SettingsViewModel {
         return membershipBenefitQuantityText(value)
     }
 
+    func normalizedMembershipInterval(_ interval: String) -> String {
+        switch interval.lowercased() {
+        case let value where value.hasPrefix("year"):
+            localized(.nativeSwiftMembershipYearly)
+        case let value where value.hasPrefix("month"):
+            localized(.nativeSwiftMembershipMonthly)
+        default:
+            localized(.verbatim(interval))
+        }
+    }
+
     private func membershipBenefitQuantityText(_ value: MembershipBenefitValue) -> String? {
         guard value.kind == "quantity",
               let quantity = value.quantity,
@@ -59,38 +70,6 @@ extension SettingsViewModel {
             : String(quantity)
     }
 
-    func summaryIntervalText(for intervalText: String) -> String {
-        switch intervalText.lowercased() {
-        case "monthly", "month":
-            localized(.nativeSwiftMembershipMonth)
-        case "yearly", "year":
-            localized(.nativeSwiftMembershipYear)
-        default:
-            intervalText.lowercased()
-        }
-    }
-
-    func membershipIntervalRank(_ interval: String) -> Int {
-        switch interval.lowercased() {
-        case let value where value.hasPrefix("month"):
-            0
-        case let value where value.hasPrefix("year"):
-            1
-        default:
-            2
-        }
-    }
-
-    func normalizedMembershipInterval(_ interval: String) -> String {
-        switch interval.lowercased() {
-        case let value where value.hasPrefix("month"):
-            localized(.nativeSwiftMembershipMonthly)
-        case let value where value.hasPrefix("year"):
-            localized(.nativeSwiftMembershipYearly)
-        default:
-            localized(.verbatim(interval))
-        }
-    }
 }
 
 private func membershipBenefitIsIncluded(_ value: MembershipBenefitValue) -> Bool {
