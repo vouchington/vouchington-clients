@@ -8,7 +8,7 @@ extension NativeUserProfileSurface {
     func profileHeader(_ profile: UserProfileResponse) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Avatar(
-                imageURL: AppConfig.shared.imageURL(for: profile.user.profileImagePlacement, width: 144),
+                imageURL: profileImageConfig.imageURL(for: profile.user.profileImagePlacement, width: 144),
                 username: profile.user.username ?? "",
                 size: 72
             )
@@ -87,7 +87,7 @@ extension NativeUserProfileSurface {
             ForEach(group.users) { user in
                 UserRow(
                     user: user,
-                    avatarURL: AppConfig.shared.imageURL(for: user.profileImagePlacement, width: 96)
+                    avatarURL: profileImageConfig.imageURL(for: user.profileImagePlacement, width: 96)
                 )
             }
         }
@@ -100,7 +100,7 @@ extension NativeUserProfileSurface {
                 if let url = resolvedProfileLinkURL(link) {
                     Link(destination: url) {
                         HStack(spacing: Spacing.xs) {
-                            if let imageURL = AppConfig.shared.imageURL(for: link.imagePlacement, width: 48),
+                            if let imageURL = profileImageConfig.imageURL(for: link.imagePlacement, width: 48),
                                let placementURL = URL(string: imageURL) {
                                 ProfileLinkPlacementImage(url: placementURL)
                             }
