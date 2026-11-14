@@ -1,5 +1,15 @@
 import Foundation
 
+extension NativeChatTitleProviderKind {
+    /// Providers whose validated MCP results are published as receipts under the trusted turn.
+    var carriesMCPReceipts: Bool {
+        switch self {
+        case .appleFoundationModels, .openAICompatible: true
+        case .androidAICore, .unavailable: false
+        }
+    }
+}
+
 struct NativeChatMCPTurnOwner: Equatable {
     let accountId: String
     let revision: Int

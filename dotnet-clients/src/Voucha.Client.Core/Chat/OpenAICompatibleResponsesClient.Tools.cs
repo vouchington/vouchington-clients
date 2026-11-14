@@ -46,11 +46,23 @@ public sealed partial class OpenAICompatibleResponsesClient
           }, cancellationToken);
   }
 
-  public async Task<string?> GenerateAssistantContentWithToolsAsync(
+  public Task<string?> GenerateAssistantContentWithToolsAsync(
       string message, IReadOnlyList<LocalLLMResponseInput> history, LocalLLMEndpointProfile profile,
       string? apiKey, IReadOnlyList<MemberMcpFunctionTool> tools, Func<bool> isCurrent,
       Func<string, string, CancellationToken, Task>? validate,
       Func<string, string, CancellationToken, Action, Task<string>> execute,
+      CancellationToken cancellationToken = default)
+  {
+    ArgumentNullException.ThrowIfNull(execute);
+    return GenerateAssistantContentWithToolsAsync(message, history, profile, apiKey, tools, isCurrent,
+        validate, (name, arguments, _, token, admitted) => execute(name, arguments, token, admitted), cancellationToken);
+  }
+
+  public async Task<string?> GenerateAssistantContentWithToolsAsync(
+      string message, IReadOnlyList<LocalLLMResponseInput> history, LocalLLMEndpointProfile profile,
+      string? apiKey, IReadOnlyList<MemberMcpFunctionTool> tools, Func<bool> isCurrent,
+      Func<string, string, CancellationToken, Task>? validate,
+      Func<string, string, string, CancellationToken, Action, Task<string>> execute,
       CancellationToken cancellationToken = default)
   {
     ArgumentNullException.ThrowIfNull(history);
@@ -129,7 +141,7 @@ public sealed partial class OpenAICompatibleResponsesClient
           finally { input.RemoveAt(input.Count - 1); }
           cancellationToken.ThrowIfCancellationRequested();
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
-          var result = await execute(call.Name, call.Arguments, cancellationToken,
+          var result = await execute(call.Name, call.Arguments, call.CallId, cancellationToken,
               () => attemptedToolExecution = true).ConfigureAwait(false);
           if (!isCurrent()) throw new OperationCanceledException("MCP account or catalog changed.");
           if (Encoding.UTF8.GetByteCount(result) > MemberMcpToolBridge.MaximumEnvelopeBytes)

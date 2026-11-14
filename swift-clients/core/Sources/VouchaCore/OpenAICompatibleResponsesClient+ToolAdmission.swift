@@ -42,13 +42,13 @@ extension OpenAICompatibleResponsesClient {
 
     static func invokeTool(
         _ call: LocalLLMFunctionCall, hadPreviousExecution: Bool,
-        execute: @Sendable (String, String) async throws -> String
+        execute: @Sendable (LocalLLMFunctionCall) async throws -> String
     ) async throws -> String {
         try Task.checkCancellation()
         do {
             // The service may commit before an error or lost reply. Admission is the
             // only error that proves it was never called.
-            return try await execute(call.name, call.arguments)
+            return try await execute(call)
         } catch LocalLLMToolLoopFailure.toolNotAdmitted {
             if hadPreviousExecution { throw LocalLLMToolLoopFailure.partialExecution }
             throw CancellationError()
