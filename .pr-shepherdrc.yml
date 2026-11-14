@@ -8,11 +8,10 @@ checks:
   ignore:
     - 'Sourcery review'
 
-# v1 defaults drop both pre-v1 readiness holds. Pin them so a clean PR still
-# waits ten minutes before terminal handoff, and a pending Copilot review
-# still blocks draft-to-ready.
+# A clean PR hands off for merge as soon as it is ready; a pending Copilot
+# review still blocks draft-to-ready.
 iterate:
-  ready-delay-minutes: 10
+  ready-delay-minutes: 0
 
 mark-ready:
   blocking-reviewer-logins:
