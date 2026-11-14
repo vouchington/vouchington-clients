@@ -60,9 +60,8 @@ final class NativeUserProfileAvatarHostTests: NativeRouteSurfaceViewModelTestCas
         var user = try XCTUnwrap(root["user"] as? [String: Any])
         mutate(&user)
         root["user"] = user
-        CannedFeedURLProtocol.handlers["/api/v1/users/alice"] = (
-            try JSONSerialization.data(withJSONObject: root), 200
-        )
+        let body = try JSONSerialization.data(withJSONObject: root)
+        CannedFeedURLProtocol.handlers["/api/v1/users/alice"] = (body, 200)
         let config = try AppConfig(
             baseURL: XCTUnwrap(URL(string: "http://localhost:2999")),
             imageBaseURL: XCTUnwrap(URL(string: imageHost))
