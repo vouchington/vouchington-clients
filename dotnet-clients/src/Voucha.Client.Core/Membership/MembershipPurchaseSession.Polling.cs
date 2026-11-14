@@ -74,16 +74,14 @@ public sealed partial class MembershipPurchaseSession
         return status;
       }
 
-      var hint = await MembershipHintAsync(cancellationToken).ConfigureAwait(false);
       if (attempt == 7)
       {
         break;
       }
 
-      var pending = hint?.Pending.Verifications.FirstOrDefault(item => item.Id == id);
       var delay = signals.ConsumeRefresh()
           ? TimeSpan.Zero
-          : MembershipVerificationPolling.Delay(attempt, pending?.NextProcessingAt, clock.Now);
+          : MembershipVerificationPolling.Delay(attempt);
       if (delay > TimeSpan.Zero)
       {
         await clock.SleepAsync(delay, cancellationToken).ConfigureAwait(false);

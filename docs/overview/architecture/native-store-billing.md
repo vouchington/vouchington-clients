@@ -74,9 +74,8 @@ interpret them.
    A new submission returns `202`. An exact replay returns `200` and the same verification.
 6. The client polls `GET /api/v1/membership-verifications/:verificationId` until `status` is
    `verified`, `conflict`, or `rejected`, and refreshes `GET /api/v1/memberships/me`.
-7. While a verification on `memberships/me` has `next_processing_at`, the next poll waits until that
-   instant. Otherwise the wait backs off from 1 second through 2, 4, and 8 seconds, then every 15
-   seconds. Foreground and a store update refresh immediately. The poll stops when the verification
+7. Queue retry timing is internal and the response carries no retry deadline. The wait backs off
+   from 1 second through 2, 4, and 8 seconds, then every 15 seconds. Foreground and a store update refresh immediately. The poll stops when the verification
    is terminal.
 
 Retries of one attempt reuse its idempotency key. A new store transaction, a new Play token, or a
@@ -334,7 +333,7 @@ that source becomes effective. The client does not promote `is_effective: false`
 | Network or store outage before payment                         | Keep the purchase-intent idempotency key and retry the launch.                                                                                             |
 | Evidence not accepted                                          | Keep the secure outbox and retry the same verification idempotency key.                                                                                    |
 | App relaunch or new device                                     | Walk unfinished Apple transactions, current entitlements, Play purchases, and the Microsoft collection. Submit missing evidence. Refresh `memberships/me`. |
-| Backend delay                                                  | Show the verification `pending` state and honor `next_processing_at`.                                                                                      |
+| Backend delay                                                  | Show the verification `pending` state; keep the default backoff.                                                                                      |
 | Refund, revocation, or renewal                                 | Submit the new observation. Render the next `memberships/me` source status.                                                                                |
 | Expired Microsoft keys                                         | Mint a new pair and submit a new verification.                                                                                                             |
 
@@ -415,7 +414,7 @@ green unit run.
 | Restore               | Unfinished Apple transactions, Play `queryPurchasesAsync`, Microsoft collection                                                                            | Restore control resubmits only missing evidence                | Sandbox restore on a second install                                               |
 | Replacement           | No Play replacement call without a mode; a launched replacement includes `setOldPurchaseToken`; Apple purchases the new product id                         | `409` does not open a sheet; `201` does                        | Apple subscription-group change and a Play replacement once a mode exists         |
 | Pending               | Apple `.pending` submits nothing; an unexpected Play `PENDING` submits its pending token, nested for `PendingPurchaseUpdate`, and does not become the plan | Poll stays on `purchase_pending`                               | Ask to Buy. Prepaid Play plans are out of scope                                   |
-| Recovery              | Outbox survives relaunch; Microsoft refresh after `invalid_evidence`                                                                                       | Backoff and `next_processing_at`                               | Airplane mode, then the same purchase completing                                  |
+| Recovery              | Outbox survives relaunch; Microsoft refresh after `invalid_evidence`                                                                                       | Backoff                                                        | Airplane mode, then the same purchase completing                                  |
 | Refund and revocation | `sources[].status` `revoked` and `pending.financial_operations`                                                                                            | Lifecycle fixture renders refund and revocation together       | Store refund and family-sharing revoke                                            |
 | Renewal               | A new transaction id gets a new idempotency key                                                                                                            | `should_auto_renew` and `renewal` render from `memberships/me` | Sandbox renewal for each store                                                    |
 

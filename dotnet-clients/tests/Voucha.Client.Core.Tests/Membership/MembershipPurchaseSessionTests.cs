@@ -127,10 +127,8 @@ public sealed class MembershipPurchaseSessionTests
         pending));
     scheduled.Transport.Statuses.Enqueue(Pending("purchase_pending"));
     scheduled.Transport.Statuses.Enqueue(verified);
-    scheduled.Transport.Overviews.Enqueue(ProcessingOverview("2026-10-21T18:00:00.000Z"));
-    scheduled.Clock.Now = DateTimeOffset.Parse("2026-10-21T17:00:00Z");
     await scheduled.PurchaseAsync(scheduled.Empty, TestContext.Current.CancellationToken);
-    Assert.Equal([TimeSpan.FromHours(1)], scheduled.Clock.Sleeps);
+    Assert.Equal([TimeSpan.FromSeconds(1)], scheduled.Clock.Sleeps);
 
     var foreground = Harness.Created("native.memberships.purchase-intent.apple.default");
     foreground.Transport.Submissions.Enqueue(new MembershipVerificationSubmissionResult(
@@ -213,14 +211,5 @@ public sealed class MembershipPurchaseSessionTests
     """.Replace("REASON", reason, StringComparison.Ordinal);
     return JsonSerializer.Deserialize<NativeMembershipVerificationResponse>(json, VouchaApiJson.Options)
         ?? throw new InvalidOperationException("Pending verification did not decode.");
-  }
-
-  private static NativeMembershipOverview ProcessingOverview(string instant)
-  {
-    var json = """
-    {"management":null,"membership":null,"pending":{"financial_operations":[],"grants":0,"switches":[],"verifications":[{"id":"00000000-0000-7000-8000-000000000807","next_processing_at":"INSTANT","provider":"apple_app_store","reason_code":"purchase_pending","status":"pending"}]},"sources":[]}
-    """.Replace("INSTANT", instant, StringComparison.Ordinal);
-    return JsonSerializer.Deserialize<NativeMembershipOverview>(json, VouchaApiJson.Options)
-        ?? throw new InvalidOperationException("Processing overview did not decode.");
   }
 }

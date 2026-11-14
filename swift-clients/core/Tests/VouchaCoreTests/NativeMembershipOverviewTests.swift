@@ -25,6 +25,9 @@ final class NativeMembershipOverviewTests: XCTestCase {
             overview.pending.verifications.map(\.reasonCode),
             ["competing_direct_source", "wrong_account", "provider_unavailable"]
         )
+        let unavailable = try XCTUnwrap(overview.pending.verifications.last)
+        XCTAssertEqual(unavailable.status, "rejected")
+        XCTAssertEqual(unavailable.provider, "google_play")
         XCTAssertEqual(overview.sources.map(\.isEffective), [false, false])
         XCTAssertNil(overview.sources[1].renewal?.price)
         XCTAssertEqual(overview.management?.destination, "apple_subscriptions")

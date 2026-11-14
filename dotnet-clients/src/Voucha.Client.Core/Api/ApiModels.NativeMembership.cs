@@ -48,8 +48,6 @@ public sealed record NativeMembershipSwitch(
 
 public sealed record NativeMembershipPendingVerification(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("next_processing_at"), JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    string? NextProcessingAt,
     [property: JsonPropertyName("provider")] string Provider,
     [property: JsonPropertyName("reason_code"), JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     string? ReasonCode,
