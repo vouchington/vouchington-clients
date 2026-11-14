@@ -10,6 +10,7 @@ struct IntegrityPenaltyLedgerSurface: View {
     var viewModel: IntegrityPenaltyLedgerViewModel
     @State
     private var pendingRevoke: IntegrityPenaltyRow?
+    let reviewViewModel: IntegrityPenaltyReviewViewModel?
     let onNavigate: (String) -> Void
 
     init(
@@ -23,16 +24,23 @@ struct IntegrityPenaltyLedgerSurface: View {
             viewerTier: viewerTier,
             domain: domain
         ))
+        reviewViewModel = IntegrityPenaltyReviewViewModel(
+            service: client.map(APIIntegrityPenaltyService.init(client:)),
+            viewerTier: viewerTier,
+            domain: domain
+        )
         self.onNavigate = onNavigate
     }
 
     init(
         viewModel: IntegrityPenaltyLedgerViewModel,
         pendingRevoke: IntegrityPenaltyRow? = nil,
+        reviewViewModel: IntegrityPenaltyReviewViewModel? = nil,
         onNavigate: @escaping (String) -> Void = { _ in }
     ) {
         _viewModel = State(initialValue: viewModel)
         _pendingRevoke = State(initialValue: pendingRevoke)
+        self.reviewViewModel = reviewViewModel
         self.onNavigate = onNavigate
     }
 
@@ -46,6 +54,9 @@ struct IntegrityPenaltyLedgerSurface: View {
                         : .nativeSwiftIntegrityVotePenaltiesTitle))
                     .font(Typography.largeTitle)
                 IntegritySectionNavigation(domain: viewModel.domain, selectedPenalties: true, onNavigate: onNavigate)
+                if let reviewViewModel {
+                    IntegrityPenaltyReviewSection(viewModel: reviewViewModel, onNavigate: onNavigate)
+                }
                 Picker(
                     text(.nativeSwiftIntegrityStatus),
                     selection: statusBinding

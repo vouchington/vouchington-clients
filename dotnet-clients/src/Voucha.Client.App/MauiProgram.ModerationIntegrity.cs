@@ -9,7 +9,12 @@ public static partial class MauiProgram
 {
   private static void AddModerationIntegrityServices(IServiceCollection services)
   {
-    services.AddSingleton<IModerationIntegrityService, ApiModerationIntegrityService>();
+    services.AddSingleton<ApiModerationIntegrityService>();
+    services.AddSingleton<IModerationIntegrityService>(
+        serviceProvider => serviceProvider.GetRequiredService<ApiModerationIntegrityService>());
+    services.AddSingleton<IIntegrityPenaltyReviewService>(
+        serviceProvider => serviceProvider.GetRequiredService<ApiModerationIntegrityService>());
+    AddPenaltyReviewViewModels(services);
     services.AddTransient(serviceProvider => new ReportIntegrityViewModel(
         serviceProvider.GetRequiredService<IModerationIntegrityService>(),
         serviceProvider.GetRequiredService<INavigationViewerProvider>().CurrentViewer,
@@ -34,5 +39,21 @@ public static partial class MauiProgram
     services.AddTransient<VoteIntegrityPage>();
     services.AddTransient<ReportIntegrityPenaltiesPage>();
     services.AddTransient<VoteIntegrityPenaltiesPage>();
+  }
+
+  private static void AddPenaltyReviewViewModels(IServiceCollection services)
+  {
+    services.AddTransient(serviceProvider => new ReportIntegrityPenaltyReviewViewModel(
+        serviceProvider.GetRequiredService<IModerationIntegrityService>(),
+        serviceProvider.GetRequiredService<IIntegrityPenaltyReviewService>(),
+        serviceProvider.GetRequiredService<INavigationViewerProvider>().CurrentViewer,
+        serviceProvider.GetRequiredService<IUiLocalization>(),
+        serviceProvider.GetRequiredService<IUiLocaleController>()));
+    services.AddTransient(serviceProvider => new VoteIntegrityPenaltyReviewViewModel(
+        serviceProvider.GetRequiredService<IModerationIntegrityService>(),
+        serviceProvider.GetRequiredService<IIntegrityPenaltyReviewService>(),
+        serviceProvider.GetRequiredService<INavigationViewerProvider>().CurrentViewer,
+        serviceProvider.GetRequiredService<IUiLocalization>(),
+        serviceProvider.GetRequiredService<IUiLocaleController>()));
   }
 }

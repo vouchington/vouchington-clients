@@ -14,6 +14,7 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
   private readonly VerticalStackLayout rows = new() { Spacing = 12 };
   private readonly Button loadMore = new();
   private readonly Button retry = new() { AutomationId = "integrity-penalties-retry" };
+  private readonly IntegrityPenaltyReviewSection? reviewSection;
   private string? confirmingId;
   private CancellationTokenSource? cancellation;
   private bool applyingStatus;
@@ -23,9 +24,11 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
       UiMessageKey titleKey,
       string domain,
       string flagsPath,
-      string penaltiesPath)
+      string penaltiesPath,
+      IntegrityPenaltyReviewSection? reviewSection = null)
   {
     this.viewModel = viewModel;
+    this.reviewSection = reviewSection;
     automationPrefix = $"{domain}-integrity-penalties";
     BindingContext = viewModel;
     SetDynamicResource(TitleProperty, titleKey.Value);
@@ -49,6 +52,7 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    if (reviewSection is not null) await reviewSection.LoadAsync().ConfigureAwait(true);
     await viewModel.LoadAsync(Token()).ConfigureAwait(true);
   }
 
@@ -57,6 +61,7 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
     cancellation?.Cancel();
     cancellation?.Dispose();
     cancellation = null;
+    reviewSection?.Cancel();
     base.OnDisappearing();
   }
 
@@ -66,12 +71,14 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
     var penalties = NavigationButton(UiMessageKey.NativeSwiftIntegrityPenalties, penaltiesPath, $"{automationPrefix}-penalties");
     var title = new Label { FontSize = 24, FontAttributes = FontAttributes.Bold };
     title.SetDynamicResource(Label.TextProperty, titleKey.Value);
-    return new VerticalStackLayout
+    var layout = new VerticalStackLayout
     {
       Padding = 16, Spacing = 12,
       Children = { title, new HorizontalStackLayout { Children = { flags, penalties } },
         statusPicker, error, retry, rows, loadMore },
     };
+    if (reviewSection is not null) layout.Children.Insert(2, reviewSection);
+    return layout;
   }
 
   private Button NavigationButton(UiMessageKey key, string path, string id)

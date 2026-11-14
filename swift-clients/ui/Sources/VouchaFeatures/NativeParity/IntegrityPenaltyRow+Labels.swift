@@ -1,3 +1,4 @@
+import Foundation
 import VouchaModels
 
 extension IntegrityPenaltyRow {
@@ -47,6 +48,22 @@ extension IntegrityPenaltyRow {
         switch self {
         case let .report(penalty): penalty.sourceFlagType
         case let .vote(penalty): penalty.sourceFlagType
+        }
+    }
+}
+
+extension IntegrityPenaltyRow {
+    var reviewDueAt: Date? {
+        switch self {
+        case let .report(penalty): penalty.reviewDueAt
+        case let .vote(penalty): penalty.reviewDueAt
+        }
+    }
+
+    var reviewedAt: Date? {
+        switch self {
+        case let .report(penalty): penalty.reviewedAt
+        case let .vote(penalty): penalty.reviewedAt
         }
     }
 }

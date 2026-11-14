@@ -43,4 +43,19 @@ enum IntegrityViewerTier: Equatable {
     var canRevokeIntegrityPenalty: Bool {
         self == .administrator
     }
+
+    var canApplyReportAbusePenalty: Bool {
+        self == .administrator
+    }
+
+    var canApplyVoteRingPenalty: Bool {
+        self == .administrator
+    }
+
+    func canReviewDuePenalties(in domain: IntegrityDomain) -> Bool {
+        switch domain {
+        case .report: canApplyReportAbusePenalty
+        case .vote: canApplyVoteRingPenalty
+        }
+    }
 }
