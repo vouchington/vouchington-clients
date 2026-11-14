@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Voucha.Client.Core.NativeBilling;
 
 public static class MembershipVerificationPolling
@@ -14,18 +12,8 @@ public static class MembershipVerificationPolling
     return status is "verified" or "conflict" or "rejected";
   }
 
-  public static TimeSpan Delay(int attempt, string? nextProcessingAt, DateTimeOffset now)
+  public static TimeSpan Delay(int attempt)
   {
-    if (DateTimeOffset.TryParse(
-            nextProcessingAt,
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.RoundtripKind,
-            out var instant) &&
-        instant > now)
-    {
-      return instant - now;
-    }
-
     TimeSpan[] schedule =
     [
       TimeSpan.FromSeconds(1),

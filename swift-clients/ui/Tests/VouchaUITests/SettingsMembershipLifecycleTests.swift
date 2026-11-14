@@ -42,7 +42,7 @@ final class SettingsMembershipLifecycleTests: NativeRouteSurfaceViewModelTestCas
         seedSettingsResponses()
         let body = """
         {"management":null,"membership":null,"pending":{"financial_operations":[],"grants":0,"switches":[],
-        "verifications":[{"id":"v1","next_processing_at":null,"provider":"apple_app_store",
+        "verifications":[{"id":"v1","provider":"apple_app_store",
         "reason_code":"purchase_pending","status":"rejected"}]},"sources":[]}
         """
         CannedFeedURLProtocol.handlers["/api/v1/memberships/me"] = (Data(body.utf8), 200)

@@ -80,7 +80,7 @@ final class MembershipPurchaseSessionTests: XCTestCase {
         XCTAssertFalse(retriedStored)
     }
 
-    func testPollingWaitsForProcessingTimeBackoffAndForegroundRefresh() async throws {
+    func testPollingBacksOffByAttemptAndRefreshesOnForeground() async throws {
         let pending = try verification("native.memberships.verification-status.pending.default")
         let verified = try verification("native.memberships.verification-status.verified.default")
         let harness = try Harness(intent: .created(purchase("native.memberships.purchase-intent.apple.default")))
@@ -93,10 +93,8 @@ final class MembershipPurchaseSessionTests: XCTestCase {
         let scheduled = try Harness(intent: .created(purchase("native.memberships.purchase-intent.apple.default")))
         scheduled.transport.submissions = [.created(pending)]
         scheduled.transport.statuses = try [pendingVerification(reason: "purchase_pending"), verified]
-        scheduled.transport.overviews = try [processingOverview(at: "2026-10-21T18:00:00.000Z")]
-        scheduled.clock.now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-21T17:00:00Z"))
         _ = try await scheduled.purchase(overview: scheduled.empty)
-        XCTAssertEqual(scheduled.clock.sleeps, [3_600])
+        XCTAssertEqual(scheduled.clock.sleeps, [1])
 
         let foreground = try Harness(intent: .created(purchase("native.memberships.purchase-intent.apple.default")))
         foreground.transport.submissions = [.created(pending)]
@@ -284,13 +282,4 @@ private func pendingVerification(reason: String) throws -> NativeMembershipVerif
     )","status":"pending"}}
     """
     return try makeVouchaDecoder().decode(NativeMembershipVerificationResponse.self, from: Data(body.utf8))
-}
-
-private func processingOverview(at instant: String) throws -> NativeMembershipOverview {
-    let body = """
-    {"management":null,"membership":null,"pending":{"financial_operations":[],"grants":0,"switches":[],"verifications":[{"id":"00000000-0000-7000-8000-000000000807","next_processing_at":"\(
-        instant
-    )","provider":"apple_app_store","reason_code":"purchase_pending","status":"pending"}]},"sources":[]}
-    """
-    return try makeVouchaDecoder().decode(NativeMembershipOverview.self, from: Data(body.utf8))
 }
