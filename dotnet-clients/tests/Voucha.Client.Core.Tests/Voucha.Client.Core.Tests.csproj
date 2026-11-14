@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- System-only Win32 marshaling seam; no App project or platform framework dependency. -->
+    <Compile Include="../../src/Voucha.Client.App/WindowsPasskeyNative.cs" Link="Auth/WindowsPasskeyNative.cs" />
+    <Compile Include="../../src/Voucha.Client.App/WindowsPasskeyApi.cs" Link="Auth/WindowsPasskeyApi.cs" />
+    <Compile Include="../../src/Voucha.Client.App/WindowsPasskeyAssertion.cs" Link="Auth/WindowsPasskeyAssertion.cs" />
     <ProjectReference Include="../../src/Voucha.Client.Core/Voucha.Client.Core.csproj" />
   </ItemGroup>
 </Project>

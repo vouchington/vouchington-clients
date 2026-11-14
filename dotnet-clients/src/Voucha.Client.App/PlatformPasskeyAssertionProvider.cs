@@ -155,7 +155,7 @@ public sealed partial class PlatformPasskeyAssertionProvider :
     });
   }
 }
-#else
+#elif !WINDOWS
 public sealed class PlatformPasskeyAssertionProvider : IPasskeyAssertionProvider
 {
   public Task<PasskeyAssertionResponse> GetAssertionAsync(
