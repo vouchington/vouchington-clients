@@ -1,6 +1,9 @@
 import VouchaModels
 
 let householdFixtureCoverage: [RegisteredFixture] = [
+    RegisteredFixture(id: "native.me.individual") {
+        try assertFixtureCoversDTO($0, as: CurrentIndividualResponse.self)
+    },
     RegisteredFixture(id: "native.households.empty") {
         try assertFixtureCoversDTO($0, as: HouseholdPage.self)
     },

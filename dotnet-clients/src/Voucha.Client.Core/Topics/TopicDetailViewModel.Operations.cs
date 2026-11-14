@@ -21,6 +21,13 @@ public sealed partial class TopicDetailViewModel
       bool isSourceDetail,
       CancellationToken cancellationToken = default)
   {
+    if (activeTopicIdOrSlug != topicIdOrSlug)
+    {
+      activeTopicIdOrSlug = topicIdOrSlug;
+      recordedRssFeedId = null;
+    }
+    var activation = activationVersion;
+    var load = ++loadVersion;
     SetSourceDetailMode(isSourceDetail);
     SourceProvenance = null;
     SourceStaffProvenance = null;
@@ -29,16 +36,20 @@ public sealed partial class TopicDetailViewModel
     try
     {
       var response = await topicsService.FetchTopicAsync(topicIdOrSlug, cancellationToken).ConfigureAwait(true);
+      if (!IsCurrentLoad(activation, load, cancellationToken)) return;
       ApplyTopicResponse(response);
       SetSourceDetailMode(isSourceDetail && response.Topic.TopicType == "rss_feed");
       if (followSource && response.Topic.TopicType == "rss_feed")
       {
-        await LoadSourceAsync(response.Topic.Id, cancellationToken).ConfigureAwait(true);
+        await LoadSourceAsync(response.Topic.Id, activation, load, cancellationToken).ConfigureAwait(true);
+        if (!IsCurrentLoad(activation, load, cancellationToken)) return;
+        RecordRssFeedViewOnce();
       }
       State = LoadState.Loaded;
     }
     catch (Exception ex) when (ex is OperationCanceledException or VouchaApiException or HttpRequestException)
     {
+      if (activation != activationVersion || load != loadVersion) return;
       State = ex is OperationCanceledException ? LoadState.Idle : LoadState.Error;
       ErrorMessage = ex is OperationCanceledException ? null : ex.Message;
       SetSourceDetailMode(false);
@@ -65,7 +76,7 @@ public sealed partial class TopicDetailViewModel
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      ErrorMessage = ex.Message;
+      ErrorMessage = RelationMutationErrors.Message(ex, localization);
     }
   }
 
@@ -86,7 +97,7 @@ public sealed partial class TopicDetailViewModel
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      ErrorMessage = ex.Message;
+      ErrorMessage = RelationMutationErrors.Message(ex, localization);
     }
   }
 
@@ -121,6 +132,8 @@ public sealed partial class TopicDetailViewModel
   private void ApplyTopicResponse(TopicResponse response)
   {
     Topic = response.Topic;
+    topicMetrics = response.TopicMetrics;
+    NotifyCategoryCountsChanged();
     TopicElection = response.TopicElection;
     ElectionVote = response.ElectionVote;
     IsFollowingTopic = BookmarkSidecar.IsActive(response.Bookmarks, response.Topic.Id, BookmarkPredicate.Follow);
@@ -136,9 +149,10 @@ public sealed partial class TopicDetailViewModel
     CurrentVoteChoice = vote.Current;
   }
 
-  private async Task LoadSourceAsync(string topicId, CancellationToken cancellationToken)
+  private async Task LoadSourceAsync(string topicId, int activation, int load, CancellationToken cancellationToken)
   {
     var feeds = await topicsService.FetchRssFeedsForTopicAsync(topicId, cancellationToken: cancellationToken).ConfigureAwait(true);
+    if (!IsCurrentLoad(activation, load, cancellationToken)) return;
     var feed = feeds.Results.Count > 0 ? feeds.Results[0] : null;
     SourceRssFeedId = feed?.Id;
     SourceProvenance = feed?.Provenance;

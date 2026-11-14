@@ -1,22 +1,22 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Moderation;
 
 namespace Voucha.Client.App.Pages;
 
 internal static class ModerationDisputeCardPresentation
 {
   public static string Heading(ModerationDispute dispute) =>
-      $"{UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesReviewDispute)} · {dispute.Id}";
+      ModerationLabels.Entity(dispute.PostLabel, UiCopy.CurrentLocalization);
 
   public static string Context(ModerationDispute dispute)
   {
     var staff = dispute.StaffContext;
     var disputant = staff?.Disputant.VerifiedDisplayName;
     if (string.IsNullOrWhiteSpace(disputant)) disputant = staff?.Disputant.Username;
-    if (string.IsNullOrWhiteSpace(disputant)) disputant = staff?.Disputant.Id;
-    if (string.IsNullOrWhiteSpace(disputant)) disputant = dispute.DisputantUserId;
+    disputant = ModerationLabels.Person(disputant, null, UiCopy.CurrentLocalization);
     var topic = staff?.Review.Topic?.Name;
-    if (string.IsNullOrWhiteSpace(topic)) topic = dispute.TopicId;
+    if (string.IsNullOrWhiteSpace(topic)) topic = UiCopy.Localize(UiMessageKey.NativeDotnetModerationRebasedTargetUnavailable);
     var rating = staff is null
         ? UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesNotAvailable)
         : staff.Review.Rating.ToString();
@@ -29,8 +29,7 @@ internal static class ModerationDisputeCardPresentation
     };
     if (dispute.PostContent is null)
     {
-      var post = staff?.Review.Post.Title;
-      if (string.IsNullOrWhiteSpace(post)) post = dispute.PostId;
+      var post = dispute.PostLabel;
       lines.Add(post ?? UiCopy.Localize(UiMessageKey.NativeSwiftReviewDisputesNotAvailable));
     }
     lines.AddRange([
@@ -78,7 +77,7 @@ internal static class ModerationDisputeCardPresentation
   public static string Labeled(UiMessageKey key, string value) =>
       $"{UiCopy.Localize(key)}{Environment.NewLine}{value}";
 
-  private static string ActionLabel(string action) =>
+  public static string ActionLabel(string action) =>
       action.ToLowerInvariant() switch
       {
         "no_action" => UiCopy.Localize(

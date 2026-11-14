@@ -27,6 +27,7 @@ public sealed partial class MemberMcpSession : IDisposable
   private IMemberMcpSessionConnection? active;
   private string? accountId;
   private long generation;
+  private long accountEpoch;
   private bool disposed;
 
   public MemberMcpSession(ISessionStore sessionStore, IMemberMcpAccountTokenStore store,
@@ -46,10 +47,21 @@ public sealed partial class MemberMcpSession : IDisposable
 
   public event EventHandler? Changed;
   public MemberMcpSessionStatus Status { get; private set; }
+  internal bool HasActiveConnection
+  {
+    get
+    {
+      lock (gate) return !disposed && active is not null && Status != MemberMcpSessionStatus.Disconnected &&
+          sessionStore.Current.Identity?.Id == accountId;
+    }
+  }
+  public bool RequestWriteAccess { get; set; }
   public JsonElement? Tools { get; private set; }
   public bool HasMemberSession => sessionStore.Current.Identity is not null;
 
-  public async Task ConnectAsync(CancellationToken cancellationToken = default)
+  public Task ConnectAsync(CancellationToken cancellationToken = default) => ConnectAsync(null, cancellationToken);
+
+  public async Task ConnectAsync(string? scope, CancellationToken cancellationToken = default)
   {
     using var wait = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetimeToken);
     string account;
@@ -93,7 +105,9 @@ public sealed partial class MemberMcpSession : IDisposable
     {
       Changed?.Invoke(this, EventArgs.Empty);
       created = await factory.CreateAsync(account, token).ConfigureAwait(false);
-      var tools = await created.ConnectAndListToolsAsync(token).ConfigureAwait(false);
+      var tools = scope is null
+          ? await created.ConnectAndListToolsAsync(token).ConfigureAwait(false)
+          : await created.AuthorizeAndListToolsAsync(scope, token).ConfigureAwait(false);
       _ = new MemberMcpToolBridge(tools);
       token.ThrowIfCancellationRequested();
       lock (gate)

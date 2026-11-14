@@ -39,11 +39,16 @@ public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnec
     try { return await ListToolsAsync(cancellationToken).ConfigureAwait(false); }
     catch (McpUnauthorizedException) { }
 
+    return await AuthorizeAndListToolsAsync("mcp.user:read", cancellationToken).ConfigureAwait(false);
+  }
+
+  public async Task<JsonElement> AuthorizeAndListToolsAsync(string scope, CancellationToken cancellationToken)
+  {
     var callback = MemberMcpLoopbackCallback.Start();
     await using var callbackLifetime = callback.ConfigureAwait(false);
     var request = new MemberMcpOAuthRequest(
         siteOrigin, MemberMcpApp.Windows, metadata.IssuerIdentifier,
-        metadata.AuthorizationEndpoint, callback.RedirectUri);
+        metadata.AuthorizationEndpoint, callback.RedirectUri, scope);
     await store.SavePendingAsync(accountId, request.State, request.Verifier, request.RedirectUri)
         .ConfigureAwait(false);
     try
@@ -53,8 +58,15 @@ public sealed partial class MemberMcpSessionConnection : IMemberMcpSessionConnec
       var redirected = await callback.ReceiveAsync(
           request.State, request.IssuerIdentifier, cancellationToken).ConfigureAwait(false);
       var code = request.CodeFromCallback(redirected);
-      await tokens.RedeemAsync(code, request.Verifier, request.RedirectUri, cancellationToken)
-          .ConfigureAwait(false);
+      try
+      {
+        await tokens.RedeemAsync(code, request.Verifier, request.RedirectUri, cancellationToken)
+            .ConfigureAwait(false);
+      }
+      catch (McpUnauthorizedException error)
+      {
+        throw new McpAuthorizationDeniedException("OAuth authorization code was rejected.", error);
+      }
     }
     finally { await store.ClearPendingAsync(accountId).ConfigureAwait(false); }
     return await ListToolsAsync(cancellationToken).ConfigureAwait(false);

@@ -18,6 +18,8 @@ public sealed class ImportExportApiTests
         "{\"urls\":[\"https://example.test/feed.xml\"],\"should_follow_imported_feeds\":true}");
     AssertBody(VouchaApiEndpoints.ImportRssFeedCsv("url\na"), "{\"csv\":\"url\\na\",\"should_follow_imported_feeds\":true}");
     AssertBody(VouchaApiEndpoints.ImportRssFeedOpml("<opml/>"), "{\"opml\":\"\\u003Copml/\\u003E\",\"should_follow_imported_feeds\":true}");
+    Assert.Empty(VouchaApiEndpoints.RssFeedImportStatus("batch").Query);
+    Assert.Equal("opaque+/=", VouchaApiEndpoints.RssFeedImportStatus("batch", "opaque+/=").Query["after"]);
     Assert.Empty(VouchaApiEndpoints.ExportTopics().Query);
     Assert.Equal("1", VouchaApiEndpoints.ExportTopicsDownload().Query["download"]);
 
@@ -28,6 +30,18 @@ public sealed class ImportExportApiTests
     Assert.Equal("text/csv", csv.Headers["Accept"]);
     Assert.Empty(opml.Query);
     Assert.Equal("text/xml", opml.Headers["Accept"]);
+  }
+
+  [Fact]
+  public async Task LiveSourceStatusServiceForwardsOpaqueCursor()
+  {
+    var handler = new HeaderHandler(
+        ApiFixtureLoader.LoadResponse("native.import-export.rss-feeds.status.partial"), HttpStatusCode.OK);
+    var service = new ApiImportExportService(new VouchaApiClient(
+        new HttpClient(handler) { BaseAddress = new("https://api.test") }));
+    var status = await service.GetSourceStatusAsync("batch", "opaque+/=?&", TestContext.Current.CancellationToken);
+    Assert.NotEmpty(status.Rows);
+    Assert.Equal("/api/v1/my/import/rss-feeds/batch?after=opaque%2B%2F%3D%3F%26", handler.Path);
   }
 
   [Fact]
@@ -142,7 +156,7 @@ public sealed class ImportExportApiTests
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
     {
-      Accept = request.Headers.Accept.Single().MediaType;
+      Accept = request.Headers.Accept.SingleOrDefault()?.MediaType;
       Path = request.RequestUri?.PathAndQuery;
       return Task.FromResult(new HttpResponseMessage(status)
       {

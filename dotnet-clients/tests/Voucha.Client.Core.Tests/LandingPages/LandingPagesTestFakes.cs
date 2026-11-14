@@ -37,6 +37,8 @@ internal sealed class RecordingLandingPagesService : ILandingPagesService
 
   public string? LastAdminUserId { get; private set; }
 
+  public string? LastAdminLandingPageAnalyticsUsername { get; private set; }
+
   public string? LastAdminLandingPageAnalyticsPageId { get; private set; }
 
   public RecordingLandingPagesService()
@@ -69,14 +71,15 @@ internal sealed class RecordingLandingPagesService : ILandingPagesService
   }
 
   public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(
-      string pageId,
+      string username, string slug,
       CancellationToken cancellationToken = default)
   {
-    LastAdminLandingPageAnalyticsPageId = pageId;
+    LastAdminLandingPageAnalyticsUsername = username;
+    LastAdminLandingPageAnalyticsPageId = slug;
     return Task.FromResult(AdminLandingPageAnalyticsResponse);
   }
 
-  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) =>
+  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
       Task.FromResult(CandidatesResponse);
 
   public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default) =>

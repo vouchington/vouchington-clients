@@ -169,6 +169,9 @@ final class NativeOAuthAuthorizationTests: XCTestCase {
         XCTAssertTrue(response.brokerCapabilities.linkedin?.supportsNative(.connect) == true)
         XCTAssertTrue(response.brokerCapabilities.microsoft?.modes.web == true)
         XCTAssertTrue(response.brokerCapabilities.microsoft?.supportsNative(.authenticate) == true)
+        XCTAssertTrue(response.brokerCapabilities.google?.modes.web == true)
+        XCTAssertTrue(response.brokerCapabilities.google?.supportsNative(.authenticate) == true)
+        XCTAssertTrue(response.brokerCapabilities.google?.supportsNative(.connect) == true)
     }
 
     func testCompletionResponsesDecodeEveryDiscriminatedOutcome() throws {

@@ -57,7 +57,7 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkReference(
-        _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
+        _ value: DecodedJSONValue, fields: DecodedJSONObject,
         root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false
     ) throws -> Bool {
         guard case let .string(path)? = fields["$ref"] else { return true }
@@ -76,7 +76,7 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkScalarAssertions(
-        _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
+        _ value: DecodedJSONValue, fields: DecodedJSONObject,
         remainingWork: inout Int, output: Bool
     ) throws -> Bool {
         if let expected = fields["type"], !matchesType(value, expected: expected) { return false }
@@ -97,7 +97,7 @@ extension NativeChatMCPInputSchema {
     }
 
     static func checkCompositions(
-        _ value: DecodedJSONValue, fields: [String: DecodedJSONValue],
+        _ value: DecodedJSONValue, fields: DecodedJSONObject,
         root: DecodedJSONValue, depth: Int, remainingWork: inout Int, output: Bool = false, skipAnyOf: Bool = false
     ) throws -> Bool {
         for keyword in ["allOf", "anyOf", "oneOf"] {

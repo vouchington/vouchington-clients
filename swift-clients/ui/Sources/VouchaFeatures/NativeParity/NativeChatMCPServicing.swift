@@ -6,13 +6,26 @@ import VouchaModels
 public protocol NativeChatMCPServicing: AnyObject {
     func connect(accountId: String) async throws -> DecodedJSONValue
     func connect(accountId: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue
+    func authorize(accountId: String, scope: String, presentationWindow: AnyObject?) async throws -> DecodedJSONValue
     func refreshTools(accountId: String) async throws -> DecodedJSONValue
-    func callTool(accountId: String, name: String, arguments: [String: DecodedJSONValue]) async throws
+    func callTool(accountId: String, name: String, arguments: DecodedJSONObject) async throws
         -> MemberMCPClient.ToolResult
     func disconnect(accountId: String) async throws
 }
 
 public extension NativeChatMCPServicing {
+    func connect(accountId: String) async throws -> DecodedJSONValue {
+        try await connect(accountId: accountId, presentationWindow: nil)
+    }
+
+    func authorize(
+        accountId _: String,
+        scope _: String,
+        presentationWindow _: AnyObject?
+    ) async throws -> DecodedJSONValue {
+        throw CancellationError()
+    }
+
     func connect(accountId: String, presentationWindow _: AnyObject?) async throws -> DecodedJSONValue {
         try await connect(accountId: accountId)
     }
@@ -20,7 +33,7 @@ public extension NativeChatMCPServicing {
     func callTool(
         accountId _: String,
         name _: String,
-        arguments _: [String: DecodedJSONValue]
+        arguments _: DecodedJSONObject
     ) async throws -> MemberMCPClient.ToolResult {
         throw CancellationError()
     }

@@ -9,7 +9,7 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task CommunityAdministrationClientMethodsUseExpectedRoutesAndBodies()
   {
-    var handler = new RecordingHandler(RepeatEmptyResponses(45));
+    var handler = new RecordingHandler([new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.applications.default")), .. RepeatEmptyResponses(21), new RecordedResponse(ApiFixtureLoader.LoadResponse("web.communities.agent-prompts.default")), .. RepeatEmptyResponses(22)]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var token = TestContext.Current.CancellationToken;
 
@@ -38,7 +38,7 @@ public sealed partial class VouchaApiClientTests
     await client.FetchCommunityAiAgentsAsync("test community", token);
     await client.EnableCommunityAiAgentAsync("test community", "agent 1", token);
     await client.DeleteCommunityAiAgentAsync("test community", "agent 1", token);
-    await client.FetchCommunityAgentPromptsAsync("test community", token);
+    await client.FetchCommunityAgentPromptsAsync("test community", cancellationToken: token);
     await client.FetchCommunityAgentPromptAsync("test community", "prompt 1", token);
     await client.CreateCommunityAgentPromptAsync(
         "test community",
@@ -123,7 +123,7 @@ public sealed partial class VouchaApiClientTests
         "agent_moderation:post-1",
         new CommunityAutomodFeedbackRequest("true_positive", "keep_removed", "correct", "Matches the community rules."),
         token);
-    await client.FetchCommunityModerationResultsAsync("test community", "post-1", token);
+    await client.FetchCommunityModerationResultsAsync("test community", "post-1", cancellationToken: token);
     await client.IssueCommunityWarningAsync(
         "test community",
         new IssueCommunityWarningRequest("user-1", "Spam in community", "Please read the community rules.", ResolveReport: false),
@@ -183,13 +183,13 @@ public sealed partial class VouchaApiClientTests
             {"thread":{"id":"thread-1","community_id":"community-1","subject_user_id":"user-1","assigned_mod_id":"moderator-1","resolved_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Patched","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Patched","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":"2026-01-01T00:00:00Z","deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-03T00:00:00Z"}}
             """),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
@@ -223,7 +223,8 @@ public sealed partial class VouchaApiClientTests
   [Fact]
   public async Task ApiCommunitiesServiceDelegatesAdministrationMethodsToClientRoutes()
   {
-    var handler = new RecordingHandler(RepeatEmptyResponses(26));
+    var handler = new RecordingHandler(RepeatEmptyResponses(26).Select((response, index) => index == 13
+        ? new RecordedResponse(ApiFixtureLoader.LoadResponse("native.communities.bans.lift-one.default")) : response));
     var service = new ApiCommunitiesService(
         new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }));
     var token = TestContext.Current.CancellationToken;
@@ -245,7 +246,7 @@ public sealed partial class VouchaApiClientTests
     await service.ReviewPostAsync("test community", "post 1", new UpdateCommunityPostReviewRequest("rejected", "spam"), token);
     await service.UpdatePinnedPostsAsync("test community", new CommunityPinnedPostsUpdateRequest(["post-1"]), token);
     await service.BanAsync("test community", new BanCommunityMemberRequest("user-3"), token);
-    await service.LiftBanAsync("test community", "user 3", token);
+    await service.LiftBanAsync("test community", "ban 3", token);
     await service.ActivateRestrictionsAsync(
         "test community",
         new ActivateCommunityRestrictionsRequest(["invite_only"]),

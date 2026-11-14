@@ -99,7 +99,8 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("00000000-0000-7000-8000-000000000201", response.User.ProfileImageId);
     Assert.Null(response.User.DisplayAccount);
     Assert.Equal(4, response.UserMetrics?.Count.Reviews);
-    Assert.Equal(7, response.UserMetrics?.ViewerCount?.Comments);
+    Assert.Equal(2, response.UserMetrics?.Count.Comments);
+    Assert.Null(response.UserMetrics?.ViewerCount);
     Assert.Equal("Site", response.ProfileLinks?.Single().Name);
     Assert.Equal("<p>Hello</p>", response.UserBioHtml);
   }
@@ -119,10 +120,11 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal(0, response.UserMetrics?.Count.UsersFollowers);
     Assert.Equal(0, response.UserMetrics?.Count.TopicsFollowing);
     Assert.Equal(0, response.UserMetrics?.Count.RssFeedsFollowing);
-    Assert.Equal(0, response.UserMetrics?.Bookmarks?["follow"]["topics"]);
-    Assert.Equal(0, response.UserMetrics?.Bookmarks?["follow"]["posts"]);
-    Assert.Equal(0, response.UserMetrics?.Bookmarks?["follow"]["users"]);
-    Assert.Equal(0, response.UserMetrics?.Bookmarkers?["follow"]);
+    var capped = response.UserMetrics?.CountCapped;
+    Assert.NotNull(capped);
+    Assert.False(capped.Reviews || capped.Discussions || capped.Comments || capped.UsersFollowing
+        || capped.UsersFollowers || capped.TopicsFollowing || capped.RssFeedsFollowing
+        || capped.CommunitiesMember);
   }
 
   [Fact]

@@ -13,6 +13,12 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
             ignoring: ["topic_elections.topic-1.__entity_type", "topics.topic-1.hero_image_placement"]
         )
     },
+    RegisteredFixture(id: "web.topics.show.viewer-lower-bound") {
+        try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
+    },
+    RegisteredFixture(id: "web.topics.show.viewer-review-data-lower-bound") {
+        try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
+    },
     RegisteredFixture(id: "web.topics.show.default") {
         try assertFixtureCoversDTO($0, as: TopicDetailResponse.self)
     },
@@ -92,6 +98,9 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
             as: CommunityApplicationsResponse.self,
             ignoring: ["automod_actions.feedback_label", "page_info.end_cursor", "page_info.start_cursor"]
         )
+    },
+    RegisteredFixture(id: "web.communities.application.default") {
+        try assertFixtureCoversDTO($0, as: CommunityApplicationResponse.self)
     },
     RegisteredFixture(id: "web.communities.application-questions.default") {
         try assertFixtureCoversDTO(
@@ -264,7 +273,7 @@ let webCommunityApiFixtureCoverage: [RegisteredFixture] = [
         try assertFixtureCoversDTO(
             $0,
             as: CommunityAutomodSimulation.self,
-            ignoring: ["simulation.false_positive_estimate"]
+            ignoring: ["simulation.false_positive_estimate.rate"]
         )
     },
     RegisteredFixture(id: "web.communities.automod-recent-actions.default") {

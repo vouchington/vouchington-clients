@@ -31,7 +31,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
     }
 
     func testSubmitUsesAppAttestHeadersInsteadOfTurnstile() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/topic-recommendations"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
             Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8),
             201
         )
@@ -44,7 +44,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
 
         XCTAssertEqual(viewModel.savedPostId, "topic-rec-1")
         XCTAssertNil(viewModel.turnstileToken)
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/topic-recommendations" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains { $0.path == "/api/v1/posts" })
         if case .loaded = viewModel.state {
             return
         }
@@ -60,7 +60,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
 
         await viewModel.submit()
 
-        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.allSatisfy { $0.path != "/api/v1/topic-recommendations" })
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.allSatisfy { $0.path != "/api/v1/posts" })
         if case .required = viewModel.state {
             return
         }
@@ -84,7 +84,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
     }
 
     func testSubmitRetriesWithTurnstileWhenServerRejectsAppAttestBypass() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/topic-recommendations"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
             (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0),
             (Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8), 201, 0)
         ]
@@ -97,7 +97,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
         await viewModel.submit()
 
         XCTAssertEqual(viewModel.savedPostId, "topic-rec-1")
-        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/topic-recommendations" }
+        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/posts" }
         XCTAssertEqual(attempts.count, 2)
         if case .loaded = viewModel.state {
             return
@@ -106,7 +106,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
     }
 
     func testTurnstileFallbackAndResumptionPreserveContributionIdentity() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/topic-recommendations"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
             (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0),
             (Data(#"{"code":"BYPASS_DISABLED"}"#.utf8), 403, 0),
             (Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8), 201, 0)
@@ -119,7 +119,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
         await viewModel.submit()
 
         let initialAttempts = CannedFeedURLProtocol.capturedRequests.filter {
-            $0.url.path == "/api/v1/topic-recommendations"
+            $0.url.path == "/api/v1/posts"
         }
         XCTAssertEqual(initialAttempts.count, 1)
         guard case .required = viewModel.state else {
@@ -133,7 +133,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
 
         XCTAssertEqual(viewModel.savedPostId, "topic-rec-1")
         let attempts = CannedFeedURLProtocol.capturedRequests.filter {
-            $0.url.path == "/api/v1/topic-recommendations"
+            $0.url.path == "/api/v1/posts"
         }
         XCTAssertEqual(attempts.count, 3)
         let initialBody = try topicRequestBody(XCTUnwrap(initialAttempts.first?.body))
@@ -156,7 +156,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
     }
 
     func testSubmitForgetsCachedKeyWhenServerRejectsAssertion() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/topic-recommendations"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
             (Data(#"{"code":"ATTESTATION_REJECTED"}"#.utf8), 403, 0),
             (Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8), 201, 0)
         ]
@@ -176,7 +176,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
     }
 
     func testSubmitSurfacesErrorInsteadOfRetryingWhenServerRejectsForPermissionReasons() async throws {
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/topic-recommendations"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
             (Data(#"{"code":"IDENTITY_REQUIRED"}"#.utf8), 403, 0),
             (Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8), 201, 0)
         ]
@@ -188,7 +188,7 @@ final class NativeTopicRecommendationViewModelAppAttestationTests: NativeRouteSu
 
         await viewModel.submit()
 
-        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/topic-recommendations" }
+        let attempts = CannedFeedURLProtocol.capturedURLs.filter { $0.path == "/api/v1/posts" }
         XCTAssertEqual(attempts.count, 1, "a real permission 403 must not be retried with Turnstile")
         if case .error = viewModel.state {
             return

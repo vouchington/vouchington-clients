@@ -17,7 +17,7 @@ public sealed partial class SpendingCategoriesViewModel
       var response = page.Results.ToDictionary(value => value.Id, StringComparer.Ordinal);
       var display = new Dictionary<string, SpendingCategory>(response, StringComparer.Ordinal);
       Reconcile(display, response, readId, generation, replacesList: true, reachesEnd: !page.PageInfo.HasNextPage); Replace(display.Values);
-      pageInfo = page.PageInfo; loaded = true; Notify(nameof(HasNextPage));
+      pageInfo = page.PageInfo; loaded = true; OnPropertyChanged(nameof(HasNextPage));
     }
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     catch (Exception error) { if (generation == loadGeneration) Fail(error); }
@@ -37,7 +37,7 @@ public sealed partial class SpendingCategoriesViewModel
       var response = page.Results.ToDictionary(value => value.Id, StringComparer.Ordinal);
       var display = values.Concat(page.Results).GroupBy(value => value.Id, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
       Reconcile(display, response, readId, generation, replacesList: false, reachesEnd: !page.PageInfo.HasNextPage); Replace(display.Values);
-      pageInfo = page.PageInfo; Notify(nameof(HasNextPage));
+      pageInfo = page.PageInfo; OnPropertyChanged(nameof(HasNextPage));
     }
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     catch (Exception error) { if (generation == loadGeneration) { HasContinuationError = true; Fail(error); } }

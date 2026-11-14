@@ -437,11 +437,14 @@ public sealed partial class ChatViewModelProviderTests
     private CancellationTokenSource accountCancellation = new();
     private MemberMcpConnectedSnapshot snapshot;
     private string currentAccount = "account-a";
+    private long accountEpoch;
     private bool catalogHidden;
 
     public TestMcpLocalChatProvider() => snapshot = MakeSnapshot("account-a", 1);
-
     public int Generations { get; private set; }
+    public IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts { get; set; }
+    public IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts { get; set; }
+    public IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts { get; set; }
     public Exception? Failure { get; set; }
     public Action? AfterGeneration { get; set; }
     public ChatProviderStatus Status { get; set; } = new(
@@ -454,6 +457,7 @@ public sealed partial class ChatViewModelProviderTests
       accountCancellation.Cancel();
       accountCancellation = new();
       currentAccount = accountId;
+      accountEpoch++;
       snapshot = MakeSnapshot(accountId, snapshot.Revision + 1);
       catalogHidden = false;
     }
@@ -466,6 +470,8 @@ public sealed partial class ChatViewModelProviderTests
     }
     public MemberMcpConnectedSnapshot? ConnectedMcpSnapshot() => catalogHidden ? null : snapshot;
     public bool MatchesAccount(string accountId) => currentAccount == accountId;
+    public bool MatchesAccountEpoch(MemberMcpConnectedSnapshot candidate) =>
+        currentAccount == candidate.AccountId && accountEpoch == candidate.AccountEpoch;
     public bool IsCurrent(MemberMcpConnectedSnapshot candidate) =>
         !catalogHidden && candidate.AccountId == snapshot.AccountId && candidate.Revision == snapshot.Revision;
 
@@ -482,10 +488,12 @@ public sealed partial class ChatViewModelProviderTests
       if (Failure is not null) return Task.FromException<LocalChatGenerationResult>(Failure);
       AfterGeneration?.Invoke();
       return Task.FromResult(new LocalChatGenerationResult(
-          $"Reply from {generationSnapshot?.AccountId}", Status.ModelProvider!, Status.ModelName));
+          $"Reply from {generationSnapshot?.AccountId}", Status.ModelProvider!, Status.ModelName,
+          FeedPostReceipts, RssItemReceipts, ReferralLinkReceipts));
     }
 
     private MemberMcpConnectedSnapshot MakeSnapshot(string accountId, long revision) =>
-        new(accountId, revision, JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone(), accountCancellation.Token);
+        new(accountId, revision, JsonDocument.Parse("{\"tools\":[]}").RootElement.Clone(),
+            accountCancellation.Token, accountEpoch);
   }
 }

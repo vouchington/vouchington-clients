@@ -111,9 +111,9 @@ public sealed class ModerationViewModelTests
   {
     const string firstFixtureId = "native.moderation.appeals.default";
     const string secondFixtureId = "native.moderation.appeals.page-2";
-    var firstPage = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var firstPage = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse(firstFixtureId), VouchaApiJson.Options)!;
-    var secondPage = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var secondPage = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse(secondFixtureId), VouchaApiJson.Options)!;
     var handler = new RecordingHandler([
       new(ApiFixtureLoader.LoadResponse(firstFixtureId)),
@@ -142,9 +142,9 @@ public sealed class ModerationViewModelTests
   {
     const string firstFixtureId = "native.moderation.appeals.default";
     const string secondFixtureId = "native.moderation.appeals.page-2";
-    var firstPage = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var firstPage = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse(firstFixtureId), VouchaApiJson.Options)!;
-    var secondPage = JsonSerializer.Deserialize<ModerationAppealListResponse>(
+    var secondPage = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
         ApiFixtureLoader.LoadResponse(secondFixtureId), VouchaApiJson.Options)!;
     var handler = new RecordingHandler([
       new(ApiFixtureLoader.LoadResponse(firstFixtureId)),
@@ -193,19 +193,19 @@ public sealed class ModerationViewModelTests
         "/appeals",
         "native.moderation.appeals.default",
         "/api/v1/appeals?limit=25&status=pending",
-        "case-1",
-        "Pending · post post-1");
+        "A removed review",
+        "Pending · Reduce");
     yield return Case(
         "/my/appeals",
-        "native.moderation.appeals.default",
+        "native.moderation.appeals.member.default",
         "/api/v1/appeals?limit=25&mine=true&status=pending",
-        "case-1",
+        "A removed review",
         "Pending · post post-1");
     yield return Case(
         "/disputes",
         "native.moderation.disputes.default",
         "/api/v1/disputes?limit=25&status=pending",
-        "Native review dispute",
+        "A disputed review",
         "Pending · remove");
     yield return Case(
         "/admin/modlog",

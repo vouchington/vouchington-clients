@@ -1,5 +1,6 @@
 import SwiftUI
 import VouchaAPI
+import VouchaAuth
 import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
@@ -18,6 +19,17 @@ struct CommunityCreateSurface: View {
         _viewModel = State(initialValue: viewModel)
         self.client = client
         self.turnstileSiteKey = turnstileSiteKey
+    }
+
+    var turnstileChallenge: NativeTurnstileChallengeView {
+        NativeTurnstileChallengeView(
+            siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey,
+            action: .communitiesCreate,
+            baseURL: client?.baseURL ?? AppConfig.shared.baseURL
+        ) { token in
+            viewModel.turnstileToken = token
+            showingTurnstile = false
+        }
     }
 
     var body: some View {
@@ -50,12 +62,7 @@ struct CommunityCreateSurface: View {
             stateText(viewModel.state, locale: nativeUiLocale)
         }
         .sheet(isPresented: $showingTurnstile) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
-            ) { token in
-                viewModel.turnstileToken = token
-                showingTurnstile = false
-            }
+            turnstileChallenge
         }
     }
 }

@@ -1,28 +1,22 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
+using Voucha.Client.Core.Profiles;
 
 namespace Voucha.Client.App.Pages;
 
 // Test shell compiles the production XAML. Unrelated navigation and mutation handlers stay inert.
 
-public partial class PostsPage : ContentPage
+public partial class PostsPage
 {
-  public PostsPage() => InitializeComponent();
-  private void OnAllClicked(object? sender, EventArgs args) { }
-  private void OnAppealsClicked(object? sender, EventArgs args) { }
-  private void OnChooseVoteClicked(object? sender, EventArgs args) { }
-  private void OnClearVoteClicked(object? sender, EventArgs args) { }
-  private void OnComposeClicked(object? sender, EventArgs args) { }
-  private void OnDiscussionsClicked(object? sender, EventArgs args) { }
-  private void OnEmbedOpenClicked(object? sender, EventArgs args) { }
-  private void OnEmbedPlayClicked(object? sender, EventArgs args) { }
-  private void OnFeedClicked(object? sender, EventArgs args) { }
-  private void OnFollowerSendClicked(object? sender, EventArgs args) { }
-  private void OnHideClicked(object? sender, EventArgs args) { }
-  private void OnOpenClicked(object? sender, EventArgs args) { }
-  private void OnReviewsClicked(object? sender, EventArgs args) { }
-  private void OnSaveClicked(object? sender, EventArgs args) { }
-  private void OnRemainingItemsThresholdReached(object? sender, EventArgs args) { }
-  private void OnPostClicked(object? sender, EventArgs args) { }
+  public PostsPage()
+  {
+    InitializeComponent();
+    viewModel = null!;
+    sessionStore = null!;
+    serviceProvider = null!;
+    emailRecovery = null!;
+    mode = "browse";
+  }
 }
 
 public partial class PostDetailPage : ContentPage
@@ -39,7 +33,7 @@ public partial class PostDetailPage : ContentPage
   private void OnEmbedOpenClicked(object? sender, EventArgs args) { }
   private void OnEmbedPlayClicked(object? sender, EventArgs args) { }
   private void OnFollowerSendClicked(object? sender, EventArgs args) { }
-  private void OnHnDiscussionClicked(object? sender, EventArgs args) { }
+  private void OnLoadMoreSubtreeRequested(object? sender, EventArgs args) { }
   private void OnLoadMoreAncestorsRequested(object? sender, EventArgs args) { }
   private void OnLockToggleClicked(object? sender, EventArgs args) { }
   private void OnQuoteClicked(object? sender, EventArgs args) { }
@@ -53,7 +47,28 @@ public partial class PostDetailPage : ContentPage
 
 public partial class ProfilePage : ContentPage
 {
-  public ProfilePage() => InitializeComponent();
+  private readonly ProfileViewModel viewModel;
+
+  public ProfilePage() : this(null, null) { }
+
+  internal ProfilePage(
+      ProfileViewModel? viewModel,
+      Func<Task<FileResult?>>? pickAvatarFile = null,
+      Func<FileResult, Task<Stream>>? openSelectedFile = null)
+  {
+    InitializeComponent();
+    this.viewModel = viewModel!;
+    this.pickAvatarFile = pickAvatarFile ?? (() => FilePicker.Default.PickAsync(PickOptions.Images));
+    this.openSelectedFile = openSelectedFile ?? (file => file.OpenReadAsync());
+    BindingContext = viewModel;
+  }
+
+  protected override void OnDisappearing()
+  {
+    EndAvatarPreviewSession();
+    base.OnDisappearing();
+  }
+
   public bool IsPublicProfile => true;
   private void OnBlockUserClicked(object? sender, EventArgs args) { }
   private void OnClearUserTagVoteClicked(object? sender, EventArgs args) { }
@@ -69,14 +84,13 @@ public partial class ProfilePage : ContentPage
   private void OnMuteUserClicked(object? sender, EventArgs args) { }
   private void OnProfileCommunityClicked(object? sender, EventArgs args) { }
   private void OnProfileFriendClicked(object? sender, EventArgs args) { }
+  private void OnProfileReferralLinkClicked(object? sender, EventArgs args) { }
   private void OnProfileScopeClicked(object? sender, EventArgs args) { }
   private void OnProfileSourceClicked(object? sender, EventArgs args) { }
   private void OnProfileTopicClicked(object? sender, EventArgs args) { }
   private void OnRefreshClicked(object? sender, EventArgs args) { }
-  private void OnRemoveAvatarClicked(object? sender, EventArgs args) { }
   private void OnReportUserClicked(object? sender, EventArgs args) { }
   private void OnSaveBioClicked(object? sender, EventArgs args) { }
-  private void OnUploadAvatarClicked(object? sender, EventArgs args) { }
   private void OnUserAdminClicked(object? sender, EventArgs args) { }
   private void OnUserTagVoteClicked(object? sender, EventArgs args) { }
   private void OnUserTrustVoteClicked(object? sender, EventArgs args) { }

@@ -55,7 +55,7 @@ extension NativeChatMCPInputSchema {
             }
         } else if ["properties", "$defs"].contains(key) {
             guard case let .object(children) = item else { throw Failure.unsupportedSchema }
-            for child in children.values {
+            for (_, child) in children {
                 try inspect(child, root: root, depth: depth + 1, output: output)
             }
         } else { throw Failure.unsupportedSchema }

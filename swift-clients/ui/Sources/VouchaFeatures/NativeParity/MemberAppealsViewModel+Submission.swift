@@ -43,7 +43,7 @@ extension MemberAppealsViewModel {
             }
         }
         do {
-            let response: ModerationAppealSubmissionResponse = try await client.send(.submitAppeal(
+            let response: MemberAppealSubmissionResponse = try await client.send(.submitAppeal(
                 request
             ))
             guard submissionRevision == revision, activeTarget == target else { return }
@@ -81,7 +81,7 @@ extension MemberAppealsViewModel {
         }
     }
 
-    private func replaceTrackingAppeal(_ appeal: ModerationAppeal) {
+    private func replaceTrackingAppeal(_ appeal: ModerationAppealReadProjection) {
         pendingAppealPagination.replaceItems(
             [appeal] + pendingAppealPagination.items.filter { $0.id != appeal.id }
         )

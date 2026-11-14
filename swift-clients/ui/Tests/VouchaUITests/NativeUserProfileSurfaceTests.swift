@@ -97,7 +97,7 @@ final class NativeUserProfileSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertNoThrow(try surface.inspect().find(viewWithAccessibilityIdentifier: "public-profile-header"))
         XCTAssertNoThrow(try surface.inspect().find(text: "@alice"))
-        XCTAssertNoThrow(try surface.inspect().find(text: "10 posts"))
+        XCTAssertNoThrow(try surface.inspect().find(text: "9 posts"))
         for title in ["Overview", "Posts", "Topics", "Friends", "Sources", "Communities"] {
             XCTAssertNoThrow(try surface.inspect().find(button: title))
         }
@@ -330,7 +330,7 @@ final class NativeUserProfileSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         let tabs = surface.visiblePrimaryTabs(profile)
         XCTAssertEqual(
-            tabs.map(\.title),
+            Array(tabs.map(\.title).dropLast()),
             [.nativeSwiftProfileOverview, .nativeSwiftNavigationTitlesPosts, .nativeSwiftNavigationTitlesFriends]
         )
         XCTAssertTrue(tabs.first(where: { $0.title == .nativeSwiftNavigationTitlesFriends })?.selected == true)

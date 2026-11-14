@@ -20,6 +20,7 @@ public sealed record ListItem(
     [property: JsonPropertyName("list_id")] string ListId,
     [property: JsonPropertyName("item_type")] string ItemType,
     [property: JsonPropertyName("entity_id")] string EntityId,
+    [property: JsonPropertyName("entity_label"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? EntityLabel,
     [property: JsonPropertyName("order_index")] int? OrderIndex,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("media_type")] string? MediaType,

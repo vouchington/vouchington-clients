@@ -71,12 +71,12 @@ if [[ "$host_only" == false ]]; then
     echo '--stage-root must name an existing absolute complete native-contract stage.' >&2
     exit 2
   }
-  (cd "$root" && VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" pnpm run contracts:check)
+  (cd "$root" && VOUCHA_CONTRACT_ROOT="$stage_root" pnpm run contracts:check)
 fi
 if [[ "$setup_ready" == true ]]; then
   restore_inputs=(
     global.json package.json pnpm-lock.yaml pnpm-workspace.yaml .mise.toml
-    contracts/filaments.json dotnet-clients/NuGet.config
+    contracts/vouchington.json dotnet-clients/NuGet.config
     dotnet-clients/Voucha.DotNet.sln
     dotnet-clients/Directory.Build.props dotnet-clients/Directory.Build.targets
     dotnet-clients/Directory.Packages.props

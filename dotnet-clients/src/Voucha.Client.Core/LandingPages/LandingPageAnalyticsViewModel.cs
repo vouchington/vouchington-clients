@@ -84,7 +84,7 @@ public sealed partial class LandingPageAnalyticsViewModel :
 
   public string PageSlug => LandingPage?.Slug ?? string.Empty;
 
-  public async Task LoadAsync(string pageId, CancellationToken cancellationToken = default)
+  public async Task LoadAsync(string username, string slug, CancellationToken cancellationToken = default)
   {
     if (IsLoading) return;
     State = LoadState.Loading;
@@ -94,7 +94,7 @@ public sealed partial class LandingPageAnalyticsViewModel :
 
     try
     {
-      var response = await service.FetchAdminLandingPageAnalyticsAsync(pageId, cancellationToken).ConfigureAwait(true);
+      var response = await service.FetchAdminLandingPageAnalyticsAsync(username, slug, cancellationToken).ConfigureAwait(true);
       LandingPage = response.LandingPage;
       Analytics = response.Analytics;
       State = LoadState.Loaded;

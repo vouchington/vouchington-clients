@@ -40,6 +40,8 @@ public sealed partial class ImportExportViewModel
 
   private void ResetSourceImportState()
   {
+    ResetSourcePages();
+    sourceSnapshotStartedTerminal = false;
     monitorCancellation?.Cancel();
     monitorCancellation?.Dispose();
     monitorCancellation = null;

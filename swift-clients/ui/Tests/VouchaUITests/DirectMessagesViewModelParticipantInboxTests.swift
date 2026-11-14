@@ -35,7 +35,7 @@ final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceView
         ])
         XCTAssertEqual(viewModel.participants.map(\.userId), ["user-2"])
         XCTAssertEqual(viewModel.conversations.first?.participantUsernames, ["bob"])
-        XCTAssertEqual(viewModel.conversations.first?.updatedAt, isoDate("2026-01-03T00:00:00Z"))
+        XCTAssertEqual(viewModel.conversations.first?.updatedAt, DirectMessagesTestJSON.date("2026-01-03T00:00:00Z"))
         XCTAssertEqual(
             try DirectMessagesSurface(viewModel: viewModel, routeMatch: nil)
                 .label(for: XCTUnwrap(viewModel.conversations.first)),
@@ -77,7 +77,7 @@ final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceView
         ])
         XCTAssertTrue(viewModel.participants.isEmpty)
         XCTAssertNil(viewModel.conversations.first?.participantUsernames)
-        XCTAssertEqual(viewModel.conversations.first?.updatedAt, isoDate("2026-01-04T00:00:00Z"))
+        XCTAssertEqual(viewModel.conversations.first?.updatedAt, DirectMessagesTestJSON.date("2026-01-04T00:00:00Z"))
         XCTAssertEqual(
             try DirectMessagesSurface(viewModel: viewModel, routeMatch: nil)
                 .label(for: XCTUnwrap(viewModel.conversations.first)),
@@ -90,7 +90,7 @@ final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceView
         updatedAt: String,
         usernames: [String]?
     ) -> Data {
-        let usernamesJSON = usernames.map(jsonArray) ?? "null"
+        let usernamesJSON = usernames.map(DirectMessagesTestJSON.array) ?? "null"
         return Data(
             """
             {
@@ -150,7 +150,7 @@ final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceView
     }
 
     private func participant(userId: String, username: String) -> ConversationParticipant {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "participant-\(userId)",
@@ -167,7 +167,11 @@ final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceView
     }
 
     private func conversation(title: String, updatedAt: String, usernames: [String]) -> DirectConversation {
-        try! decodeJSON(conversationJSON(title: title, updatedAt: updatedAt, usernames: jsonArray(usernames)))
+        try! DirectMessagesTestJSON.decode(conversationJSON(
+            title: title,
+            updatedAt: updatedAt,
+            usernames: DirectMessagesTestJSON.array(usernames)
+        ))
     }
 
     private func conversationJSON(title: String, updatedAt: String, usernames: String) -> String {
@@ -183,20 +187,5 @@ final class DirectMessagesViewModelParticipantInboxTests: NativeRouteSurfaceView
           "participant_add_policy": "all_members"
         }
         """
-    }
-
-    private func jsonArray(_ values: [String]) -> String {
-        "[" + values.map { "\"\($0)\"" }.joined(separator: ",") + "]"
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
-
-    private func isoDate(_ value: String) -> Date {
-        ISO8601DateFormatter().date(from: value)!
     }
 }

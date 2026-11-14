@@ -31,7 +31,7 @@ public sealed class AuthenticationSuccessOAuthCleanupTests
 
     var challenge = await service.VerifyEmailOtpAsync(
         "a@example.com",
-        "123456",
+        "ABCDEFGH23",
         TestContext.Current.CancellationToken);
     Assert.NotNull(challenge);
     Assert.Equal(0, cleanup.DiscardCount);
@@ -42,7 +42,7 @@ public sealed class AuthenticationSuccessOAuthCleanupTests
         TestContext.Current.CancellationToken);
     await service.VerifyEmailOtpAsync(
         "a@example.com",
-        "123456",
+        "ABCDEFGH23",
         TestContext.Current.CancellationToken);
     await service.SignInWithPasskeyAsync(TestContext.Current.CancellationToken);
     await service.SignInWithAppleAsync(TestContext.Current.CancellationToken);
@@ -69,7 +69,7 @@ public sealed class AuthenticationSuccessOAuthCleanupTests
     await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
         service.VerifyEmailOtpAsync(
             "a@example.com",
-            "123456",
+            "ABCDEFGH23",
             TestContext.Current.CancellationToken));
 
     Assert.Equal(0, cleanup.DiscardCount);

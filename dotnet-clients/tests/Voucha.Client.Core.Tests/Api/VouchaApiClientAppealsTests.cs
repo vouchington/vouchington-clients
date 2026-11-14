@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Xunit;
 
@@ -9,13 +10,15 @@ public sealed partial class VouchaApiClientTests
   public async Task AppealLifecycleMethodsUseTypedRequestsAndDeserializeCanonicalResponses()
   {
     var envelope = """{"appeal":{"id":"appeal-1","status":"pending","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}""";
+    var admission = JsonNode.Parse(ApiFixtureLoader.LoadResponse("native.moderation.appeals.resolution-drafts.default"))!;
+    admission["rerun_by_id"] = "staff-1";
     var handler = new RecordingHandler([
       new RecordedResponse(envelope),
       new RecordedResponse(envelope),
       new RecordedResponse(envelope),
       new RecordedResponse(envelope),
       new RecordedResponse(envelope),
-      new RecordedResponse("""{"queued":true,"rerun_by_id":"staff-1"}"""),
+      new RecordedResponse(admission.ToJsonString()),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var token = TestContext.Current.CancellationToken;
@@ -35,5 +38,6 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal("/api/v1/appeals/appeal-1/resolution-drafts", handler.Requests[5].PathAndQuery);
     Assert.True(queued.Queued);
     Assert.Equal("staff-1", queued.RerunById);
+    Assert.Equal(admission["run_id"]!.GetValue<string>(), queued.RunId);
   }
 }

@@ -29,8 +29,8 @@ public extension Endpoint {
         Endpoint(.DELETE, path: "/api/v1/communities/\(pathSegment(idOrSlug))/ai-agents/\(pathSegment(agentSlug))")
     }
 
-    static func communityAgentPrompts(idOrSlug: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/communities/\(pathSegment(idOrSlug))/agent-prompts")
+    static func communityAgentPrompts(idOrSlug: String, after: String? = nil, limit: Int? = nil) -> Endpoint {
+        pagedGet(path: "/api/v1/communities/\(pathSegment(idOrSlug))/agent-prompts", after: after, limit: limit)
     }
 
     static func communityAgentPrompt(idOrSlug: String, promptId: String) -> Endpoint {

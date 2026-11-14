@@ -6,6 +6,7 @@ import {
   runChangedFileRoute,
 } from '../scripts/changed-file-route.mjs'
 import { shouldRunWindowsImagePreviewTests } from '../scripts/windows-image-preview-test-routing.mjs'
+import { shouldRunWindowsLanguageModelSurfaceProbe } from '../scripts/windows-language-model-surface-routing.mjs'
 import { shouldRunWindowsMauiBuild } from '../scripts/windows-maui-test-routing.mjs'
 
 describe('changed-file route helper', () => {
@@ -67,8 +68,12 @@ describe('changed-file route helper', () => {
     )
   })
 
-  it('selects both Windows jobs when the shared helper changes', () => {
+  it('selects every Windows job when the shared helper changes', () => {
     assert.equal(shouldRunWindowsMauiBuild(['scripts/changed-file-route.mjs']), true)
     assert.equal(shouldRunWindowsImagePreviewTests(['scripts/changed-file-route.mjs']), true)
+    assert.equal(
+      shouldRunWindowsLanguageModelSurfaceProbe(['scripts/changed-file-route.mjs']),
+      true,
+    )
   })
 })

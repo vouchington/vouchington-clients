@@ -57,16 +57,6 @@ public struct CommunityMembersResponse: Codable, Sendable {
     public let users: [String: PublicUser]
 }
 
-public struct CommunityApplicationsResult: Codable, Identifiable, Sendable {
-    public let id: String
-}
-
-public struct CommunityApplicationsResponse: Codable, Sendable {
-    public let results: [CommunityApplicationsResult]
-    public let pageInfo: Page<CommunityApplicationsResult>.PageInfo
-    public let communityApplications: [String: CommunityApplication]
-}
-
 public struct CommunityApplicationQuestionsResponse: Codable, Sendable {
     public let questions: [CommunityApplicationQuestion]
 }
@@ -81,13 +71,15 @@ public struct CommunityPendingReportsResponse: Codable, Sendable {
 }
 
 public struct CommunityPendingReport: Codable, Identifiable, Sendable {
+    public let automaticJudgementEnabled: Bool
     public let id: String
     public let caseId: String
     public let entityType: String
     public let entityId: String
-    public let targetLabel: String?
+    public let targetLabel: String
     public let targetPath: String?
-    @RequiredNullable public var targetContent: AuthoredContentText?
+    @RequiredNullable
+    public var targetContent: AuthoredContentText?
     public let reason: String
     public let status: ModerationReportStatus
     public let reportCount: Int

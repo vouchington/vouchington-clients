@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Friends;
 
-public sealed class FriendRecommendationsViewModelTests
+public sealed partial class FriendRecommendationsViewModelTests
 {
   [Fact]
   public async Task LoadAsyncKeepsHydratedPlacementFromRecommendationFixture()

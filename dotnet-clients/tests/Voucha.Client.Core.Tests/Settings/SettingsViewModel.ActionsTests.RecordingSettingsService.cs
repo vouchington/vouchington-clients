@@ -72,10 +72,12 @@ public sealed partial class SettingsViewModelActionsTests
       return Task.FromResult(CreateIdentity());
     }
 
+    public Func<UpdateMyIdentityBody, Task<MyIdentityResponse>>? UpdateIdentityOverride { get; set; }
+
     public Task<MyIdentityResponse> UpdateMyIdentityAsync(
         UpdateMyIdentityBody body,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(CreateIdentity());
+        UpdateIdentityOverride?.Invoke(body) ?? Task.FromResult(CreateIdentity());
 
     public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(CreateProfile());

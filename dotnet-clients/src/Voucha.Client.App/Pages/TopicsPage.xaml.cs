@@ -1,4 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core.Analytics;
+using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core;
@@ -52,22 +53,11 @@ public partial class TopicsPage : ContentPage
     BindingContext = new TopicsPageBinding(viewModel, sessionStore, config);
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void lifecycle methods must not allow load failures to escape to the dispatcher.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
     if (BindingContext is TopicsPageBinding binding) binding.AttachSessionChanged();
-    try
-    {
-      await viewModel.LoadAsync();
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync());
   }
 
   protected override void OnDisappearing()
@@ -106,7 +96,7 @@ public partial class TopicsPage : ContentPage
   private async void OnCreateClicked(object? sender, EventArgs e)
   {
     if (!sessionStore.Current.CanManageTopics()) return;
-    await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient));
+    await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, sessionStore: sessionStore));
   }
 
   private async void OnOpenClicked(object? sender, EventArgs e)
@@ -122,7 +112,8 @@ public partial class TopicsPage : ContentPage
               apiClient: apiClient,
               canViewSourceCrawlHistory: false,
               canManageSourceCrawls: sessionStore.Current.CanManageTopics(),
-              requiresAuthoritativeSourceCrawlMembership: true),
+              requiresAuthoritativeSourceCrawlMembership: true,
+              productSignals: serviceProvider.GetRequiredService<IProductSurfaceAnalytics>()),
           sessionStore,
           item.Id,
           emailRecovery,
@@ -135,7 +126,7 @@ public partial class TopicsPage : ContentPage
     if (!sessionStore.Current.CanManageTopics()) return;
     if (sender is Button { CommandParameter: TopicPageRow item })
     {
-      await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, item.Id));
+      await Navigation.PushAsync(new TopicManagementPage(topicsService, imageUploadService, apiClient, item.Id, sessionStore: sessionStore));
     }
   }
 }

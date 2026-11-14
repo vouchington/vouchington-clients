@@ -55,20 +55,14 @@ public static partial class VouchaApiEndpoints
         Body = new { destination_id_or_slug = destinationIdOrSlug },
       };
 
+  public static ApiRequest TopicMergeStatus(string sourceTopicId, string operationId) =>
+      Get($"/api/v1/topics/{Path(sourceTopicId)}/merges/{Path(operationId)}");
+
   public static ApiRequest SpendingCategoryAttributes(string topicId) =>
       Get($"/api/v1/topics/{Path(topicId)}/spending-category");
 
   public static ApiRequest UpdateSpendingCategoryAttributes(string topicId, object body) =>
       new(HttpMethod.Patch, $"/api/v1/topics/{Path(topicId)}/spending-category") { Body = body };
-
-  public static ApiRequest Posts(
-      string feedType = "any",
-      string? after = null,
-      int limit = 20,
-      string? postTypes = null) =>
-      Get(
-          $"/api/v1/feeds/posts/{Path(feedType)}",
-          Query(("limit", limit), ("sort", "hot"), ("after", after), ("post_types", postTypes)));
 
   public static ApiRequest Notifications(string? after = null, int limit = 20) =>
       Get("/api/v1/my/notifications", Query(("limit", limit), ("after", after)));
@@ -88,12 +82,6 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest RevokeAuthSessions() =>
       new(HttpMethod.Post, "/api/v1/auth/sessions/revocations");
-
-  public static ApiRequest BeginBlueskyAccountLink(string handle) =>
-      new(HttpMethod.Post, "/api/v1/auth/bluesky/link") { Body = new BeginBlueskyAccountLinkBody(handle) };
-
-  public static ApiRequest DisconnectBlueskyAccount() =>
-      new(HttpMethod.Delete, "/api/v1/auth/bluesky/link");
 
   public static ApiRequest UserFollowing(string userId, int limit = 100, string? after = null) =>
       Get($"/api/v1/users/{Path(userId)}/users/following", Query(("limit", limit), ("after", after)));

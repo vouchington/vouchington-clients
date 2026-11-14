@@ -4,6 +4,7 @@ public sealed partial class CommunityDetailViewModel
 {
   public void OnUiLocaleChanged()
   {
+    OnPropertyChanged(nameof(ErrorMessage));
     OnPropertyChanged(nameof(Community));
     OnPropertyChanged(nameof(CommunityMetrics));
     OnPropertyChanged(nameof(ListItemCounts));
@@ -16,7 +17,18 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(Moderation));
     OnPropertyChanged(nameof(AutomodFlagError));
     OnPropertyChanged(nameof(AutomodFlagNotice));
+    NotifyAgentPromptCreation();
+    NotifyAgentPromptRefresh();
   }
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    agentPromptDisposed = true;
+    ApplicationDetailContextInvalidated?.Invoke();
+    ResetAgentPromptContext();
+    InvalidateCommunityListRequests();
+    SetCommunityContinuation(null);
+    agentPromptSessionObserver?.Dispose();
+    localeSubscription?.Dispose();
+  }
 }

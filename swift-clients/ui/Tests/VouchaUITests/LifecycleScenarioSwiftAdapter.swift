@@ -30,7 +30,7 @@ private enum LifecycleScenarioSwiftModerationAdapter {
         let outcome = input.serverOutcome
         let id = "appeal-contract"
         let initial = appeal(id: id, source: preconditions)
-        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (ModerationAppealsTestSupport.list([initial]), 200)
+        CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (ModerationAppealsTestSupport.staffList([initial]), 200)
         let role = try preconditions.string("viewerRole")
         let viewModel = ModerationAppealsViewModel(
             client: client, isSignedIn: true, isAdministrator: role == "administrator",
@@ -38,6 +38,7 @@ private enum LifecycleScenarioSwiftModerationAdapter {
             rerunPollDelay: {}
         )
         await viewModel.load()
+        await viewModel.loadDetail(id: id)
         let before = try require(viewModel.appeals.first, "Expected loaded appeal")
         let action = try input.action.string("type")
         let authoritative = appeal(id: id, source: outcome, fallback: preconditions)
@@ -51,6 +52,9 @@ private enum LifecycleScenarioSwiftModerationAdapter {
                 ModerationAppealsTestSupport.envelope(authoritative),
                 200
             )
+            CannedFeedURLProtocol.handlers[
+                "/api/v1/appeals/\(id)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"
+            ] = (ModerationAppealsTestSupport.succeededRun, 200)
             await viewModel.rerunAI(for: before)
         case "approve":
             CannedFeedURLProtocol.handlers["/api/v1/appeals/\(id)/approval"] = (
@@ -112,7 +116,8 @@ private enum LifecycleScenarioSwiftModerationAdapter {
             publicResponse: "Ready for delivery",
             aiDraftedAt: changed ? "2026-01-01T00:01:00Z" : "2026-01-01T00:00:00Z",
             approvedAt: approved, sentAt: sent, resolutionAction: resolution,
-            lifecycleChangeId: changed ? "change-2" : "change-1"
+            lifecycleChangeId: changed ? "change-2" : "change-1",
+            completedRunId: changed ? "appeal_resolution_00000000-0000-7000-8000-000000000202" : "previous-run"
         )
     }
 
@@ -293,13 +298,13 @@ private enum LifecycleScenarioSwiftIntegrityAdapter {
         case .report:
             return try .report(
                 decode(
-                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"reason\":\"reason\",\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\",\"updated_at\":\"2026-01-01T00:00:00.000Z\"}"
+                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"reason\":\"reason\",\"source_flag_type\":null,\"user_display_name\":null,\"user_username\":null,\"creator_display_name\":null,\"creator_username\":null,\"revoker_display_name\":null,\"revoker_username\":null,\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\",\"updated_at\":\"2026-01-01T00:00:00.000Z\"}"
                 )
             )
         case .vote:
             return try .vote(
                 decode(
-                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"penalty_multiplier\":0.5,\"reason\":\"reason\",\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\"}"
+                    "{\"id\":\"\(id)\",\"user_id\":\"user\",\"penalty_multiplier\":0.5,\"reason\":\"reason\",\"source_flag_type\":null,\"user_display_name\":null,\"user_username\":null,\"creator_display_name\":null,\"creator_username\":null,\"revoker_display_name\":null,\"revoker_username\":null,\"source_flag_id\":null,\"created_by_id\":\"admin\",\"revoked_at\":\(date),\"revoked_by_id\":null,\"created_at\":\"2026-01-01T00:00:00.000Z\"}"
                 )
             )
         }

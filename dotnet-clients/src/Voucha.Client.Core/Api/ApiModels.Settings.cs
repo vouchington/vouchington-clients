@@ -33,6 +33,16 @@ public sealed record UserMetricsCount(
     [property: JsonPropertyName("rss_feeds_following")] int RssFeedsFollowing = 0,
     [property: JsonPropertyName("communities_member")] int CommunitiesMember = 0);
 
+public sealed record UserMetricsCountCapped(
+    [property: JsonPropertyName("reviews")] bool Reviews = false,
+    [property: JsonPropertyName("discussions")] bool Discussions = false,
+    [property: JsonPropertyName("comments")] bool Comments = false,
+    [property: JsonPropertyName("users_following")] bool UsersFollowing = false,
+    [property: JsonPropertyName("users_followers")] bool UsersFollowers = false,
+    [property: JsonPropertyName("topics_following")] bool TopicsFollowing = false,
+    [property: JsonPropertyName("rss_feeds_following")] bool RssFeedsFollowing = false,
+    [property: JsonPropertyName("communities_member")] bool CommunitiesMember = false);
+
 public sealed record UserMetricsViewerCount(
     [property: JsonPropertyName("reviews")] int? Reviews = null,
     [property: JsonPropertyName("discussions")] int? Discussions = null,
@@ -43,9 +53,9 @@ public sealed record UserMetrics(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("count")] UserMetricsCount Count,
     [property: JsonPropertyName("viewer_count")] UserMetricsViewerCount? ViewerCount = null,
-    [property: JsonPropertyName("bookmarkers")] IReadOnlyDictionary<string, int>? Bookmarkers = null,
-    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>>? Bookmarks = null,
-    [property: JsonPropertyName("bookmarks__updated_at")] DateTimeOffset? BookmarksUpdatedAt = null);
+    [property: JsonPropertyName("count_capped")] UserMetricsCountCapped? CountCapped = null,
+    [property: JsonPropertyName("private_count")] IReadOnlyDictionary<string, int>? PrivateCount = null,
+    [property: JsonPropertyName("private_count_capped")] IReadOnlyDictionary<string, bool>? PrivateCountCapped = null);
 
 public sealed record UserDataRequestResponse(
     [property: JsonPropertyName("id")] string Id,
@@ -137,7 +147,8 @@ public sealed record AuthSession(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("last_seen_at")] DateTimeOffset? LastSeenAt,
     [property: JsonPropertyName("expires_at")] DateTimeOffset? ExpiresAt,
-    [property: JsonPropertyName("is_current")] bool IsCurrent);
+    [property: JsonPropertyName("is_current")] bool IsCurrent,
+    [property: JsonPropertyName("mcp_connections")] IReadOnlyList<AuthSessionMcpConnection>? McpConnections = null);
 
 public sealed record AuthSessionListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<AuthSession> Results,

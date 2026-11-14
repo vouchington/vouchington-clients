@@ -24,7 +24,9 @@ public sealed partial class MemberMcpSession
       var next = args.Snapshot.Identity?.Id;
       if (next == accountId) return;
       var prior = accountId;
+      RequestWriteAccess = false;
       accountId = next;
+      accountEpoch++;
       _ = QueueCleanup(prior);
     }
   }
@@ -82,7 +84,11 @@ public sealed partial class MemberMcpSession
       if (connection is MemberMcpSessionConnection current)
         _ = current.StartRemoteCleanup(grants);
       else if (connection is not null)
+      {
         _ = DisconnectBestEffortAsync(connection);
+        if (priorAccount is not null && grants.Count > 0 && factory.LegacyGrantRevocationFactory is not null)
+          _ = RevokePersistedGrantAsync(priorAccount, grants);
+      }
       else if (priorAccount is not null && grants.Count > 0)
         _ = RevokePersistedGrantAsync(priorAccount, grants);
       if (priorFailed) await store.ClearAllAccountsAsync().ConfigureAwait(false);
@@ -124,7 +130,7 @@ public sealed partial class MemberMcpSession
     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
     try
     {
-      var connection = await factory.CreateAsync(account, timeout.Token).WaitAsync(timeout.Token)
+      var connection = await (factory.LegacyGrantRevocationFactory ?? factory).CreateAsync(account, timeout.Token).WaitAsync(timeout.Token)
           .ConfigureAwait(false);
       if (connection is MemberMcpSessionConnection current) _ = current.StartRemoteCleanup(grants);
       else await DisconnectBestEffortAsync(connection).ConfigureAwait(false);

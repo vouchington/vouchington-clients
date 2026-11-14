@@ -59,9 +59,9 @@ extension Community {
             if let hostname = app.hostname { appFacts["hostname"] = .string(hostname) }
             if let clientId = app.clientId { appFacts["client_id"] = .string(clientId) }
             if let clientName = app.clientName { appFacts["client_name"] = .string(clientName) }
-            facts["app"] = .object(appFacts)
+            facts["app"] = .object(DecodedJSONObject(appFacts))
         }
-        object["provenance"] = .object(facts)
+        object["provenance"] = .object(DecodedJSONObject(facts))
     }
 
     private static func encodeImagePlacements(

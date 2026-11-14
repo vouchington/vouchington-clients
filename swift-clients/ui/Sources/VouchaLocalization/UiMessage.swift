@@ -65,6 +65,7 @@ public struct UiMessage: Equatable, Sendable {
     public let parameters: [String: String]
     public let textParameters: [String: UiVerbatimText]
     public let numberParameters: [String: Double]
+    public let cappedNumberParameters: Set<String>
     public let percentParameters: [String: Double]
     public let currencyParameters: [String: UiMessageCurrencyParameter]
     public let dateParameters: [String: UiMessageDateParameter]
@@ -75,6 +76,7 @@ public struct UiMessage: Equatable, Sendable {
         parameters: [String: String] = [:],
         textParameters: [String: UiVerbatimText] = [:],
         numberParameters: [String: Double] = [:],
+        cappedNumberParameters: Set<String> = [],
         percentParameters: [String: Double] = [:],
         currencyParameters: [String: UiMessageCurrencyParameter] = [:],
         dateParameters: [String: UiMessageDateParameter] = [:],
@@ -84,6 +86,7 @@ public struct UiMessage: Equatable, Sendable {
         self.parameters = parameters
         self.textParameters = textParameters
         self.numberParameters = numberParameters
+        self.cappedNumberParameters = cappedNumberParameters
         self.percentParameters = percentParameters
         self.currencyParameters = currencyParameters
         self.dateParameters = dateParameters

@@ -1,3 +1,4 @@
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.NewsFeeds;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
@@ -15,6 +16,7 @@ public sealed class PodcastsPage : NewsFeedsPage
       EmailVerificationRecoveryCoordinator emailRecovery,
       IUiLocalization localization,
       IUiLocaleController localeController,
+      HackerNewsReferenceGate hackerNewsReferences,
       NewsFeedScope? initialScope = null)
       : base(
           new NewsFeedsViewModel(
@@ -25,7 +27,8 @@ public sealed class PodcastsPage : NewsFeedsPage
                   : NewsFeedKind.Podcasts.GetAnonymousScope()),
               bookmarkService,
               localization,
-              localeController),
+              localeController,
+              hackerNewsReferences),
           sessionStore,
           serviceProvider,
           emailRecovery)

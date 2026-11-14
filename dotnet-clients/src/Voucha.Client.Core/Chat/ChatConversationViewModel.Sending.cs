@@ -34,7 +34,7 @@ public sealed partial class ChatConversationViewModel
     if (trimmed.Length == 0 || IsDeleted || IsStreaming) return false;
     if (RejectConflictingCompletedMcpTurn(trimmed)) return false;
     if (blockedToolRetryText == trimmed) return false;
-    blockedToolRetryText = null;
+    ReleaseBlockedRetry(trimmed);
     var selectedProvider = ProviderForPendingMcpRetry(trimmed);
     ILocalChatProvider selectedLocalProvider;
     try
@@ -109,7 +109,7 @@ public sealed partial class ChatConversationViewModel
       userMessageInserted = true;
       OnPropertyChanged(nameof(Messages));
 
-      assistantMessageInserted = await SendLocalTurnAsync(
+      var localResult = await SendLocalTurnAsync(
           trimmed,
           conversationId,
           localUserMessageId,
@@ -120,21 +120,23 @@ public sealed partial class ChatConversationViewModel
           retry,
           currentRequest,
           cancellationToken).ConfigureAwait(true);
+      assistantMessageInserted = localResult.Inserted;
       localChatPersisted = true;
 
       if (currentRequest != Volatile.Read(ref requestId)) return false;
       if (ConversationId is { Length: > 0 })
       {
-        await ReloadMessagesAsync(ConversationId, currentRequest, cancellationToken).ConfigureAwait(true);
+        await ReloadMessagesAsync(ConversationId, currentRequest, cancellationToken,
+            localResult.Pending).ConfigureAwait(true);
       }
       if (currentRequest != Volatile.Read(ref requestId)) return false;
       State = LoadState.Loaded;
       return true;
     }
-    catch (PossibleMcpToolSideEffectException)
+    catch (Exception error) when (error is PossibleMcpToolSideEffectException or WindowsBuiltInResultRetainedException)
     {
-      HandlePossibleToolSideEffect(currentRequest, localAssistantMessageId,
-          assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
+      HandleKnownToolOutcome(error, currentRequest, conversationId, selectedLocalProvider,
+          localAssistantMessageId, assistantMessageInserted, localUserMessageId, userMessageInserted, trimmed);
       return false;
     }
     catch (OperationCanceledException)

@@ -21,7 +21,7 @@ final class MemberMCPFinancialProfileTests: XCTestCase {
     }
 
     func testCanonicalNullAndPopulatedResultsUseAuthorizedToolCall() async throws {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp-results.json"])
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp-results.json"])
         let url = try ApiFixtureLoader.fixtureURL("mcp-results.json", root: root)
         let catalog = try JSONDecoder().decode(FixtureCatalog.self, from: Data(contentsOf: url))
         XCTAssertEqual(catalog.version, 1)

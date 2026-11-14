@@ -1,4 +1,6 @@
+import Foundation
 import SwiftUI
+import VouchaAPI
 import VouchaDesignSystem
 import VouchaLocalization
 import VouchaModels
@@ -20,6 +22,11 @@ public struct SourcesListView: View {
     public let canVote: Bool
     public let isStaffViewer: Bool
     public let showSignIn: (() -> Void)?
+    let creationClient: APIClient
+    let creationIdentity: @MainActor () -> String?
+    let navigateToSource: (String) -> Void
+    @State var creationModel: SourceCreationViewModel
+    @State var showCreation = false
 
     public init(
         viewModel: SourcesListViewModel,
@@ -28,7 +35,10 @@ public struct SourcesListView: View {
         isSignedIn: Bool = true,
         canVote: Bool? = nil,
         isStaffViewer: Bool = false,
-        showSignIn: (() -> Void)? = nil
+        showSignIn: (() -> Void)? = nil,
+        creationClient: APIClient? = nil,
+        creationIdentity: (@MainActor () -> String?)? = nil,
+        navigateToSource: @escaping (String) -> Void = { _ in }
     ) {
         self.viewModel = viewModel
         self.scope = scope
@@ -37,6 +47,14 @@ public struct SourcesListView: View {
         self.canVote = canVote ?? isSignedIn
         self.isStaffViewer = isStaffViewer
         self.showSignIn = showSignIn
+        let client = creationClient ?? viewModel.client
+        self.creationClient = client
+        let identity = creationIdentity ?? { viewModel.userId }
+        self.creationIdentity = identity
+        self.navigateToSource = navigateToSource
+        _creationModel = State(initialValue: SourceCreationViewModel(
+            service: .live(client: client), baseURL: client.baseURL, identity: identity
+        ))
     }
 
     public var body: some View {
@@ -55,11 +73,36 @@ public struct SourcesListView: View {
             }
         }
         .navigationTitle(navigationTitle)
+        .toolbar {
+            if isSignedIn {
+                Button(UiMessages.string(.nativeSwiftCommonCreate, locale: nativeUiLocale)) {
+                    if creationModel.isTerminal { creationModel.reset() }
+                    showCreation = true
+                }
+            }
+        }
+        .sheet(isPresented: $showCreation) {
+            creationSheet
+        }
+        .onChange(of: creationIdentity()) { _, _ in
+            replaceCreationContext()
+        }
         .task(id: "\(scope.rawValue)|\(isStaffViewer)") {
             viewModel.scope = scope
             await viewModel.reload()
         }
         .refreshable { await viewModel.reload() }
+    }
+
+}
+
+extension SourcesListView {
+    func replaceCreationContext() {
+        creationModel.reset()
+        creationModel = SourceCreationViewModel(
+            service: .live(client: creationClient), baseURL: creationClient.baseURL, identity: creationIdentity
+        )
+        showCreation = false
     }
 
     @ViewBuilder

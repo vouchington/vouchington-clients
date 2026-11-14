@@ -8,7 +8,7 @@ final class UserProfileEndpointTests: XCTestCase {
         XCTAssertEqual(posts.path, "/api/v1/posts")
         XCTAssertEqual(query(posts), [
             "after": "post-cursor", "creator": "user/id", "limit": "25",
-            "post_types": "review", "sort": "new"
+            "post_types": "review", "sort": "new", "time_range": "1m"
         ])
 
         let topics = Endpoint.userTopicsFollowing(userId: "user/id", after: "topic-cursor")
@@ -18,6 +18,10 @@ final class UserProfileEndpointTests: XCTestCase {
         let communities = Endpoint.userCommunitiesMember(userId: "user/id", after: "community-cursor")
         XCTAssertEqual(communities.path, "/api/v1/users/user%2Fid/communities/member")
         XCTAssertEqual(query(communities), ["after": "community-cursor", "limit": "25"])
+
+        let referralLinks = Endpoint.userReferralLinks(userId: "user/id", after: "link-cursor")
+        XCTAssertEqual(referralLinks.path, "/api/v1/referral-links")
+        XCTAssertEqual(query(referralLinks), ["after": "link-cursor", "limit": "25", "user_id": "user/id"])
 
         let sources = Endpoint.userRssFeeds(
             userId: "user/id", feedType: "article", after: "source-cursor", limit: 25
@@ -32,7 +36,7 @@ final class UserProfileEndpointTests: XCTestCase {
         )
         XCTAssertEqual(response.user.id, "user-abc")
         XCTAssertEqual(response.user.username, "alice")
-        XCTAssertEqual(response.userMetrics?.visibleCount("reviews"), 1)
+        XCTAssertEqual(response.userMetrics?.visibleCount("reviews"), 4)
         XCTAssertEqual(response.userMetrics?.visibleCount("communities_member"), 9)
         XCTAssertEqual(response.profileLinks.first?.url, "https://example.test")
     }
@@ -40,13 +44,71 @@ final class UserProfileEndpointTests: XCTestCase {
     func testRestrictedProfileFixtureDoesNotExposeLegacyCollectionAggregates() throws {
         let data = ApiFixtureLoader.data("native.users.profile.restricted")
         let response = try makeVouchaDecoder().decode(UserProfileResponse.self, from: data)
-        XCTAssertEqual(response.userMetrics?.bookmarkers?["follow"], 0)
+        XCTAssertEqual(response.userMetrics?.countCapped?["comments"], false)
 
         let root = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let metrics = try XCTUnwrap(root["user_metrics"] as? [String: Any])
-        let bookmarks = try XCTUnwrap(metrics["bookmarks"] as? [String: Any])
-        let follow = try XCTUnwrap(bookmarks["follow"] as? [String: Int])
-        XCTAssertEqual(follow, ["topics": 0, "posts": 0, "users": 0])
+        XCTAssertNil(metrics["bookmarks"])
+        XCTAssertNil(metrics["bookmarkers"])
+        XCTAssertNil(metrics["bookmarks__updated_at"])
+    }
+
+    func testPrivateCountsDecodeWithTheirMatchingCapFlags() throws {
+        let metrics = try makeVouchaDecoder().decode(UserProfileMetrics.self, from: Data(#"""
+        {"id":"user-1","count":{"users_followers":1000},
+        "count_capped":{"users_followers":true},
+        "private_count":{"posts_saved":1000,"posts_hidden":3},
+        "private_count_capped":{"posts_saved":true,"posts_hidden":false}}
+        """#.utf8))
+
+        XCTAssertEqual(
+            try Set(XCTUnwrap(metrics.privateCount).keys),
+            try Set(XCTUnwrap(metrics.privateCountCapped).keys)
+        )
+        XCTAssertEqual(metrics.privateCount?["posts_saved"], 1_000)
+        XCTAssertEqual(metrics.privateCountCapped?["posts_saved"], true)
+        XCTAssertEqual(metrics.privateCount?["posts_hidden"], 3)
+        XCTAssertEqual(metrics.privateCountCapped?["posts_hidden"], false)
+        XCTAssertTrue(metrics.isVisibleCountCapped("users_followers"))
+        XCTAssertEqual(metrics.visibleCount("unknown"), 0)
+        XCTAssertFalse(metrics.isVisibleCountCapped("unknown"))
+    }
+
+    func testOwnerFixtureDecodesAllPrivateCountsWithCapFlags() throws {
+        let response = try makeVouchaDecoder().decode(
+            UserProfileResponse.self,
+            from: ApiFixtureLoader.data("native.users.profile.private-counts.owner")
+        )
+        let metrics = try XCTUnwrap(response.userMetrics)
+        let counts = try XCTUnwrap(metrics.privateCount)
+        let caps = try XCTUnwrap(metrics.privateCountCapped)
+        XCTAssertEqual(counts.count, 26)
+        XCTAssertEqual(Set(counts.keys), Set(caps.keys))
+        let capped = Set(caps.filter(\.value).keys)
+        XCTAssertEqual(capped, ["rss_feed_items_hidden", "rss_feed_items_saved", "topics_viewed"])
+        XCTAssertTrue(capped.allSatisfy { counts[$0] == 1_000 })
+    }
+
+    func testAbsentCapMapsKeepCountsExact() throws {
+        let metrics = try makeVouchaDecoder().decode(UserProfileMetrics.self, from: Data(#"""
+        {"id":"user-1","count":{"reviews":4},"private_count":{"posts_saved":1000}}
+        """#.utf8))
+        XCTAssertEqual(metrics.visibleCount("reviews"), 4)
+        XCTAssertFalse(metrics.isVisibleCountCapped("reviews"))
+        XCTAssertFalse(metrics.isVisibleCountCapped("posts_saved"))
+    }
+
+    func testExactViewerCountsOverridePublicCapsIncludingZero() throws {
+        let metrics = try makeVouchaDecoder().decode(UserProfileMetrics.self, from: Data(#"""
+        {"id":"user-1","count":{"reviews":1000,"comments":1000,"discussions":1000},
+        "viewer_count":{"reviews":7,"comments":0},
+        "count_capped":{"reviews":true,"comments":true,"discussions":true}}
+        """#.utf8))
+        XCTAssertEqual(metrics.visibleCount("reviews"), 7)
+        XCTAssertFalse(metrics.isVisibleCountCapped("reviews"))
+        XCTAssertEqual(metrics.visibleCount("comments"), 0)
+        XCTAssertFalse(metrics.isVisibleCountCapped("comments"))
+        XCTAssertTrue(metrics.isVisibleCountCapped("discussions"))
     }
 
     private func query(_ endpoint: Endpoint) -> [String: String] {

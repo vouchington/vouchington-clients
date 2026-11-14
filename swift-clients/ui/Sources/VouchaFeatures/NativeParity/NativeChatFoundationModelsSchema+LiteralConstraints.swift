@@ -46,7 +46,7 @@ import VouchaModels
             } else { throw Failure.unsupported }
             guard !values.isEmpty,
                   let data = try? JSONSerialization.data(withJSONObject: fields),
-                  let schema = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
+                  let schema = try? DecodedJSONValue(exactJSONData: data),
                   (try? NativeChatMCPInputSchema.validateSchema(schema)) != nil,
                   (try? values.allSatisfy({ try NativeChatMCPInputSchema.accepts(.string($0), schema: schema) })) ==
                   true

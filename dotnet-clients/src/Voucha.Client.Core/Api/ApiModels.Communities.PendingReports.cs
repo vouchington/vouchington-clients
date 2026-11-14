@@ -17,7 +17,7 @@ public sealed record CommunityPendingReport(
     [property: JsonPropertyName("case_id")] string? CaseId = null,
     [property: JsonPropertyName("entity_type")] string? EntityType = null,
     [property: JsonPropertyName("entity_id")] string? EntityId = null,
-    [property: JsonPropertyName("target_label")] string? TargetLabel = null,
+    [property: JsonPropertyName("target_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TargetLabel = "",
     [property: JsonPropertyName("target_path")] string? TargetPath = null,
     [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent = null,
     [property: JsonPropertyName("reason")] string? Reason = null,
@@ -39,7 +39,11 @@ public sealed record CommunityPendingReport(
     [property: JsonPropertyName("community_ban_evasion")] JsonElement? CommunityBanEvasion = null,
     [property: JsonPropertyName("claim")] CommunityModerationQueueClaim? Claim = null,
     [property: JsonPropertyName("escalated_at")] DateTimeOffset? EscalatedAt = null,
-    [property: JsonPropertyName("escalated_by_id")] string? EscalatedById = null);
+    [property: JsonPropertyName("escalated_by_id")] string? EscalatedById = null,
+    [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null,
+    [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false);
 
 public sealed record CommunityPendingReportsResponse(
     [property: JsonPropertyName("reports")] IReadOnlyList<CommunityPendingReport> Reports,

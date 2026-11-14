@@ -32,7 +32,7 @@ final class PodcastPlaybackControllerChaptersTests: XCTestCase {
 
     private func makeSignedInSessionManager() async throws -> SessionManager {
         let client = makeClient()
-        let sessionManager = SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+        let sessionManager = SessionManager(client: client)
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             PrivateUserTestFixture.identityEnvelope(
                 username: "listener",
@@ -118,7 +118,7 @@ final class PodcastPlaybackControllerChaptersTests: XCTestCase {
     func testAudioPlaybackLoadsVisibleChapters() async throws {
         let controller = PodcastPlaybackController(
             client: makeClient(),
-            sessionManager: SessionManager(client: makeClient(), cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: makeClient())
         )
         CannedFeedURLProtocol.handlers["/api/v1/podcast-episodes/item-1/chapters"] = (
             Data(
@@ -163,7 +163,7 @@ final class PodcastPlaybackControllerChaptersTests: XCTestCase {
     func testStaleChapterResponseDoesNotOverrideNewerEpisodeChapters() async throws {
         let controller = PodcastPlaybackController(
             client: makeClient(),
-            sessionManager: SessionManager(client: makeClient(), cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: makeClient())
         )
         let item1Path = "/api/v1/podcast-episodes/item-1/chapters"
         let item2Path = "/api/v1/podcast-episodes/item-2/chapters"

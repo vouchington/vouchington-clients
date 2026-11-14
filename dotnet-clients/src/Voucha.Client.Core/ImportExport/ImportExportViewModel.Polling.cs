@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.ImportExport;
 
@@ -19,19 +20,31 @@ public sealed partial class ImportExportViewModel
     {
       while (!token.IsCancellationRequested && operation == generation && BatchId == batch)
       {
-        var status = await service.GetSourceStatusAsync(batch, token).ConfigureAwait(true);
+        var candidate = await LoadSourcePagesAsync(operation, batch, token).ConfigureAwait(true);
+        if (candidate is null)
+        {
+          await delay(TimeSpan.FromSeconds(2), token).ConfigureAwait(true);
+          continue;
+        }
         if (token.IsCancellationRequested || operation != generation || BatchId != batch) return;
+        var (status, startedTerminal) = candidate.Value;
         var accepted = status.Import.Id == batch && !IsRegression(status.Import);
         if (accepted)
         {
+          sourceSnapshotStartedTerminal = startedTerminal;
           Progress = status.Import;
           Results = status.Rows;
         }
-        if (accepted && status.Import.IsTerminal()) return;
+        if (accepted && sourceSnapshotStartedTerminal && status.Import.IsTerminal()) return;
         await delay(TimeSpan.FromSeconds(2), token).ConfigureAwait(true);
       }
     }
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    catch (SourceStatusPageException)
+    {
+      if (!token.IsCancellationRequested && operation == generation && BatchId == batch)
+        SetLocalizedError(UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed));
+    }
     catch (Exception ex) { if (operation == generation && BatchId == batch) ErrorMessage = ex.Message; }
     finally
     {

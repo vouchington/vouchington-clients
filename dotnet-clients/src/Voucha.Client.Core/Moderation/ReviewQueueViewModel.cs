@@ -55,10 +55,7 @@ public sealed partial class ReviewQueueViewModel : ObservableObject, IDisposable
   public bool HasMore
   {
     get => hasMore;
-    private set
-    {
-      if (SetProperty(ref hasMore, value)) OnPropertyChanged(nameof(ShowEmptyState));
-    }
+    private set => SetPropertyAndNotify(ref hasMore, value, nameof(ShowEmptyState));
   }
   public string? ErrorMessage => errorMessageKey is { } key ? localization.Localize(key) : null;
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);

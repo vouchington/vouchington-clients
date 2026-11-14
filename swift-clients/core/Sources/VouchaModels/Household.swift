@@ -58,6 +58,10 @@ public struct HouseholdIndividual: Codable, Identifiable, Hashable, Sendable {
 public typealias HouseholdPage = Page<Household>
 public typealias HouseholdMembershipPage = Page<HouseholdMembership>
 
+public struct CurrentIndividualResponse: Codable, Sendable {
+    public let individual: HouseholdIndividual
+}
+
 public struct HouseholdCreateResponse: Codable, Sendable {
     public let household: Household
 }

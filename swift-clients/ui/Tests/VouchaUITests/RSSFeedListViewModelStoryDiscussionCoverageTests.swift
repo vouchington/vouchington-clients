@@ -46,8 +46,8 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
-            makeStoryPostResult(postId: "post-story", storyId: "story-1"),
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
+            makeStoryPostResult(postId: "post-story"),
             201
         )
         let vm = makeViewModel()
@@ -102,7 +102,7 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
             Data(#"{"code":"STORY_DISCUSSION_EXISTS"}"#.utf8),
             409
         )
@@ -126,7 +126,7 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             CannedFeedURLProtocol.capturedURLs.map(\.path),
             [
                 "/api/v1/feeds/rss_feed_items/any",
-                "/api/v1/stories/story-1/discussions",
+                "/api/v1/posts",
                 "/api/v1/feeds/rss_feed_items/any"
             ]
         )
@@ -142,7 +142,7 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
             Data(#"{"code":"SERVER_ERROR"}"#.utf8),
             500
         )
@@ -166,14 +166,10 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
-            Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8),
-            403
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/story-primary/discussions"] = (
-            Data(#"{"code":"SERVER_ERROR"}"#.utf8),
-            500
-        )
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
+            (Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8), 403, 0),
+            (Data(#"{"code":"SERVER_ERROR"}"#.utf8), 500, 0)
+        ]
         let vm = makeViewModel()
         await vm.load()
 
@@ -194,14 +190,10 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/stories/story-1/discussions"] = (
-            Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8),
-            403
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/rss-feed-items/story-primary/discussions"] = (
-            makePostEnvelope(postId: "post-link", postType: "link"),
-            201
-        )
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
+            (Data(#"{"code":"FEED_NOT_DISCOVERABLE"}"#.utf8), 403, 0),
+            (makePostEnvelope(postId: "post-link", postType: "link"), 201, 0)
+        ]
         let vm = makeViewModel()
         await vm.load()
 
@@ -223,9 +215,9 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        let path = "/api/v1/stories/story-1/discussions"
+        let path = "/api/v1/posts"
         CannedFeedURLProtocol.queuedHandlers[path] = [
-            (makeStoryPostResult(postId: "post-story", storyId: "story-1"), 201, 0)
+            (makeStoryPostResult(postId: "post-story"), 201, 0)
         ]
         let vm = makeViewModel()
         await vm.load()
@@ -256,8 +248,8 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
             ),
             200
         )
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/stories/story-1/discussions"] = [
-            (makeStoryPostResult(postId: "post-story", storyId: "story-1"), 201, 1.0)
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/posts"] = [
+            (makeStoryPostResult(postId: "post-story"), 201, 1.0)
         ]
         let vm = makeViewModel()
         await vm.load()
@@ -325,27 +317,10 @@ final class RSSFeedListViewModelStoryDiscussionCoverageTests: XCTestCase {
         """.utf8)
     }
 
-    private func makeStoryPostResult(postId: String, storyId: String) -> Data {
+    private func makeStoryPostResult(postId: String) -> Data {
         Data("""
         {
-          "post":{\(postJSON(id: postId, postType: "story"))},
-          "story":{
-            "id":"\(storyId)",
-            "title":"Story",
-            "cluster_reason":null,
-            "published_at":null,
-            "official_rss_feed_item_id":null,
-            "official_locked_at":null,
-            "created_at":"2026-01-01T00:00:00Z",
-            "updated_at":"2026-01-01T00:00:00Z",
-            "deleted_at":null
-          },
-          "postStory":{
-            "post_id":"\(postId)",
-            "story_id":"\(storyId)",
-            "initiated_by_id":"user-1",
-            "created_at":"2026-01-01T00:00:00Z"
-          }
+          "post":{\(postJSON(id: postId, postType: "story"))}
         }
         """.utf8)
     }

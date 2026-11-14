@@ -7,6 +7,11 @@ final class ReportIntegrityViewModel {
     let service: (any ReportIntegrityServicing)?
     let viewerTier: IntegrityViewerTier
 
+    var detailFlag: ReportIntegrityFlag?
+    var isLoadingDetail = false
+    var detailFailed = false
+    var detailRevision = 0
+
     var flags: [ReportIntegrityFlag] = []
     var selectedStatus: IntegrityStatusFilter = .pending
     var hasMore = false

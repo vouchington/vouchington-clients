@@ -33,9 +33,10 @@ public sealed partial class SettingsViewModel
 
   private void RebuildScopeSelection()
   {
-    var audience = ApiKeyType == "rss" ? "api" : "user";
     scopeSelection.Replace(scopeCatalog.Where(scope =>
-        scope.Surfaces.Contains("api-key", StringComparer.Ordinal) && scope.Audience == audience &&
+        scope.Surfaces.Contains("api-key", StringComparer.Ordinal) &&
+        (ApiKeyType == "rss" ? scope.Audience == "api" :
+            scope.Audience is "user" or "community_moderation" or "brand") &&
         !scope.Scope.StartsWith("mcp.admin:", StringComparison.OrdinalIgnoreCase) &&
         scope.Action is "read" or "write").ToArray());
     NotifyScopeSelection();
@@ -68,8 +69,6 @@ public sealed partial class SettingsViewModel
     {
       var response = await settingsService.FetchScopeCatalogAsync(cancellationToken).ConfigureAwait(true);
       if (!IsCurrentSettingsLoad(generation)) return;
-      if (response.Scopes.Any(scope => !SettingsScopeRow.IsSupportedDescriptionKey(scope.DescriptionKey)))
-        throw new InvalidOperationException("Unknown scope description.");
       scopeCatalog = response.Scopes;
       RebuildScopeSelection();
       SetCredentialNotice(null);

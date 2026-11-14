@@ -27,7 +27,7 @@ final class DirectMessagesViewModelSelfRemovalTests: NativeRouteSurfaceViewModel
     }
 
     private func conversation(id: String) -> DirectConversation {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -44,7 +44,7 @@ final class DirectMessagesViewModelSelfRemovalTests: NativeRouteSurfaceViewModel
     }
 
     private func message(id: String, conversationId: String, bodyText: String) -> DirectMessage {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -61,7 +61,7 @@ final class DirectMessagesViewModelSelfRemovalTests: NativeRouteSurfaceViewModel
     }
 
     private func participant(userId: String, role: String) -> ConversationParticipant {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "participant-owner",
@@ -77,10 +77,4 @@ final class DirectMessagesViewModelSelfRemovalTests: NativeRouteSurfaceViewModel
         )
     }
 
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
 }

@@ -33,21 +33,31 @@ public final class EmailOTPViewModel {
         signInService: SignInService,
         uiLocale: UiLocale = UiLocaleResolver.resolve(savedUiLocale: nil),
         initialEmail: String? = nil,
-        initialCode: String? = nil
+        initialCode: String? = nil,
+        initialTurnstileToken: String? = nil
     ) {
         self.signInService = signInService
         self.uiLocale = uiLocale.rawValue
         email = initialEmail ?? ""
         code = initialCode ?? ""
+        turnstileToken = initialTurnstileToken
         if !email.isEmpty, !code.isEmpty {
             step = .enterCode
         }
+    }
+
+    var turnstileBaseURL: URL {
+        signInService.baseURL
     }
 
     /// Whether `requestCode()` can proceed: either a Turnstile token is present, or App Attest
     /// can stand in for it. UI layers use this to enable the Send Code button.
     public var canRequestCode: Bool {
         !email.isEmpty && !isLoading && (turnstileToken != nil || signInService.canBypassTurnstileWithAppAttest)
+    }
+
+    public var canVerifyCode: Bool {
+        EmailVerificationCode.normalized(code) != nil && !isLoading
     }
 
     /// Requests an OTP code for the entered email address.
@@ -80,7 +90,8 @@ public final class EmailOTPViewModel {
 
     /// Verifies the entered OTP code and advances to MFA if required.
     public func verifyCode() async {
-        guard !code.isEmpty, !isLoading else { return }
+        guard !isLoading, let normalized = EmailVerificationCode.normalized(code) else { return }
+        code = normalized
         isLoading = true
         errorMessage = nil
         do {

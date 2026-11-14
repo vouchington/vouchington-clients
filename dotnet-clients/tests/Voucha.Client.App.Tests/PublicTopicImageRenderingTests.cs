@@ -16,8 +16,10 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class PublicTopicImageRenderingTests
 {
-  [Fact]
-  public async Task TopicsRouteUsesPlacementDescriptorAndKeepsTitleWhenImageIsAbsent()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task TopicsRouteUsesPlacementDescriptorAndKeepsTitleWhenImageIsAbsent(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var locale = InstallPageResources();
@@ -25,7 +27,7 @@ public sealed class PublicTopicImageRenderingTests
     var withoutImage = TopicWithPlacement("topic-plain", "Text-only topic", null, "legacy-image-id");
     var service = Service([withImage, withoutImage]);
     using var model = new TopicsViewModel(service);
-    var config = new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
+    var config = new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost));
     var api = new VouchaApiClient(new HttpClient { BaseAddress = config.ApiBaseUrl });
     var page = new TopicsPage(model, new AnonymousSessionStore(), null!, service, null!, api,
         Recovery(locale), null!, UiLocalization.English, locale, config);
@@ -41,7 +43,7 @@ public sealed class PublicTopicImageRenderingTests
     var imageRow = Assert.Single(binding.Items, row => row.Id == withImage.Id);
     template.BindingContext = imageRow;
     Assert.True(image.IsVisible);
-    Assert.Equal(new Uri("https://images.test/images/placements/placement-4/3/image-7?w=96"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/placement-4/3/image-7?w=96"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.Equal(withImage.Name, name.Text);
     Assert.Equal(withImage.Name, SemanticProperties.GetDescription(image));
@@ -53,12 +55,14 @@ public sealed class PublicTopicImageRenderingTests
     Assert.Equal(withoutImage.Name, name.Text);
   }
 
-  [Fact]
-  public async Task TopicDetailPageRendersPlacementAndClearsItWhenReusedWithoutValidPlacement()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task TopicDetailPageRendersPlacementAndClearsItWhenReusedWithoutValidPlacement(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var locale = InstallPageResources();
-    var config = new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
+    var config = new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost));
     var withImage = TopicWithPlacement("topic-image", "Visible topic", new TopicImagePlacement("image-7", "placement-4", 3));
     var service = Service([withImage]);
     using var model = new TopicDetailViewModel(service);
@@ -70,7 +74,7 @@ public sealed class PublicTopicImageRenderingTests
     Assert.True(image.IsVisible);
     Assert.Equal(144, image.WidthRequest);
     Assert.Equal(144, image.HeightRequest);
-    Assert.Equal(new Uri("https://images.test/images/placements/placement-4/3/image-7?w=320"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/placement-4/3/image-7?w=320"),
         Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.Equal(withImage.Name, title.Text);
 

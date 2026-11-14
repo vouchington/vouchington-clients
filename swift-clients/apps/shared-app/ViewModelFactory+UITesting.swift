@@ -7,16 +7,21 @@
 
     extension ViewModelFactory {
         static func makeIsolatedUITesting(config: AppConfig) -> ViewModelFactory {
-            let cookieStorage = HTTPCookieStorage()
+            let sessionConfiguration = URLSessionConfiguration.ephemeral
+            guard let cookieStorage = sessionConfiguration.httpCookieStorage else {
+                preconditionFailure("UI testing requires an ephemeral cookie store")
+            }
             let client = APIClient(
                 config: config,
                 cookieStorage: cookieStorage,
+                protocolClasses: Self.isolatedUITestingProtocolClasses(),
                 bootstrapSession: false,
-                metadata: NativeClientMetadata.current()
+                metadata: NativeClientMetadata.current(),
+                sessionConfiguration: sessionConfiguration
             )
             return ViewModelFactory(
                 apiClient: client,
-                sessionManager: SessionManager(client: client, cookieStorage: cookieStorage),
+                sessionManager: SessionManager(client: client),
                 cacheStore: MemoryDiskCacheStore(),
                 featureFlagOverrideStore: UITestingFeatureFlagOverrideStore(),
                 config: config,
@@ -25,6 +30,17 @@
                 ),
                 restoresSessionOnLaunch: false
             )
+        }
+
+        private static func isolatedUITestingProtocolClasses() -> [AnyClass] {
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains(FeedFlowUITestingURLProtocol.launchArgument) {
+                return [FeedFlowUITestingURLProtocol.self]
+            }
+            if arguments.contains(SignInUITestingURLProtocol.launchArgument) {
+                return [SignInUITestingURLProtocol.self]
+            }
+            return []
         }
     }
 #endif

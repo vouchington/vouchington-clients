@@ -10,15 +10,26 @@ settings:
     SWIFT_VERSION: '5.9'
     IPHONEOS_DEPLOYMENT_TARGET: '17.4'
     CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: '0.1.0'
+    CURRENT_PROJECT_VERSION: '1'
     VOUCHA_API_BASE_URL: 'https://voucha.ai'
     VOUCHA_IMAGE_BASE_URL: 'https://images.voucha.ai'
     VOUCHA_TURNSTILE_SITE_KEY: ''
+    VOUCHA_SENTRY_DSN: ''
+    VOUCHA_SENTRY_RELEASE: ''
+    VOUCHA_SENTRY_ENVIRONMENT: ''
+  configs:
+    Debug:
+      VOUCHA_TURNSTILE_SITE_KEY: '1x00000000000000000000AA'
 
 packages:
   VouchaCore:
     path: ../../core
   VouchaUI:
     path: ../../ui
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.31.0
 
 targets:
   Voucha:
@@ -30,12 +41,31 @@ targets:
       - path: ../shared-app
       - path: Resources
         buildPhase: resources
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
     info:
       path: Info.plist
       properties:
+        CFBundleShortVersionString: '$(MARKETING_VERSION)'
+        CFBundleVersion: '$(CURRENT_PROJECT_VERSION)'
+        CFBundleDisplayName: Voucha
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'
+        VOUCHA_SENTRY_DSN: '$(VOUCHA_SENTRY_DSN)'
+        VOUCHA_SENTRY_RELEASE: '$(VOUCHA_SENTRY_RELEASE)'
+        VOUCHA_SENTRY_ENVIRONMENT: '$(VOUCHA_SENTRY_ENVIRONMENT)'
         CFBundleURLTypes:
           - CFBundleURLName: ai.voucha.ios
             CFBundleURLSchemes:
@@ -76,6 +106,13 @@ targets:
         INFOPLIST_FILE: Info.plist
         CODE_SIGN_ENTITLEMENTS: Voucha.entitlements
         TARGETED_DEVICE_FAMILY: '1,2'
+    preBuildScripts:
+      - name: Require explicit non-test Turnstile site key
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "${CONFIGURATION}" = "Release" ]; then
+            "${SRCROOT}/../../tooling/turnstile-release-site-key.sh" "${VOUCHA_TURNSTILE_SITE_KEY}"
+          fi
     dependencies:
       - package: VouchaCore
         product: VouchaCore
@@ -93,11 +130,29 @@ targets:
         product: VouchaFeatures
       - package: VouchaUI
         product: VouchaLocalization
-    scheme:
-      testTargets:
-        - VouchaLaunchSmokeTests
-      environmentVariables:
-        VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+      - package: Sentry
+        product: Sentry
+
+  VouchaPresentationTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '17.4'
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Voucha
+      - package: VouchaCore
+        product: VouchaAuth
+      - package: VouchaCore
+        product: VouchaAPI
+      - package: VouchaCore
+        product: VouchaCore
+      - package: VouchaUI
+        product: VouchaFeatures
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.presentation-tests
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing
@@ -112,3 +167,37 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.launch-smoke-tests
         PRODUCT_NAME: VouchaLaunchSmokeTests
+
+  VouchaFlowTransportTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '17.4'
+    sources:
+      - path: TransportTests
+      - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.ios.flow-transport-tests
+        PRODUCT_NAME: VouchaFlowTransportTests
+
+schemes:
+  Voucha:
+    build:
+      targets:
+        Voucha: all
+    run:
+      environmentVariables: &appEnvironment
+        VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+        VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
+    profile:
+      environmentVariables: *appEnvironment
+    test:
+      targets:
+        - VouchaLaunchSmokeTests
+        - VouchaPresentationTests
+        - VouchaFlowTransportTests
+      commandLineArguments:
+        '--ui-testing-sign-in': true
+      environmentVariables: *appEnvironment

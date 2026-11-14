@@ -47,7 +47,7 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             """.utf8),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/admin/landing-pages/page-1/analytics"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/admin/users/alice/landing-pages/links/analytics"] = (
             Data("""
             {
               "landing_page": {
@@ -94,7 +94,7 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             $0.path == "/api/v1/admin/users/target-user/landing-pages"
         })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains {
-            $0.path == "/api/v1/admin/landing-pages/page-1/analytics"
+            $0.path == "/api/v1/admin/users/alice/landing-pages/links/analytics"
         })
         XCTAssertTrue(viewModel.rows.contains(verbatimRow(
             icon: "chart.line.uptrend.xyaxis",
@@ -161,7 +161,7 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             """.utf8),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/admin/landing-pages/page-1/analytics"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/admin/users/alice/landing-pages/links/analytics"] = (
             Data("""
             {
               "landing_page": {
@@ -194,7 +194,10 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             """.utf8),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/admin/landing-pages/page-2/analytics"] = (Data("{}".utf8), 404)
+        CannedFeedURLProtocol.handlers["/api/v1/admin/users/alice/landing-pages/bonus/analytics"] = (
+            Data("{}".utf8),
+            404
+        )
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/user/alice"))
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: route.entry,
@@ -212,10 +215,10 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             $0.path == "/api/v1/admin/users/target-user/landing-pages"
         })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains {
-            $0.path == "/api/v1/admin/landing-pages/page-1/analytics"
+            $0.path == "/api/v1/admin/users/alice/landing-pages/links/analytics"
         })
         XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.contains {
-            $0.path == "/api/v1/admin/landing-pages/page-2/analytics"
+            $0.path == "/api/v1/admin/users/alice/landing-pages/bonus/analytics"
         })
         XCTAssertTrue(viewModel.rows.contains(verbatimRow(
             icon: "chart.line.uptrend.xyaxis",
@@ -281,22 +284,24 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
         })
     }
 
-    func testPublicLandingPageRouteLoadsAdminAnalyticsRowsForAdministrator() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/users/alice/landing-page"] = (
+    func testPublicLandingPageUUIDRouteUsesResolvedUsernameForAdminAnalytics() async throws {
+        CannedFeedURLProtocol.handlers["/api/v1/users/00000000-0000-7000-8000-000000000001/landing-page"] = (
             Data("""
             {
+              "user": { "username": "alice" },
               "landing_page": {
                 "id": "page-1",
                 "title": "Bonus",
                 "subtitle": "Public",
                 "slug": "bonus",
-                "is_default": false
-              }
+                "is_default": false,
+                "items":[],"user_id":"user-1",
+                "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}
             }
             """.utf8),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/admin/landing-pages/page-1/analytics"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/admin/users/alice/landing-pages/bonus/analytics"] = (
             Data("""
             {
               "landing_page": {
@@ -329,20 +334,27 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
             """.utf8),
             200
         )
-        let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/user/alice/landing"))
+        let route = try XCTUnwrap(NativeRouteCatalog
+            .matchingRoute(for: "/user/00000000-0000-7000-8000-000000000001/landing"))
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: makeClient(),
             routeMatch: route.match,
-            isAdministrator: true
+            isAdministrator: true,
+            isSignedIn: true
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
-            "/api/v1/users/alice/landing-page",
-            "/api/v1/admin/landing-pages/page-1/analytics"
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/visits") }, [
+            "/api/v1/users/00000000-0000-7000-8000-000000000001/landing-page",
+            "/api/v1/admin/users/alice/landing-pages/bonus/analytics"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/visits") },
+            ["/api/v1/landing-pages/page-1/visits"]
+        )
         XCTAssertEqual(viewModel.rows.map(\.title), [
             "Bonus",
             "Visits",
@@ -358,35 +370,46 @@ final class NativeRouteSurfaceLandingPageAnalyticsTests: NativeRouteSurfaceViewM
         CannedFeedURLProtocol.handlers["/api/v1/users/alice/landing-page"] = (
             Data("""
             {
+              "user": { "username": "alice" },
               "landing_page": {
                 "id": "page-1",
                 "title": "Bonus",
                 "subtitle": "Public",
                 "slug": "bonus",
-                "is_default": false
-              }
+                "is_default": false,
+                "items":[],"user_id":"user-1",
+                "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}
             }
             """.utf8),
             200
         )
-        CannedFeedURLProtocol.handlers["/api/v1/admin/landing-pages/page-1/analytics"] = (Data("{}".utf8), 503)
+        CannedFeedURLProtocol.handlers["/api/v1/admin/users/alice/landing-pages/bonus/analytics"] = (
+            Data("{}".utf8),
+            503
+        )
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: "/user/alice/landing"))
         let viewModel = try NativeRouteSurfaceViewModel(
             entry: route.entry,
             client: makeClient(),
             routeMatch: route.match,
-            isAdministrator: true
+            isAdministrator: true,
+            isSignedIn: true
         )
 
         await viewModel.load()
+        await settleProductSignals(viewModel)
 
         if case .loaded = viewModel.state {} else {
             XCTFail("Expected state to be loaded")
         }
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path).filter { !$0.hasSuffix("/visits") }, [
             "/api/v1/users/alice/landing-page",
-            "/api/v1/admin/landing-pages/page-1/analytics"
+            "/api/v1/admin/users/alice/landing-pages/bonus/analytics"
         ])
+        XCTAssertEqual(
+            CannedFeedURLProtocol.capturedURLs.map(\.path).filter { $0.hasSuffix("/visits") },
+            ["/api/v1/landing-pages/page-1/visits"]
+        )
         XCTAssertEqual(viewModel.rows, [
             verbatimRow(icon: "doc.text", title: "Bonus", detail: "bonus · Public")
         ])

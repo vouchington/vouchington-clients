@@ -22,6 +22,7 @@ public sealed class ApiNewsFeedServiceStoryPagesTests
     var primary = Assert.Single(feed.Items);
     var preview = Assert.Single(Assert.IsType<StoryRelatedArticles>(primary.StoryArticles).Items);
     Assert.Equal("peer-3", preview.Id);
+    Assert.Equal("Mentioned on Hacker News · 2", preview.HackerNews.Summary);
     Assert.True(preview.IsSaved);
     Assert.Equal(ElectionVoteChoice.Like, preview.CurrentVoteChoice);
     Assert.Equal(4, preview.VoteCountUp);
@@ -145,6 +146,7 @@ public sealed class ApiNewsFeedServiceStoryPagesTests
     election_votes = new Dictionary<string, object> { ["peer-3"] = new { user_id = "viewer", entity_id = "peer-3", choice = "like", created_at = "2026-01-01T00:00:00Z" } },
     bookmarks = new Dictionary<string, object> { ["peer-3"] = new { save = true } },
     rss_feed_item_thumbnail_url = new Dictionary<string, string> { ["peer-3"] = "/peer.jpg" },
+    rss_feed_item_hacker_news_references = new Dictionary<string, object> { ["peer-3"] = new { story_count = 0, comment_count = 2 } },
   });
 
   private static string Page() => JsonSerializer.Serialize(new

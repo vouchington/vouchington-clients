@@ -1,5 +1,7 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
+import VouchaLocalization
 
 struct TrimmedLandingPageMetadata {
     let title: String
@@ -39,4 +41,42 @@ func pageWithDefault(_ page: LandingPage, isDefault: Bool) -> LandingPage {
         createdAt: page.createdAt,
         updatedAt: page.updatedAt
     )
+}
+
+extension LandingPagesViewModel {
+    func requireClient() -> APIClient? {
+        guard let client else {
+            handle(LandingPagesViewModelError.missingClient)
+            return nil
+        }
+        return client
+    }
+
+    func handle(_ error: Error) {
+        if let error = error as? VouchaError {
+            switch error {
+            case let .api(_, code), let .apiMessage(_, code, _):
+                isItemLimitReached = code == "LANDING_PAGE_ITEM_LIMIT_REACHED"
+            default: isItemLimitReached = false
+            }
+            if isItemLimitReached {
+                state = .error(error)
+                errorMessage = .protocolValue(error.localizedDescription)
+                return
+            }
+            state = .error(error)
+            errorMessage = .verbatim(String(describing: error))
+        } else {
+            state = .error(.api(statusCode: 0, preconditionCode: nil))
+            errorMessage = .verbatim(error.localizedDescription)
+        }
+    }
+}
+
+enum LandingPagesViewModelError: LocalizedError {
+    case missingClient
+
+    var errorDescription: String? {
+        "Landing pages are unavailable because the API client is not configured."
+    }
 }

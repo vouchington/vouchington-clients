@@ -19,13 +19,21 @@ public static partial class VouchaApiEndpoints
       string feedType = "any",
       string? after = null,
       int limit = 20,
-      string? mediaType = null) =>
+      string? mediaType = null,
+      string? timeRange = null,
+      bool? hasHackerNewsReferences = null) =>
       Get(
           $"/api/v1/feeds/rss_feed_items/{Path(feedType)}",
-          Query(("limit", limit), ("after", after), ("media_type", mediaType)));
+          Query(("limit", limit), ("after", after), ("media_type", mediaType), ("time_range", timeRange),
+              ("has_hacker_news_references", Bool(hasHackerNewsReferences))));
 
-  public static ApiRequest AllRssFeedItems(string? after = null, int limit = 20, string? mediaType = null) =>
-      Get("/api/v1/rss-feed-items", Query(("limit", limit), ("after", after), ("media_type", mediaType)));
+  public static ApiRequest AllRssFeedItems(
+      string? after = null,
+      int limit = 20,
+      string? mediaType = null,
+      bool? hasHackerNewsReferences = null) =>
+      Get("/api/v1/rss-feed-items", Query(("limit", limit), ("after", after), ("media_type", mediaType),
+          ("has_hacker_news_references", Bool(hasHackerNewsReferences))));
 
   public static ApiRequest AllRssFeeds(
       string? feedType = null,

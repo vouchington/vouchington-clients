@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Friends;
 
@@ -14,7 +15,7 @@ public sealed record FriendRecommendationRow(
 
   public string PrimaryLabel =>
       UserDisplayName(User) ??
-      NonBlank(Recommendation.ProviderFriendName) ??
+      TrimmedText.NonEmpty(Recommendation.ProviderFriendName) ??
       $"{UiInvariantText.VouchaBrand.Value} {LowercaseFirst((Localization ?? UiLocalization.English).Localize(UiMessageKey.NativeSwiftPresentationValuesMember))}";
 
   public string SecondaryLabel => UiUserHandle.FromUsername(User?.Username).Value;
@@ -44,14 +45,11 @@ public sealed record FriendRecommendationRow(
   private static string? UserDisplayName(User? user)
   {
     if (user is null) return null;
-    return NonBlank(user.DisplayAccount?.Name) ??
-        NonBlank(user.VerifiedDisplayName) ??
-        NonBlank(user.Name) ??
-        NonBlank(user.Username);
+    return TrimmedText.NonEmpty(user.DisplayAccount?.Name) ??
+        TrimmedText.NonEmpty(user.VerifiedDisplayName) ??
+        TrimmedText.NonEmpty(user.Name) ??
+        TrimmedText.NonEmpty(user.Username);
   }
-
-  private static string? NonBlank(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   private static string LowercaseFirst(string value) =>
       string.IsNullOrEmpty(value)

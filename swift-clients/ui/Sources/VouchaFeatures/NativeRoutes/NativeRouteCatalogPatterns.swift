@@ -88,7 +88,8 @@ enum NativeRouteCatalogPatterns {
         "/users/following",
         "/users/followers",
         "/rss-feeds/following",
-        "/communities/member"
+        "/communities/member",
+        "/referral-links"
     ]
 
     static var sourceDetailPatterns: [NativeRoutePattern] {

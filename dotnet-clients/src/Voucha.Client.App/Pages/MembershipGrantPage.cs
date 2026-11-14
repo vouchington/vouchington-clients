@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.MembershipAdministration;
+using Voucha.Client.Core.Users;
 
 namespace Voucha.Client.App.Pages;
 
@@ -86,7 +87,7 @@ public sealed class MembershipGrantPage : ContentPage, IUiLocaleChangeListener, 
   {
     var button = new Button();
     button.BindingContextChanged += (_, _) => button.Text = button.BindingContext is UserSearchResult user
-        ? UserLabel(user) : string.Empty;
+        ? UsersBrowseViewModel.UserLabel(user) : string.Empty;
     button.Clicked += (_, _) => { if (button.BindingContext is UserSearchResult user) { viewModel.SelectUser(user); Refresh(); } };
     return button;
   }
@@ -165,9 +166,6 @@ public sealed class MembershipGrantPage : ContentPage, IUiLocaleChangeListener, 
     planStatus.Text = viewModel.IsPlansLoading ? localization.Localize(UiMessageKey.NativeDotnetResidualLoading) : string.Empty;
     noSkus.Text = viewModel.SelectedPlan is not null && viewModel.AvailableSkus.Count == 0
         ? localization.Localize(UiMessageKey.NativeSwiftMembershipNoSkusForPlan) : string.Empty;
-    selectedUser.Text = viewModel.SelectedUser is { } user ? UserLabel(user) : string.Empty;
+    selectedUser.Text = viewModel.SelectedUser is { } user ? UsersBrowseViewModel.UserLabel(user) : string.Empty;
   }
-
-  private static string UserLabel(UserSearchResult user) =>
-      string.IsNullOrWhiteSpace(user.Username) ? user.Id : user.Username;
 }

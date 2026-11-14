@@ -8,3 +8,7 @@ public sealed record FeatureFlagsResponse(
 
 public sealed record CaptchaConfigResponse(
     [property: JsonPropertyName("always_approve")] bool AlwaysApprove);
+
+public sealed record HackerNewsConfigResponse(
+    [property: JsonPropertyName("references_visible")] bool ReferencesVisible,
+    [property: JsonPropertyName("post_time_range_cap")] string PostTimeRangeCap);

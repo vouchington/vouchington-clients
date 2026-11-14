@@ -37,6 +37,12 @@ public partial class ChatMemberMcpControlsView : ContentView
   private void OnSessionChanged(object? sender, EventArgs args) =>
       Dispatcher.Dispatch(viewModel.Refresh);
 
+  private async void OnViewPlansClicked(object? sender, EventArgs args)
+  {
+    if (Shell.Current is AppShell appShell)
+      await appShell.OpenNativePathAsync("/plans").ConfigureAwait(true);
+  }
+
   [SuppressMessage("Design", "CA1031", Justification = "MAUI click handlers show a localized error state instead of throwing.")]
   private async void OnConnectClicked(object? sender, EventArgs args)
   {

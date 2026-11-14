@@ -16,22 +16,18 @@ public sealed record SettingsScopeRow(
     "write" => UiMessageKey.NativeCredentialsWriteAction,
     _ => UiMessageKey.NativeCredentialsInvalidSelection,
   }));
-  public string Audience => Localization.Resolve(UiText.Localized(ProtocolValue.Audience switch
+  public string Audience => Localization.Resolve(ProtocolValue.Audience switch
   {
-    "user" => UiMessageKey.NativeCredentialsUserAudience,
-    "api" => UiMessageKey.NativeCredentialsApiAudience,
-    _ => UiMessageKey.NativeCredentialsInvalidSelection,
-  }));
+    "user" => UiText.Localized(UiMessageKey.NativeCredentialsUserAudience),
+    "api" => UiText.Localized(UiMessageKey.NativeCredentialsApiAudience),
+    "community_moderation" or "brand" or "legal" => UiText.ProtocolValue(ProtocolValue.Audience),
+    _ => UiText.Localized(UiMessageKey.NativeCredentialsInvalidSelection),
+  });
   public string Requires => ProtocolValue.Requires is { } scope
       ? Localization.Format(UiMessageKey.NativeCredentialsRequires, ("scope", UiText.ProtocolValue(scope)))
       : string.Empty;
   public string Description => ProtocolValue.DescriptionKey is { } key && DescriptionMessage(key) is { } message
       ? Localization.Localize(message) : string.Empty;
-
-  public static bool IsSupportedDescriptionKey(string? key) => key is
-      null or "mcp_user_full_access" or "mcp_admin_full_access" or
-      "community_moderation_read" or "community_moderation_write" or
-      "financial_profile_read" or "financial_profile_write" or "spending_read" or "spending_write";
 
   public static UiMessageKey? DescriptionMessage(string key) => key switch
   {
@@ -43,7 +39,7 @@ public sealed record SettingsScopeRow(
     "financial_profile_write" => UiMessageKey.NativeCredentialsFinancialProfileWrite,
     "spending_read" => UiMessageKey.NativeCredentialsSpendingRead,
     "spending_write" => UiMessageKey.NativeCredentialsSpendingWrite,
-    _ => UiMessageKey.NativeCredentialsInvalidSelection,
+    _ => null,
   };
 }
 

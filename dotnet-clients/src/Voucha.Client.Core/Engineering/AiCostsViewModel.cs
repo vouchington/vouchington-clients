@@ -39,14 +39,18 @@ public sealed class AiCostsViewModel : ObservableObject, IDisposable, IUiLocaleC
   }
 
   public IReadOnlyList<AiCostRow> Rows { get => rows; private set => SetProperty(ref rows, value); }
-  public bool IsRefreshing { get => isRefreshing; private set { if (SetProperty(ref isRefreshing, value)) OnPropertyChanged(nameof(HasMore)); } }
+  public bool IsRefreshing { get => isRefreshing; private set => SetPropertyAndNotify(ref isRefreshing, value, nameof(HasMore)); }
   public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }
   public bool HasMore => pages.HasLoadedPage && pages.EndCursor is not null && !IsRefreshing && !HasError && pages.HasMore;
   public bool HasRows => Rows.Count > 0;
   public bool ShowsEmptyState => pages.HasLoadedPage && !HasRows && !HasError;
   public bool HasContinuationError => pages.LastError is not null && HasRows;
   public bool HasError => !string.IsNullOrWhiteSpace(errorMessage);
-  public string? ErrorMessage { get => errorMessage; private set { if (SetProperty(ref errorMessage, value)) { OnPropertyChanged(nameof(HasError)); OnPropertyChanged(nameof(HasMore)); } } }
+  public string? ErrorMessage
+  {
+    get => errorMessage;
+    private set => SetPropertyAndNotify(ref errorMessage, value, [nameof(HasError), nameof(HasMore)]);
+  }
 
   public Task EnsureLoadedAsync(CancellationToken cancellationToken = default) =>
       pages.HasLoadedPage ? Task.CompletedTask : RefreshAsync(cancellationToken);

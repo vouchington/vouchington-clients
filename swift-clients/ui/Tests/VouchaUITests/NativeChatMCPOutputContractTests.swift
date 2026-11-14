@@ -11,7 +11,7 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
     func testOutputValidationBudgetFailureUsesInvalidOutputFailure() throws {
         let oversized = String(repeating: "x", count: 262_145)
         let fields = try ["outputSchema": value(["type": "string", "const": "expected"])]
-        let contract = try NativeChatMCPOutputContract(fields: fields)
+        let contract = try NativeChatMCPOutputContract(fields: DecodedJSONObject(fields))
 
         XCTAssertThrowsError(try contract.validate(toolResult(oversized), arguments: [:])) { error in
             guard let failure = error as? NativeChatMCPToolBridge.Failure,
@@ -75,7 +75,10 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
             XCTAssertTrue(try actual.isEqual(to: XCTUnwrap(published["inputSchema"] as? [String: Any])))
         }
         let fixtures = try fixtureObject("mcp-results.json")
-        for row in try XCTUnwrap(fixtures["cases"] as? [[String: Any]]) {
+        let memberRows = try XCTUnwrap(fixtures["cases"] as? [[String: Any]]).filter { row in
+            bridge.tools.contains { $0.name == row["tool"] as? String }
+        }
+        for row in memberRows {
             let name = try XCTUnwrap(row["tool"] as? String)
             let tool = try XCTUnwrap(tools.first { $0["name"] as? String == name })
             let fields = try object(value(tool))
@@ -294,24 +297,36 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(schema))
         try NativeChatMCPInputSchema.validateSchema(schema, output: true)
         for timestamp in [
-            "2026-10-09T00:00:00.000Z", "2024-02-29T23:59:59+02:00", "2016-12-31T23:59:60Z",
-            // The producer's current Ajv date-time validator accepts UTC leap-second minutes
-            // beyond month-end; preserve its current output boundary rather than narrowing Swift.
-            "2026-10-09T23:59:60Z",
-            "2017-01-01T00:29:60+00:30", "2016-12-31T23:29:60-00:30", "2016-12-31T23:59:60.5Z",
-            "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z",
-            "2017-01-01T00:59:60+01:00"
+            "2026-10-09T00:00:00.000Z", "2024-02-29T23:59:59+02:00",
+            "2026-10-09 00:00:00+0000", "0000-02-29T12:00:00Z", "2026-10-09\u{FEFF}00:00:00Z"
         ] {
             XCTAssertTrue(try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema))
         }
         for timestamp in [
-            "2025-02-29T00:00:00Z", "2026-10-09\u{0085}00:00:00Z", "2016-12-31T12:00:60Z", "2016-12-31T23:59:61Z",
+            "2025-02-29T00:00:00Z", "2026-10-09\u{0085}00:00:00Z",
             "2026-10-09",
             "2026-10-09T00:00:00",
             "2026-10-09T24:00:00Z",
             "2026-10-09T00:00:00Z\n"
         ] {
             XCTAssertFalse(try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema))
+        }
+    }
+
+    func testOutputDateTimeMatchesProducerLeapSecondPlacementFixture() throws {
+        let fixture = try fixtureObject("mcp-date-time.json")
+        XCTAssertEqual(fixture["version"] as? Int, 1)
+        let schema = try value(XCTUnwrap(fixture["schema"]))
+        let cases = try XCTUnwrap(fixture["cases"] as? [[String: Any]])
+        for row in cases {
+            let id = try XCTUnwrap(row["id"] as? String)
+            let timestamp = try XCTUnwrap(row["value"] as? String)
+            let expected = try XCTUnwrap(row["valid"] as? Bool)
+            XCTAssertEqual(
+                try NativeChatMCPInputSchema.acceptsOutput(.string(timestamp), schema: schema, root: schema),
+                expected,
+                id
+            )
         }
     }
 
@@ -402,8 +417,8 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
     }
 
     private func fixtureObject(_ file: String) throws -> [String: Any] {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/\(file)"])
-        let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/\(file)", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/\(file)"])
+        let url = try ContractRoot.requiredURL("api-fixtures/v1/\(file)", root: root)
         return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
     }
 
@@ -411,7 +426,7 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
         try JSONDecoder().decode(DecodedJSONValue.self, from: JSONSerialization.data(withJSONObject: object))
     }
 
-    private func object(_ value: DecodedJSONValue) throws -> [String: DecodedJSONValue] {
+    private func object(_ value: DecodedJSONValue) throws -> DecodedJSONObject {
         guard case let .object(fields) = value else { throw NativeChatMCPToolBridge.Failure.invalidCatalog }
         return fields
     }

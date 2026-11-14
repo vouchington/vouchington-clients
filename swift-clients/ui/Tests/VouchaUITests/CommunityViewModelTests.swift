@@ -429,7 +429,8 @@ final class CommunityViewModelTests: NativeRouteSurfaceViewModelTestCase {
             {
               "results": [],
               "page_info": { "has_next_page": false, "end_cursor": null },
-              "community_applications": {}
+              "community_application_summaries": {},
+              "users": {}
             }
             """.utf8
         )

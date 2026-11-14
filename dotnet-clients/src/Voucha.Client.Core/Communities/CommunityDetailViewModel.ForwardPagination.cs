@@ -27,6 +27,11 @@ public sealed partial class CommunityDetailViewModel
       string? threadId,
       CancellationToken cancellationToken)
   {
+    if (section == CommunityDetailSurfaceSection.AgentPrompts)
+    {
+      await LoadMoreAgentPromptPageAsync(after, revision, pageRequest, community, section, threadId, cancellationToken).ConfigureAwait(true);
+      return true;
+    }
     switch (section)
     {
       case CommunityDetailSurfaceSection.Members:
@@ -56,8 +61,8 @@ public sealed partial class CommunityDetailViewModel
         if (!IsCurrentCommunityPage(revision, pageRequest, community, section, threadId)) return true;
         var applicationRows = applications.Results
             .Select(reference => reference.Id)
-            .Where(id => id is not null && applications.CommunityApplications.ContainsKey(id))
-            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplications[id!]));
+            .Where(id => id is not null && applications.CommunityApplicationSummaries.ContainsKey(id))
+            .Select(id => CommunityApplicationRow.FromApplication(applications.CommunityApplicationSummaries[id!], applications.Users, localization));
         ApplicationRows = AppendUnique(ApplicationRows, applicationRows, row => row.Id);
         Applications = AppendUnique(Applications, ApplicationRows.Select(ApplicationSummary), row => row.Id);
         communityListEndCursor = applications.PageInfo.EndCursor;
@@ -74,7 +79,9 @@ public sealed partial class CommunityDetailViewModel
         communityListEndCursor = invites.PageInfo.EndCursor;
         return true;
       case CommunityDetailSurfaceSection.Bans:
-        var bans = await service.FetchBansPageAsync(community, after, 20, cancellationToken).ConfigureAwait(true);
+        var bans = ActiveBansUserId is { } userId
+            ? await service.FetchActiveBansAsync(community, userId, after, 20, cancellationToken).ConfigureAwait(true)
+            : await service.FetchBansPageAsync(community, after, 20, cancellationToken).ConfigureAwait(true);
         if (!IsCurrentCommunityPage(revision, pageRequest, community, section, threadId)) return true;
         var banRows = bans.Results
             .Select(reference => reference.Id)
@@ -126,6 +133,7 @@ public sealed partial class CommunityDetailViewModel
             queue.Entries.Select(CommunityModerationRow.FromQueueEntry),
             row => row.Id);
         Moderation = AppendUnique(Moderation, ModerationRows.Select(ModerationSummary), row => row.Id);
+        OnPropertyChanged(nameof(ModerationActionRows));
         communityListEndCursor = queue.PageInfo.EndCursor;
         return true;
       default:
@@ -134,7 +142,7 @@ public sealed partial class CommunityDetailViewModel
   }
 
   private CommunitySummaryRow ApplicationSummary(CommunityApplicationRow row) =>
-      Summary(row.Id, UiText.Verbatim(row.UserId), UiText.Verbatim(row.Status), Verbatim(row.Message));
+      Summary(row.Id, row.ApplicantText, UiText.Verbatim(row.Status), Verbatim(row.Message));
 
   private CommunitySummaryRow InviteSummary(CommunityInviteRow row) =>
       Summary(row.Id, row.RecipientText, UiText.Verbatim(row.Status), null);

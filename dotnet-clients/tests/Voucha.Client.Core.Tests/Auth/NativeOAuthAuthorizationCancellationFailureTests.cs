@@ -157,7 +157,7 @@ public sealed class NativeOAuthAuthorizationCancellationFailureTests
           new VouchaApiClient(new HttpClient(new UnusedHandler())
           {
             BaseAddress = new Uri("https://api.test"),
-          }),
+          }, new TestAccountChangeConfirmation()),
           persistence,
           new UnusedBrowser(),
           new AnonymousSessionStore());

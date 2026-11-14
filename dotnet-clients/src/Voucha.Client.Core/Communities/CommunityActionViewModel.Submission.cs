@@ -73,9 +73,9 @@ public sealed partial class CommunityActionViewModel
         await service.CreateAsync(
             new CreateCommunityRequest(
                 Name.Trim(),
-                EmptyToNull(Slug),
+                TrimmedText.NonEmpty(Slug),
                 Markdown,
-                TurnstileToken: EmptyToNull(TurnstileToken)),
+                TurnstileToken: TrimmedText.NonEmpty(TurnstileToken)),
             cancellationToken).ConfigureAwait(true);
         break;
       case CommunityActionKind.Apply:
@@ -103,9 +103,6 @@ public sealed partial class CommunityActionViewModel
     }
   }
 
-  private static string? EmptyToNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
   private bool HandleLoadException(Exception ex)
   {
     if (ex is not (VouchaApiException or HttpRequestException or InvalidOperationException))
@@ -119,6 +116,8 @@ public sealed partial class CommunityActionViewModel
     }
 
     ErrorMessage = ex.Message;
+    capErrorKey = CommunityCapError.MessageKey(ex);
+    OnPropertyChanged(nameof(ErrorMessage));
     State = LoadState.Error;
     return true;
   }

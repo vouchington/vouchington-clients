@@ -61,16 +61,19 @@ public sealed partial class AppShell : Shell
     AppLinkDispatcher.Attach(HandleAppLinkAsync);
 #if WINDOWS
     var memberMcpSession = serviceProvider.GetRequiredService<MemberMcpSession>();
+    var memberMcpConnector = serviceProvider.GetRequiredService<MemberMcpAutoConnector>();
 #else
     MemberMcpSession? memberMcpSession = null;
+    MemberMcpAutoConnector? memberMcpConnector = null;
 #endif
-    _ = RefreshSessionOnStartupAsync(sessionStore, logger, memberMcpSession);
+    _ = RefreshSessionOnStartupAsync(sessionStore, logger, memberMcpSession, memberMcpConnector);
   }
 
   private static async Task RefreshSessionOnStartupAsync(
       ISessionStore sessionStore,
       ILogger<AppShell> logger,
-      MemberMcpSession? memberMcpSession)
+      MemberMcpSession? memberMcpSession,
+      MemberMcpAutoConnector? memberMcpConnector)
   {
     try
     {
@@ -78,11 +81,16 @@ public sealed partial class AppShell : Shell
       {
         await confirming.RefreshConfirmingAsync().ConfigureAwait(false);
         await memberMcpSession.ConfirmStartupSessionAsync().ConfigureAwait(false);
+        if (memberMcpConnector is not null)
+          await memberMcpConnector.ConnectIfSignedInAsync().ConfigureAwait(false);
       }
       else await sessionStore.RefreshAsync().ConfigureAwait(false);
     }
     catch (Exception ex)
     {
+#if DEBUG
+      CatalystGuiPreflight.LogStartupFailure(ex);
+#endif
       LogStartupSessionRefreshFailed(logger, ex);
     }
   }
@@ -101,6 +109,10 @@ public sealed partial class AppShell : Shell
     var navigationShell = BottomTabShellViewModel.Create(viewer, preferenceStore.Load(), localization);
     var tabBar = new TabBar();
 
+    foreach (var content in EnumerateShellContents("moderation"))
+    {
+      if (content.Content is ModerationAppealsPage appealsPage) appealsPage.Dispose();
+    }
     Items.Clear();
     Items.Add(new FlyoutItem
     {

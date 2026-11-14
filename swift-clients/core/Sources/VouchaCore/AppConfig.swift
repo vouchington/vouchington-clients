@@ -5,10 +5,7 @@ public struct AppConfig: Sendable {
     public let imageBaseURL: URL
     public let turnstileSiteKey: String
     public var requiredTurnstileSiteKey: String {
-        guard !turnstileSiteKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            preconditionFailure("Missing VOUCHA_TURNSTILE_SITE_KEY")
-        }
-        return turnstileSiteKey
+        TurnstileSiteKeyPolicy.required(turnstileSiteKey)
     }
 
     /// Named constants for production base URLs.

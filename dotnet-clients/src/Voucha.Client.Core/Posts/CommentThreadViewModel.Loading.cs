@@ -7,7 +7,8 @@ public sealed partial class CommentThreadViewModel
 {
   private async Task LoadInternalAsync(string? focusedCommentId, CancellationToken cancellationToken)
   {
-    var normalizedFocusedCommentId = NormalizeFocusedCommentId(focusedCommentId);
+    var normalizedFocusedCommentId = TrimmedText.NonEmpty(focusedCommentId);
+    var generation = ++loadGeneration;
     ResetForLoad(normalizedFocusedCommentId);
 
     try
@@ -27,6 +28,7 @@ public sealed partial class CommentThreadViewModel
         await Task.WhenAll(rootTask, descendantsTask, ancestorsTask).ConfigureAwait(true);
       }
 
+      if (generation != loadGeneration) return;
       rootPostResponse = await rootTask.ConfigureAwait(true);
       ReplaceDescendantsEnvelope(await descendantsTask.ConfigureAwait(true));
       if (ancestorsTask is null)
@@ -41,15 +43,17 @@ public sealed partial class CommentThreadViewModel
       }
       AncestorPosts = BuildAncestorPosts();
       FocusedComment = ResolveFocusedComment();
+      ApplyServerCollapse(CommentBookmarks);
       RebuildComments();
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException)
     {
-      State = LoadState.Idle;
+      if (generation == loadGeneration) State = LoadState.Idle;
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
+      if (generation != loadGeneration) return;
       State = LoadState.Error;
       ErrorMessage = ex.Message;
       Comments = [];
@@ -58,16 +62,20 @@ public sealed partial class CommentThreadViewModel
     }
     finally
     {
-      IsLoadingAncestors = false;
-      IsLoadingDescendants = false;
+      if (generation == loadGeneration)
+      {
+        IsLoadingAncestors = false;
+        IsLoadingDescendants = false;
+      }
     }
   }
 
   private void ResetForLoad(string? focusedCommentId)
   {
+    ResetCollapseRequests();
     State = LoadState.Loading;
     ErrorMessage = null;
-    FocusedCommentId = NormalizeFocusedCommentId(focusedCommentId);
+    FocusedCommentId = TrimmedText.NonEmpty(focusedCommentId);
     rootPostResponse = null;
     descendantsResponse = null;
     descendantPages.Reset();

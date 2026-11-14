@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Agent;
 
-public sealed class MemberMcpTokenManagerTests
+public sealed partial class MemberMcpTokenManagerTests
 {
   [Fact]
   public async Task ConcurrentRefreshSendsOneGrantAndDoesNotReturnAccessBeforeRotationIsSaved()

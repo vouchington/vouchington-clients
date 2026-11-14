@@ -1,12 +1,13 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using Voucha.Client.Core.Analytics;
+using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
 public sealed class RssFeedItemDetailViewModel :
-    INotifyPropertyChanged,
+    ObservableObject,
     IDisposable,
     IUiLocaleChangeListener
 {
@@ -15,6 +16,8 @@ public sealed class RssFeedItemDetailViewModel :
   private readonly NewsFeedItemKind kind;
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
+  private readonly IProductSurfaceAnalytics? productSignals;
+  private bool recordedItemView;
   private RssFeedItemDetail? detail;
   private string? errorMessage;
   private bool isLoading;
@@ -24,16 +27,18 @@ public sealed class RssFeedItemDetailViewModel :
       string itemId,
       NewsFeedItemKind kind,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      IProductSurfaceAnalytics? productSignals = null)
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
+    this.productSignals = productSignals;
     this.itemId = string.IsNullOrWhiteSpace(itemId) ? throw new ArgumentException("An item ID is required.", nameof(itemId)) : itemId;
     this.kind = kind;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
+  public HackerNewsPresentation HackerNews => new(Detail?.Item.HackerNewsReferences, localization);
 
   public RssFeedItemDetail? Detail
   {
@@ -41,8 +46,8 @@ public sealed class RssFeedItemDetailViewModel :
     private set
     {
       detail = value;
-      Changed();
-      Changed(nameof(HasDetail));
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(HasDetail));
       RaisePresentationChanged();
     }
   }
@@ -77,7 +82,7 @@ public sealed class RssFeedItemDetailViewModel :
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set { errorMessage = value; Changed(); Changed(nameof(HasError)); }
+    private set { errorMessage = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasError)); }
   }
 
   public bool HasError => ErrorMessage is not null;
@@ -85,13 +90,18 @@ public sealed class RssFeedItemDetailViewModel :
   public bool IsLoading
   {
     get => isLoading;
-    private set { isLoading = value; Changed(); }
+    private set { isLoading = value; OnPropertyChanged(); }
   }
 
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Focused feed item errors are presented with retry.")]
   public async Task LoadAsync(CancellationToken cancellationToken = default)
   {
     if (IsLoading) return;
+    if (!recordedItemView)
+    {
+      recordedItemView = true;
+      productSignals?.RecordRssFeedItemView(itemId);
+    }
     IsLoading = true;
     ErrorMessage = null;
     try
@@ -108,9 +118,6 @@ public sealed class RssFeedItemDetailViewModel :
     }
   }
 
-  private void Changed([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
   public void OnUiLocaleChanged() => RaisePresentationChanged();
 
   public void Dispose() => localeSubscription?.Dispose();
@@ -126,12 +133,13 @@ public sealed class RssFeedItemDetailViewModel :
 
   private void RaisePresentationChanged()
   {
-    Changed(nameof(UserContentSource));
-    Changed(nameof(UserContentTitle));
-    Changed(nameof(ExternalContentSummary));
-    Changed(nameof(LocalizedPublishedAt));
-    Changed(nameof(LocalizedVoteCounts));
-    Changed(nameof(LocalizedSavedState));
-    Changed(nameof(LocalizedHiddenState));
+    OnPropertyChanged(nameof(HackerNews));
+    OnPropertyChanged(nameof(UserContentSource));
+    OnPropertyChanged(nameof(UserContentTitle));
+    OnPropertyChanged(nameof(ExternalContentSummary));
+    OnPropertyChanged(nameof(LocalizedPublishedAt));
+    OnPropertyChanged(nameof(LocalizedVoteCounts));
+    OnPropertyChanged(nameof(LocalizedSavedState));
+    OnPropertyChanged(nameof(LocalizedHiddenState));
   }
 }

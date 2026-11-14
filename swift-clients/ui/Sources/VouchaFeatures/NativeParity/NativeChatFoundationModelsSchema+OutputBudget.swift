@@ -98,10 +98,12 @@ import Foundation
             activeReferences: Set<String>
         ) throws -> Int {
             let properties = fields["properties"] as? [String: [String: Any]] ?? [:]
-            let required = fields["required"] as? [String] ?? []
+            let propertiesByName = NativeChatFoundationModelsSchema.exactNameMap(properties)
+            let required = Set((fields["required"] as? [String] ?? []).map { Data($0.utf8) })
             var total = 1
-            for key in Set(required) {
-                guard let property = properties[key] else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
+            for key in required {
+                guard let property = propertiesByName[key]
+                else { throw NativeChatFoundationModelsSchema.Failure.unsupported }
                 total += try minimumOutputNodes(
                     property, definitions: definitions, activeReferences: activeReferences
                 )

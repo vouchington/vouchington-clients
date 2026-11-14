@@ -11,6 +11,13 @@ public sealed partial class ModerationAppealsViewModel :
     IUiLocaleChangeListener
 {
   private readonly IModerationAppealsService service;
+  private readonly IUiLocalization localization;
+  private readonly NavigationViewer viewer;
+  private readonly INavigationViewerProvider? viewerProvider;
+  private readonly AppealAIRerunAdmissionStore admissionStore;
+  private readonly AppealAIRerunAdmissionStore.OwnerKey? admissionOwner;
+  private readonly IUiThreadDispatcher? uiDispatcher;
+  private readonly SynchronizationContext? uiSynchronizationContext = SynchronizationContext.Current;
   private readonly Func<CancellationToken, Task> rerunPollDelay;
   private readonly int rerunPollAttempts;
   private readonly IDisposable? localeSubscription;
@@ -25,45 +32,20 @@ public sealed partial class ModerationAppealsViewModel :
   private bool hasMore;
   private string? mutatingAppealId;
   private int loadRevision;
-
-  public ModerationAppealsViewModel(
-      IModerationAppealsService service,
-      NavigationViewer viewer,
-      IUiLocaleController? localeController = null)
-      : this(
-          service,
-          viewer,
-          20,
-          token => Task.Delay(TimeSpan.FromSeconds(3), token),
-          localeController)
-  {
-  }
-
-  internal ModerationAppealsViewModel(
-      IModerationAppealsService service,
-      NavigationViewer viewer,
-      int rerunPollAttempts,
-      Func<CancellationToken, Task> rerunPollDelay,
-      IUiLocaleController? localeController = null)
-  {
-    this.service = service ?? throw new ArgumentNullException(nameof(service));
-    ArgumentNullException.ThrowIfNull(viewer);
-    IsSignedIn = viewer.IsAuthenticated;
-    IsAdministrator = viewer.Roles.Contains("administrator", StringComparer.Ordinal);
-    IsModerator = viewer.Roles.Contains("moderator", StringComparer.Ordinal);
-    this.rerunPollAttempts = rerunPollAttempts;
-    this.rerunPollDelay = rerunPollDelay;
-    localeSubscription = localeController?.SubscribeLocaleChanges(this);
-  }
+  private int accountRevision;
+  private int activeMutationOwnerRevision;
+  private Guid? activeMutationAdmissionToken;
+  private int admissionObserverDisposed;
 
   public bool IsSignedIn { get; }
   public bool IsAdministrator { get; }
   public bool IsModerator { get; }
-  public bool CanAccess => IsSignedIn && (IsAdministrator || IsModerator);
+  public bool CanAccess => IsSignedIn && (IsAdministrator || IsModerator) &&
+      (viewerProvider is null || viewer.HasSameIdentityAccess(viewerProvider.CurrentViewer));
   public bool IsMutating => MutatingAppealId is not null;
   public bool IsLoading => State == LoadState.Loading;
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
-  public bool HasAppeals => Appeals.Count > 0;
+  public bool HasAppeals => Summaries.Count > 0;
   public bool IsEmpty => State == LoadState.Loaded && !HasAppeals;
 
   public IReadOnlyList<ModerationAppeal> Appeals
@@ -88,24 +70,16 @@ public sealed partial class ModerationAppealsViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-        OnPropertyChanged(nameof(IsEmpty));
-      }
-    }
+    private set => SetPropertyAndNotify(
+        ref state,
+        value,
+        [nameof(IsLoading), nameof(HasError), nameof(IsEmpty)]);
   }
 
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasMore
@@ -117,10 +91,7 @@ public sealed partial class ModerationAppealsViewModel :
   public string? MutatingAppealId
   {
     get => mutatingAppealId;
-    private set
-    {
-      if (SetProperty(ref mutatingAppealId, value)) OnPropertyChanged(nameof(IsMutating));
-    }
+    private set => SetPropertyAndNotify(ref mutatingAppealId, value, nameof(IsMutating));
   }
 
   public string DraftFor(ModerationAppeal appeal)
@@ -132,6 +103,7 @@ public sealed partial class ModerationAppealsViewModel :
   public void SetDraft(ModerationAppeal appeal, string value)
   {
     ArgumentNullException.ThrowIfNull(appeal);
+    if (appeal.AiDraftRequestedRunId is null) return;
     var draft = value ?? string.Empty;
     drafts[appeal.Id] = draft;
     if (string.Equals(draft, ServerDraftFor(appeal), StringComparison.Ordinal))
@@ -161,7 +133,7 @@ public sealed partial class ModerationAppealsViewModel :
         !IsDeliveryAmbiguous(appeal) &&
         string.Equals(DraftFor(appeal), appeal.PublicResponse ?? string.Empty, StringComparison.Ordinal);
   }
-  public bool CanRerun(ModerationAppeal appeal) { ArgumentNullException.ThrowIfNull(appeal); return CanMutate(appeal) && appeal.ApprovedAt is null && appeal.SentAt is null; }
+  public bool CanRerun(ModerationAppeal appeal) { ArgumentNullException.ThrowIfNull(appeal); return admissionOwner is not null && CanMutate(appeal) && appeal.ApprovedAt is null && appeal.SentAt is null && Appeals.Any(item => item.Id == appeal.Id) && !IsAIRerunPending(appeal); }
   public bool CanResolve(ModerationAppeal appeal, ModerationAppealAction action)
   {
     ArgumentNullException.ThrowIfNull(appeal);
@@ -170,12 +142,22 @@ public sealed partial class ModerationAppealsViewModel :
         (action != ModerationAppealAction.Accept || IsAdministrator || appeal.UserSuspensionId is null);
   }
 
-  private bool CanMutate(ModerationAppeal appeal) => CanAccess && appeal.Status == ModerationAppealStatus.Pending && !IsMutating;
+  private bool CanMutate(ModerationAppeal appeal) => CanAccess && appeal.AiDraftRequestedRunId is not null && appeal.Status == ModerationAppealStatus.Pending && !IsMutating;
 
   private static string ServerDraftFor(ModerationAppeal appeal) =>
       appeal.PublicResponse ?? appeal.AiPublicResponse ?? string.Empty;
 
-  public void OnUiLocaleChanged() => OnPropertyChanged(nameof(Appeals));
+  public void OnUiLocaleChanged()
+  {
+    OnPropertyChanged(nameof(Appeals));
+    OnPropertyChanged(nameof(Summaries));
+  }
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    if (Interlocked.Exchange(ref admissionObserverDisposed, 1) != 0) return;
+    admissionStore.Changed -= OnAdmissionChanged;
+    localeSubscription?.Dispose();
+    if (viewerProvider is not null) viewerProvider.ViewerChanged -= OnViewerChanged;
+  }
 }

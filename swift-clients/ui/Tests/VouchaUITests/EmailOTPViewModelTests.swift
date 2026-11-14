@@ -24,7 +24,7 @@ final class EmailOTPViewModelTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: protocolClasses
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         let service = SignInService(client: apiClient, sessionManager: sessionManager)
         return EmailOTPViewModel(signInService: service)
     }
@@ -59,7 +59,7 @@ final class EmailOTPViewModelTests: XCTestCase {
     }
 
     func testRequestCodeSendsTurnstileToken() async {
-        CannedFeedURLProtocol.handlers["/api/v1/auth/email-address/tokens"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/auth/native/email-address/tokens"] = (
             Data(#"{"email_address":"alice@example.com"}"#.utf8),
             200
         )
@@ -71,10 +71,52 @@ final class EmailOTPViewModelTests: XCTestCase {
         await vm.requestCode()
 
         let otpRequest = zip(CannedFeedURLProtocol.capturedURLs, CannedFeedURLProtocol.capturedBodies)
-            .first { url, _ in url.path == "/api/v1/auth/email-address/tokens" }
+            .first { url, _ in url.path == "/api/v1/auth/native/email-address/tokens" }
         XCTAssertNotNil(otpRequest)
         XCTAssertTrue(otpRequest?.1?.contains(#""ui_locale":"es""#) == true)
         XCTAssertEqual(vm.step, .enterCode)
+    }
+
+    func testMalformedEmailCodeNeverSendsARequest() async {
+        let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        vm.email = "alice@example.com"
+        vm.step = .enterCode
+        for code in ["123456", "ABCDEFGH01", "ABCDEFGH89", "ＡBCDEFGH23", "abcdefgh2 "] {
+            vm.code = code
+            XCTAssertFalse(vm.canVerifyCode, code)
+            await vm.verifyCode()
+        }
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
+        XCTAssertEqual(vm.step, .enterCode)
+        XCTAssertFalse(vm.didSucceed)
+    }
+
+    func testEmailVerificationFailuresStayEditableWithoutAutomaticRetry() async throws {
+        let path = "/api/v1/auth/native/email-address/login"
+        for (status, message) in [
+            (400, "Invalid code"),
+            (400, "Replaced code"),
+            (400, "Purpose mismatch"),
+            (429, "Quota exhausted")
+        ] {
+            CannedFeedURLProtocol.capturedURLs = []
+            CannedFeedURLProtocol.handlers[path] = try (
+                JSONSerialization.data(withJSONObject: ["message": message]), status
+            )
+            let vm = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+            vm.email = "alice@example.com"
+            vm.code = "abcdefgh23"
+            vm.step = .enterCode
+
+            await vm.verifyCode()
+
+            XCTAssertEqual(vm.code, "ABCDEFGH23")
+            XCTAssertEqual(vm.step, .enterCode)
+            XCTAssertTrue(vm.canVerifyCode)
+            XCTAssertFalse(vm.didSucceed)
+            XCTAssertNotNil(vm.errorMessage)
+            XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [path])
+        }
     }
 
     func testDefaultUiLocaleUsesPreferredUiLanguageRegionTags() {

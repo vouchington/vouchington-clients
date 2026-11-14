@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto'
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { artifactPath, fail } from './contract-artifact-validation.mjs'
+import { sha256 } from './sha256.mjs'
 
 export async function info(path, label) {
   let result
@@ -29,43 +29,33 @@ export async function descendantDirectory(root, child, label) {
   return current
 }
 export async function treeFiles(root, label) {
-  await realDirectory(root, label)
-  const files = []
-  async function walk(directory, prefix = '') {
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name),
-        child = prefix ? `${prefix}/${entry.name}` : entry.name
-      if (entry.isSymbolicLink()) fail(`symbolic link found at ${label}/${child}`)
-      else if (entry.isDirectory()) await walk(path, child)
-      else if (entry.isFile()) files.push(child)
-      else fail(`unsupported filesystem entry at ${label}/${child}`)
-    }
-  }
-  await walk(root)
-  return files.sort()
+  return (await directoryEntries(root, label, `${label}/`)).files
 }
 export async function fileRecord(root, path) {
   const contents = await readFile(join(root, ...path.split('/')))
   return {
     path,
     size: contents.byteLength,
-    sha256: createHash('sha256').update(contents).digest('hex'),
+    sha256: sha256(contents),
   }
 }
 export async function artifactEntries(root) {
-  await realDirectory(root, 'artifact root')
+  return directoryEntries(root, 'artifact root', 'artifact path ')
+}
+async function directoryEntries(root, label, entryPrefix) {
+  await realDirectory(root, label)
   const files = [],
     directories = []
   async function walk(directory, prefix = '') {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const child = prefix ? `${prefix}/${entry.name}` : entry.name,
         path = join(directory, entry.name)
-      if (entry.isSymbolicLink()) fail(`symbolic link found at artifact path ${child}`)
+      if (entry.isSymbolicLink()) fail(`symbolic link found at ${entryPrefix}${child}`)
       else if (entry.isDirectory()) {
         directories.push(child)
         await walk(path, child)
       } else if (entry.isFile()) files.push(child)
-      else fail(`unsupported filesystem entry at artifact path ${child}`)
+      else fail(`unsupported filesystem entry at ${entryPrefix}${child}`)
     }
   }
   await walk(root)

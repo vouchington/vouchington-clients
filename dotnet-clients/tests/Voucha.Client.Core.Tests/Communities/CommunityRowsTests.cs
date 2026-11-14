@@ -109,15 +109,31 @@ public sealed class CommunityRowsTests
         null,
         localization);
 
-    Assert.Equal("Anyone with code", inviteRow.Recipient);
+    Assert.Equal("Unknown recipient", inviteRow.Recipient);
     Assert.Equal("Pinned post", summaryRow.Title);
     Assert.Equal("Order 2", summaryRow.Subtitle);
 
     controller.ApplySavedLocale("es");
 
-    Assert.Equal("Cualquiera con el código", inviteRow.Recipient);
+    Assert.Equal("Destinatario desconocido", inviteRow.Recipient);
     Assert.Equal("Publicación fijada", summaryRow.Title);
     Assert.Equal("Orden 2", summaryRow.Subtitle);
+  }
+
+  [Theory]
+  [InlineData("email@example.test", "recipient-id", "email@example.test")]
+  [InlineData(null, "recipient-id", "recipient-id")]
+  public void InviteRecipientPreservesEmailThenUserIdVerbatim(string? email, string? userId, string expected)
+  {
+    var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
+    var localization = new UiLocalization(controller);
+    var invite = new CommunityInvite("opaque-invite-id", "community-1", userId, email, "moderator-1",
+        null, null, null, null, DateTimeOffset.UnixEpoch);
+    var row = CommunityInviteRow.FromInvite(invite, localization);
+    Assert.Equal(expected, row.Recipient);
+    controller.ApplySavedLocale("es");
+    Assert.Equal(expected, row.Recipient);
+    Assert.DoesNotContain("opaque-invite-id", row.Recipient, StringComparison.Ordinal);
   }
 
   [Fact]

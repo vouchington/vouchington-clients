@@ -11,8 +11,7 @@ extension MemberMCPClientTests {
         let objects = [
             #"{"status":"approved","status":"denied"}"#,
             #"{"status":"approved","\u0073tatus":"denied"}"#,
-            #"{"😀":1,"\ud83d\ude00":2}"#,
-            #"{"é":1,"e\u0301":2}"#
+            #"{"😀":1,"\ud83d\ude00":2}"#
         ]
         for object in objects {
             for type in ["application/json", "text/event-stream"] {

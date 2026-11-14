@@ -272,7 +272,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         )
         let post = makePost(id: "comment-a", createdAt: Date(), score: 1)
 
-        XCTAssertEqual(surface.loadTaskId, "|||false")
+        XCTAssertEqual(surface.loadTaskId, "|||false|false")
         let staffSurface = NativeCommentThreadSurface(
             client: nil,
             routeMatch: nil,
@@ -397,7 +397,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
     func testViewModelStateHelpersWithoutClient() async {
         let viewModel = NativeCommentThreadViewModel(client: nil, rootPostId: "root-1", currentUserId: "me")
 
-        XCTAssertEqual(viewModel.collapseStorageKey, "comments-collapsed:root-1:me")
+        XCTAssertNil(viewModel.collapseStorageKey)
         XCTAssertFalse(viewModel.isLoading)
         await viewModel.loadThread()
         XCTAssertTrue(isError(viewModel.threadState))
@@ -409,9 +409,7 @@ final class NativeCommentThreadComponentTests: XCTestCase {
         XCTAssertEqual(viewModel.sort, .new)
         viewModel.setSort(.best)
         XCTAssertEqual(viewModel.sort, .best)
-        viewModel.toggleCollapse(commentId: "comment-a")
-        XCTAssertEqual(viewModel.collapsedCommentIds, ["comment-a"])
-        viewModel.toggleCollapse(commentId: "comment-a")
+        await viewModel.toggleCollapse(commentId: "comment-a")
         XCTAssertTrue(viewModel.collapsedCommentIds.isEmpty)
     }
 

@@ -3,12 +3,20 @@ import VouchaModels
 
 extension ApiFixtureEndpointCoverageTests {
     static let moderationParityEndpointRegistry: [String: Endpoint] = [
+        "native.moderation.context.member": .userModerationContext(
+            userId: "00000000-0000-7000-8000-000000000911"
+        ),
+        "native.moderation.context.staff": .userModerationContext(
+            userId: "00000000-0000-7000-8000-000000000911"
+        ),
         "native.moderation.removed-posts.default": .memberRemovedPostNotices(limit: 25),
         "native.moderation.removed-posts.page-2": .memberRemovedPostNotices(
             after: removedPostsPageTwoCursor,
             limit: 25
         ),
         "native.moderation.disputes.detail.default": .dispute(id: moderationDisputeFixtureId),
+        "native.moderation.disputes.member.default": .disputes(status: .pending, limit: 25),
+        "native.moderation.disputes.detail.member.default": .dispute(id: moderationDisputeFixtureId),
         "native.moderation.disputes.update.default": .updateDisputeDraft(
             id: moderationDisputeFixtureId,
             publicResponse: "We reviewed your dispute.",

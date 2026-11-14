@@ -4,14 +4,13 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class VouchaApiClient
 {
-  public Task<ModerationAppealListResponse> FetchAppealsAsync(
+  public Task<ModerationAppealListResponse> FetchMemberAppealsAsync(
       ModerationAppealStatus? status = null,
       int limit = 25,
       string? after = null,
-      bool mine = false,
       CancellationToken cancellationToken = default) =>
       SendAsync<ModerationAppealListResponse>(
-          VouchaApiEndpoints.Appeals(status, limit, after, mine),
+          VouchaApiEndpoints.Appeals(status, limit, after, mine: true),
           cancellationToken);
 
   public Task<ModerationAppealResponse> FetchAppealAsync(
@@ -48,14 +47,13 @@ public sealed partial class VouchaApiClient
       CancellationToken cancellationToken = default) =>
       SendAsync<ModerationAppealQueueResponse>(VouchaApiEndpoints.AppealResolutionDrafts(id), cancellationToken);
 
-  public Task<ModerationDisputeListResponse> FetchDisputesAsync(
+  public Task<ModerationDisputeListResponse> FetchMemberDisputesAsync(
       string? status = null,
       int limit = 25,
       string? after = null,
-      bool mine = false,
       CancellationToken cancellationToken = default) =>
       SendAsync<ModerationDisputeListResponse>(
-          VouchaApiEndpoints.Disputes(status, limit, after, mine),
+          VouchaApiEndpoints.Disputes(status, limit, after, mine: true),
           cancellationToken);
 
   public Task<StaffClusteredModerationReportsResponse> FetchClusteredModerationReportsAsync(
@@ -99,6 +97,13 @@ public sealed partial class VouchaApiClient
       CancellationToken cancellationToken = default) =>
       SendAsync<ModerationReportJudgementResponse>(
           VouchaApiEndpoints.RerunModerationReportJudgement(reportId), cancellationToken);
+
+  public Task<ModerationReportJudgementRunResponse> GetModerationReportJudgementRunAsync(
+      string reportId,
+      string runId,
+      CancellationToken cancellationToken = default) =>
+      SendAsync<ModerationReportJudgementRunResponse>(
+          VouchaApiEndpoints.ModerationReportJudgementRun(reportId, runId), cancellationToken);
 
   public Task<AdminUserWarningResponse> IssueAdminWarningAsync(
       IssueAdminWarningRequest request,

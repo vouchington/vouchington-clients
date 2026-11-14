@@ -98,15 +98,19 @@ extension NativeUserProfileSurface {
         HStack(spacing: Spacing.sm) {
             ForEach(profile.profileLinks) { link in
                 if let url = resolvedProfileLinkURL(link) {
-                    Link(
-                        UiMessages
-                            .string(
+                    Link(destination: url) {
+                        HStack(spacing: Spacing.xs) {
+                            if let imageURL = AppConfig.shared.imageURL(for: link.imagePlacement, width: 48),
+                               let placementURL = URL(string: imageURL) {
+                                ProfileLinkPlacementImage(url: placementURL)
+                            }
+                            Text(UiMessages.string(
                                 (link.name ?? link.handle ?? url.host)
                                     .map(UiVerbatimText.userContent) ?? .message(.nativeSwiftRouteSurfaceLink),
                                 locale: nativeUiLocale
-                            ),
-                        destination: url
-                    )
+                            ))
+                        }
+                    }
                 }
             }
         }
@@ -117,9 +121,18 @@ extension NativeUserProfileSurface {
         let metrics = profile.userMetrics
         let posts = ["reviews", "discussions", "comments"].reduce(0) { $0 + (metrics?.visibleCount($1) ?? 0) }
         return HStack(spacing: Spacing.md) {
-            localizedCount(.nativeSwiftProfilePostsCount, posts)
-            localizedCount(.nativeSwiftProfileFollowingCount, metrics?.visibleCount("users_following") ?? 0)
-            localizedCount(.nativeSwiftProfileFollowersCount, metrics?.visibleCount("users_followers") ?? 0)
+            localizedCount(
+                .nativeSwiftProfilePostsCount, posts,
+                capped: ["reviews", "discussions", "comments"].contains { metrics?.isVisibleCountCapped($0) == true }
+            )
+            localizedCount(
+                .nativeSwiftProfileFollowingCount, metrics?.visibleCount("users_following") ?? 0,
+                capped: metrics?.isVisibleCountCapped("users_following") == true
+            )
+            localizedCount(
+                .nativeSwiftProfileFollowersCount, metrics?.visibleCount("users_followers") ?? 0,
+                capped: metrics?.isVisibleCountCapped("users_followers") == true
+            )
         }
         .font(Typography.caption)
         .foregroundStyle(Colors.secondaryLabel)
@@ -144,5 +157,20 @@ extension NativeUserProfileSurface {
                 }
             }
         }
+    }
+}
+
+struct ProfileLinkPlacementImage: View {
+    let url: URL
+
+    var body: some View {
+        AsyncImage(url: url) { image in
+            image.resizable().scaledToFit()
+        } placeholder: {
+            Image(systemName: "link")
+        }
+        .frame(width: 24, height: 24)
+        .accessibilityHidden(true)
+        .accessibilityIdentifier("public-profile-link-image")
     }
 }

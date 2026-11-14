@@ -30,7 +30,7 @@ public sealed partial class PostDetailPageBinding
     foreach (var node in nodes)
     {
       var collapsed = viewModel.CollapsedCommentIds.Contains(node.Id);
-      yield return BuildRow(node.Post, depth, node.HasChildren, collapsed);
+      yield return BuildRow(node.Post, depth, node.HasChildren || viewModel.DirectReplyCount(node.Id) > 0 || collapsed, collapsed);
       if (!collapsed)
       {
         foreach (var child in BuildRows(node.Children, depth + 1))
@@ -46,15 +46,16 @@ public sealed partial class PostDetailPageBinding
     var isRoot = post.Id == viewModel.RootPostId;
     var isThreadLocked = viewModel.RootPost?.LockedAt is not null;
     var isFocused = string.Equals(viewModel.FocusedCommentId, post.Id, StringComparison.Ordinal);
-    var canReply = CanCompose && !isThreadLocked && !IsLocked(post);
-    var canSave = CanCompose;
-    var canReport = CanCompose && post.CreatedById is not null &&
+    var canAct = CanCompose && !CommentPlaceholder.IsPlaceholder(post);
+    var canReply = canAct && !isThreadLocked && !IsLocked(post);
+    var canSave = canAct;
+    var canReport = canAct && post.CreatedById is not null &&
         !string.Equals(post.CreatedById, sessionStore.Current.Identity?.Id, StringComparison.Ordinal);
-    var canEdit = CanCompose && post.CanEditContent == true &&
+    var canEdit = canAct && post.CanEditContent == true &&
         (sessionStore.Current.Identity?.Roles?.Contains("administrator", StringComparer.Ordinal) == true ||
             string.Equals(post.CreatedById, sessionStore.Current.Identity?.Id, StringComparison.Ordinal));
-    var canDelete = CanCompose && post.CanDelete == true;
-    var canLock = CanCompose && post.CanLock == true;
+    var canDelete = canAct && post.CanDelete == true;
+    var canLock = canAct && post.CanLock == true;
     var bookmarks = isRoot ? viewModel.RootBookmarks : commentBookmarks;
     var saved = bookmarks.TryGetValue(post.Id, out var actions) &&
         actions.TryGetValue("save", out var active) &&
@@ -70,8 +71,8 @@ public sealed partial class PostDetailPageBinding
         isFocused,
         hasChildren,
         collapsed,
-        CanVote && !IsLocked(post),
-        sessionStore.Current.CanClearPublicVote(vote?.Choice) && !IsLocked(post),
+        CanVote && !CommentPlaceholder.IsPlaceholder(post) && !IsLocked(post),
+        sessionStore.Current.CanClearPublicVote(vote?.Choice) && !CommentPlaceholder.IsPlaceholder(post) && !IsLocked(post),
         canSave,
         saved,
         canReply,
@@ -80,15 +81,22 @@ public sealed partial class PostDetailPageBinding
         canDelete,
         canLock,
         IsLocked(post),
-        election?.VotesScoreNet,
-        election?.VotesCountUp,
-        election?.VotesCountDown,
+        CommentPlaceholder.IsPlaceholder(post) ? null : election?.VotesScoreNet,
+        CommentPlaceholder.IsPlaceholder(post) ? null : election?.VotesCountUp,
+        CommentPlaceholder.IsPlaceholder(post) ? null : election?.VotesCountDown,
         vote?.Choice,
         localization,
-        BodyHtml(post, isRoot),
-        viewModel.EmbedPreviewFor(post),
+        CommentPlaceholder.IsPlaceholder(post) ? null : BodyHtml(post, isRoot),
+        CommentPlaceholder.IsPlaceholder(post) ? null : viewModel.EmbedPreviewFor(post),
         sessionStore.Current.Identity?.Id,
-        sessionStore.Current.Identity?.Roles?.Any(role => role is "administrator" or "moderator") == true);
+        sessionStore.Current.Identity?.Roles?.Any(role => role is "administrator" or "moderator") == true)
+    {
+      HackerNewsReferences = post.Id == viewModel.RootPost?.Id ? viewModel.RootHackerNewsReferences : null,
+      DirectReplyCount = viewModel.DirectReplyCount(post.Id),
+      CanToggleCollapse = !viewModel.IsCollapseBusy(post.Id),
+      HasMoreSubtree = !isRoot && !collapsed && viewModel.HasMoreSubtree(post.Id),
+      HasSubtreeError = viewModel.HasSubtreeError(post.Id),
+    };
   }
 
   private string? BodyHtml(Post post, bool isRoot)

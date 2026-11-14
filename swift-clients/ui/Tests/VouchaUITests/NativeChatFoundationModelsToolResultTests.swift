@@ -35,6 +35,8 @@ import XCTest
             XCTAssertTrue(try XCTUnwrap(value["structuredContent"] as? NSDictionary).isEqual(to: fixture.structured))
             XCTAssertEqual(value["isError"] as? Bool, false)
             XCTAssertNil(value["truncated"])
+            XCTAssertEqual(state.receipts.first?.callId, try XCTUnwrap(admission.preparedCallIds.first))
+            XCTAssertEqual(admission.retainedCallIds, admission.preparedCallIds)
         }
 
         func testLargeValidatedResultStopsAfterOneCallWithoutPreviewOrRedispatch() async throws {
@@ -270,7 +272,7 @@ import XCTest
         private func profileFixture() throws -> (
             catalog: DecodedJSONValue, result: MemberMCPClient.ToolResult, arguments: String, structured: [String: Any]
         ) {
-            let root = try FilamentsContractRoot.url(requiredPaths: [
+            let root = try ContractRoot.url(requiredPaths: [
                 "api-fixtures/v1/mcp.json",
                 "api-fixtures/v1/mcp-results.json"
             ])
@@ -303,6 +305,7 @@ import XCTest
                 structured
             )
         }
+
     }
 
     @MainActor
@@ -331,7 +334,7 @@ import XCTest
         func callTool(
             accountId _: String,
             name _: String,
-            arguments _: [String: DecodedJSONValue]
+            arguments _: DecodedJSONObject
         ) async throws -> MemberMCPClient.ToolResult {
             let index = calls
             calls += 1

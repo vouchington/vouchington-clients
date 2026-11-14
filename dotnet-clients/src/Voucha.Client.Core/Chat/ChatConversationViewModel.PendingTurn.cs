@@ -14,7 +14,10 @@ public sealed partial class ChatConversationViewModel
       ChatProviderStatus Provider,
       CreateClientGeneratedChatBody Body,
       MemberMcpConnectedSnapshot? McpSnapshot,
-      IMcpLocalChatProvider? McpProvider);
+      IMcpLocalChatProvider? McpProvider,
+      IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts,
+      IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts,
+      IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts);
 
   private ChatProviderStatus ProviderForPendingMcpRetry(string text) =>
       pendingLocalTurn is { McpSnapshot: not null } pending &&
@@ -46,7 +49,7 @@ public sealed partial class ChatConversationViewModel
   {
     if (pendingLocalTurn is not { McpSnapshot: { } snapshot } pending ||
         pending.ConversationId != ConversationId || pending.Body.Message != text ||
-        provider is IMcpLocalChatProvider mcp && mcp.MatchesAccount(snapshot.AccountId)) return false;
+        provider is IMcpLocalChatProvider mcp && mcp.MatchesAccountEpoch(snapshot)) return false;
     ErrorMessage = localization.Localize(UiMessageKey.NativeDotnetChatConversationLocalChatUnavailable);
     State = LoadState.Error;
     return true;
@@ -64,7 +67,7 @@ public sealed partial class ChatConversationViewModel
               pending.Provider.ModelProvider == provider.ModelProvider
             : SameProviderIdentity(pending.Provider, provider)) &&
         (pending.McpSnapshot is null || localProvider is IMcpLocalChatProvider mcp &&
-            mcp.MatchesAccount(pending.McpSnapshot.AccountId)))
+            mcp.MatchesAccountEpoch(pending.McpSnapshot)))
     {
       return pending;
     }
@@ -77,6 +80,9 @@ public sealed partial class ChatConversationViewModel
     if (blockedToolRetryText is not null &&
         !string.Equals(text?.Trim(), blockedToolRetryText, StringComparison.Ordinal))
       blockedToolRetryText = null;
+    if (retainedWindowsToolResult is { } retained &&
+        !string.Equals(text?.Trim(), retained.RequestText, StringComparison.Ordinal))
+      SetRetainedWindowsToolResult(null);
     if (pendingLocalTurn is { McpSnapshot: null } pending &&
         !string.Equals(text?.Trim(), pending.Body.Message, StringComparison.Ordinal))
     {

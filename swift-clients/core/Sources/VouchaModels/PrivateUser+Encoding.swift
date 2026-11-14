@@ -59,10 +59,10 @@ public extension PrivateUser {
         object["github_account"] = githubAccount.map { Self.encodedOAuthAccount($0) }
         object["linkedin_account"] = linkedinAccount.map { Self.encodedOAuthAccount($0) }
         object["microsoft_account"] = microsoftAccount.map { Self.encodedOAuthAccount($0) }
+        object["google_account"] = googleAccount.map { Self.encodedOAuthAccount($0) }
         object["processing_restricted_at"] = processingRestrictedAt
             .map { .string(ISO8601DateFormatter().string(from: $0)) }
         object["third_party_marketing"] = thirdPartyMarketing.map { .bool($0) }
-        object["hn_discussions"] = hnDiscussions.map { .bool($0) }
         object["country"] = country.map { .string($0) }
         object["ui_locale"] = uiLocale.map { .string($0) }
     }

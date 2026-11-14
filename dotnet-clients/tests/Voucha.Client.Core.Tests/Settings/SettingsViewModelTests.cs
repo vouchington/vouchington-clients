@@ -36,7 +36,8 @@ public sealed partial class SettingsViewModelTests
     Assert.Equal(3, viewModel.MembershipPlanOptions.Count);
     Assert.Single(viewModel.PushSubscriptions);
     Assert.Equal(13, viewModel.PrivacySelections.Count);
-    Assert.Equal(3, viewModel.PrivacyToggles.Count);
+    Assert.Equal(new[] { "processing_restricted_at", "third_party_marketing" },
+        viewModel.PrivacyToggles.Select(toggle => toggle.Key));
     Assert.Equal("en", viewModel.PrivacySelections.Single(item => item.Key == "ui_locale").Value);
     Assert.False(viewModel.IsLoading);
     Assert.Null(viewModel.ErrorMessage);

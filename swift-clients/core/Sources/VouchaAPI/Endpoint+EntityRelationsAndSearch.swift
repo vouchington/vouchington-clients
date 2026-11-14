@@ -23,6 +23,12 @@ private struct EntityRelationCreateBody: Encodable {
 }
 
 public extension Endpoint {
+    /// Lists enabled referral programs by all-time active link count. The server rejects `sort=link_count`
+    /// combined with text search or other topic filters, so none are exposed here.
+    static func referralProgramsByLinkCount(limit: Int = 25, after: String? = nil) -> Endpoint {
+        topics(limit: limit, sort: "link_count", after: after)
+    }
+
     static func topics(
         query: String? = nil,
         limit: Int = 25,
@@ -54,13 +60,21 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/topics", queryItems: items)
     }
 
-    static func posts(query: String? = nil, limit: Int = 25, after: String? = nil) -> Endpoint {
+    static func posts(
+        query: String? = nil,
+        limit: Int = 25,
+        after: String? = nil,
+        timeRange: String? = "1m"
+    ) -> Endpoint {
         var items: [URLQueryItem] = [
             .init(name: "limit", value: "\(limit)"),
             .init(name: "sort", value: "relevance")
         ]
         if let query {
             items.append(.init(name: "q", value: query))
+        }
+        if let timeRange {
+            items.append(.init(name: "time_range", value: timeRange))
         }
         if let after {
             items.append(.init(name: "after", value: after))

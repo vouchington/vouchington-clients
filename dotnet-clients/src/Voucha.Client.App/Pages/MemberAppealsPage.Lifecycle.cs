@@ -6,7 +6,7 @@ namespace Voucha.Client.App.Pages;
 
 public sealed partial class MemberAppealsPage
 {
-  private static View AppealCard(ModerationAppeal appeal)
+  private static View AppealCard(ModerationAppealSummary appeal)
   {
     var content = new VerticalStackLayout
     {
@@ -73,7 +73,7 @@ public sealed partial class MemberAppealsPage
 
   private static void AddLifecycle(
       VerticalStackLayout content,
-      ModerationAppeal appeal,
+      ModerationAppealSummary appeal,
       UiMessageKey key,
       DateTimeOffset? timestamp,
       string id)
@@ -115,7 +115,7 @@ public sealed partial class MemberAppealsPage
         : UiText.ProtocolValue(target.TargetType.ToString());
   }
 
-  private static UiText MemberTargetText(ModerationAppeal appeal) =>
+  private static UiText MemberTargetText(ModerationAppealSummary appeal) =>
       appeal.TargetContext switch
       {
         ModerationAppealWarningContext warning =>
@@ -141,7 +141,7 @@ public sealed partial class MemberAppealsPage
     return value is null ? null : UiText.UserContent(value);
   }
 
-  private static UiText MemberTargetFallback(ModerationAppeal appeal)
+  private static UiText MemberTargetFallback(ModerationAppealSummary appeal)
   {
     if (appeal.UserWarningId is { } warningId)
       return TargetFallback(UiMessageKey.NativeSwiftModerationAppealsWarningTarget, warningId);

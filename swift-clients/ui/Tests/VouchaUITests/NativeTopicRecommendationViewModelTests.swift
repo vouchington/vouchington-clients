@@ -42,7 +42,7 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
     }
 
     func testCreateSubmitsTopicRecommendation() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/topic-recommendations"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts"] = (
             Data(#"{"post":{"id":"topic-rec-1"}}"#.utf8),
             201
         )
@@ -54,7 +54,15 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
 
         await viewModel.submit()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/topic-recommendations")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/posts")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.first, "POST")
+        let body = try XCTUnwrap(CannedFeedURLProtocol.capturedBodies.first ?? nil)
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
+        XCTAssertEqual(fields["post_type"] as? String, "topic_recommendation")
+        XCTAssertEqual(fields["topic_slug"] as? String, "native-topic")
+        XCTAssertEqual(fields["topic_title"] as? String, "Native Topic")
+        XCTAssertEqual(fields["markdown"] as? String, "Please add this topic.")
+        XCTAssertEqual(fields["cf_turnstile_response"] as? String, "token")
         XCTAssertEqual(viewModel.savedPostId, "topic-rec-1")
         XCTAssertEqual(viewModel.topicTitle, "")
     }
@@ -91,7 +99,7 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
 
     func testEditLoadsDefaultsAndPatchesRecommendation() async throws {
         CannedFeedURLProtocol.handlers = [
-            "/api/v1/topic-recommendations/recommendation-1": (
+            "/api/v1/posts/recommendation-1": (
                 ApiFixtureLoader.data("native.topic-recommendation.detail.default"),
                 200
             )
@@ -119,13 +127,19 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
         CannedFeedURLProtocol.capturedURLs = []
         await viewModel.submit()
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/topic-recommendations/recommendation-1")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/posts/recommendation-1")
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.first, "PATCH")
+        let body = try XCTUnwrap(CannedFeedURLProtocol.capturedBodies.first ?? nil)
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
+        XCTAssertNil(fields["post_type"])
+        XCTAssertNil(fields["cf_turnstile_response"])
+        XCTAssertEqual(fields["topic_slug"] as? String, "native-topic")
         XCTAssertEqual(viewModel.savedPostId, "recommendation-1")
     }
 
     func testVoteIgnoresConcurrentMutationWhileRequestIsInFlight() async throws {
         CannedFeedURLProtocol.handlers = [
-            "/api/v1/topic-recommendations/recommendation-1": (
+            "/api/v1/posts/recommendation-1": (
                 ApiFixtureLoader.data("native.topic-recommendation.detail.default"),
                 200
             )
@@ -165,7 +179,7 @@ final class NativeTopicRecommendationViewModelTests: NativeRouteSurfaceViewModel
     }
 
     func testPublicDetailRendersRecommendationBallotWithoutEditorOrSaveAction() async throws {
-        CannedFeedURLProtocol.handlers["/api/v1/topic-recommendations/recommendation-1"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/posts/recommendation-1"] = (
             ApiFixtureLoader.data("native.topic-recommendation.detail.default"),
             200
         )

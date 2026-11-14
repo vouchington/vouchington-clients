@@ -1,7 +1,8 @@
 import Foundation
 
 public enum ScopeAudience: String, Codable, Sendable {
-    case user, api, admin
+    case user, api, admin, brand, legal
+    case communityModeration = "community_moderation"
 }
 
 public enum ScopeAction: String, Codable, Sendable {
@@ -49,6 +50,18 @@ public struct CredentialScope: Codable, Identifiable, Sendable {
         self.surfaces = surfaces
     }
 
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        scope = try container.decode(String.self, forKey: .scope)
+        resource = try container.decode(String.self, forKey: .resource)
+        action = try container.decode(ScopeAction.self, forKey: .action)
+        audience = try container.decode(ScopeAudience.self, forKey: .audience)
+        requires = try container.decodeIfPresent(String.self, forKey: .requires)
+        let description = try container.decodeIfPresent(String.self, forKey: .descriptionKey)
+        descriptionKey = description.flatMap(ScopeDescriptionKey.init(rawValue:))
+        surfaces = try container.decode([ScopeSurface].self, forKey: .surfaces)
+    }
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(scope, forKey: .scope)
@@ -65,8 +78,16 @@ public struct CredentialScope: Codable, Identifiable, Sendable {
     }
 }
 
+public struct ScopeAudiencePolicy: Codable, Sendable {
+    public let audience: ScopeAudience
+    public let acceptsApiKeys: Bool
+    public let requiresAdministrator: Bool
+    public let requiresModerationStaff: Bool
+}
+
 public struct ScopeCatalogResponse: Codable, Sendable {
     public let scopes: [CredentialScope]
+    public let audiences: [ScopeAudiencePolicy]
 }
 
 public struct OAuthGrantClient: Codable, Sendable {
@@ -83,6 +104,8 @@ public struct OAuthGrant: Codable, Identifiable, Sendable {
     public let scopes: [String]
     public let consentedAt: Date
     public let lastUsedAt: Date?
+    public let sessionId: String?
+    public let attestationStatus: String?
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -92,9 +115,11 @@ public struct OAuthGrant: Codable, Identifiable, Sendable {
         try container.encode(scopes, forKey: .scopes)
         try container.encode(consentedAt, forKey: .consentedAt)
         try container.encode(lastUsedAt, forKey: .lastUsedAt)
+        try container.encode(sessionId, forKey: .sessionId)
+        try container.encode(attestationStatus, forKey: .attestationStatus)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, client, resource, scopes, consentedAt, lastUsedAt
+        case id, client, resource, scopes, consentedAt, lastUsedAt, sessionId, attestationStatus
     }
 }

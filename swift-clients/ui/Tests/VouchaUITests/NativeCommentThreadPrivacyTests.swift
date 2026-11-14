@@ -7,7 +7,7 @@ import XCTest
 
 @MainActor
 final class NativeCommentThreadPrivacyTests: XCTestCase {
-    func testRejectedThreadCannotQuoteHiddenBodyOrSearchItsUrls() throws {
+    func testRejectedThreadCannotQuoteHiddenBody() throws {
         let post = Post(
             id: "root-1",
             slug: nil,
@@ -63,7 +63,6 @@ final class NativeCommentThreadPrivacyTests: XCTestCase {
         XCTAssertEqual(surface.quoteMarkdown(post), "")
         surface.startReply(post: post, quote: true)
         XCTAssertNil(surface.composer)
-        XCTAssertThrowsError(try surface.inspect().find(HnDiscussionsPanel.self))
 
         var staffSurface = NativeCommentThreadSurface(
             client: nil,
@@ -75,6 +74,5 @@ final class NativeCommentThreadPrivacyTests: XCTestCase {
         )
         staffSurface.viewModel.rootPost = post
         XCTAssertTrue(staffSurface.quoteMarkdown(post).contains("hidden-story"))
-        XCTAssertNoThrow(try staffSurface.inspect().find(HnDiscussionsPanel.self))
     }
 }

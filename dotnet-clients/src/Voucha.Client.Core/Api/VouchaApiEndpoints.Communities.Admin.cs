@@ -16,8 +16,14 @@ public static partial class VouchaApiEndpoints
         Body = new ResolveCommunityModerationReportBody(status),
       };
 
-  public static ApiRequest CommunityModerationResults(string idOrSlug, string postId) =>
-      Get($"/api/v1/communities/{Path(idOrSlug)}/posts/{Path(postId)}/moderation-results");
+  public static ApiRequest CommunityModerationResults(
+      string idOrSlug,
+      string postId,
+      string? after = null,
+      int? limit = null) =>
+      Get(
+          $"/api/v1/communities/{Path(idOrSlug)}/posts/{Path(postId)}/moderation-results",
+          Query(("after", after), ("limit", limit)));
 
   public static ApiRequest ConfirmCommunityBanEvasion(string idOrSlug, string userId) =>
       new(HttpMethod.Post, $"/api/v1/communities/{Path(idOrSlug)}/ban-evasion/{Path(userId)}");

@@ -11,13 +11,13 @@ public sealed partial class SpendingCategoriesViewModel
     ArgumentNullException.ThrowIfNull(row); if (IsCreating) return;
     if (!CreateDraft.TryBuildCreate(row.Value.Id, out var body)) { SetError(UiText.Localized(UiMessageKey.ExtractedMySpendingCategoriesManagerPleaseEnterAvalidAmount010f1dd6)); return; }
     IsCreating = true; SetError(null);
-    try { var created = await service.CreateAsync(body!, token).ConfigureAwait(true); TrackLocalUpsert(created); pendingDeletions.Remove(created.Id); Replace([.. values, created]); CreateDraft = new(localization.Culture); Notify(nameof(CreateDraft)); SearchQuery = string.Empty; }
+    try { var created = await service.CreateAsync(body!, token).ConfigureAwait(true); TrackLocalUpsert(created); pendingDeletions.Remove(created.Id); Replace([.. values, created]); CreateDraft = new(localization.Culture); OnPropertyChanged(nameof(CreateDraft)); SearchQuery = string.Empty; }
     catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     catch (Exception error) { Fail(error); }
     finally { IsCreating = false; }
   }
-  public void BeginEdit(SpendingCategoryRow row) { ArgumentNullException.ThrowIfNull(row); if (!row.CanManage) return; EditDraft = new(row.Value, localization.Culture); Notify(nameof(HasEditDraft)); }
-  public void CancelEdit() { EditDraft = null; Notify(nameof(HasEditDraft)); }
+  public void BeginEdit(SpendingCategoryRow row) { ArgumentNullException.ThrowIfNull(row); if (!row.CanManage) return; EditDraft = new(row.Value, localization.Culture); OnPropertyChanged(nameof(HasEditDraft)); }
+  public void CancelEdit() { EditDraft = null; OnPropertyChanged(nameof(HasEditDraft)); }
   [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Update failures preserve drafts.")]
   public async Task SaveAsync(CancellationToken token = default)
   {

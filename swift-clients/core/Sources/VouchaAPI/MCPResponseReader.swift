@@ -1,28 +1,32 @@
 import Foundation
 import VouchaModels
 
-struct MCPRPCReply<Result: Decodable & Sendable>: Decodable {
-    struct RPCError: Decodable {
-        let code: Int
-        let message: String
-    }
-
-    let jsonrpc: String
-    let id: String?
-    let method: String?
-    let result: Result?
-    let error: RPCError?
+protocol MCPResponseValue: Sendable {
+    static func decodeMCPResponse(_ value: DecodedJSONValue) throws -> Self
 }
 
-struct MCPInitializationResult: Decodable {
+extension DecodedJSONValue: MCPResponseValue {
+    static func decodeMCPResponse(_ value: DecodedJSONValue) throws -> DecodedJSONValue {
+        value
+    }
+}
+
+struct MCPInitializationResult: MCPResponseValue {
     let protocolVersion: String
+
+    static func decodeMCPResponse(_ value: DecodedJSONValue) throws -> Self {
+        guard case let .object(fields) = value, case let .string(version)? = fields["protocolVersion"] else {
+            throw MemberMCPClient.Failure.invalidResponse
+        }
+        return Self(protocolVersion: version)
+    }
 }
 
 enum MCPResponseReader {
     /// The producer permits a 1 MiB result; leave room for its JSON-RPC wrapper.
     private static let maximumBodyBytes = 1_100_000
 
-    static func read<Result: Decodable & Sendable>(
+    static func read<Result: MCPResponseValue>(
         _ lines: AsyncThrowingStream<String, Error>, contentType: String?, id: String,
         sendServerReply: @escaping @Sendable (Data) async throws -> Void
     ) async throws -> Result {
@@ -40,7 +44,7 @@ enum MCPResponseReader {
         }
     }
 
-    private static func readJSON<Result: Decodable & Sendable>(
+    private static func readJSON<Result: MCPResponseValue>(
         _ lines: AsyncThrowingStream<String, Error>, id: String
     ) async throws -> Result {
         var body = ""
@@ -56,7 +60,7 @@ enum MCPResponseReader {
         return result
     }
 
-    private static func readSSE<Result: Decodable & Sendable>(
+    private static func readSSE<Result: MCPResponseValue>(
         _ lines: AsyncThrowingStream<String, Error>, id: String,
         sendServerReply: @escaping @Sendable (Data) async throws -> Void
     ) async throws -> Result {
@@ -87,26 +91,71 @@ enum MCPResponseReader {
         throw MemberMCPClient.Failure.invalidResponse
     }
 
-    private static func eventResult<Result: Decodable & Sendable>(
+    private static func eventResult<Result: MCPResponseValue>(
         _ data: Data, id: String, send: @escaping @Sendable (Data) async throws -> Void
     ) async throws -> Result? {
         if try await replyToServerRequest(data, send: send) { return nil }
         return try decode(data, id: id, allowUnmatched: true)
     }
 
-    private static func decode<Result: Decodable & Sendable>(
+    private static func decode<Result: MCPResponseValue>(
         _ data: Data, id: String, allowUnmatched: Bool
     ) throws -> Result? {
-        guard let reply = try? JSONDecoder().decode(MCPRPCReply<DecodedJSONValue>.self, from: data),
-              reply.jsonrpc == "2.0" else { throw MemberMCPClient.Failure.invalidResponse }
-        try MCPJSONMemberGuard.validate(data)
-        if allowUnmatched, reply.method != nil || reply.id != id { return nil }
-        guard reply.method == nil, reply.id == id else { throw MemberMCPClient.Failure.invalidResponse }
-        if let error = reply.error { throw MemberMCPClient.Failure.rpc(code: error.code, message: error.message) }
-        guard let payload = reply.result,
-              let encoded = try? JSONEncoder().encode(payload),
-              let result = try? JSONDecoder().decode(Result.self, from: encoded)
-        else { throw MemberMCPClient.Failure.invalidResponse }
-        return result
+        guard case let .object(reply) = try exactJSON(data),
+              case .string("2.0")? = reply["jsonrpc"] else {
+            throw MemberMCPClient.Failure.invalidResponse
+        }
+        let method = try optionalStringField("method", in: reply)
+        let replyID = try optionalStringField("id", in: reply)
+        guard matchesRequest(method: method, replyID: replyID, requestID: id, allowUnmatched: allowUnmatched) else {
+            return nil
+        }
+        try throwIfRPCError(in: reply)
+        guard let payload = reply["result"] else { throw MemberMCPClient.Failure.invalidResponse }
+        if case .null = payload { throw MemberMCPClient.Failure.invalidResponse }
+        return try Result.decodeMCPResponse(payload)
+    }
+
+    private static func optionalStringField(_ key: String, in object: DecodedJSONObject) throws -> String? {
+        guard let value = object[key] else { return nil }
+        return switch value {
+        case let .string(string): string
+        case .null: nil
+        default: throw MemberMCPClient.Failure.invalidResponse
+        }
+    }
+
+    private static func matchesRequest(
+        method: String?, replyID: String?, requestID: String, allowUnmatched: Bool
+    ) -> Bool {
+        if allowUnmatched, method != nil || replyID != requestID { return false }
+        return method == nil && replyID == requestID
+    }
+
+    private static func throwIfRPCError(in reply: DecodedJSONObject) throws {
+        guard let error = reply["error"] else { return }
+        if case .null = error { return }
+        try throwRPCError(error)
+    }
+
+    private static func throwRPCError(_ error: DecodedJSONValue) throws {
+        guard let encoded = try? error.exactJSONData(),
+              let rpcError = try? JSONDecoder().decode(RPCError.self, from: encoded) else {
+            throw MemberMCPClient.Failure.invalidResponse
+        }
+        throw MemberMCPClient.Failure.rpc(code: rpcError.code, message: rpcError.message)
+    }
+
+    private struct RPCError: Decodable { let code: Int
+        let message: String
+    }
+
+    static func exactJSON(_ data: Data) throws -> DecodedJSONValue {
+        guard data.count <= maximumBodyBytes else { throw MemberMCPClient.Failure.invalidResponse }
+        do {
+            let value = try DecodedJSONValue(exactJSONData: data)
+            try MCPJSONLosslessNumberGuard.validate(data)
+            return value
+        } catch { throw MemberMCPClient.Failure.invalidResponse }
     }
 }

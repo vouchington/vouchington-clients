@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <VouchaSentryDsn Condition="'$(VouchaSentryDsn)' == ''">$(VOUCHA_SENTRY_DSN)</VouchaSentryDsn>
+    <VouchaSentryDsn>$([System.String]::Copy('$(VouchaSentryDsn)').Trim())</VouchaSentryDsn>
+    <VouchaSentryRelease Condition="'$(VouchaSentryRelease)' == ''">$(VOUCHA_SENTRY_RELEASE)</VouchaSentryRelease>
+    <VouchaSentryRelease>$([System.String]::Copy('$(VouchaSentryRelease)').Trim())</VouchaSentryRelease>
+    <VouchaSentryEnvironment Condition="'$(VouchaSentryEnvironment)' == ''">$(VOUCHA_SENTRY_ENVIRONMENT)</VouchaSentryEnvironment>
+    <VouchaSentryEnvironment>$([System.String]::Copy('$(VouchaSentryEnvironment)').Trim())</VouchaSentryEnvironment>
+  </PropertyGroup>
+</Project>

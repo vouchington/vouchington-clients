@@ -7,16 +7,28 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed partial class VouchaApiEndpointParityTests
 {
   [Fact]
+  public void EmailAddressVerificationEndpointsIncludeReauthenticationTokenWhenSupplied()
+  {
+    var request = VouchaApiEndpoints.RequestEmailAddressVerification("user@example.com", "reauth-token");
+    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCDEFGH23", "reauth-token");
+
+    using var requestBody = JsonDocument.Parse(JsonSerializer.Serialize(request.Body, VouchaApiJson.Options));
+    using var verifyBody = JsonDocument.Parse(JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
+    Assert.Equal("reauth-token", requestBody.RootElement.GetProperty("re_auth_token").GetString());
+    Assert.Equal("reauth-token", verifyBody.RootElement.GetProperty("re_auth_token").GetString());
+  }
+
+  [Fact]
   public void EmailAddressVerificationEndpointsPreserveWireContract()
   {
     var request = VouchaApiEndpoints.RequestEmailAddressVerification(" User@Example.com ");
-    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCD1234");
+    var verify = VouchaApiEndpoints.VerifyEmailAddress("user@example.com", "ABCDEFGH23");
 
     Assert.Equal(HttpMethod.Post, request.Method);
     Assert.Equal("/api/v1/my/email-addresses", request.Path);
     Assert.Equal("{\"email_address\":\" User@Example.com \"}", JsonSerializer.Serialize(request.Body, VouchaApiJson.Options));
     Assert.Equal("/api/v1/my/email-addresses/user%40example.com/verifications", verify.Path);
-    Assert.Equal("{\"token\":\"ABCD1234\"}", JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
+    Assert.Equal("{\"token\":\"ABCDEFGH23\"}", JsonSerializer.Serialize(verify.Body, VouchaApiJson.Options));
   }
 
   [Fact]
@@ -49,8 +61,7 @@ public sealed partial class VouchaApiEndpointParityTests
         DefaultPostPrivacy: "private",
         UiLocale: JsonNullableString.FromString("fr"),
         ProcessingRestrictedAt: true,
-        ThirdPartyMarketing: false,
-        HnDiscussions: true);
+        ThirdPartyMarketing: false);
 
     var json = JsonSerializer.Serialize(body, VouchaApiJson.Options);
 
@@ -69,6 +80,5 @@ public sealed partial class VouchaApiEndpointParityTests
     Assert.Contains("\"ui_locale\":\"fr\"", json, StringComparison.Ordinal);
     Assert.Contains("\"processing_restricted_at\":true", json, StringComparison.Ordinal);
     Assert.Contains("\"third_party_marketing\":false", json, StringComparison.Ordinal);
-    Assert.Contains("\"hn_discussions\":true", json, StringComparison.Ordinal);
   }
 }

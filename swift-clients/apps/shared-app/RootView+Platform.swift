@@ -11,6 +11,15 @@ extension RootView {
         #endif
     }
 
+    /// NavigationSplitView replaces its own accessibility identifier, so the root-shell
+    /// marker has to live on a descendant XCTest can see.
+    private var rootShellLaunchMarker: some View {
+        Image(systemName: "circle")
+            .frame(width: 1, height: 1)
+            .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
+            .allowsHitTesting(false)
+    }
+
     #if os(macOS)
         var macOSBody: some View {
             RootSplitView(
@@ -63,11 +72,13 @@ extension RootView {
                     initialEmail: signInLinkEmail,
                     initialCode: signInLinkCode,
                     initialOAuthMFAAttemptId: currentNativeOAuthMFAAttemptId,
+                    initialTurnstileToken: SignInUITestingLaunch.turnstileToken,
                     onSuccess: {
                         completeSignIn()
                     }
                 )
             }
+            .background(alignment: .topLeading) { rootShellLaunchMarker }
         }
     #endif
 
@@ -90,6 +101,7 @@ extension RootView {
                         showSignIn: { showingSignIn = true }
                     )
                     .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
+                    .background(alignment: .topLeading) { rootShellLaunchMarker }
                 } else if let selectedSection,
                           selectedSection.requiresAuth,
                           !viewModelFactory.sessionManager.isSignedIn {
@@ -110,6 +122,7 @@ extension RootView {
                                 showingSignIn = true
                             }
                             .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier(Self.signedOutSignInAccessibilityIdentifier)
                         }
                     }
                     .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
@@ -176,6 +189,7 @@ extension RootView {
                     initialEmail: signInLinkEmail,
                     initialCode: signInLinkCode,
                     initialOAuthMFAAttemptId: currentNativeOAuthMFAAttemptId,
+                    initialTurnstileToken: SignInUITestingLaunch.turnstileToken,
                     onSuccess: {
                         completeSignIn()
                     }

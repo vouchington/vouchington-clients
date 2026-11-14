@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text.Json;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
 using Voucha.Client.App.Controls;
@@ -6,6 +7,7 @@ using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Moderation;
+using Voucha.Client.Core.Tests.Api;
 using Voucha.Client.Core.Tests.Moderation;
 using Xunit;
 
@@ -30,9 +32,9 @@ public sealed class ReviewQueuePageTests
     Assert.Equal(2, Assert.IsAssignableFrom<IEnumerable>(collection.ItemsSource).Cast<ReviewQueueRow>().Count());
     Assert.Equal("Rendered review title", Find<Label>(rejected, "review-queue-row-title").Text);
     Assert.Equal("Rendered preview", Find<Label>(rejected, "review-queue-row-preview").Text);
-    Assert.Equal("Author: author-1", Find<Label>(rejected, "review-queue-row-author").Text);
+    Assert.Equal("Author: Target unavailable", Find<Label>(rejected, "review-queue-row-author").Text);
     Assert.Equal("Post type: discussion", Find<Label>(rejected, "review-queue-row-post-type").Text);
-    Assert.Equal("Root thread: article · root-slug · root-1", Find<Label>(rejected, "review-queue-row-root").Text);
+    Assert.Equal("Root thread: article · root-slug", Find<Label>(rejected, "review-queue-row-root").Text);
     Assert.True(Find<Button>(rejected, "review-queue-approve").IsEnabled);
     Assert.True(Find<Button>(rejected, "review-queue-reject").IsEnabled);
     Assert.True(Find<Button>(rejected, "review-queue-re-review").IsEnabled);
@@ -128,6 +130,33 @@ public sealed class ReviewQueuePageTests
     Assert.Equal(2, Assert.Single(viewModel.Items).Media.Count);
     Assert.Equal(["post-1"], exposure.RevealedPostIds);
     Assert.True(Find<Button>(revealed, "review-queue-approve").IsEnabled);
+  }
+
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task ProducerMediaStaysGatedThenRendersRevisionBoundPlacementOnConfiguredHost(string imageHost)
+  {
+    var response = JsonSerializer.Deserialize<AdminReviewQueueResponse>(
+        File.ReadAllText(ContractPaths.ApiFixture("responses/native.moderation.review-queue.default.json")),
+        VouchaApiJson.Options)!;
+    var model = new ReviewQueueViewModel(new QueueService(response), new ExposureService(),
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost)));
+    await model.LoadAsync(TestContext.Current.CancellationToken);
+    var item = Assert.Single(model.Items, row => row.Post.MediaReveal.RequiresReveal);
+    var collection = Find<CollectionView>(CreatePage(model), "review-queue-items");
+    var gated = CreateRow(collection, item);
+    Assert.False(Find<VerticalStackLayout>(gated, "review-queue-media").IsVisible);
+    Assert.True(Find<Button>(gated, "review-queue-reveal").IsVisible);
+
+    await model.RevealMediaAsync(item, TestContext.Current.CancellationToken);
+
+    var revealed = CreateRow(collection, model.Items.Single(row => row.Id == item.Id));
+    Assert.True(Find<VerticalStackLayout>(revealed, "review-queue-media").IsVisible);
+    var image = Find<Image>(revealed, "review-queue-media-image");
+    Assert.Equal(new Uri($"{imageHost}/images/placements/019e82f2-a2c0-7000-8000-000000000002/1/019e82f2-a2c0-7000-8000-000000000001?w=960"),
+        Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.Equal("Flagged attachment", Find<Label>(revealed, "review-queue-media-caption").Text);
   }
 
   [Fact]
@@ -281,7 +310,8 @@ public sealed class ReviewQueuePageTests
           AdminModerationDisposition.Review,
           new AdminModerationEvidenceSummary(1, 2),
           ["provider_flagged"]),
-      media ?? new(false, []));
+      media ?? new(false, []),
+      PostLabel: title);
 
   private sealed class BlockingLoadService : ReviewQueueModerationServiceStub
   {

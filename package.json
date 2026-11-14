@@ -16,10 +16,10 @@
   "type": "module",
   "scripts": {
     "clean": "./dev/clean",
-    "contracts:check": "node scripts/contracts.mjs check",
-    "contracts:sync": "node scripts/contracts.mjs sync",
-    "coverage:dotnet-core": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --require-artifact lcov.info --fail-on-empty --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
-    "coverage:dotnet-core:local": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --advisory --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
+    "contracts:check": "node scripts/contracts-pull.mjs --check",
+    "contracts:pull": "node scripts/contracts-pull.mjs",
+    "coverage:dotnet-core": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --require-artifact lcov.info --fail-on-empty --strip-prefix \"$PWD/\" --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
+    "coverage:dotnet-core:local": "coverage-check check --rules .coverage-rules.yml --artifacts dotnet-clients/TestResults/core --advisory --strip-prefix \"$PWD/\" --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "coverage:swift": "node scripts/swift-coverage.mjs",
     "coverage:swift:local": "coverage-check check --rules .coverage-rules.yml --artifacts coverage --aggregate-artifacts --advisory --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "lint": "pnpm run lint:portable && pnpm run lint:gitleaks && pnpm run lint:swift && pnpm run lint:dotnet",
@@ -38,7 +38,7 @@
     "lint:shell": "git ls-files -z '*.sh' 'dev/*' | xargs -0 mise exec -- shellcheck",
     "lint:swift": "bash swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests",
     "pr:shepherd": "pr-shepherd",
-    "prepare": "husky",
+    "prepare": "node scripts/prepare-hooks.mjs",
     "quality:check": "pnpm run lint",
     "test:plan:dotnet": "no-mistakes tests plan dotnet --format commands --lock-timeout 300",
     "test:plan:swift": "no-mistakes tests plan swift --format commands --lock-timeout 300",
@@ -47,16 +47,15 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.45.2",
-    "auto-harness-client": "0.8.1",
     "coverage-check": "0.17.0",
     "dependency-cruiser": "18.2.0",
     "husky": "9.1.7",
     "knip": "6.32.3",
-    "no-mistakes": "0.53.2",
+    "no-mistakes": "0.94.0",
     "oxfmt": "0.67.0",
     "oxlint": "1.80.0",
-    "pr-shepherd": "0.56.5",
-    "vouchington-tooling": "0.46.0"
+    "pr-shepherd": "1.0.0",
+    "vouchington-tooling": "0.48.0"
   },
   "engines": {
     "node": ">=26.0.0"

@@ -74,12 +74,15 @@ extension MemberAppealsViewModel {
     private func loadMoreAppeals(
         _ client: APIClient,
         status: ModerationAppealStatus,
-        pagination keyPath: ReferenceWritableKeyPath<MemberAppealsViewModel, CursorPaginationState<ModerationAppeal>>
+        pagination keyPath: ReferenceWritableKeyPath<
+            MemberAppealsViewModel,
+            CursorPaginationState<ModerationAppealReadProjection>
+        >
     ) async {
         guard let request = self[keyPath: keyPath].beginNextPage() else { return }
         loadMoreErrorMessage = nil
         do {
-            let response: ModerationAppealListResponse = try await client.send(
+            let response: MemberAppealListResponse = try await client.send(
                 .appeals(status: status, limit: 25, after: request.cursor, mine: true)
             )
             self[keyPath: keyPath].complete(

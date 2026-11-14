@@ -38,6 +38,8 @@ public struct VouchaNotification: Codable, Identifiable, Sendable {
     @RequiredNullable
     public var communityId: String?
     @RequiredNullable
+    public var householdId: String?
+    @RequiredNullable
     public var conversationId: String?
     @RequiredNullable
     public var moderationReportId: String?
@@ -67,7 +69,7 @@ public struct VouchaNotification: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case recordEntityType = "__entityType"
-        case id, userId, entityType, postId, rssFeedItemId, actorUserId, communityId
+        case id, userId, entityType, postId, rssFeedItemId, actorUserId, communityId, householdId
         case conversationId, moderationReportId, reviewDisputeId, userWarningId, copyrightNoticeId, actorLabel
         case eventKey, title, body, targetPath, targetEntity, targetIntent, readAt, createdAt, updatedAt, pushedAt
     }

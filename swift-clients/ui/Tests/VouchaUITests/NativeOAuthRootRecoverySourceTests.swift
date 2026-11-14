@@ -24,6 +24,14 @@ final class NativeOAuthRootRecoverySourceTests: XCTestCase {
         XCTAssertFalse(macOSAppSource.contains(".task {"))
     }
 
+    func testRootDiscardsConfirmationResultsWithoutALiveOwner() throws {
+        let source = try repoSource("swift-clients/apps/shared-app/RootView+OAuth.swift")
+        XCTAssertTrue(source.contains("case .confirmationReady, .expired(_, .reauthenticate):"))
+        XCTAssertTrue(source.contains(
+            "viewModelFactory.nativeOAuthAuthorizationCoordinator.discardFreshConfirmationWithoutOwner()"
+        ))
+    }
+
     func testHandledCallbackRoutesPendingPurposeToRecoverySurface() throws {
         let source = try repoSource("swift-clients/apps/shared-app/RootView+Bluesky.swift")
 
@@ -47,7 +55,9 @@ final class NativeOAuthRootRecoverySourceTests: XCTestCase {
         )
 
         XCTAssertTrue(factorySource.contains(#"hasPrefix("--ui-testing-")"#))
-        XCTAssertTrue(isolatedSource.contains("HTTPCookieStorage()"))
+        XCTAssertTrue(isolatedSource.contains("URLSessionConfiguration.ephemeral"))
+        XCTAssertTrue(isolatedSource.contains("sessionConfiguration.httpCookieStorage"))
+        XCTAssertTrue(isolatedSource.contains("sessionConfiguration: sessionConfiguration"))
         XCTAssertTrue(isolatedSource.contains("bootstrapSession: false"))
         XCTAssertTrue(isolatedSource.contains("UITestingOAuthAuthorizationSecureState()"))
         XCTAssertTrue(isolatedSource.contains("UITestingFeatureFlagOverrideStore()"))

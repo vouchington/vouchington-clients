@@ -29,10 +29,16 @@ public struct UserProfileMetrics: Codable, Sendable {
     public let id: String
     public let count: [String: Int]
     public let viewerCount: [String: Int]?
-    public let bookmarkers: [String: Int]?
+    public let countCapped: [String: Bool]?
+    public let privateCount: [String: Int]?
+    public let privateCountCapped: [String: Bool]?
 
     public func visibleCount(_ key: String) -> Int {
         viewerCount?[key] ?? count[key] ?? 0
+    }
+
+    public func isVisibleCountCapped(_ key: String) -> Bool {
+        viewerCount?[key] == nil && countCapped?[key] == true
     }
 }
 
@@ -44,6 +50,7 @@ public struct UserProfilePostFeedResponse: Codable, Sendable {
     public let postElections: [String: PostElection]
     public let electionVotes: [String: PostVote]?
     public let markdownToHtml: [String: String]?
+    public let postHackerNewsReferences: [String: HackerNewsReferences]?
 }
 
 public struct UserProfilePostResult: Codable, Identifiable, Sendable {

@@ -12,6 +12,8 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest CaptchaConfig() => Get("/api/v1/captcha-config");
 
+  public static ApiRequest HackerNewsConfig() => Get("/api/v1/hacker-news-config");
+
   public static ApiRequest FediverseSearch(
       string query,
       string? providers = null,
@@ -22,11 +24,8 @@ public static partial class VouchaApiEndpoints
           "/api/v1/fediverse/search",
           Query(("q", query), ("providers", providers), ("type", type), ("limit", limit), ("after", after)));
 
-  public static ApiRequest TrendingCommunities(string? after = null, int limit = 10) =>
-      Get("/api/v1/trending-communities", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest TrendingReferralPrograms(string? after = null, int limit = 10) =>
-      Get("/api/v1/trending-referral-programs", Query(("limit", limit), ("after", after)));
+  public static ApiRequest ReferralProgramsByLinkCount(int limit = 25, string? after = null) =>
+      Get("/api/v1/topics", Query(("sort", "link_count"), ("limit", limit), ("after", after)));
 
   public static ApiRequest ReferralLinksFeed(string feedType, string? after = null, int limit = 25) =>
       Get($"/api/v1/feeds/referral_links/{Path(feedType)}", Query(("limit", limit), ("after", after)));
@@ -49,10 +48,7 @@ public static partial class VouchaApiEndpoints
               ("rss_feed", Bool(rssFeed))));
 
   public static ApiRequest TopicRecommendations(string? after = null, int limit = 25) =>
-      Get("/api/v1/topic-recommendations", Query(("limit", limit), ("after", after)));
-
-  public static ApiRequest TopicRecommendation(string recommendationId) =>
-      Get($"/api/v1/topic-recommendations/{Path(recommendationId)}");
+      Get("/api/v1/posts", Query(("limit", limit), ("after", after), ("post_types", "topic_recommendation")));
 
   public static ApiRequest TopHashtags(
       string? query = null,
@@ -60,7 +56,7 @@ public static partial class VouchaApiEndpoints
       string? after = null,
       int limit = 25) =>
       Get(
-          "/api/v1/topic-recommendations/top-hashtags",
+          "/api/v1/topics/top-hashtags",
           Query(("limit", limit), ("mapping", MappingValue(mapping)), ("q", query), ("after", after)));
 
   private static string MappingValue(TopHashtagMapping mapping) => mapping switch
@@ -78,6 +74,9 @@ public static partial class VouchaApiEndpoints
 
   public static ApiRequest ReferralLinks(string? after = null, int limit = 25) =>
       Get("/api/v1/referral-links", Query(("limit", limit), ("after", after)));
+
+  public static ApiRequest UserReferralLinks(string userId, string? after = null, int limit = 25) =>
+      Get("/api/v1/referral-links", Query(("limit", limit), ("user_id", userId), ("after", after)));
 
   public static ApiRequest CreateReferralLink(CreateReferralLinkBody body) =>
       new(HttpMethod.Post, "/api/v1/referral-links") { Body = body };

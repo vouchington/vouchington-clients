@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.Core.Api;
 
@@ -11,6 +12,18 @@ public sealed record ApiRequest(HttpMethod Method, string Path)
       new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
   public object? Body { get; init; }
+
+  public bool AllowsBotChallenge { get; init; } = true;
+
+  internal bool IsCoordinatedSessionRotation { get; init; }
+
+  internal bool IsCoordinatedSignOut { get; init; }
+
+  [JsonIgnore]
+  public Func<string, ApiRequest>? ConfirmationFactory { get; init; }
+
+  public ApiRequest ConfirmWith(string? proof, Func<string, ApiRequest> factory, bool required = true) =>
+      required && string.IsNullOrWhiteSpace(proof) ? this with { ConfirmationFactory = factory } : this;
 }
 
 public sealed record SearchCommunitiesRequest(string Query);
@@ -33,7 +46,8 @@ public sealed record FetchRssFeedItemsRequest(
     string FeedType = "any",
     string? MediaType = null,
     string? After = null,
-    int Limit = 20);
+    int Limit = 20,
+    bool? HasHackerNewsReferences = null);
 
 public sealed record FetchReferralLinksFeedRequest(
     string FeedType = "follow_users",
@@ -44,7 +58,7 @@ public sealed record FetchReferralLinksRequest(string? After = null, int Limit =
 
 public sealed record FetchReferralClickLogsRequest(string? After = null, int Limit = 25);
 
-public sealed record FetchTrendingReferralProgramsRequest(string? After = null, int Limit = 10);
+public sealed record FetchReferralProgramsByLinkCountRequest(int Limit = 25, string? After = null);
 
 public sealed record FetchPrioritizedReferralLinksRequest(string ReferralProgramId, bool All = false);
 
@@ -52,7 +66,8 @@ public sealed record FetchPostsFeedRequest(
     string Feed = "any",
     string? After = null,
     int Limit = 20,
-    string? PostTypes = null);
+    string? PostTypes = null,
+    string? TimeRange = PostTimeRanges.LastWeek);
 
 public sealed record EntityRelationsRequest(
     string EntityType,

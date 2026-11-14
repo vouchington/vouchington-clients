@@ -332,7 +332,7 @@ private final class SuspendedMCPService: NativeChatMCPServicing {
     }
 
     func callTool(
-        accountId _: String, name _: String, arguments _: [String: DecodedJSONValue]
+        accountId _: String, name _: String, arguments _: DecodedJSONObject
     ) async throws -> MemberMCPClient.ToolResult {
         toolCalls += 1
         hasToolCallStarted = true

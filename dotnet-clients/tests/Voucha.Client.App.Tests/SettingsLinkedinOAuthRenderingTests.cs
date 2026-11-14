@@ -98,7 +98,7 @@ public sealed class SettingsLinkedinOAuthRenderingTests
         "\"x\":{\"version\":1,\"modes\":{\"native\":false,\"web\":false},\"purposes\":[]}," +
         "\"github\":{\"version\":1,\"modes\":{\"native\":false,\"web\":false},\"purposes\":[]}," + linkedin + "}}";
     return new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(new HttpClient(new JsonHandler(json, includeStartResponse)) { BaseAddress = new Uri("https://api.test") }),
+        new VouchaApiClient(new HttpClient(new JsonHandler(json, includeStartResponse)) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
         new EmptyPersistence(),
         new RecordingBrowser(),
         session,

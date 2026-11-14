@@ -85,7 +85,7 @@ struct NativeGenericListResponse: Decodable {
             feedType: item.rssFeed?.feedType,
             pathname: nil,
             hostname: item.rssFeed?.hostname.map { .object($0.hostname) },
-            url: item.link ?? item.data?.link ?? item.rssFeed?.rssFeedUrl.url,
+            url: item.link ?? item.data?.link ?? item.rssFeed?.rssFeedUrl?.url,
             description: item.rssFeed?.title,
             summary: item.mediaType
         )

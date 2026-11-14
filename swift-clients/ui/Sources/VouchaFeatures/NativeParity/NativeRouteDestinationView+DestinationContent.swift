@@ -10,6 +10,8 @@ extension NativeRouteDestinationSurface {
                 playbackController: playbackController,
                 currentUserId: currentUserId
             )
+        } else if viewModel.topicPostCollection != nil {
+            NativeListSurface(viewModel: viewModel, onNavigateToTargetPath: onNavigateToTargetPath)
         } else {
             switch entry.destinationIdentifier {
             case .signIn:
@@ -18,7 +20,14 @@ extension NativeRouteDestinationSurface {
                 if isOwnerLandingPageManagementRoute {
                     EmptyView()
                 } else {
-                    NativeListSurface(viewModel: viewModel)
+                    VStack {
+                        NativeListSurface(viewModel: viewModel)
+                        if let page = viewModel.publicLandingPage {
+                            NativePublicLandingItemsSurface(
+                                page: page, viewModel: viewModel, onNavigate: onNavigateToTargetPath
+                            )
+                        }
+                    }
                 }
             case .webSearch, .fediverseSearch:
                 NativeSearchSurface(
@@ -43,6 +52,7 @@ extension NativeRouteDestinationSurface {
                     client: moderationReportsClient,
                     isSignedIn: isSignedIn,
                     viewerTier: moderationReportsViewerTier,
+                    currentUserId: currentUserId,
                     onNavigate: onNavigateToTargetPath,
                     showSignIn: showSignIn
                 )
@@ -82,7 +92,9 @@ extension NativeRouteDestinationSurface {
                 )
                 .id(routeMatch?.param("id"))
             case .topicManagement:
-                NativeTopicManagementSurface(client: viewModel.client, routeMatch: viewModel.routeMatch)
+                NativeTopicManagementSurface(
+                    client: viewModel.client, routeMatch: viewModel.routeMatch, accountId: currentUserId
+                )
             case .accountSettings, .profileSettings, .advancedSettings, .notificationSettings:
                 NativeSettingsSurface(
                     viewModel: viewModel,

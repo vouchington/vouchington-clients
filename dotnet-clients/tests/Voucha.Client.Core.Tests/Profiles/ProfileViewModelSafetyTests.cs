@@ -409,7 +409,8 @@ public sealed partial class ProfileViewModelSafetyTests
                 new UserMetricsCount(Reviews: 1, Discussions: 1, Comments: 1),
                 new UserMetricsViewerCount(Reviews: 1, Discussions: 1, Comments: 1))));
 
-    public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new MyIdentityResponse(user));
     public Task<MyIdentityResponse> UpdateMyIdentityAsync(UpdateMyIdentityBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<MyProfileResponse> FetchMyProfileAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<MyProfileResponse> UpdateMyProfileAsync(string markdown, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -475,8 +476,8 @@ public sealed partial class ProfileViewModelSafetyTests
     public Task<LandingPagesResponse> FetchPagesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageAnalyticsResponse> FetchMyLandingPageAnalyticsAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPagesResponse> FetchAdminUserLandingPagesAsync(string userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(string username, string slug, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageDetailResponse> CreateAsync(CreateLandingPageBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<LandingPageDetailResponse> UpdateAsync(string pageId, UpdateLandingPageBody body, CancellationToken cancellationToken = default) => throw new NotSupportedException();

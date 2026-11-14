@@ -110,13 +110,7 @@ public sealed partial class ChatConversationViewModel :
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -128,15 +122,10 @@ public sealed partial class ChatConversationViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-        OnPropertyChanged(nameof(CanSend));
-      }
-    }
+    private set => SetPropertyAndNotify(
+        ref state,
+        value,
+        [nameof(IsLoading), nameof(HasError), nameof(CanSend)]);
   }
 
   public bool HasMoreMessages

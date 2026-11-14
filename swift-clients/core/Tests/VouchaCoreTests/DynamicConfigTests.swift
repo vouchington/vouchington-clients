@@ -24,7 +24,7 @@ final class DynamicConfigTests: XCTestCase {
         )
 
         XCTAssertEqual(typed.namespace.fields.map(\.type), [.boolean, .boolean, .number])
-        XCTAssertEqual(string.namespace.fields.last?.value, .string("off"))
+        XCTAssertEqual(string.namespace.fields.first { $0.name == "request_signing_mode" }?.value, .string("off"))
         XCTAssertEqual(integer.namespace.fields.first?.integer, true)
         XCTAssertEqual(history.history.first?.changedBy?.username, "qa-developer")
     }
@@ -65,9 +65,9 @@ final class DynamicConfigTests: XCTestCase {
         let fileURL = temporaryFileURL()
         let store = FeatureFlagOverrideFileStore(fileURL: fileURL)
         try store.set(false, for: "fediverse")
-        try store.set(true, for: "chat")
-        XCTAssertEqual(store.load(), ["fediverse": false, "chat": true])
-        try store.remove("chat")
+        try store.set(true, for: "memberships")
+        XCTAssertEqual(store.load(), ["fediverse": false, "memberships": true])
+        try store.remove("memberships")
         XCTAssertEqual(store.load(), ["fediverse": false])
         try store.clear()
         XCTAssertEqual(store.load(), [:])

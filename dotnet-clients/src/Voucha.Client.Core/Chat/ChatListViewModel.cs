@@ -45,26 +45,13 @@ public sealed partial class ChatListViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -93,7 +80,7 @@ public sealed partial class ChatListViewModel :
       if (currentRequest != Volatile.Read(ref requestId)) return;
       Append(page.Results.Select(MapConversation));
       cursor = page.PageInfo.EndCursor;
-      HasMore = page.PageInfo.HasNextPage || page.PageInfo.HasMore == true;
+      HasMore = page.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException)

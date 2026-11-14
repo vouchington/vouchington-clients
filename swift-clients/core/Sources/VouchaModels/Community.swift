@@ -114,17 +114,29 @@ public struct CommunityApplicationQuestion: Codable, Identifiable, Sendable {
 }
 
 public struct CommunityApplication: Codable, Identifiable, Sendable {
+    public let entityType: String
     public let id: String
     public let communityId: String
     public let userId: String
     public let answers: [String: DecodedJSONValue]
     public let message: String?
-    public let reviewedAt: Date?
-    public let reviewedById: String?
-    public let approvedAt: Date?
-    public let rejectedAt: Date?
-    public let rejectionReason: String?
+    @RequiredNullable
+    public var reviewedAt: Date?
+    @RequiredNullable
+    public var reviewedById: String?
+    @RequiredNullable
+    public var approvedAt: Date?
+    @RequiredNullable
+    public var rejectedAt: Date?
+    @RequiredNullable
+    public var rejectionReason: String?
     public let createdAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case entityType = "__entityType"
+        case id, communityId, userId, answers, message, reviewedAt, reviewedById
+        case approvedAt, rejectedAt, rejectionReason, createdAt
+    }
 }
 
 public struct CommunityPostReview: Codable, Sendable {

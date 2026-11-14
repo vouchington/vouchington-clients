@@ -12,7 +12,7 @@ public sealed class LandingPagesViewModelAnalyticsTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([Page("page-1", "Landing Page", true)], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
     };
     var viewModel = new Voucha.Client.Core.LandingPages.LandingPagesViewModel(service, canViewAnalytics: false);
 
@@ -29,7 +29,7 @@ public sealed class LandingPagesViewModelAnalyticsTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([Page("page-1", "Landing Page", true)], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
     };
     var viewModel = new Voucha.Client.Core.LandingPages.LandingPagesViewModel(
         service,
@@ -51,8 +51,8 @@ public sealed class LandingPagesViewModelAnalyticsTests
       PagesResponse = new LandingPagesResponse([
           new LandingPage("page-1", "user-1", "Landing Page", null, "landing-page", true, DateTimeOffset.Parse("2026-06-28T10:00:00Z"), DateTimeOffset.Parse("2026-06-28T10:00:00Z")),
         ], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(new LandingPage("page-1", "user-1", "Landing Page", null, "landing-page", true, DateTimeOffset.Parse("2026-06-28T10:00:00Z"), DateTimeOffset.Parse("2026-06-28T10:00:00Z"))),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(new LandingPage("page-1", "user-1", "Landing Page", null, "landing-page", true, DateTimeOffset.Parse("2026-06-28T10:00:00Z"), DateTimeOffset.Parse("2026-06-28T10:00:00Z"))) { ItemLimit = 100 },
       MyLandingPageAnalyticsResponse = new LandingPageAnalyticsResponse(
           new LandingPageAnalytics(
               42,
@@ -84,15 +84,15 @@ public sealed class LandingPagesViewModelAnalyticsTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([firstPage, secondPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(firstPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(firstPage) { ItemLimit = 100 },
       MyLandingPageAnalyticsResponse = new LandingPageAnalyticsResponse(Analytics(42)),
     };
     var viewModel = new Voucha.Client.Core.LandingPages.LandingPagesViewModel(service);
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     await viewModel.LoadSelectedAnalyticsAsync(TestContext.Current.CancellationToken);
-    service.DetailResponse = new LandingPageDetailResponse(secondPage);
+    service.DetailResponse = new LandingPageDetailResponse(secondPage) { ItemLimit = 100 };
 
     await viewModel.SelectPageAsync("page-2", TestContext.Current.CancellationToken);
 
@@ -112,9 +112,9 @@ public sealed class LandingPagesViewModelAnalyticsTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([page], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(page),
-      ReplaceItemsResponse = new LandingPageDetailResponse(updatedPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(page) { ItemLimit = 100 },
+      ReplaceItemsResponse = new LandingPageDetailResponse(updatedPage) { ItemLimit = 100 },
       MyLandingPageAnalyticsResponse = new LandingPageAnalyticsResponse(Analytics(42)),
     };
     var viewModel = new Voucha.Client.Core.LandingPages.LandingPagesViewModel(service);
@@ -143,8 +143,8 @@ public sealed class LandingPagesViewModelAnalyticsTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([firstPage, secondPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(firstPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(firstPage) { ItemLimit = 100 },
       MyLandingPageAnalyticsHandler = (pageId, _) => pageId == "page-1"
           ? firstRequest.Task
           : Task.FromResult(new LandingPageAnalyticsResponse(secondAnalytics)),
@@ -153,7 +153,7 @@ public sealed class LandingPagesViewModelAnalyticsTests
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     var staleLoad = viewModel.LoadSelectedAnalyticsAsync(TestContext.Current.CancellationToken);
-    service.DetailResponse = new LandingPageDetailResponse(secondPage);
+    service.DetailResponse = new LandingPageDetailResponse(secondPage) { ItemLimit = 100 };
     await viewModel.SelectPageAsync("page-2", TestContext.Current.CancellationToken);
     firstRequest.SetResult(new LandingPageAnalyticsResponse(firstAnalytics));
     await staleLoad;

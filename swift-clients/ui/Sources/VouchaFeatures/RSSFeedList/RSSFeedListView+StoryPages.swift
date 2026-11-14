@@ -55,22 +55,26 @@ extension RSSFeedListView {
     }
 
     func rssFeedArticleCard(_ item: RssFeedItem) -> some View {
-        RssFeedItemCard(
-            item: item, variant: .compact,
-            election: viewModel.election(for: item.id), myVote: viewModel.myVotesByItemId[item.id],
-            canCreateVote: canVote,
-            onVote: isSignedIn ? { choice in
-                _ = Task<Void, Never> { await viewModel.vote(rssFeedItemId: item.id, choice: choice) }
-            } : nil,
-            onSignedOutTap: isSignedIn ? nil : showSignIn,
-            isSaved: viewModel.isSaved(rssFeedItemId: item.id), isHidden: viewModel.isHidden(rssFeedItemId: item.id),
-            onToggleSaved: isSignedIn ? {
-                _ = Task<Void, Never> { await viewModel.toggleSave(rssFeedItemId: item.id) }
-            } : nil,
-            onToggleHidden: isSignedIn ? {
-                _ = Task<Void, Never> { await viewModel.toggleHide(rssFeedItemId: item.id) }
-            } : nil,
-            apiBaseURL: viewModel.apiBaseURL
-        )
+        VStack(alignment: .leading) {
+            RssFeedItemCard(
+                item: item, variant: .compact,
+                election: viewModel.election(for: item.id), myVote: viewModel.myVotesByItemId[item.id],
+                canCreateVote: canVote,
+                onVote: isSignedIn ? { choice in
+                    _ = Task<Void, Never> { await viewModel.vote(rssFeedItemId: item.id, choice: choice) }
+                } : nil,
+                onSignedOutTap: isSignedIn ? nil : showSignIn,
+                isSaved: viewModel.isSaved(rssFeedItemId: item.id),
+                isHidden: viewModel.isHidden(rssFeedItemId: item.id),
+                onToggleSaved: isSignedIn ? {
+                    _ = Task<Void, Never> { await viewModel.toggleSave(rssFeedItemId: item.id) }
+                } : nil,
+                onToggleHidden: isSignedIn ? {
+                    _ = Task<Void, Never> { await viewModel.toggleHide(rssFeedItemId: item.id) }
+                } : nil,
+                apiBaseURL: viewModel.apiBaseURL
+            )
+            HackerNewsReferencesView(references: viewModel.hackerNewsReferencesByItemId[item.id])
+        }
     }
 }

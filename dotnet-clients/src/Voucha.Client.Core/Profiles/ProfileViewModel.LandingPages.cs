@@ -18,10 +18,7 @@ public sealed partial class ProfileViewModel
   public bool CanViewAdminLandingPages
   {
     get => canViewAdminLandingPages;
-    private set
-    {
-      if (SetProperty(ref canViewAdminLandingPages, value)) OnPropertyChanged(nameof(CanShowAdminLandingPages));
-    }
+    private set => SetPropertyAndNotify(ref canViewAdminLandingPages, value, nameof(CanShowAdminLandingPages));
   }
 
   public bool CanShowAdminLandingPages => CanViewAdminLandingPages && IsOverviewScope;

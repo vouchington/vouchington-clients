@@ -6,7 +6,7 @@ import VouchaModels
 @MainActor
 extension NativeChatMCPAgentSession {
     public func callTool(
-        name: String, arguments: [String: DecodedJSONValue],
+        name: String, arguments: DecodedJSONObject,
         accountId expectedAccountId: String, revision expectedRevision: Int,
         beforeAdmission: (@MainActor () throws -> Void)? = nil,
         onStarted: (@MainActor () -> Void)? = nil

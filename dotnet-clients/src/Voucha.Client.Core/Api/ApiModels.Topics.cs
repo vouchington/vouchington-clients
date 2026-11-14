@@ -61,13 +61,18 @@ public sealed record TopicAlias(
     [property: JsonPropertyName("topic_id")] string TopicId);
 
 public sealed record TopicMergeResponse(
-    [property: JsonPropertyName("topic")] Topic Topic,
-    [property: JsonPropertyName("topic_merge")] TopicMergeDetails? TopicMerge = null);
+    [property: JsonPropertyName("topic_merge")] TopicMergeDetails TopicMerge);
 
 public sealed record TopicMergeDetails(
+    [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("source_topic_id")] string SourceTopicId,
     [property: JsonPropertyName("destination_topic_id")] string DestinationTopicId,
-    [property: JsonPropertyName("moved_aliases")] IReadOnlyList<string> MovedAliases);
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("stage")] string Stage,
+    [property: JsonPropertyName("error_code")] string? ErrorCode,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("completed_at")] DateTimeOffset? CompletedAt,
+    [property: JsonPropertyName("status_url")] string StatusUrl);
 
 public sealed record TopicAdditionalHostname(
     [property: JsonPropertyName("hostname_id")] string HostnameId,

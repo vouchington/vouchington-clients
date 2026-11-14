@@ -68,16 +68,12 @@ public sealed partial class ModerationReportsPage
         UiMessageKey.NativeDotnetModerationRebasedBanEvasionDetail,
         ("community", context.CommunitySlug),
         ("score", UiCopy.CurrentLocalization.FormatPercent((decimal)context.Score)),
-        ("source", context.SourceUsername ?? context.SourceUserId)));
+        ("source", ModerationLabels.Person(context.SourceDisplayName, context.SourceUsername, UiCopy.CurrentLocalization))));
   }
 
   private static UiText Target(string? label, string entityType, string entityId) =>
-      string.IsNullOrWhiteSpace(label)
-          ? UiText.Localized(
-              UiMessageKey.NativeDotnetModerationRebasedTargetLabel,
-              ("type", entityType),
-              ("id", entityId))
-          : UiText.UserContent(label);
+      UiText.Localized(UiMessageKey.NativeDotnetModerationRebasedTargetLabel,
+          ("type", entityType), ("id", ModerationLabels.Entity(label, UiCopy.CurrentLocalization)));
 
   private static UiText ReportSummary(
       ModerationReportStatus status,

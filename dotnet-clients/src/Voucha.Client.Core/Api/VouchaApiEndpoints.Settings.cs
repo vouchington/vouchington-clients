@@ -10,17 +10,17 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest EmailAddresses(string? after = null, int? limit = null) =>
       Get("/api/v1/my/email-addresses", Query(("limit", limit), ("after", after)));
 
-  public static ApiRequest RequestEmailAddressVerification(string emailAddress) =>
-      new(HttpMethod.Post, "/api/v1/my/email-addresses")
+  public static ApiRequest RequestEmailAddressVerification(string emailAddress, string? reAuthToken = null) =>
+      new ApiRequest(HttpMethod.Post, "/api/v1/my/email-addresses")
       {
-        Body = new RequestEmailAddressVerificationBody(emailAddress),
-      };
+        Body = new RequestEmailAddressVerificationBody(emailAddress, reAuthToken),
+      }.ConfirmWith(reAuthToken, proof => RequestEmailAddressVerification(emailAddress, proof));
 
-  public static ApiRequest VerifyEmailAddress(string emailAddress, string token) =>
-      new(HttpMethod.Post, $"/api/v1/my/email-addresses/{Path(emailAddress)}/verifications")
+  public static ApiRequest VerifyEmailAddress(string emailAddress, string token, string? reAuthToken = null) =>
+      new ApiRequest(HttpMethod.Post, $"/api/v1/my/email-addresses/{Path(emailAddress)}/verifications")
       {
-        Body = new VerifyEmailAddressBody(token),
-      };
+        Body = new VerifyEmailAddressBody(Auth.EmailVerificationCode.RequireValid(token), reAuthToken),
+      }.ConfirmWith(reAuthToken, proof => VerifyEmailAddress(emailAddress, token, proof));
 
   public static ApiRequest UpdateMyIdentity(UpdateMyIdentityBody body) =>
       new(HttpMethod.Patch, "/api/v1/my/identity") { Body = body };

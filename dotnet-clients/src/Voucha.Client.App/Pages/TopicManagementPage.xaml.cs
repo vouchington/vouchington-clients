@@ -3,6 +3,7 @@ using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.Topics;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 using Voucha.Client.Core;
 
 namespace Voucha.Client.App.Pages;
@@ -29,7 +30,8 @@ public partial class TopicManagementPage : ContentPage
       IImageUploadService imageUploadService,
       VouchaApiClient apiClient,
       string? topicIdOrSlug = null,
-      AppConfig? config = null)
+      AppConfig? config = null,
+      Voucha.Client.Core.Auth.ISessionStore? sessionStore = null)
   {
     InitializeComponent();
     this.topicsService = topicsService ?? throw new ArgumentNullException(nameof(topicsService));
@@ -37,12 +39,14 @@ public partial class TopicManagementPage : ContentPage
     this.config = config ?? AppConfig.FromAssembly(typeof(TopicManagementPage).Assembly);
     MarkdownEditor.ApiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
     this.topicIdOrSlug = topicIdOrSlug;
+    InitializeMerge(sessionStore);
     SyncAliasesPaginationControl();
     SyncHostnamesPaginationControl();
   }
 
   protected override void OnDisappearing()
   {
+    if (mergeSessionStore is not null) mergeSessionStore.SessionChanged -= OnMergeSessionChanged;
     logoPreviewGeneration++;
     heroPreviewGeneration++;
     CancelImageUpload(isLogo: true);
@@ -60,6 +64,11 @@ public partial class TopicManagementPage : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
+    if (mergeSessionStore is not null)
+    {
+      mergeViewModel.SetAccount(mergeSessionStore.Current.Identity?.Id);
+      mergeSessionStore.SessionChanged += OnMergeSessionChanged;
+    }
     if (topicIdOrSlug is null) return;
     try
     {
@@ -101,7 +110,7 @@ public partial class TopicManagementPage : ContentPage
     }
     catch (Exception ex)
     {
-      StatusLabel.Text = ex.Message;
+      StatusLabel.Text = ImagePlacementErrors.Message(ex, UiCopy.CurrentLocalization);
     }
     finally
     {
@@ -134,25 +143,13 @@ public partial class TopicManagementPage : ContentPage
     }).ConfigureAwait(true);
   }
 
-  private async void OnMergeClicked(object? sender, EventArgs e)
-  {
-    if (!TryTopicId(out var topicId) || string.IsNullOrWhiteSpace(MergeDestinationEntry.Text)) return;
-    await RunAsync(async () =>
-    {
-      var response = await topicsService.MergeTopicAliasesAsync(topicId, MergeDestinationEntry.Text.Trim()).ConfigureAwait(true);
-      StatusLabel.Text = UiCopy.Format(
-          UiMessageKey.NativeDotnetCsharpStatusMergedInto,
-          ("id", response.Topic.Id));
-    }).ConfigureAwait(true);
-  }
-
   private CreateTopicRequest CreateRequest() =>
       new(
           NameEntry.Text ?? "",
           SlugEntry.Text ?? "",
           TypeEntry.Text ?? "topic",
           MarkdownEditor.Markdown,
-          TrimmedOrNull(HostnameEntry.Text));
+          TrimmedText.NonEmpty(HostnameEntry.Text));
 
   private UpdateTopicBody UpdateBody() =>
       new(
@@ -178,7 +175,4 @@ public partial class TopicManagementPage : ContentPage
       string.IsNullOrWhiteSpace(value)
           ? JsonNullableString.Null
           : JsonNullableString.FromString(value.Trim());
-
-  private static string? TrimmedOrNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -1,5 +1,7 @@
 import ViewInspector
+@testable import VouchaAPI
 @testable import VouchaFeatures
+import VouchaModels
 import XCTest
 
 @MainActor
@@ -22,6 +24,20 @@ final class CommunityDetailActionPanelViewTests: NativeRouteSurfaceViewModelTest
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Remove"))
 
         viewModel.selectedTab = .applications
+        let applications = try JSONDecoder.vouchaFixtureDecoder.decode(
+            CommunityApplicationsResponse.self,
+            from: ApiFixtureLoader.data("web.communities.applications.default")
+        )
+        viewModel.applicationSummaries = applications.communityApplicationSummaries
+        viewModel.applicationUsers = applications.users
+        viewModel.summary.rows = [.init(
+            id: "application-1", icon: "doc.badge.clock", title: .verbatim("Applicant"), detail: .verbatim("Pending")
+        )]
+        XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(text: "testuser"))
+        XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect()
+            .find(text: "I would like to join."))
+        XCTAssertThrowsError(try CommunityWorkspaceSurface(viewModel: viewModel).inspect()
+            .find(text: "Application ID"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Approve"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Reject"))
 
@@ -45,7 +61,7 @@ final class CommunityDetailActionPanelViewTests: NativeRouteSurfaceViewModelTest
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Unpublish"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Escalate"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Ban"))
-        XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Lift ban"))
+        XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Active"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Activate"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Enable"))
         XCTAssertNoThrow(try CommunityWorkspaceSurface(viewModel: viewModel).inspect().find(button: "Create"))

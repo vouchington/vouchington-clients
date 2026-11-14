@@ -60,7 +60,7 @@ public partial class AuthPage : ContentPage
     emailOtpRequestInProgress = true;
     try
     {
-      viewModel.TurnstileToken = await turnstileTokenProvider.GetTokenAsync();
+      viewModel.TurnstileToken = await turnstileTokenProvider.GetTokenAsync("auth.email-address-tokens");
       await viewModel.RequestEmailOtpAsync();
     }
     catch (OperationCanceledException)

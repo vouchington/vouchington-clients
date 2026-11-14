@@ -31,12 +31,13 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         StringComparer.Ordinal);
     var accountedFor = new HashSet<string>(Registry.Keys, StringComparer.Ordinal);
 
-    var unaccounted = new HashSet<string>(consumed, StringComparer.Ordinal);
-    unaccounted.ExceptWith(accountedFor);
+    var unaccounted = ApiFixtureCoveragePolicy.Unregistered(
+        ApiFixtureLoader.DotnetCoreRouteFixtures.Select(entry => new FixtureCoverageCandidate(entry.Id, entry.Pending)),
+        accountedFor);
     Assert.True(
         unaccounted.Count == 0,
         "Route-bearing fixtures consumed by dotnet-core need endpoint coverage: " +
-            string.Join(", ", unaccounted.OrderBy(id => id, StringComparer.Ordinal)));
+            string.Join(", ", unaccounted));
 
     var stale = new HashSet<string>(Registry.Keys, StringComparer.Ordinal);
     stale.ExceptWith(consumed);

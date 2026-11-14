@@ -184,7 +184,7 @@ public sealed class LifecycleScenarioContractTests
     var viewModel = new ModerationAppealsViewModel(
         service,
         new NavigationViewer(true, [viewer ?? "administrator"]));
-    await viewModel.LoadAsync(cancellationToken);
+    await viewModel.LoadWithDetailAsync(cancellationToken);
     var before = Assert.Single(viewModel.Appeals);
     var beforeChangeId = before.LatestLifecycleChangeId;
     service.Current = AppealFrom(input.GetProperty("serverOutcome"), before);
@@ -192,9 +192,11 @@ public sealed class LifecycleScenarioContractTests
     switch (action)
     {
       case "rerun":
+        service.Runs.Enqueue(new ModerationAppealResolutionDraftRunResponse(
+            DateTimeOffset.UtcNow, "change-2", service.RunId, ModerationRunStatus.Succeeded));
         service.Details.Enqueue(service.Current with
         {
-          AiDraftedAt = before.AiDraftedAt!.Value.AddMinutes(1),
+          AiDraftRunId = service.RunId,
         });
         await viewModel.RerunAsync(before, cancellationToken);
         break;
@@ -216,11 +218,13 @@ public sealed class LifecycleScenarioContractTests
     ModerationAppeal current;
     if (action == "deny")
     {
-      Assert.Empty(viewModel.Appeals);
+      Assert.Empty(viewModel.Summaries);
       current = service.Current;
     }
     else
     {
+      if (!viewModel.Summaries.Any(appeal => appeal.Id == before.Id))
+        throw new InvalidOperationException($"Production moderation view model removed appeal {before.Id} after {action}.");
       current = viewModel.Appeals.SingleOrDefault(appeal => appeal.Id == before.Id)
           ?? throw new InvalidOperationException(
               $"Production moderation view model removed appeal {before.Id} after {action}.");
@@ -401,7 +405,7 @@ internal sealed class LifecycleScenarioContract
 
   public static LifecycleScenarioContract Load()
   {
-    var path = FilamentsContractPaths.ApiFixture("lifecycle-scenarios.json");
+    var path = ContractPaths.ApiFixture("lifecycle-scenarios.json");
     using var document = JsonDocument.Parse(File.ReadAllText(path));
     var root = document.RootElement;
     return new(

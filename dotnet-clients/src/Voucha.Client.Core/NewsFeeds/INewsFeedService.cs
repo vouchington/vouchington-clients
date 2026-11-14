@@ -32,6 +32,16 @@ public interface INewsFeedService
           await GetNewsFeedItemsAsync(scope, sourceFeedType, cancellationToken).ConfigureAwait(false),
           new PageInfo(null, false, null));
 
+  Task<NewsFeedPage> GetNewsFeedPageAsync(
+      NewsFeedScope scope,
+      string? after,
+      int limit,
+      bool? hasHackerNewsReferences,
+      CancellationToken cancellationToken = default) =>
+      hasHackerNewsReferences is null
+          ? GetNewsFeedPageAsync(scope, after, limit, cancellationToken)
+          : Task.FromException<NewsFeedPage>(new NotSupportedException("Hacker News filtering is not implemented by this news service."));
+
   Task<IReadOnlyList<NewsFeedItem>> GetNewsFeedItemsAsync(
       NewsFeedScope scope,
       NewsFeedSourceType sourceFeedType,

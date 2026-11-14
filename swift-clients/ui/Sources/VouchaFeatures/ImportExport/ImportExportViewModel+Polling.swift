@@ -1,12 +1,13 @@
 import Foundation
 import VouchaAPI
+import VouchaLocalization
 import VouchaModels
 
 extension ImportExportViewModel {
     func submitSourceInput(_ input: SourceImportInput, validating rows: [String]?, token: UUID) async throws {
         try Self.validateRequestSize(input)
-        if let rows {
-            try Self.validateRows(rows)
+        if let rows, rows.isEmpty {
+            throw ImportExportValidationError.emptyInput
         }
         resetMonitoringForSubmission()
         let submission = try await service.importSources(input)
@@ -24,10 +25,13 @@ extension ImportExportViewModel {
         isMonitoring = false
         batchId = nil
         sourceSummary = nil
+        sourcePages = SourceImportPages()
+        sourceSnapshotStartedTerminal = false
         results = []
     }
 
     func startMonitoring(batchId: String) {
+        errorMessageKey = nil
         generation += 1
         let currentGeneration = generation
         monitorTask?.cancel()
@@ -48,20 +52,28 @@ extension ImportExportViewModel {
         }
         while !Task.isCancelled {
             do {
-                let status = try await service.sourceStatus(batchId)
+                guard let candidate = try await loadSourcePages(batchId: batchId, generation: generation) else {
+                    try await delay()
+                    continue
+                }
                 guard generation == self.generation, batchId == self.batchId else { return }
+                let status = candidate.status
                 guard status.import.id == batchId, isNonRegressing(status.import) else {
                     try await delay()
                     continue
                 }
+                sourceSnapshotStartedTerminal = candidate.startedTerminal
                 sourceSummary = status.import
                 results = status.rows
                 errorMessage = nil
-                if status.import.pendingRows == 0 || status.import.completedAt != nil {
+                if sourceSnapshotStartedTerminal, status.import.pendingRows == 0 || status.import.completedAt != nil {
                     return
                 }
                 try await delay()
             } catch is CancellationError {
+                return
+            } catch is SourceStatusPageError {
+                recordSourcePageError(batchId: batchId, generation: generation)
                 return
             } catch {
                 guard generation == self.generation else { return }
@@ -69,6 +81,12 @@ extension ImportExportViewModel {
                 return
             }
         }
+    }
+
+    private func recordSourcePageError(batchId: String, generation: Int) {
+        guard !Task.isCancelled, generation == self.generation, batchId == self.batchId else { return }
+        errorMessage = nil
+        errorMessageKey = .nativeSwiftImportExportUnknownError
     }
 
     private func isNonRegressing(_ candidate: RssFeedImportSummary) -> Bool {

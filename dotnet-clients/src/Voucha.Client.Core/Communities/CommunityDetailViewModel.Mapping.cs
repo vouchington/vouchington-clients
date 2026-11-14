@@ -82,6 +82,8 @@ public sealed partial class CommunityDetailViewModel
     }
 
     ErrorMessage = ex.Message;
+    capErrorKey = CommunityCapError.MessageKey(ex);
+    OnPropertyChanged(nameof(ErrorMessage));
     State = LoadState.Error;
     return true;
   }
@@ -97,6 +99,8 @@ public sealed partial class CommunityDetailViewModel
     }
 
     ErrorMessage = ex.Message;
+    capErrorKey = CommunityCapError.MessageKey(ex);
+    OnPropertyChanged(nameof(ErrorMessage));
     State = LoadState.Error;
     return true;
   }

@@ -74,6 +74,7 @@ public sealed partial class ChatConversationViewModel
   {
     pendingLocalTurn = null;
     blockedToolRetryText = null;
+    SetRetainedWindowsToolResult(null);
     _ = Interlocked.Increment(ref requestId);
     var cts = Interlocked.Exchange(ref streamingCts, null);
     if (cts is not null) { cts.Cancel(); cts.Dispose(); }
@@ -101,13 +102,33 @@ public sealed partial class ChatConversationViewModel
     return currentRequest;
   }
 
-  private async Task<bool> ReloadMessagesAsync(string conversationId, int currentRequest, CancellationToken cancellationToken)
+  private async Task<bool> ReloadMessagesAsync(
+      string conversationId, int currentRequest, CancellationToken cancellationToken,
+      PendingLocalTurn? localReceipt = null)
   {
     var response = await chatService.FetchConversationMessagesAsync(conversationId, cancellationToken).ConfigureAwait(true);
     if (currentRequest != Volatile.Read(ref requestId)) return false;
     messages.Clear();
     messages.AddRange(response.Results.Select(MapMessage));
-    HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+    if (localReceipt is { McpSnapshot: { } snapshot, McpProvider: { } provider } &&
+        localReceipt.ConversationId == conversationId &&
+        provider.MatchesAccountEpoch(snapshot) &&
+        (localReceipt.FeedPostReceipts is { Count: > 0 } ||
+         localReceipt.RssItemReceipts is { Count: > 0 } ||
+         localReceipt.ReferralLinkReceipts is { Count: > 0 }))
+    {
+      var index = messages.FindIndex(message => message.Id == localReceipt.Body.AssistantMessageId &&
+          message.IsAssistant);
+      if (index >= 0)
+        messages[index] = messages[index] with
+        {
+          Localization = localization,
+          FeedPostReceipts = localReceipt.FeedPostReceipts,
+          RssItemReceipts = localReceipt.RssItemReceipts,
+          ReferralLinkReceipts = localReceipt.ReferralLinkReceipts,
+        };
+    }
+    HasMoreMessages = response.PageInfo.HasMorePages;
     nextMessageCursor = response.PageInfo.EndCursor;
     OnPropertyChanged(nameof(CanLoadOlderMessages));
     OnPropertyChanged(nameof(Messages));

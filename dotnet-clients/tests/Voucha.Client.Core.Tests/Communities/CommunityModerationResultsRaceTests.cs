@@ -16,7 +16,7 @@ public sealed class CommunityModerationResultsRaceTests
         TaskCreationOptions.RunContinuationsAsynchronously);
     var service = new ScriptedCommunitiesService
     {
-      ModerationResultsHandler = (_, postId, _) => postId == "stale-post"
+      ModerationResultsHandler = (_, postId, _, _) => postId == "stale-post"
           ? staleResponse.Task
           : Task.FromResult(Response(AdminReviewQueueClearanceStatus.Approved)),
     };
@@ -49,7 +49,7 @@ public sealed class CommunityModerationResultsRaceTests
         TaskCreationOptions.RunContinuationsAsynchronously);
     var service = new ScriptedCommunitiesService
     {
-      ModerationResultsHandler = (_, _, _) => staleResponse.Task,
+      ModerationResultsHandler = (_, _, _, _) => staleResponse.Task,
     };
     SeedLoadResponseSet(
         service,
@@ -80,5 +80,5 @@ public sealed class CommunityModerationResultsRaceTests
 
   private static CommunityModerationResultsResponse Response(
       AdminReviewQueueClearanceStatus status) =>
-      new([], new CommunityPlatformModeration(status));
+      new([], new PageInfo(null, false, null), new CommunityPlatformModeration(status));
 }

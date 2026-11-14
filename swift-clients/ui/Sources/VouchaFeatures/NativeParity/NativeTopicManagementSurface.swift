@@ -22,16 +22,23 @@ struct NativeTopicManagementSurface: View {
     @State
     private var operationState: NativeTopicManagementOperationState
     private let client: APIClient?
+    private let accountId: String?
 
     init(
         client: APIClient?,
         routeMatch: NativeRouteMatch?,
+        accountId: String? = nil,
         logoUploadState: NativeTopicImageFieldUploadState? = nil,
         heroUploadState: NativeTopicImageFieldUploadState? = nil,
         operationState: NativeTopicManagementOperationState? = nil
     ) {
         self.client = client
-        _viewModel = State(initialValue: NativeTopicManagementViewModel(client: client, routeMatch: routeMatch))
+        self.accountId = accountId
+        _viewModel = State(initialValue: NativeTopicManagementViewModel(
+            client: client,
+            routeMatch: routeMatch,
+            accountId: accountId
+        ))
         _logoUploadState = State(initialValue: logoUploadState ?? NativeTopicImageFieldUploadState())
         _heroUploadState = State(initialValue: heroUploadState ?? NativeTopicImageFieldUploadState())
         _operationState = State(initialValue: operationState ?? NativeTopicManagementOperationState())
@@ -68,7 +75,8 @@ struct NativeTopicManagementSurface: View {
             case .merge:
                 NativeTopicManagementMergeFields(viewModel: bindableModel)
             }
-            if let primaryActionTitle = primaryActionTitle(for: bindableModel.section) {
+            if bindableModel.mergeOperation == nil || bindableModel.section != .merge,
+               let primaryActionTitle = primaryActionTitle(for: bindableModel.section) {
                 Button(UiMessages.string(primaryActionTitle, locale: nativeUiLocale)) {
                     guard !operationState.isSavePending, !bindableModel.isLoading, !isImageUploadPending else { return }
                     operationState.isSavePending = true
@@ -82,6 +90,9 @@ struct NativeTopicManagementSurface: View {
                 .disabled(operationState.isSavePending || bindableModel.isLoading || isImageUploadPending)
             }
             status(viewModel: bindableModel)
+        }
+        .onChange(of: accountId) { _, accountId in
+            viewModel.updateMergeAccount(accountId)
         }
         .task {
             await viewModel.load()
@@ -116,8 +127,11 @@ struct NativeTopicManagementSurface: View {
         case .loading:
             ProgressView()
         case let .error(error):
-            Text(error.localizedDescription)
-                .foregroundStyle(Colors.negativeVote)
+            Text(UiMessages.string(
+                ImagePlacementErrorPresentation.message(for: error) ?? .verbatim(error.localizedDescription),
+                locale: nativeUiLocale
+            ))
+            .foregroundStyle(Colors.negativeVote)
         default:
             if let topic = viewModel.topic {
                 Text(topic.id)
@@ -127,6 +141,9 @@ struct NativeTopicManagementSurface: View {
         }
     }
 
+}
+
+extension NativeTopicManagementSurface {
     private func primaryActionTitle(for section: NativeTopicManagementSection) -> UiMessageKey? {
         switch section {
         case .create:

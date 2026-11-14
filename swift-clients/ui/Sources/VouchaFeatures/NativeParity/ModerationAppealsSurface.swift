@@ -14,19 +14,26 @@ struct ModerationAppealsSurface: View {
         client: APIClient?,
         isSignedIn: Bool,
         isAdministrator: Bool,
-        isSiteModerator: Bool
+        isSiteModerator: Bool,
+        currentUserId: String? = nil,
+        admissionStore: AppealAIRerunAdmissionStore? = nil
     ) {
         _viewModel = State(initialValue: ModerationAppealsViewModel(
             client: client,
             isSignedIn: isSignedIn,
             isAdministrator: isAdministrator,
-            isSiteModerator: isSiteModerator
+            isSiteModerator: isSiteModerator,
+            currentUserId: currentUserId,
+            admissionStore: admissionStore
         ))
     }
 
     init(viewModel: ModerationAppealsViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
+
+    @State
+    private var selectedSummary: ModerationAppealSummary?
 
     var body: some View {
         if !viewModel.isSignedIn {
@@ -44,6 +51,7 @@ struct ModerationAppealsSurface: View {
         } else {
             staffContent
                 .task { await viewModel.load() }
+                .onDisappear { viewModel.cancelAIReruns() }
         }
     }
 
@@ -65,10 +73,10 @@ struct ModerationAppealsSurface: View {
                     .accessibilityIdentifier("appeals-error")
             }
 
-            if viewModel.isLoading, viewModel.appeals.isEmpty {
+            if viewModel.isLoading, viewModel.summaryPagination.items.isEmpty {
                 ProgressView(UiMessages.string(.nativeSwiftModerationAppealsLoading, locale: nativeUiLocale))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.appeals.isEmpty {
+            } else if viewModel.summaryPagination.items.isEmpty {
                 EmptyStateView(
                     icon: "arrow.uturn.left.circle",
                     title: .message(viewModel.selectedStatus.emptyTitleKey),
@@ -84,21 +92,27 @@ struct ModerationAppealsSurface: View {
     private var appealsList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.md) {
-                ForEach(viewModel.appeals) { appeal in
-                    ModerationAppealCard(viewModel: viewModel, appeal: appeal)
+                ForEach(viewModel.summaryPagination.items) { appeal in
+                    Button { selectedSummary = appeal } label: {
+                        StaffModerationSummaryRow(appeal: appeal)
+                    }
+                    .buttonStyle(.plain)
                 }
                 if let error = viewModel.loadMoreErrorMessage {
                     Text(UiMessages.string(error, locale: nativeUiLocale)).foregroundStyle(.red)
                 }
                 HybridPaginationControl(
-                    hasMore: viewModel.appealPagination.hasMore,
-                    isLoading: viewModel.appealPagination.isLoading,
-                    hasError: viewModel.appealPagination.lastError != nil
+                    hasMore: viewModel.summaryPagination.hasMore,
+                    isLoading: viewModel.summaryPagination.isLoading,
+                    hasError: viewModel.summaryPagination.lastError != nil
                 ) {
                     await viewModel.loadMore()
                 }
             }
         }
+        .sheet(item: $selectedSummary, content: { summary in
+            ModerationAppealDetail(viewModel: viewModel, id: summary.id)
+        })
     }
 
     private var statusBinding: Binding<ModerationAppealStatus> {

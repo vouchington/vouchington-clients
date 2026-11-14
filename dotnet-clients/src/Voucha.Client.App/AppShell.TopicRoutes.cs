@@ -1,5 +1,6 @@
 using Voucha.Client.App.Pages;
 using Voucha.Client.Core;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
@@ -16,6 +17,9 @@ public sealed partial class AppShell
 {
   private Task? TryOpenTopicRouteAsync(NativeDeepLinkResolution resolution)
   {
+    if (TopicPostsRoute.FromResolution(resolution) is { } postRoute)
+      return OpenTopicPostsAsync(postRoute);
+
     if (resolution.Match is { Path: var instancePath } match &&
         instancePath.StartsWith("/instance/", StringComparison.Ordinal) &&
         match.Param("idOrSlug", "id") is { Length: > 0 } instanceId)
@@ -67,7 +71,8 @@ public sealed partial class AppShell
               serviceProvider.GetRequiredService<VouchaApiClient>(),
               canViewSourceCrawlHistory: false,
               canManageSourceCrawls: serviceProvider.GetRequiredService<ISessionStore>().Current.CanManageTopics(),
-              requiresAuthoritativeSourceCrawlMembership: true),
+              requiresAuthoritativeSourceCrawlMembership: true,
+              productSignals: serviceProvider.GetRequiredService<IProductSurfaceAnalytics>()),
           serviceProvider.GetRequiredService<ISessionStore>(),
           topicId,
           serviceProvider.GetRequiredService<EmailVerificationRecoveryCoordinator>(),
@@ -86,5 +91,6 @@ public sealed partial class AppShell
           serviceProvider.GetRequiredService<IImageUploadService>(),
           serviceProvider.GetRequiredService<VouchaApiClient>(),
           match?.Param("idOrSlug", "id"),
-          serviceProvider.GetRequiredService<AppConfig>());
+          serviceProvider.GetRequiredService<AppConfig>(),
+          serviceProvider.GetRequiredService<ISessionStore>());
 }

@@ -7,8 +7,19 @@ namespace Voucha.Client.App.Pages;
 
 public partial class ProfilePage
 {
+  private readonly Func<Task<FileResult?>> pickAvatarFile;
+  private readonly Func<FileResult, Task<Stream>> openSelectedFile;
   private int avatarPreviewGeneration;
   private readonly AvatarPreviewCancellation avatarPreviewCancellation = new();
+  internal Func<Stream, CancellationToken, Task<LocalImageSelection>> readSelectedAvatarPreview =
+      LocalImagePreview.ReadSelectedBytesAsync;
+
+  private void EndAvatarPreviewSession()
+  {
+    avatarPreviewGeneration++;
+    avatarPreviewCancellation.CancelCurrent();
+    ClearLocalAvatarPreview();
+  }
 
   private void ClearLocalAvatarPreview()
   {
@@ -17,11 +28,16 @@ public partial class ProfilePage
     AvatarPreviewUnavailableLabel.IsVisible = false;
   }
 
+  private async void OnUploadAvatarClicked(object? sender, EventArgs e)
+  {
+    await UploadAvatarSelectionAsync();
+  }
+
   [SuppressMessage(
       "Design",
       "CA1031:Do not catch general exception types",
-      Justification = "MAUI async void event handlers must not let picker or upload failures escape.")]
-  private async void OnUploadAvatarClicked(object? sender, EventArgs e)
+      Justification = "The avatar event handler must not let picker or upload failures escape.")]
+  private async Task UploadAvatarSelectionAsync()
   {
     if (!viewModel.CanMutateAvatar) return;
     var generation = ++avatarPreviewGeneration;
@@ -30,12 +46,13 @@ public partial class ProfilePage
     ClearLocalAvatarPreview();
     try
     {
-      var result = await FilePicker.PickAsync(PickOptions.Images);
+      var result = await pickAvatarFile();
       if (result is null) return;
       if (generation != avatarPreviewGeneration) return;
 
-      await using var selection = await ImageSelectionLoader.LoadAsync(result, cancellation.Token);
-      var preview = await LocalImagePreview.ReadSelectedBytesAsync(selection.Content, cancellation.Token);
+      await using var selection = await ImageSelectionLoader.LoadAsync(
+          result, () => openSelectedFile(result), cancellation.Token);
+      var preview = await readSelectedAvatarPreview(selection.Content, cancellation.Token);
       if (generation != avatarPreviewGeneration) return;
       AvatarLocalPreviewImage.Source = preview.PreviewBytes is { } thumbnail
           ? LocalImagePreview.SourceFromBytes(thumbnail) : null;

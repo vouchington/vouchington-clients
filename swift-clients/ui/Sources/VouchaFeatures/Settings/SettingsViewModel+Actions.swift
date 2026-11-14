@@ -55,7 +55,6 @@ public extension SettingsViewModel {
                     defaultPostPrivacy: defaultPostPrivacy,
                     processingRestrictedAt: processingRestrictedAt,
                     thirdPartyMarketing: thirdPartyMarketing,
-                    hnDiscussions: hnDiscussions,
                     uiLocale: uiLocaleForPrivacySave(),
                     clearUiLocale: shouldClearUiLocaleForPrivacySave()
                 )
@@ -161,7 +160,8 @@ extension SettingsViewModel {
             try await body()
             state = .loaded
         } catch let error as VouchaError {
-            statusMessage = error.errorDescription.map(UiVerbatimText.verbatim)
+            statusMessage = ImagePlacementErrorPresentation.message(for: error)
+                ?? error.errorDescription.map(UiVerbatimText.verbatim)
             state = .error(error)
         } catch {
             let unexpectedError = VouchaError.unexpected(error.localizedDescription)

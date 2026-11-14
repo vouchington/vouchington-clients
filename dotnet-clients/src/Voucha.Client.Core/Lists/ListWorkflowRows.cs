@@ -53,10 +53,13 @@ public sealed record ListItemRow(
     string ProtocolItemType,
     UiText ItemTypeText,
     string EntityId,
+    UiText EntityLabelText,
     string ProtocolMediaType,
     UiText MediaTypeText,
     IUiLocalization Localization)
 {
+  public string EntityLabel => Localization.Resolve(EntityLabelText);
+
   public string LocalizedItemType => Localization.Resolve(ItemTypeText);
 
   public string LocalizedMediaType => Localization.Resolve(MediaTypeText);
@@ -73,6 +76,8 @@ public sealed record ListItemRow(
         item.ItemType,
         UiTaxonomy.ListItemType(item.ItemType),
         item.EntityId,
+        item.EntityLabel is { } label ? UiText.UserContent(label) :
+            UiText.Localized(UiMessageKey.NativeSwiftModerationReportsReviewQueueUntitledPost),
         mediaType,
         UiTaxonomy.MediaType(mediaType),
         localizer);

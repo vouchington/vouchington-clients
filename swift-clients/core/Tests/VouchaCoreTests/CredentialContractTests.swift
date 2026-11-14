@@ -20,6 +20,25 @@ final class CredentialContractTests: XCTestCase {
         }
     }
 
+    func testStagedCatalogPreservesAudienceApiKeyPolicy() throws {
+        let catalog = try makeVouchaDecoder().decode(
+            ScopeCatalogResponse.self,
+            from: ApiFixtureLoader.data("shared.scopes.catalog")
+        )
+        XCTAssertEqual(
+            catalog.audiences.map {
+                "\($0.audience.rawValue) \($0.acceptsApiKeys) \($0.requiresAdministrator) \($0.requiresModerationStaff)"
+            },
+            [
+                "user true false false",
+                "community_moderation true false false",
+                "brand true false false",
+                "admin false false true",
+                "legal false true false"
+            ]
+        )
+    }
+
     func testStagedCatalogDrivesSelectionAndCreationFixtureDecodes() throws {
         let decoder = makeVouchaDecoder()
         let catalog = try decoder.decode(
@@ -89,10 +108,13 @@ final class CredentialContractTests: XCTestCase {
         var selection = ApiKeyScopeSelection(scopes: catalog.scopes, type: .mcp)
         XCTAssertTrue(selection.setSelected("mcp.user:read", selected: true))
         XCTAssertEqual(selection.permissions, ["mcp.user:read"])
-        XCTAssertTrue(selection.setSelected(write.scope, selected: true))
-        XCTAssertEqual(selection.permissions, [read.scope, write.scope, "mcp.user:read"].sorted())
-        XCTAssertTrue(selection.setSelected(read.scope, selected: false))
+        XCTAssertFalse(selection.setSelected(write.scope, selected: true))
         XCTAssertEqual(selection.permissions, ["mcp.user:read"])
+        selection.clear()
+        XCTAssertTrue(selection.setSelected(write.scope, selected: true))
+        XCTAssertEqual(selection.permissions, [read.scope, write.scope].sorted())
+        XCTAssertTrue(selection.setSelected(read.scope, selected: false))
+        XCTAssertTrue(selection.permissions.isEmpty)
     }
 
     func testStagedGrantsPreserveClientScopeAndActivityMetadata() throws {
@@ -106,16 +128,76 @@ final class CredentialContractTests: XCTestCase {
         XCTAssertEqual(grant.resource, "https://voucha.ai/api/v1/mcp")
         XCTAssertEqual(grant.scopes, ["mcp.user:read", "mcp.user:write"])
         XCTAssertNil(grant.lastUsedAt)
+        XCTAssertNil(grant.sessionId)
+        XCTAssertNil(grant.attestationStatus)
         XCTAssertTrue(grants.pageInfo.hasNextPage)
         XCTAssertEqual(grants.pageInfo.endCursor, "fixture-oauth-grant-end-cursor")
     }
 
-    func testUnknownPresentationMetadataFailsDecoding() {
+    func testDescriptionMetadataPreservesKnownKeysAndIgnoresUnknownKeysWithoutDroppingFields() throws {
+        let descriptions: [(String, ScopeDescriptionKey?)] = [
+            ("future_description", nil),
+            ("mcp_user_full_access", .mcpUserFullAccess),
+            ("mcp_admin_full_access", .mcpAdminFullAccess),
+            ("financial_profile_read", .financialProfileRead),
+            ("financial_profile_write", .financialProfileWrite),
+            ("spending_read", .spendingRead),
+            ("spending_write", .spendingWrite),
+            ("community_moderation_read", .communityModerationRead),
+            ("community_moderation_write", .communityModerationWrite)
+        ]
+        for (raw, expected) in descriptions {
+            var fields: [String: Any] = [
+                "scope": "x:write", "resource": "x", "action": "write", "audience": "user",
+                "requires": "x:read", "description_key": raw, "surfaces": ["api-key", "oauth"]
+            ]
+            let scope = try makeVouchaDecoder().decode(
+                CredentialScope.self, from: JSONSerialization.data(withJSONObject: fields)
+            )
+            XCTAssertEqual(scope.descriptionKey, expected)
+            let encoder = JSONEncoder()
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            let reencoded = try JSONSerialization.jsonObject(with: encoder.encode(scope)) as? NSDictionary
+            if expected == nil { fields["description_key"] = NSNull() }
+            XCTAssertEqual(reencoded, fields as NSDictionary)
+        }
+    }
+
+    func testMissingAndNullDescriptionMetadataDecodeAsAbsent() throws {
+        for description in ["", #","description_key":null"#] {
+            let data = Data(
+                "{\"scope\":\"x:read\",\"resource\":\"x\",\"action\":\"read\",\"audience\":\"user\",\"surfaces\":[\"api-key\"]\(description)}"
+                    .utf8
+            )
+            let scope = try makeVouchaDecoder().decode(CredentialScope.self, from: data)
+            XCTAssertNil(scope.descriptionKey)
+            XCTAssertEqual(scope.scope, "x:read")
+        }
+    }
+
+    func testNonStringDescriptionMetadataStillFailsDecoding() {
         let data = Data(
-            #"{"scopes":[{"scope":"x:read","resource":"x","action":"read","audience":"user","requires":null,"description_key":"unknown-description","surfaces":["api-key"]}]}"#
+            #"{"scope":"x:read","resource":"x","action":"read","audience":"user","description_key":7,"surfaces":["api-key"]}"#
                 .utf8
         )
-        XCTAssertThrowsError(try makeVouchaDecoder().decode(ScopeCatalogResponse.self, from: data))
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(CredentialScope.self, from: data))
+    }
+
+    func testStagedMessageScopeDescriptionsRemainOptionalPresentationMetadata() throws {
+        let catalog = try makeVouchaDecoder().decode(
+            ScopeCatalogResponse.self, from: ApiFixtureLoader.data("shared.scopes.catalog")
+        )
+        for name in ["messages:read", "messages:write"] {
+            let scope = try XCTUnwrap(catalog.scopes.first { $0.scope == name })
+            XCTAssertNil(scope.descriptionKey)
+            XCTAssertEqual(scope.resource, "messages")
+            XCTAssertEqual(Set(scope.surfaces), Set([.apiKey, .oauth]))
+        }
+        XCTAssertEqual(
+            catalog.scopes.first { $0.scope == "financial-profile:read" }?.descriptionKey,
+            .financialProfileRead
+        )
+        XCTAssertEqual(catalog.scopes.first { $0.scope == "mcp.user:read" }?.descriptionKey, .mcpUserFullAccess)
     }
 
     func testGrantEndpointEscapesOwnedIdAndForwardsOpaqueCursor() {

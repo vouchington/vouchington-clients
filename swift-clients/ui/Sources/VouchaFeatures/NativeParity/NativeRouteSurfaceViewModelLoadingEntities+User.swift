@@ -27,6 +27,7 @@ extension NativeRouteSurfaceViewModel {
             after: nil,
             client: client
         )
+        profileHackerNewsReferences = page.hackerNewsReferences
         userProfile.collection = page.collection
         userProfile.pagination.replaceItems(page.collection.paginationItems)
         userProfile.pagination.restoreContinuation(
@@ -83,12 +84,17 @@ extension NativeRouteSurfaceViewModel {
             appText(.nativeSwiftNavigationTitlesAnalytics),
             countText(landingPages.results.count, item: "page")
         ))
-        await result.append(contentsOf: adminLandingPageAnalyticsRows(client: client, pages: landingPages.results))
+        if let username = profile.user.username {
+            await result.append(contentsOf: adminLandingPageAnalyticsRows(
+                client: client, username: username, pages: landingPages.results
+            ))
+        }
         return result
     }
 
     func adminLandingPageAnalyticsRows(
         client: APIClient,
+        username: String,
         pages: [LandingPageSummary]
     ) async -> [NativeRouteDestinationRow] {
         var rows: [NativeRouteDestinationRow] = []
@@ -98,7 +104,7 @@ extension NativeRouteSurfaceViewModel {
                 for (index, page) in batch.enumerated() {
                     group.addTask {
                         guard let analytics: AdminLandingPageAnalyticsResponse = try? await client.send(
-                            .adminLandingPageAnalytics(pageId: page.id)
+                            .adminLandingPageAnalytics(username: username, slug: page.slug)
                         ) else {
                             return (index, NativeRouteDestinationRow(
                                 icon: "chart.bar.xaxis",

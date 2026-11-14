@@ -9,32 +9,33 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testLoadsStatusFiltersAndCursorContinuationWithoutDuplicates() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()], hasNextPage: true, endCursor: "next"), 200
+            Support.staffList([Support.dispute()], hasNextPage: true, endCursor: "next"), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(), Support.dispute(id: "dispute-2")]), 200
+            Support.staffList([Support.dispute(), Support.dispute(id: "dispute-2")]), 200
         )
         await viewModel.loadMore()
 
-        XCTAssertEqual(viewModel.disputes.map(\.id), ["dispute-1", "dispute-2"])
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), ["dispute-1", "dispute-2"])
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs[0].query, "limit=25&status=pending")
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs[1].query, "limit=25&status=pending&after=next")
 
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(id: "dismissed", status: "dismissed")]), 200
+            Support.staffList([Support.dispute(id: "dismissed", status: "dismissed")]), 200
         )
         await viewModel.selectStatus(.dismissed)
-        XCTAssertEqual(viewModel.disputes.map(\.id), ["dismissed"])
+        XCTAssertEqual(viewModel.summaryPagination.items.map(\.id), ["dismissed"])
     }
 
     func testPublicAndAnnotationDraftsRemainIndependentAndClaimIsImmutable() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()]), 200
+            Support.staffList([Support.dispute()]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
 
         viewModel.setPublicResponseDraft("Member response", for: dispute)
@@ -76,15 +77,16 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testSaveHandlesUnchangedAndChangedPublicResponses() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(publicResponse: "Ready")]), 200
+            Support.staffList([Support.dispute(publicResponse: "Ready")]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
 
         let unchangedSaved = await viewModel.savePublicResponse(for: dispute)
         XCTAssertTrue(unchangedSaved)
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 0)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 1)
 
         viewModel.setPublicResponseDraft("Revised", for: dispute)
         CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1"] = (
@@ -99,10 +101,11 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testApproveSavesChangedResponseBeforeApproval() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(publicResponse: "Old")]), 200
+            Support.staffList([Support.dispute(publicResponse: "Old")]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
         viewModel.setPublicResponseDraft("Revised", for: dispute)
         CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1"] = (
@@ -122,10 +125,11 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testApproveAndDeliveryAmbiguityRequireTargetedRefresh() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(publicResponse: "Ready")]), 200
+            Support.staffList([Support.dispute(publicResponse: "Ready")]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         CannedFeedURLProtocol.errors["/api/v1/disputes/dispute-1/approval"] =
             URLError(.networkConnectionLost)
         try await viewModel.approve(XCTUnwrap(viewModel.disputes.first))
@@ -148,12 +152,13 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testApprovedResponseCanBeDeliveredSuccessfully() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(
+            Support.staffList([Support.dispute(
                 publicResponse: "Ready", approvedAt: "2026-07-01T11:00:00Z"
             )]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
         CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/delivery"] = (
             Support.envelope(Support.dispute(
@@ -171,13 +176,14 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testServerFailuresDistinguishAmbiguousFromDefinitiveMutations() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([
+            Support.staffList([
                 Support.dispute(id: "server", publicResponse: "Ready"),
                 Support.dispute(id: "client", publicResponse: "Ready")
             ]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let server = try XCTUnwrap(viewModel.disputes.first { $0.id == "server" })
         let client = try XCTUnwrap(viewModel.disputes.first { $0.id == "client" })
         CannedFeedURLProtocol.handlers["/api/v1/disputes/server/approval"] = (
@@ -196,7 +202,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testCancelledApprovalRequiresTargetedRefresh() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(publicResponse: "Ready")]), 200
+            Support.staffList([Support.dispute(publicResponse: "Ready")]), 200
         )
         CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/approval"] = (
             Support.envelope(Support.dispute(
@@ -206,6 +212,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.suspendResponse(path: "/api/v1/disputes/dispute-1/approval")
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
 
         let approval = Task { await viewModel.approve(dispute) }
@@ -222,10 +229,11 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testResolutionActionsRequireDeliveryAndAnnotationBody() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute(sentAt: "2026-07-01T12:00:00Z")]), 200
+            Support.staffList([Support.dispute(sentAt: "2026-07-01T12:00:00Z")]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
         XCTAssertFalse(viewModel.canResolve(dispute, action: .annotate))
         viewModel.setAnnotationDraft("Rating corrected on July 1.", for: dispute)
@@ -245,13 +253,14 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testRemoveAndDismissUseConfirmedResolutionPathsAndRemoveRows() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([
+            Support.staffList([
                 Support.dispute(id: "remove", sentAt: "2026-07-01T12:00:00Z"),
                 Support.dispute(id: "dismiss", sentAt: "2026-07-01T12:00:00Z")
             ]), 200
         )
         let viewModel = try staffViewModel()
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         CannedFeedURLProtocol.handlers["/api/v1/disputes/remove/resolution"] = (
             Support.envelope(Support.dispute(
                 id: "remove", status: "resolved", sentAt: "2026-07-01T12:00:00Z",
@@ -285,10 +294,11 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testRerunPollingStopsWhenDraftAndLifecycleAdvance() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()]), 200
+            Support.staffList([Support.dispute()]), 200
         )
         let viewModel = try staffViewModel(rerunPollAttempts: 3)
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
         viewModel.setPublicResponseDraft("Local edit", for: dispute)
         CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/resolution-drafts"] = (
@@ -311,15 +321,16 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(viewModel.publicDraft(for: dispute), "Local edit")
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertFalse(viewModel.ambiguousDisputeIds.contains(dispute.id))
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 1)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 2)
     }
 
     func testRerunPollingIsBoundedAndMutationGuardExcludesConcurrentActions() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()]), 200
+            Support.staffList([Support.dispute()]), 200
         )
         let viewModel = try staffViewModel(rerunPollAttempts: 2)
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
         CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/resolution-drafts"] = (
             Support.queued, 202
@@ -329,7 +340,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         )
         await viewModel.rerunAI(for: dispute)
 
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 2)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 3)
         XCTAssertFalse(viewModel.isMutating)
         XCTAssertNotNil(viewModel.errorMessage)
         XCTAssertFalse(viewModel.canRerun(dispute))
@@ -338,10 +349,11 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testRerunPreEnqueueFailureAllowsRetry() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()]), 200
+            Support.staffList([Support.dispute()]), 200
         )
         let viewModel = try staffViewModel(rerunPollAttempts: 1)
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
         CannedFeedURLProtocol.errors["/api/v1/disputes/dispute-1/resolution-drafts"] =
             URLError(.networkConnectionLost)
@@ -349,18 +361,22 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.rerunAI(for: dispute)
         XCTAssertFalse(viewModel.ambiguousDisputeIds.contains(dispute.id))
         XCTAssertTrue(viewModel.canRerun(dispute))
-        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 0)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"), 1)
     }
 
     func testRerunReportsWhenQueueDeclinesTheRequest() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()]), 200
+            Support.staffList([Support.dispute()]), 200
         )
         let viewModel = try staffViewModel(rerunPollAttempts: 1)
         await viewModel.load()
+        await Support.openDetails(in: viewModel)
         let dispute = try XCTUnwrap(viewModel.disputes.first)
-        CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/resolution-drafts"] = (
-            Data(#"{"queued":false,"rerun_by_id":null}"#.utf8), 202
+        var declined = try XCTUnwrap(JSONSerialization.jsonObject(with: Support.queued) as? [String: Any])
+        declined["queued"] = false
+        declined["rerun_by_id"] = NSNull()
+        CannedFeedURLProtocol.handlers["/api/v1/disputes/dispute-1/resolution-drafts"] = try (
+            JSONSerialization.data(withJSONObject: declined), 202
         )
 
         await viewModel.rerunAI(for: dispute)
@@ -370,7 +386,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertFalse(viewModel.ambiguousDisputeIds.contains(dispute.id))
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes/dispute-1"),
-            0
+            1
         )
     }
 
@@ -379,12 +395,12 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         let viewModel = try staffViewModel()
         await viewModel.load()
         XCTAssertNotNil(viewModel.errorMessage)
-        XCTAssertNotNil(viewModel.disputePagination.lastError)
+        XCTAssertNotNil(viewModel.summaryPagination.lastError)
         XCTAssertFalse(viewModel.isLoading)
 
         CannedFeedURLProtocol.errors = [:]
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()], hasNextPage: true, endCursor: "next"), 200
+            Support.staffList([Support.dispute()], hasNextPage: true, endCursor: "next"), 200
         )
         await viewModel.load()
         XCTAssertNil(viewModel.errorMessage)
@@ -392,7 +408,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.errors["/api/v1/disputes"] = URLError(.notConnectedToInternet)
         await viewModel.loadMore()
         XCTAssertNotNil(viewModel.loadMoreErrorMessage)
-        XCTAssertNotNil(viewModel.disputePagination.lastError)
+        XCTAssertNotNil(viewModel.summaryPagination.lastError)
 
         await viewModel.selectStatus(.pending)
         XCTAssertEqual(viewModel.selectedStatus, .pending)
@@ -400,7 +416,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
 
     func testCancelledInitialAndNextPageLoadsLeaveConsistentState() async throws {
         CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (
-            Support.list([Support.dispute()], hasNextPage: true, endCursor: "next"), 200
+            Support.staffList([Support.dispute()], hasNextPage: true, endCursor: "next"), 200
         )
         CannedFeedURLProtocol.suspendResponse(path: "/api/v1/disputes")
         let initialViewModel = try staffViewModel()
@@ -425,7 +441,7 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         nextPage.cancel()
         CannedFeedURLProtocol.releaseResponse(path: "/api/v1/disputes")
         await nextPage.value
-        XCTAssertFalse(viewModel.disputePagination.isLoading)
+        XCTAssertFalse(viewModel.summaryPagination.isLoading)
     }
 
     func testSignedOutAndMemberRolesNeverRequestStaffDisputes() async throws {

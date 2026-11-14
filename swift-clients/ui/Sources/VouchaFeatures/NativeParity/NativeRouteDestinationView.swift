@@ -41,7 +41,8 @@ struct NativeRouteDestinationSurface: View {
                     client: viewModel.client,
                     routeMatch: routeMatch,
                     currentUserId: currentUserId,
-                    mcpSession: nativeChatMCPSession
+                    mcpSession: nativeChatMCPSession,
+                    onNavigate: onNavigateToTargetPath
                 )
             } else if isOwnerLandingPageManagementRoute {
                 landingPageManagementContent
@@ -53,8 +54,11 @@ struct NativeRouteDestinationSurface: View {
                 NativeEngineeringQueuesSurface(entry: entry, client: viewModel.client)
                     .id(viewModel.client != nil)
             } else if entry.destinationIdentifier == .engineeringPostgresql {
-                NativeEngineeringPostgresqlSurface(entry: entry, client: viewModel.client)
-                    .id(viewModel.client != nil)
+                NativeEngineeringPostgresqlSurface(
+                    entry: entry, client: viewModel.client,
+                    accountId: currentUserId, isAdministrator: isAdministrator
+                )
+                .id(viewModel.client != nil)
             } else if entry.destinationIdentifier == .engineeringValkey {
                 NativeEngineeringValkeySurface(entry: entry, client: viewModel.client)
                     .id(viewModel.client != nil)
@@ -70,8 +74,10 @@ struct NativeRouteDestinationSurface: View {
                     client: viewModel.client,
                     isSignedIn: isSignedIn,
                     isAdministrator: isAdministrator,
-                    isSiteModerator: isSiteModerator
+                    isSiteModerator: isSiteModerator,
+                    currentUserId: currentUserId
                 )
+                .id("\(currentUserId ?? "")|\(viewModel.client?.baseURL.absoluteString ?? "")")
             } else if isDedicatedStaffDisputesRoute {
                 ReviewDisputesSurface(
                     client: reviewDisputesClient,
@@ -86,7 +92,10 @@ struct NativeRouteDestinationSurface: View {
                 scrollContent
             }
         }
+        .onAppear { viewModel.beginProductSurfaceActivation() }
+        .onDisappear { viewModel.endProductSurfaceActivation() }
         .onChange(of: isSignedIn) { _, _ in rebuildViewModels() }
+        .onChange(of: currentUserId) { _, _ in rebuildViewModels() }
         .onChange(of: isAdministrator) { _, _ in rebuildViewModels() }
         .onChange(of: isSiteModerator) { _, _ in rebuildViewModels() }
         .onReceive(NotificationCenter.default.publisher(for: .vouchaMembershipEntitlementDidChange)) { _ in
@@ -94,6 +103,7 @@ struct NativeRouteDestinationSurface: View {
         }
         .task(id: authLoadTaskId) {
             guard shouldLoadRouteSurfaceContent else { return }
+            viewModel.beginProductSurfaceActivation()
             await viewModel.load()
         }
         .emailVerificationRecovery(
@@ -159,7 +169,8 @@ extension NativeRouteDestinationSurface {
                 routeMatch: routeMatch,
                 routeQuery: routeQuery,
                 isAdministrator: isAdministrator,
-                isSiteModerator: isSiteModerator
+                isSiteModerator: isSiteModerator,
+                isSignedIn: isSignedIn
             )
         )
         _reviewQueueViewModel = State(

@@ -39,7 +39,7 @@ final class ReviewDisputesConcurrencyTests: NativeRouteSurfaceViewModelTestCase 
     func testResolutionOutcomeRejectsOlderPendingListSnapshot() async throws {
         let viewModel = try staffViewModel()
         let dispute = try decodeDispute(Support.dispute(sentAt: "2026-07-01T12:00:00Z"))
-        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (Support.list([Support.dispute(
+        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (Support.staffList([Support.dispute(
             sentAt: "2026-07-01T12:00:00Z"
         )]), 200)
         CannedFeedURLProtocol.suspendResponse(path: "/api/v1/disputes")
@@ -58,11 +58,16 @@ final class ReviewDisputesConcurrencyTests: NativeRouteSurfaceViewModelTestCase 
         )
         XCTAssertTrue(suspended)
         await viewModel.resolve(dispute, action: .remove)
+        CannedFeedURLProtocol.handlers["/api/v1/disputes"] = (Support.staffList([]), 200)
         CannedFeedURLProtocol.releaseResponse(path: "/api/v1/disputes")
         await load.value
 
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("/api/v1/disputes"), 2)
+        XCTAssertTrue(viewModel.summaryPagination.hasLoadedPage)
         XCTAssertTrue(viewModel.disputes.isEmpty)
-        XCTAssertFalse(viewModel.disputePagination.isLoading)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertTrue(viewModel.summaryPagination.items.isEmpty)
+        XCTAssertFalse(viewModel.summaryPagination.isLoading)
     }
 
     func testCardDisappearanceCancelsOwnedRerunPolling() async throws {

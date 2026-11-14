@@ -2,6 +2,10 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class VouchaApiClient
 {
+  public Task<CurrentIndividualResponse> FetchCurrentIndividualAsync(
+      CancellationToken cancellationToken = default) =>
+      SendAsync<CurrentIndividualResponse>(VouchaApiEndpoints.CurrentIndividual(), cancellationToken);
+
   public Task<HouseholdsResponse> FetchHouseholdsAsync(
       CancellationToken cancellationToken = default) =>
       SendAsync<HouseholdsResponse>(VouchaApiEndpoints.Households(), cancellationToken);

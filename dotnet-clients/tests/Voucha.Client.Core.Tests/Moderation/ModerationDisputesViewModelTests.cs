@@ -15,17 +15,17 @@ public sealed class ModerationDisputesViewModelTests
     var service = new ModerationDisputesTestService();
     var first = service.Current;
     var second = first with { Id = "dispute-2" };
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-pending", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-resolved", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
-    service.Pages.Enqueue(new([first], new PageInfo("opaque-dismissed", true, null)));
-    service.Pages.Enqueue(new([first, second], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first)], new PageInfo("opaque-pending", true, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first), ModerationDisputesTestService.Summary(second)], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first)], new PageInfo("opaque-resolved", true, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first), ModerationDisputesTestService.Summary(second)], new PageInfo(null, false, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first)], new PageInfo("opaque-dismissed", true, null)));
+    service.Pages.Enqueue(new([ModerationDisputesTestService.Summary(first), ModerationDisputesTestService.Summary(second)], new PageInfo(null, false, null)));
     var viewModel = Staff(service);
 
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
-    var pendingIds = viewModel.Disputes.Select(item => item.Id).ToArray();
+    var pendingIds = viewModel.Summaries.Select(item => item.Id).ToArray();
     await viewModel.SelectStatusAsync(
         ModerationDisputeStatus.Resolved,
         TestContext.Current.CancellationToken);
@@ -49,7 +49,7 @@ public sealed class ModerationDisputesViewModelTests
   {
     var service = new ModerationDisputesTestService();
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     viewModel.SetPublicResponseDraft(dispute, "Moderator response");
     viewModel.SetAnnotationDraft(dispute, "Public annotation");
@@ -74,7 +74,7 @@ public sealed class ModerationDisputesViewModelTests
       },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
 
     Assert.False(viewModel.CanResolve(dispute, ModerationDisputeResolutionAction.Annotate));
@@ -89,7 +89,7 @@ public sealed class ModerationDisputesViewModelTests
     Assert.Contains(
         $"resolve:{dispute.Id}:Annotate:Context for readers",
         service.Calls);
-    Assert.Empty(viewModel.Disputes);
+    Assert.Empty(viewModel.Summaries);
   }
 
   [Fact]
@@ -104,7 +104,7 @@ public sealed class ModerationDisputesViewModelTests
       },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     var maximum = string.Concat(Enumerable.Repeat("😀", 1000));
     Assert.Equal(ModerationDisputesViewModel.AnnotationBodyMaximumLength, maximum.Length);
@@ -135,7 +135,7 @@ public sealed class ModerationDisputesViewModelTests
       Current = ModerationDisputesTestService.Fixture() with { PublicResponse = "Ready" },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     service.FailNext(ModerationDisputesTestService.AmbiguousFailure());
 
@@ -163,7 +163,7 @@ public sealed class ModerationDisputesViewModelTests
     service.FailNext(new HttpRequestException("private upstream diagnostic"));
     var viewModel = Staff(service);
 
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal(
         UiLocalization.English.Localize(
@@ -187,7 +187,7 @@ public sealed class ModerationDisputesViewModelTests
       },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     service.FailNext(ModerationDisputesTestService.AmbiguousFailure());
 
@@ -220,7 +220,7 @@ public sealed class ModerationDisputesViewModelTests
       NextResolveResponseError = ModerationDisputesTestService.AmbiguousFailure(),
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     if (action == ModerationDisputeResolutionAction.Annotate)
       viewModel.SetAnnotationDraft(dispute, "Member-visible context");
@@ -235,13 +235,13 @@ public sealed class ModerationDisputesViewModelTests
     await viewModel.RefreshAmbiguousAsync(dispute.Id, TestContext.Current.CancellationToken);
 
     Assert.False(viewModel.IsMutationAmbiguous(dispute));
-    Assert.Empty(viewModel.Disputes);
+    Assert.Empty(viewModel.Summaries);
     Assert.Single(service.Calls, call =>
         call == $"resolve:{dispute.Id}:{action}:" +
         (action == ModerationDisputeResolutionAction.Annotate
             ? "Member-visible context"
             : "-"));
-    Assert.Single(service.Calls, call => call == $"fetch:{dispute.Id}");
+    Assert.Equal(2, service.Calls.Count(call => call == $"fetch:{dispute.Id}"));
   }
 
   [Theory]
@@ -258,7 +258,7 @@ public sealed class ModerationDisputesViewModelTests
       },
     };
     var viewModel = Staff(service);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
     using var cancellation = new CancellationTokenSource();
     cancellation.Cancel();
@@ -284,12 +284,12 @@ public sealed class ModerationDisputesViewModelTests
   {
     var service = new ModerationDisputesTestService();
     var viewModel = Staff(service, attempts: 2, delay: _ => Task.CompletedTask);
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = viewModel.Disputes.Single();
 
     await viewModel.RerunAsync(dispute, TestContext.Current.CancellationToken);
 
-    Assert.Equal(2, service.Calls.Count(call => call == $"fetch:{dispute.Id}"));
+    Assert.Equal(3, service.Calls.Count(call => call == $"fetch:{dispute.Id}"));
     Assert.IsType<TimeoutException>(viewModel.LastMutationError);
     Assert.True(viewModel.IsMutationAmbiguous(dispute));
     Assert.False(viewModel.CanRerun(dispute));
@@ -316,7 +316,7 @@ public sealed class ModerationDisputesViewModelTests
 
     var rejectedService = new ModerationDisputesTestService { QueueAccepted = false };
     var rejected = Staff(rejectedService);
-    await rejected.LoadAsync(TestContext.Current.CancellationToken);
+    await rejected.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     await rejected.RerunAsync(
         rejected.Disputes.Single(),
         TestContext.Current.CancellationToken);
@@ -330,7 +330,7 @@ public sealed class ModerationDisputesViewModelTests
         new ModerationDisputesTestService(),
         attempts: 20,
         delay: token => Task.Delay(Timeout.InfiniteTimeSpan, token));
-    await cancelling.LoadAsync(TestContext.Current.CancellationToken);
+    await cancelling.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var rerun = cancelling.RerunAsync(cancelling.Disputes.Single(), cancellation.Token);
     cancellation.Cancel();
     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => rerun);
@@ -342,7 +342,7 @@ public sealed class ModerationDisputesViewModelTests
   {
     var approvalService = new ModerationDisputesTestService();
     var approval = Staff(approvalService, attempts: 1);
-    await approval.LoadAsync(TestContext.Current.CancellationToken);
+    await approval.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     var dispute = approval.Disputes.Single();
     approvalService.Refreshes.Enqueue(dispute with
     {
@@ -359,7 +359,7 @@ public sealed class ModerationDisputesViewModelTests
 
     var resolutionService = new ModerationDisputesTestService();
     var resolution = Staff(resolutionService, attempts: 1);
-    await resolution.LoadAsync(TestContext.Current.CancellationToken);
+    await resolution.LoadWithDetailAsync(TestContext.Current.CancellationToken);
     dispute = resolution.Disputes.Single();
     resolutionService.FailNext(ModerationDisputesTestService.AmbiguousFailure());
     await resolution.RerunAsync(dispute, TestContext.Current.CancellationToken);
@@ -375,7 +375,7 @@ public sealed class ModerationDisputesViewModelTests
         TestContext.Current.CancellationToken);
 
     Assert.False(resolution.IsMutationAmbiguous(dispute));
-    Assert.Empty(resolution.Disputes);
+    Assert.Empty(resolution.Summaries);
   }
 
   [Fact]
@@ -386,7 +386,7 @@ public sealed class ModerationDisputesViewModelTests
         service,
         new NavigationViewer(true, ["member"]));
 
-    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
 
     Assert.False(viewModel.CanAccess);
     Assert.Equal(LoadState.Idle, viewModel.State);

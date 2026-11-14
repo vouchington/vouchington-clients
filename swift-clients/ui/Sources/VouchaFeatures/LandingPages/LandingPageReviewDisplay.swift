@@ -1,3 +1,4 @@
+import VouchaAPI
 import VouchaLocalization
 
 struct LandingPageReviewDisplay {
@@ -16,23 +17,43 @@ struct LandingPageReviewDisplay {
     }
 }
 
-extension LandingPageReview {
-    var landingPageReviewDisplay: LandingPageReviewDisplay {
+extension LandingPageReviewDisplay {
+    init(title: String, markdown: String, declaredLanguage: String?, detectedLanguage: String?) {
         if let title = landingPageFirstNonempty(title) {
-            return .init(
+            self.init(
                 text: .userContent(title),
                 declaredLanguage: declaredLanguage,
-                detectedLanguage: linguaRsDetectedLanguage
+                detectedLanguage: detectedLanguage
             )
+            return
         }
         if let preview = landingPageFirstNonempty(String(markdown.prefix(40))) {
-            return .init(
+            self.init(
                 text: .userContent(preview),
                 declaredLanguage: declaredLanguage,
-                detectedLanguage: linguaRsDetectedLanguage
+                detectedLanguage: detectedLanguage
             )
+            return
         }
-        return .init(text: .message(.nativeSwiftLandingPagesReview))
+        self.init(text: .message(.nativeSwiftLandingPagesReview))
+    }
+}
+
+extension LandingPageReview {
+    var landingPageReviewDisplay: LandingPageReviewDisplay {
+        .init(
+            title: title, markdown: markdown,
+            declaredLanguage: declaredLanguage, detectedLanguage: linguaRsDetectedLanguage
+        )
+    }
+}
+
+extension VouchaAPI.LandingPageReview {
+    var landingPageReviewDisplay: LandingPageReviewDisplay {
+        .init(
+            title: title, markdown: markdown,
+            declaredLanguage: declaredLanguage, detectedLanguage: linguaRsDetectedLanguage
+        )
     }
 }
 

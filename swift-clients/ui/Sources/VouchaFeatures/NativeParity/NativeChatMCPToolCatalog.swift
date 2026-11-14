@@ -17,12 +17,19 @@ enum NativeChatMCPToolCatalog {
         authorized: MemberMCPAuthorizedClient,
         assertCurrent: () throws -> Void
     ) async throws -> DecodedJSONValue {
+        try await listAll(page: { try await authorized.listTools(cursor: $0) }, assertCurrent: assertCurrent)
+    }
+
+    static func listAll(
+        page listPage: (String?) async throws -> DecodedJSONValue,
+        assertCurrent: () throws -> Void
+    ) async throws -> DecodedJSONValue {
         var cursor: String?
         var seenCursors = Set<String>()
         var allTools: [DecodedJSONValue] = []
-        var firstPage: [String: DecodedJSONValue]?
+        var firstPage: DecodedJSONObject?
         repeat {
-            let page = try await authorized.listTools(cursor: cursor)
+            let page = try await listPage(cursor)
             try assertCurrent()
             guard case let .object(result) = page,
                   case let .array(tools)? = result["tools"],

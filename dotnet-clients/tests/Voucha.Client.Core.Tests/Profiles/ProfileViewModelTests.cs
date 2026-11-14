@@ -386,6 +386,7 @@ public sealed partial class ProfileViewModelTests
 
   private sealed class RecordingSettingsService : ISettingsService
   {
+    public Exception? IdentityFailure { get; set; }
     public TopicImagePlacement? IdentityPlacement { get; set; } =
         new("avatar-1", "avatar-placement", 2);
     public User ResponseUser { get; set; } =
@@ -401,7 +402,6 @@ public sealed partial class ProfileViewModelTests
     public UpdateMyIdentityBody? LastIdentityUpdateBody { get; private set; }
 
     public bool ThrowOnFetchUser { get; init; }
-
     public Task<MyIdentityResponse> FetchMyIdentityAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new MyIdentityResponse(new User(
             "user-1",
@@ -417,6 +417,7 @@ public sealed partial class ProfileViewModelTests
         CancellationToken cancellationToken = default)
     {
       LastIdentityUpdateBody = body;
+      if (IdentityFailure is not null) return Task.FromException<MyIdentityResponse>(IdentityFailure);
       return Task.FromResult(new MyIdentityResponse(new User(
           "user-1",
           "alice",

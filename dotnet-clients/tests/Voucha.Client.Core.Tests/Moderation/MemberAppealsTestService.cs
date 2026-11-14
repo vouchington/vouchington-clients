@@ -13,7 +13,7 @@ internal sealed class MemberAppealsTestService : IMemberAppealsService
   public Queue<PersonalRemovedPostsResponse> RemovalPages { get; } = [];
   public MyIdentityResponse Identity { get; set; } = new(new User("user-1", "member"));
   public ModerationAppealSubmissionResponse Submission { get; set; } =
-      new(MemberAppealsFixtures.Appeal("submitted"), false);
+      new(MemberAppealsFixtures.SubmissionAppeal("submitted"), false);
   public Exception? SubmissionError { get; set; }
   public TaskCompletionSource<ModerationAppealSubmissionResponse>? PendingSubmission { get; set; }
   public TaskCompletionSource<ModerationAppealListResponse>? PendingAppealFetch { get; set; }
@@ -95,7 +95,7 @@ internal sealed class MemberAppealsTestService : IMemberAppealsService
 
 internal static class MemberAppealsFixtures
 {
-  public static ModerationAppeal Appeal(
+  public static ModerationAppeal SubmissionAppeal(
       string id,
       ModerationAppealStatus status = ModerationAppealStatus.Pending,
       string? warningId = null,
@@ -108,6 +108,18 @@ internal static class MemberAppealsFixtures
           null, null, null, null, null, null, null, null, null, null, null, null, null, null,
           null, null, null, DateTimeOffset.Parse("2026-07-01T00:00:00Z"),
           DateTimeOffset.Parse("2026-07-01T00:00:00Z"), false, suspensionId);
+
+  public static ModerationAppealSummary Appeal(
+      string id,
+      ModerationAppealStatus status = ModerationAppealStatus.Pending,
+      string? warningId = null,
+      string? banId = null,
+      string? postId = null,
+      ModerationAppealPostRemovalKind? kind = null,
+      string? suspensionId = null) =>
+      new(id, status, null, false, null, null, null, null, null,
+          DateTimeOffset.Parse("2026-07-01T00:00:00Z"), DateTimeOffset.Parse("2026-07-01T00:00:00Z"),
+          null, null, null, warningId, banId, postId, suspensionId, null, kind, null, null);
 
   public static PageInfo Page(string? cursor = null, bool more = false) =>
       new(cursor, more, null);

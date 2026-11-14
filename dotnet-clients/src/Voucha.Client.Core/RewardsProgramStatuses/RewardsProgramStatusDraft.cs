@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.RewardsProgramStatuses;
 
-public sealed class RewardsProgramStatusDraft : INotifyPropertyChanged
+public sealed class RewardsProgramStatusDraft : ObservableObject
 {
   private string since;
   private string until;
@@ -17,17 +16,16 @@ public sealed class RewardsProgramStatusDraft : INotifyPropertyChanged
     since = Format(original?.Since); until = Format(original?.Until);
     sinceEnabled = original?.Since is not null; untilEnabled = original?.Until is not null;
   }
-  public event PropertyChangedEventHandler? PropertyChanged;
   public RewardsProgramStatus? Original { get; }
-  public string Since { get => since; set => Set(ref since, value ?? string.Empty); }
-  public string Until { get => until; set => Set(ref until, value ?? string.Empty); }
+  public string Since { get => since; set => SetProperty(ref since, value ?? string.Empty); }
+  public string Until { get => until; set => SetProperty(ref until, value ?? string.Empty); }
   public bool SinceEnabled
   {
     get => sinceEnabled;
     set
     {
       if (value && !sinceEnabled && string.IsNullOrWhiteSpace(Since)) Since = Format(DateOnly.FromDateTime(DateTime.Today));
-      Set(ref sinceEnabled, value);
+      SetProperty(ref sinceEnabled, value);
     }
   }
   public bool UntilEnabled
@@ -36,7 +34,7 @@ public sealed class RewardsProgramStatusDraft : INotifyPropertyChanged
     set
     {
       if (value && !untilEnabled && string.IsNullOrWhiteSpace(Until)) Until = Format(DateOnly.FromDateTime(DateTime.Today));
-      Set(ref untilEnabled, value);
+      SetProperty(ref untilEnabled, value);
     }
   }
   public DateTime SinceDate { get => ParseOrToday(Since); set => Since = value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
@@ -64,11 +62,5 @@ public sealed class RewardsProgramStatusDraft : INotifyPropertyChanged
     }
     date = null;
     return false;
-  }
-  private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
-  {
-    if (EqualityComparer<T>.Default.Equals(field, value)) return;
-    field = value;
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
   }
 }

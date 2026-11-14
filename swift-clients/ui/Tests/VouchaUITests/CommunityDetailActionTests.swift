@@ -1,11 +1,13 @@
 import Foundation
+import SwiftUI
+import ViewInspector
 @testable import VouchaFeatures
 import VouchaLocalization
 import XCTest
 
 @MainActor
 final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
-    func testCodeOnlyInviteUsesLocalizedGenericRowTitle() async throws {
+    func testMetadataOnlyInviteUsesLocalizedUnknownRecipient() async throws {
         registerCommunityAdminFixtures()
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (
             Data(
@@ -20,9 +22,39 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertEqual(
             viewModel.summary.rows.map(\.title),
-            [UiMessages.string(.nativeSwiftCommunitiesInvite, locale: .english)]
+            ["Unknown recipient"]
         )
         XCTAssertFalse(viewModel.summary.rows.contains { $0.title.contains("opaque-invite-id") })
+        let row = try XCTUnwrap(viewModel.summary.rows.first)
+        for (locale, expected) in [("en", "Unknown recipient"), ("es", "Destinatario desconocido")] {
+            let surface = NativeSurfaceRow(row: row).environment(\.locale, Locale(identifier: locale))
+            XCTAssertEqual(try surface.inspect().find(text: expected).string(), expected)
+            XCTAssertThrowsError(try surface.inspect().find(text: "opaque-invite-id"))
+        }
+    }
+
+    func testInviteRecipientPreservesEmailThenUserIdVerbatim() async throws {
+        for (email, userId, expected) in [
+            ("person@example.test", "recipient-id", "person@example.test"),
+            (nil, "recipient-id", "recipient-id")
+        ] as [(String?, String?, String)] {
+            registerCommunityAdminFixtures()
+            let path = "/api/v1/communities/builders/invites"
+            let seeded = try XCTUnwrap(CannedFeedURLProtocol.handlers[path]?.0)
+            var response = try XCTUnwrap(JSONSerialization.jsonObject(with: seeded) as? [String: Any])
+            var invites = try XCTUnwrap(response["community_invites"] as? [String: [String: Any]])
+            var invite = try XCTUnwrap(invites["invite-1"])
+            invite["invited_email"] = email.map { $0 as Any } ?? NSNull()
+            invite["invited_user_id"] = userId.map { $0 as Any } ?? NSNull()
+            invites["invite-1"] = invite
+            response["community_invites"] = invites
+            CannedFeedURLProtocol.handlers[path] = try (JSONSerialization.data(withJSONObject: response), 200)
+            let model = try CommunityDetailViewModel(client: makeClient(), slug: "builders", initialTab: .invites)
+            await model.load()
+            let row = try XCTUnwrap(model.summary.rows.first)
+            XCTAssertEqual(row.localizedTitle(locale: Locale(identifier: "en")), expected)
+            XCTAssertEqual(row.localizedTitle(locale: Locale(identifier: "es")), expected)
+        }
     }
 
     func testMemberListApplicationInviteAndPinnedActionsCallCommunityEndpoints() async throws {
@@ -42,6 +74,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.removeListItem(itemType: .topic, itemId: "item-1")
 
         viewModel.selectedTab = .applications
+        await viewModel.load()
         await viewModel.approveApplication(applicationId: "application-1")
         await viewModel.rejectApplication(applicationId: "application-1", reason: "Needs more detail")
 
@@ -108,7 +141,8 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         ] = (
             Data("""
             {
-              "community_agent_moderations": [],
+              "results": [],
+              "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null },
               "platform_moderation": { "status": "in_review" }
             }
             """.utf8),
@@ -131,7 +165,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
 
         viewModel.selectedTab = .bans
         await viewModel.banMember(userId: "user-2", reason: "spam", expiresAt: nil)
-        await viewModel.liftBan(userId: "user-2")
+        await viewModel.liftBan(banId: "user-2")
 
         viewModel.selectedTab = .restrictions
         await viewModel.activateRestrictions(
@@ -295,29 +329,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (
-            Data(
-                """
-                {
-                  "results": [{ "id": "application-1" }],
-                  "page_info": { "has_next_page": false, "end_cursor": null },
-                  "community_applications": {
-                    "application-1": {
-                      "id": "application-1",
-                      "community_id": "community-1",
-                      "user_id": "user-2",
-                      "answers": {},
-                      "message": "Let me in",
-                      "reviewed_at": null,
-                      "reviewed_by_id": null,
-                      "approved_at": null,
-                      "rejected_at": null,
-                      "rejection_reason": null,
-                      "created_at": "2026-07-01T00:00:00Z"
-                    }
-                  }
-                }
-                """.utf8
-            ),
+            ApiFixtureLoader.data("web.communities.applications.default"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/application-questions"] = (

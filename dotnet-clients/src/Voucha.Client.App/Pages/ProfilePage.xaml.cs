@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Storage;
 using Voucha.Client.App;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
@@ -20,7 +21,7 @@ public partial class ProfilePage : ContentPage
   private readonly string? idOrUsername;
   private readonly NativeUserProfileScope initialScope;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
   private bool hasLoaded;
   private bool lastStaffViewer;
 
@@ -30,10 +31,14 @@ public partial class ProfilePage : ContentPage
       IServiceProvider serviceProvider,
       VouchaApiClient apiClient,
       string? idOrUsername = null,
-      NativeUserProfileScope? initialScope = null)
+      NativeUserProfileScope? initialScope = null,
+      Func<Task<FileResult?>>? pickAvatarFile = null,
+      Func<FileResult, Task<Stream>>? openSelectedFile = null)
   {
     InitializeComponent();
     this.viewModel = viewModel;
+    this.pickAvatarFile = pickAvatarFile ?? (() => FilePicker.Default.PickAsync(PickOptions.Images));
+    this.openSelectedFile = openSelectedFile ?? (file => file.OpenReadAsync());
     this.sessionStore = sessionStore;
     lastStaffViewer = IsStaffViewer;
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ = RefreshAfterSessionChangedAsync());
@@ -91,36 +96,15 @@ public partial class ProfilePage : ContentPage
   protected override void OnDisappearing()
   {
     DetachSessionChanged();
-    avatarPreviewGeneration++;
-    avatarPreviewCancellation.CancelCurrent();
-    ClearLocalAvatarPreview();
+    EndAvatarPreviewSession();
     base.OnDisappearing();
   }
 
-  private void RefreshViewerState()
-  {
-    viewModel.SetCurrentViewer(
-        sessionStore.Current.Identity?.Id,
-        sessionStore.Current.Identity?.Username,
-        sessionStore.Current.CanCastPublicVotes(),
-        sessionStore.Current.CanCreateEntityRelationVote(isUserTag: true),
-        isStaffViewer: sessionStore.Current.Identity?.Roles?.Any(role =>
-            role is "administrator" or "moderator") == true);
-  }
+  private void AttachSessionChanged() =>
+      sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler);
 
-  private void AttachSessionChanged()
-  {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
-  }
-
-  private void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  private void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   private async void OnUserAdminClicked(object? sender, EventArgs e)
   {
@@ -152,9 +136,9 @@ public partial class ProfilePage : ContentPage
 
   private async void OnLandingPageAnalyticsClicked(object? sender, EventArgs e)
   {
-    if (sender is Button { CommandParameter: LandingPageRow row })
+    if (sender is Button { CommandParameter: LandingPageRow row } && viewModel.User?.Username is { Length: > 0 } username)
     {
-      await Navigation.PushAsync(ActivatorUtilities.CreateInstance<LandingPageAnalyticsPage>(serviceProvider, row.Id));
+      await Navigation.PushAsync(ActivatorUtilities.CreateInstance<LandingPageAnalyticsPage>(serviceProvider, username, row.Slug));
     }
   }
 

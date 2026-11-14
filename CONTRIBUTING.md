@@ -13,16 +13,24 @@ Bug reports and questions are welcome as issues.
 
 ## Setup
 
-Start with the [README](README.md) for repository layout, the Filaments contract boundary, and the
+Start with the [README](README.md) for repository layout, the Vouchington contract boundary, and the
 `pnpm clean` / `./dev/reset-worktree` tooling. Project principles and directory-scoped rules are in
 [AGENTS.md](AGENTS.md). The Node tooling runs on any pnpm 12 release, which is deliberately
 unpinned; see [pnpm](docs/development/ci-runners.md#pnpm).
+
+After a frozen install in a local worktree, run `pnpm run prepare` explicitly. A cached install can
+exit successfully without rerunning lifecycle scripts. Preparation verifies Git's `core.hooksPath`
+and the generated Husky `pre-push` wrapper; `./dev/reset-worktree` runs it after installation too.
+A failed hook install fails preparation even if Husky only prints a Git-config error. If Git metadata
+access was denied, rerun `pnpm run prepare` with normal write access, verify the executable wrapper,
+and push the same head again so the real freshness and lint checks run. An intentional `HUSKY=0` CI
+install skips this local hook setup.
 
 ## Native quality
 
 Swift/.NET quality rules, changed-file test planning, and native test authoring guidance live in
 [`docs/development/native-quality.md`](docs/development/native-quality.md), including the explicit
-Filaments producer boundaries.
+Vouchington producer boundaries.
 
 `pnpm run lint:portable` is the portable gate; `pnpm run lint` also runs gitleaks and the native
 harnesses under `swift-clients/tooling/` and `dotnet-clients/tooling/`. CI uses GitHub-hosted

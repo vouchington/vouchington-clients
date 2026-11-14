@@ -1,3 +1,5 @@
+import VouchaCore
+
 private struct PasskeyAuthVerifyBody<Response: Encodable & Sendable>: Encodable {
     let response: Response
 }
@@ -34,7 +36,12 @@ public extension Endpoint {
     }
 
     static func verifyEmailOTP(email: String, code: String) -> Endpoint {
-        Endpoint(.POST, path: "/api/v1/auth/email-address/login", body: ["emailAddress": email, "token": code])
+        Endpoint(
+            .POST,
+            path: "/api/v1/auth/email-address/login",
+            body: VerifyEmailOTPBody(emailAddress: email, token: EncodedEmailVerificationCode(code)),
+            bodyKeyEncodingStrategy: .useDefaultKeys
+        )
     }
 
     static func verifyMFATOTP(loginAttemptId: String, code: String) -> Endpoint {
@@ -60,4 +67,9 @@ public extension Endpoint {
             body: PasskeyAuthVerifyBody(response: response)
         )
     }
+}
+
+private struct VerifyEmailOTPBody: Encodable {
+    let emailAddress: String
+    let token: EncodedEmailVerificationCode
 }

@@ -43,10 +43,12 @@ import VouchaCore
             attempted = true
         }
 
-        func record(id: UUID, name: String, result: NativeChatMCPToolBridge.ValidatedResult) throws {
+        func record(
+            id: UUID, callId: String, name: String, result: NativeChatMCPToolBridge.ValidatedResult
+        ) throws {
             let receipt = NativeChatMCPReceipt(
-                id: id, owner: turn.owner, toolName: name, envelope: result.envelope,
-                kind: result.isError ? .toolError : .response
+                id: id, callId: callId, owner: turn.owner, toolName: name, envelope: result.envelope,
+                kind: result.isError ? .toolError : .response, fact: result.fact
             )
             guard !Task.isCancelled, turn.publish(receipt) else { throw CancellationError() }
             receipts.append(receipt)
@@ -98,7 +100,7 @@ import VouchaCore
                 onStarted: { state.markStarted(argumentBytes: raw.utf8.count) }
             )
             guard await session.isCurrent(snapshot) else { throw CancellationError() }
-            try await state.record(id: executionId, name: name, result: result)
+            try await state.record(id: executionId, callId: callId, name: name, result: result)
             if let stopped = await state.stopped { throw NativeChatFoundationModelsStop(reason: stopped) }
             do {
                 guard try await admission.retain(callId: callId, name: name, envelope: result.envelope) else {

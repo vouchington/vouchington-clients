@@ -13,21 +13,22 @@ final class EmailOTPInitialLinkTests: XCTestCase {
     }
 
     func testInitialEmailAndCodeRequiresExplicitVerification() async {
-        CannedFeedURLProtocol.handlers["/api/v1/auth/email-address/login"] = (
+        CannedFeedURLProtocol.handlers["/api/v1/auth/native/email-address/login"] = (
             Data(#"{"mfa_required":true,"login_attempt_id":"attempt-1"}"#.utf8),
             200
         )
-        let viewModel = makeViewModel(initialEmail: "alice@example.com", initialCode: "123456")
+        let viewModel = makeViewModel(initialEmail: "alice@example.com", initialCode: "abcdefgh23")
 
         XCTAssertEqual(viewModel.step, .enterCode)
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), [])
 
         await viewModel.verifyCode()
+        XCTAssertEqual(viewModel.code, "ABCDEFGH23")
 
         XCTAssertEqual(viewModel.step, .mfaChallenge(loginAttemptId: "attempt-1"))
         XCTAssertEqual(
             CannedFeedURLProtocol.capturedURLs.map(\.path),
-            ["/api/v1/auth/email-address/login"]
+            ["/api/v1/auth/native/email-address/login"]
         )
     }
 
@@ -39,7 +40,7 @@ final class EmailOTPInitialLinkTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         let service = SignInService(client: apiClient, sessionManager: sessionManager)
         return EmailOTPViewModel(
             signInService: service,

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Notifications;
 using Voucha.Client.Core.Tests.Api;
@@ -66,5 +67,25 @@ public sealed class ApiNotificationsServiceTests
 
     Assert.Equal(HttpMethod.Post, handler.Method);
     Assert.Equal("/api/v1/my/notifications/read-all", handler.PathAndQuery);
+  }
+
+  [Theory]
+  [InlineData("\"household-1\"", "household-1")]
+  [InlineData("null", null)]
+  public void NotificationDecodesHouseholdId(string jsonValue, string? expected)
+  {
+    var json = $$"""
+        {"id":"n1","entity_type":null,"title":null,"body":null,"created_at":null,"read_at":null,
+         "target_path":null,"post_id":null,"rss_feed_item_id":null,"conversation_id":null,
+         "household_id":{{jsonValue}}}
+        """;
+
+    var notification = JsonSerializer.Deserialize<Notification>(json)!;
+    var same = JsonSerializer.Deserialize<Notification>(json)!;
+
+    Assert.Equal(expected, notification.HouseholdId);
+    Assert.Equal(notification, same);
+    Assert.Equal(notification.GetHashCode(), same.GetHashCode());
+    Assert.Contains($"HouseholdId = {expected}", notification.ToString(), StringComparison.Ordinal);
   }
 }

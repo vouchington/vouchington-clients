@@ -33,8 +33,8 @@ public sealed class IdentityVerificationAttemptGrantViewModel : ObservableObject
       if (SetProperty(ref note, value ?? string.Empty)) OnPropertyChanged(nameof(CanSubmit));
     }
   }
-  public bool IsLoading { get => loading; private set { if (SetProperty(ref loading, value)) OnPropertyChanged(nameof(CanSubmit)); } }
-  public bool IsSubmitting { get => submitting; private set { if (SetProperty(ref submitting, value)) OnPropertyChanged(nameof(CanSubmit)); } }
+  public bool IsLoading { get => loading; private set => SetPropertyAndNotify(ref loading, value, nameof(CanSubmit)); }
+  public bool IsSubmitting { get => submitting; private set => SetPropertyAndNotify(ref submitting, value, nameof(CanSubmit)); }
   public UiText? LoadError { get => loadError; private set => SetProperty(ref loadError, value); }
   public UiText? Submission { get => submission; private set => SetProperty(ref submission, value); }
   public bool CanSubmit =>

@@ -43,18 +43,11 @@ internal sealed partial class ScriptedCommunitiesService
           {
             "results": [{ "id": "application-1" }],
             "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
-            "community_applications": {
+            "users": {},
+            "community_application_summaries": {
               "application-1": {
-                "id": "application-1",
-                "community_id": "community-1",
-                "user_id": "applicant-1",
-                "answers": {},
-                "message": "Please approve",
-                "reviewed_at": null,
-                "reviewed_by_id": null,
-                "approved_at": null,
-                "rejected_at": null,
-                "rejection_reason": null,
+                "id": "application-1", "user_id": "applicant-1", "status": "pending",
+                "message_preview": "Please approve", "answer_count": 1,
                 "created_at": "2026-07-01T00:00:00Z"
               }
             }
@@ -172,46 +165,9 @@ internal sealed partial class ScriptedCommunitiesService
   public Task<CommunityModerationQueueResponse> FetchModerationQueueAsync(string idOrSlug, CancellationToken cancellationToken = default) =>
       ModerationQueueHandler is not null
           ? ModerationQueueHandler(idOrSlug, cancellationToken)
-          : Task.FromResult(ModerationQueueResponses.Count > 0 ? ModerationQueueResponses.Dequeue() : Deserialize<CommunityModerationQueueResponse>("""
-          {
-            "entries": [
-              {
-                "id": "queue-1",
-                "community_id": "community-1",
-                "entity_type": "post",
-                "entity_id": "post-1",
-                "post_id": "post-1",
-                "status": "pending",
-                "queue_source": "report",
-                "reason": null,
-                "note": null,
-                "report_count": 1,
-                "action_at": "2026-07-01T00:00:00Z",
-                "created_at": "2026-07-01T00:00:00Z",
-                "target_label": null,
-                "target_path": null,
-                "target_available": true,
-                "target_is_anonymous": false,
-                "target_is_restricted": false,
-                "target_user_id": null,
-                "reporter_user_id": null,
-                "reporter_username": null,
-                "resolved_by_id": null,
-                "judgement": null,
-                "flagged_reason": "reported",
-                "admin_action_path": null,
-                "community_ban_evasion": null,
-                "post_moderation_context": null,
-                "is_system_generated": false,
-                "cursor_created_at": null,
-                "cursor_report_count": null,
-                "cursor_severity_rank": null
-              }
-            ],
-            "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
-            "viewer_tier": "moderator"
-          }
-          """));
+          : Task.FromResult(ModerationQueueResponses.Count > 0 ? ModerationQueueResponses.Dequeue()
+              : Deserialize<CommunityModerationQueueResponse>(
+                  ApiFixtureLoader.LoadResponse("web.communities.moderation-queue.default")));
 
   public Task<CommunityModerationAnalyticsResponse> FetchModerationAnalyticsAsync(
       string idOrSlug,
@@ -288,7 +244,8 @@ internal sealed partial class ScriptedCommunitiesService
                 "updated_at": "2026-07-01T00:00:00Z"
               }
             ],
-            "slot_info": {}
+            "page_info": { "end_cursor": null, "start_cursor": null, "has_next_page": false },
+            "slot_info": { "used": 1, "limit": 3, "remaining": 2, "limits_by_plan": { "plus": 3, "pro": 10 } }
           }
           """));
 
@@ -310,8 +267,10 @@ internal sealed partial class ScriptedCommunitiesService
       CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
+  public Func<Task>? MemberRoleUpdateHandler { get; set; }
+
   public Task UpdateMemberRoleAsync(string idOrSlug, string userId, string role, CancellationToken cancellationToken = default) =>
-      RecordCompleted("member-role", idOrSlug, $"{userId}:{role}");
+      MemberRoleUpdateHandler?.Invoke() ?? RecordCompleted("member-role", idOrSlug, $"{userId}:{role}");
 
   public Task RemoveMemberAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
       RecordCompleted("member-remove", idOrSlug, userId);
@@ -351,8 +310,11 @@ internal sealed partial class ScriptedCommunitiesService
   public Task BanAsync(string idOrSlug, BanCommunityMemberRequest request, CancellationToken cancellationToken = default) =>
       RecordCompleted("ban", idOrSlug, $"{request.UserId}:{request.Reason}");
 
-  public Task LiftBanAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
-      RecordCompleted("ban-lift", idOrSlug, userId);
+  public async Task<CommunityBanLiftResponse> LiftBanAsync(string idOrSlug, string banId, CancellationToken cancellationToken = default)
+  {
+    await RecordCompleted("ban-lift", idOrSlug, banId);
+    return new(idOrSlug, "user-4", [banId]);
+  }
 
   public Task ActivateRestrictionsAsync(
       string idOrSlug,

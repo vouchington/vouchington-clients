@@ -31,18 +31,18 @@ public sealed class MembershipGrantViewModel : ObservableObject
   }
 
   public IReadOnlyList<UserSearchResult> Results { get => results; private set => SetProperty(ref results, value); }
-  public UserSearchResult? SelectedUser { get => selectedUser; private set { if (SetProperty(ref selectedUser, value)) OnPropertyChanged(nameof(CanSubmit)); } }
+  public UserSearchResult? SelectedUser { get => selectedUser; private set => SetPropertyAndNotify(ref selectedUser, value, nameof(CanSubmit)); }
   public string Query { get => query; set { value ??= string.Empty; if (!SetProperty(ref query, value)) return; generation++; IsSearching = false; SelectedUser = null; Results = []; } }
   public MembershipGrantPlanSlug? SelectedPlan { get => selectedPlan; set { if (!SetProperty(ref selectedPlan, value)) return; SelectedSku = null; OnPropertyChanged(nameof(AvailableSkus)); OnPropertyChanged(nameof(CanSubmit)); } }
-  public MembershipSku? SelectedSku { get => selectedSku; set { if (SetProperty(ref selectedSku, value)) OnPropertyChanged(nameof(CanSubmit)); } }
-  public string DurationDays { get => durationDays; set { value ??= string.Empty; if (SetProperty(ref durationDays, value)) OnPropertyChanged(nameof(CanSubmit)); } }
+  public MembershipSku? SelectedSku { get => selectedSku; set => SetPropertyAndNotify(ref selectedSku, value, nameof(CanSubmit)); }
+  public string DurationDays { get => durationDays; set { value ??= string.Empty; SetPropertyAndNotify(ref durationDays, value, nameof(CanSubmit)); } }
   public IReadOnlyList<MembershipSku> AvailableSkus => SelectedPlan is { } plan
       ? products.Where(product => string.Equals(product.Plan, plan.ToString(), StringComparison.OrdinalIgnoreCase))
           .SelectMany(product => product.StripeSkus)
           .Where(sku => string.Equals(sku.Plan, plan.ToString(), StringComparison.OrdinalIgnoreCase)).ToArray() : [];
-  public bool IsPlansLoading { get => plansLoading; private set { if (SetProperty(ref plansLoading, value)) OnPropertyChanged(nameof(CanSubmit)); } }
+  public bool IsPlansLoading { get => plansLoading; private set => SetPropertyAndNotify(ref plansLoading, value, nameof(CanSubmit)); }
   public bool IsSearching { get => searching; private set => SetProperty(ref searching, value); }
-  public bool IsSubmitting { get => submitting; private set { if (SetProperty(ref submitting, value)) OnPropertyChanged(nameof(CanSubmit)); } }
+  public bool IsSubmitting { get => submitting; private set => SetPropertyAndNotify(ref submitting, value, nameof(CanSubmit)); }
   public bool CanSubmit => HasValidSelection && !IsSubmitting && !IsPlansLoading;
   public UiText? PlanError { get => planError; private set => SetError(ref planError, value, nameof(PlanError)); }
   public UiText? SearchError { get => searchError; private set => SetError(ref searchError, value, nameof(SearchError)); }

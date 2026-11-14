@@ -5,10 +5,8 @@ extension MCPResponseReader {
     static func replyToServerRequest(
         _ data: Data, send: @escaping @Sendable (Data) async throws -> Void
     ) async throws -> Bool {
-        guard let message = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
-              case let .object(fields) = message,
+        guard case let .object(fields) = try? MCPResponseReader.exactJSON(data),
               let methodValue = fields["method"] else { return false }
-        try MCPJSONMemberGuard.validate(data)
         guard case let .string(method) = methodValue,
               case .string("2.0")? = fields["jsonrpc"] else {
             throw MemberMCPClient.Failure.invalidResponse
@@ -18,7 +16,7 @@ extension MCPResponseReader {
         case .string, .integer, .unsignedInteger, .decimal, .number: break
         default: throw MemberMCPClient.Failure.invalidResponse
         }
-        var response: [String: DecodedJSONValue] = [
+        var response: DecodedJSONObject = [
             "jsonrpc": .string("2.0"), "id": id
         ]
         if method == "ping" {
@@ -28,7 +26,7 @@ extension MCPResponseReader {
                 "code": .number(-32_601), "message": .string("Method not found")
             ])
         }
-        try await send(JSONEncoder().encode(DecodedJSONValue.object(response)))
+        try await send(DecodedJSONValue.object(response).exactJSONData())
         return true
     }
 }

@@ -48,7 +48,17 @@ public enum ImportResultStatus: String, Codable, Sendable {
     case pending, followed, imported, sourceCreated = "source_created"
     case recommendationCreated = "recommendation_created"
     case alreadyFollowing = "already_following"
-    case error
+    case error, skipped
+}
+
+public enum RssFeedImportErrorCode: String, Codable, Sendable {
+    case invalidURL = "INVALID_URL"
+    case invalidFeedContent = "INVALID_FEED_CONTENT"
+    case feedFetchTimeout = "FEED_FETCH_TIMEOUT"
+    case contributionLimitExceeded = "CONTRIBUTION_LIMIT_EXCEEDED"
+    case importFailed = "IMPORT_FAILED"
+    case accountSuspended = "ACCOUNT_SUSPENDED"
+    case relationLimitReached = "RELATION_LIMIT_REACHED"
 }
 
 public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
@@ -58,6 +68,13 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
     public let error: String?
     public let entityId: String?
     public let recommendationPostId: String?
+    public let errorCode: RssFeedImportErrorCode?
+    public let topicSlug: String?
+
+    public var isRetrying: Bool {
+        status == .pending &&
+            (error?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false || errorCode != nil)
+    }
 
     public init(
         id: String? = nil,
@@ -65,7 +82,9 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
         status: ImportResultStatus,
         error: String? = nil,
         entityId: String? = nil,
-        recommendationPostId: String? = nil
+        recommendationPostId: String? = nil,
+        errorCode: RssFeedImportErrorCode? = nil,
+        topicSlug: String? = nil
     ) {
         self.id = id
         self.input = input
@@ -73,6 +92,8 @@ public struct ImportResult: Codable, Identifiable, Sendable, Equatable {
         self.error = error
         self.entityId = entityId
         self.recommendationPostId = recommendationPostId
+        self.errorCode = errorCode
+        self.topicSlug = topicSlug
     }
 }
 
@@ -86,6 +107,7 @@ public struct TopicImportResponse: Codable, Sendable, Equatable {
 public struct RssFeedImportSummary: Codable, Sendable, Equatable {
     public let id: String
     public let totalRows: Int
+    public let skippedRows: Int
     public let completedRows: Int
     public let failedRows: Int
     public let pendingRows: Int
@@ -96,6 +118,7 @@ public struct RssFeedImportSummary: Codable, Sendable, Equatable {
         id: String,
         totalRows: Int,
         completedRows: Int,
+        skippedRows: Int = 0,
         failedRows: Int,
         pendingRows: Int,
         completedAt: Date?,
@@ -104,6 +127,7 @@ public struct RssFeedImportSummary: Codable, Sendable, Equatable {
         self.id = id
         self.totalRows = totalRows
         self.completedRows = completedRows
+        self.skippedRows = skippedRows
         self.failedRows = failedRows
         self.pendingRows = pendingRows
         self.completedAt = completedAt
@@ -123,9 +147,15 @@ public struct RssFeedImportSubmission: Codable, Sendable, Equatable {
 public struct RssFeedImportStatus: Codable, Sendable, Equatable {
     public let `import`: RssFeedImportSummary
     public let rows: [ImportResult]
-    public init(import summary: RssFeedImportSummary, rows: [ImportResult]) {
+    public let pageInfo: Page<ImportResult>.PageInfo
+
+    public init(
+        import summary: RssFeedImportSummary, rows: [ImportResult],
+        pageInfo: Page<ImportResult>.PageInfo = .init(hasNextPage: false)
+    ) {
         self.import = summary
         self.rows = rows
+        self.pageInfo = pageInfo
     }
 }
 

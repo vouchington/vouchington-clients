@@ -35,7 +35,7 @@ public enum ApiKeyType: String, Codable, CaseIterable, Sendable {
     case mcp
 }
 
-public struct EmailPreferences: Codable, Sendable {
+public struct EmailPreferences: Codable, Equatable, Sendable {
     public let engagementEmailsEnabled: Bool
     public let newsDigestFrequency: String
     public let moderationEmailsEnabled: Bool
@@ -61,6 +61,13 @@ public struct EmailPreferencesResponse: Codable, Sendable {
     public let emailPreferences: EmailPreferences
 }
 
+public struct AuthSessionMCPConnection: Codable, Sendable {
+    public let grantId: String
+    public let clientName: String
+    public let attestationStatus: String
+    public let lastMintedAt: Date
+}
+
 public struct AuthSession: Codable, Identifiable, Sendable {
     public let id: String
     public let deviceId: String
@@ -71,6 +78,7 @@ public struct AuthSession: Codable, Identifiable, Sendable {
     public let lastSeenAt: Date?
     public let expiresAt: Date?
     public let isCurrent: Bool
+    public let mcpConnections: [AuthSessionMCPConnection]?
 }
 
 public struct BeginBlueskyAccountLinkResponse: Codable, Sendable {

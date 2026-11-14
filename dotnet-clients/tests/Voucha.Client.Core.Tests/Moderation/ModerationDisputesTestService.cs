@@ -8,21 +8,31 @@ namespace Voucha.Client.Core.Tests.Moderation;
 
 internal sealed class ModerationDisputesTestService : IModerationDisputesService
 {
-  public Queue<ModerationDisputeListResponse> Pages { get; } = new();
+  public Queue<StaffModerationDisputeListResponse> SummaryPages { get; } = new();
+  public Queue<StaffModerationDisputeListResponse> Pages { get; } = new();
   public List<string> Calls { get; } = [];
   public ModerationDispute Current { get; set; } = Fixture();
   public Exception? NextError { get; set; }
   public Exception? NextResolveResponseError { get; set; }
   public bool QueueAccepted { get; set; } = true;
   public Queue<ModerationDispute> Refreshes { get; } = new();
-  public TaskCompletionSource<ModerationDisputeListResponse>? PendingFetch { get; set; }
+  public TaskCompletionSource<StaffModerationDisputeListResponse>? PendingFetch { get; set; }
+  public TaskCompletionSource<ModerationDisputeResponse>? PendingDetail { get; set; }
   public TaskCompletionSource<ModerationDisputeResponse>? PendingResolve { get; set; }
   public TaskCompletionSource PendingFetchStarted { get; } =
       new(TaskCreationOptions.RunContinuationsAsynchronously);
   public TaskCompletionSource ResolveStarted { get; } =
       new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-  public Task<ModerationDisputeListResponse> FetchDisputesAsync(
+  public async Task<StaffModerationDisputeListResponse> FetchDisputesAsync(
+      ModerationDisputeStatus status, string? after = null, int limit = 25,
+      CancellationToken cancellationToken = default)
+  {
+    if (SummaryPages.TryDequeue(out var summaryPage)) return summaryPage;
+    return await FetchPageAsync(status, after, limit, cancellationToken).ConfigureAwait(false);
+  }
+
+  private Task<StaffModerationDisputeListResponse> FetchPageAsync(
       ModerationDisputeStatus status,
       string? after = null,
       int limit = 25,
@@ -38,8 +48,12 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
     }
     return Task.FromResult(Pages.TryDequeue(out var page)
         ? page
-        : new([Current with { Status = status }], new PageInfo(null, false, null)));
+        : new([Summary(Current with { Status = status })], new PageInfo(null, false, null)));
   }
+
+  public static ModerationDisputeSummary Summary(ModerationDispute dispute) =>
+      JsonSerializer.Deserialize<ModerationDisputeSummary>(
+          JsonSerializer.Serialize(dispute, VouchaApiJson.Options), VouchaApiJson.Options)!;
 
   public Task<ModerationDisputeResponse> FetchDisputeAsync(
       string id,
@@ -47,6 +61,7 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   {
     Calls.Add($"fetch:{id}");
     ThrowNext();
+    if (PendingDetail is { } pending) { PendingDetail = null; return pending.Task; }
     if (Refreshes.TryDequeue(out var refreshed)) Current = refreshed;
     return Task.FromResult(new ModerationDisputeResponse(Current));
   }
@@ -118,7 +133,7 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
   {
     Calls.Add($"rerun:{id}");
     ThrowNext();
-    return Task.FromResult(new ModerationDisputeQueueResponse(QueueAccepted, "staff-1"));
+    return Task.FromResult(new ModerationDisputeQueueResponse(QueueAccepted, "staff-1", "dispute-rerun-job-1"));
   }
 
   public void FailNext(Exception exception) => NextError = exception;
@@ -132,9 +147,8 @@ internal sealed class ModerationDisputesTestService : IModerationDisputesService
 
   internal static ModerationDispute Fixture()
   {
-    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.default");
-    return JsonSerializer.Deserialize<ModerationDisputeListResponse>(json, VouchaApiJson.Options)!
-        .Disputes.Single();
+    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.detail.default");
+    return JsonSerializer.Deserialize<ModerationDisputeResponse>(json, VouchaApiJson.Options)!.Dispute;
   }
 
   internal static HttpRequestException AmbiguousFailure() =>

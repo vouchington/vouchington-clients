@@ -39,6 +39,7 @@ private struct CreatePushSubscriptionBody: Encodable {
 
 private struct BeginNativeBlueskyLinkBody: Encodable {
     let handle: String
+    let reAuthToken: String?
     let callbackMode = "native"
     let completionProofChallenge: String
 }
@@ -66,12 +67,17 @@ public extension Endpoint {
         Endpoint(.POST, path: "/api/v1/auth/bluesky/link", body: ["handle": handle])
     }
 
-    static func beginNativeBlueskyAccountLink(handle: String, completionProofChallenge: String) -> Endpoint {
+    static func beginNativeBlueskyAccountLink(
+        handle: String,
+        completionProofChallenge: String,
+        reAuthToken: String? = nil
+    ) -> Endpoint {
         Endpoint(
             .POST,
             path: "/api/v1/auth/bluesky/link",
             body: BeginNativeBlueskyLinkBody(
                 handle: handle,
+                reAuthToken: reAuthToken,
                 completionProofChallenge: completionProofChallenge
             )
         )
@@ -94,7 +100,11 @@ public extension Endpoint {
     }
 
     static var disconnectBlueskyAccount: Endpoint {
-        Endpoint(.DELETE, path: "/api/v1/auth/bluesky/link")
+        disconnectBlueskyAccount(reAuthToken: nil)
+    }
+
+    static func disconnectBlueskyAccount(reAuthToken: String?) -> Endpoint {
+        Endpoint(.DELETE, path: "/api/v1/auth/bluesky/link", body: reAuthToken.map { ["re_auth_token": $0] })
     }
 
     static func myApiKeys(after: String? = nil, limit: Int = 25) -> Endpoint {

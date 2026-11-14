@@ -29,15 +29,15 @@ public sealed partial class FriendsViewModel
     }
     catch (VouchaApiException ex)
     {
-      CompleteMutationError(row, nextFollowing, mutationUserId, requestId, ex.Message);
+      CompleteMutationError(row, nextFollowing, mutationUserId, requestId, RelationMutationErrors.Message(ex, localization));
     }
     catch (HttpRequestException ex)
     {
-      CompleteMutationError(row, nextFollowing, mutationUserId, requestId, ex.Message);
+      CompleteMutationError(row, nextFollowing, mutationUserId, requestId, RelationMutationErrors.Message(ex, localization));
     }
     catch (InvalidOperationException ex)
     {
-      CompleteMutationError(row, nextFollowing, mutationUserId, requestId, ex.Message);
+      CompleteMutationError(row, nextFollowing, mutationUserId, requestId, RelationMutationErrors.Message(ex, localization));
     }
     finally
     {

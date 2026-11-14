@@ -5,10 +5,19 @@ import XCTest
 
 @MainActor
 final class ViewModelTests: XCTestCase {
-    func testSuccessfulGenerationUsesBoundedHistoryAndAppendsAssistant() async {
+    func testSuccessfulGenerationUsesBoundedHistoryAndAppendsAssistant() async throws {
+        let fixture = try AndroidTranscriptTestFactory.makeClient()
+        defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
+        AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: fixture.recorder)
+        AndroidTranscriptTestFactory.enqueueGeneratedTurn(
+            on: fixture.recorder,
+            userText: "How should I redeem points?",
+            assistantText: "On-device answer"
+        )
         let runtime = FakeAICoreRuntime(state: .available, response: "On-device answer")
         let viewModel = makeViewModel(runtime: runtime)
         viewModel.modelState = .available
+        await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
         viewModel.draft = "How should I redeem points?"
 
         await viewModel.sendOnDevice()
@@ -20,10 +29,14 @@ final class ViewModelTests: XCTestCase {
         XCTAssertTrue(generation.lastPrompt?.contains("How should I redeem points?") == true)
     }
 
-    func testGenerationFailureRestoresDraftWithoutAlternateProviderRequest() async {
+    func testGenerationFailureRestoresDraftWithoutAlternateProviderRequest() async throws {
+        let fixture = try AndroidTranscriptTestFactory.makeClient()
+        defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
+        AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: fixture.recorder)
         let runtime = FakeAICoreRuntime(state: .available, error: TestError.failed)
         let viewModel = makeViewModel(runtime: runtime)
         viewModel.modelState = .available
+        await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
         viewModel.draft = "Keep this draft"
 
         await viewModel.sendOnDevice()
@@ -50,11 +63,19 @@ final class ViewModelTests: XCTestCase {
         XCTAssertEqual(downloadCountAfterConfirmation, 1)
     }
 
-    func testPromptDoesNotDuplicateTheLatestMessage() async {
+    func testPromptDoesNotDuplicateTheLatestMessage() async throws {
+        let fixture = try AndroidTranscriptTestFactory.makeClient()
+        defer { AndroidTranscriptURLProtocol.uninstall(host: fixture.host) }
+        try AndroidTranscriptTestFactory.enqueueExistingConversation(on: fixture.recorder)
+        AndroidTranscriptTestFactory.enqueueGeneratedTurn(
+            on: fixture.recorder,
+            userText: "Latest question",
+            assistantText: "On-device answer"
+        )
         let runtime = FakeAICoreRuntime(state: .available, response: "On-device answer")
         let viewModel = makeViewModel(runtime: runtime)
         viewModel.modelState = .available
-        viewModel.messages = [.init(role: "assistant", content: "Earlier reply")]
+        await viewModel.bindAccount(client: fixture.client, userID: "fixture-user")
         viewModel.draft = "Latest question"
 
         await viewModel.sendOnDevice()
@@ -126,10 +147,6 @@ final class ViewModelTests: XCTestCase {
     }
 }
 
-enum TestError: Error {
-    case failed
-}
-
 private final class TestEndpointSecrets: AndroidEndpointSecretStoring {
     func string(forKey _: String) throws -> String? {
         nil
@@ -148,47 +165,5 @@ private actor TestEndpointClient: AndroidEndpointGenerating {
         apiKey _: String?
     ) async throws -> String? {
         throw TestError.failed
-    }
-}
-
-actor FakeAICoreRuntime: AndroidAICoreRunning {
-    var state: AndroidModelState
-    let response: String
-    let error: Error?
-    var downloadCallCount = 0
-    var generateCallCount = 0
-    var lastPrompt: String?
-
-    init(state: AndroidModelState, response: String = "", error: Error? = nil) {
-        self.state = state
-        self.response = response
-        self.error = error
-    }
-
-    func status() async throws -> AndroidModelState {
-        state
-    }
-
-    func download() async throws -> AndroidModelState {
-        downloadCallCount += 1
-        state = .available
-        return state
-    }
-
-    func generate(prompt: String) async throws -> String {
-        generateCallCount += 1
-        lastPrompt = prompt
-        if let error {
-            throw error
-        }
-        return response
-    }
-
-    func generationSnapshot() -> (callCount: Int, lastPrompt: String?) {
-        (generateCallCount, lastPrompt)
-    }
-
-    func downloadCount() -> Int {
-        downloadCallCount
     }
 }

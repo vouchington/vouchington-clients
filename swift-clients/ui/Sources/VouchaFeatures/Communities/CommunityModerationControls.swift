@@ -137,11 +137,11 @@ extension CommunityModerationAdminControls {
                     moderationButton(.nativeSwiftCommunityActionsBan, systemImage: "nosign") {
                         Task { await viewModel.banMember(userId: banUserId, reason: banReason, expiresAt: nil) }
                     }
-                    moderationButton(.nativeSwiftCommunityActionsLiftBan, systemImage: "arrow.uturn.left") {
-                        Task { await viewModel.liftBan(userId: banUserId) }
-                    }
+
                 }
             }
+
+            CommunityBanManagementControls(viewModel: viewModel).disabled(!isSignedIn)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(UiMessages.string(.nativeSwiftCommunitiesRestrictions, locale: nativeUiLocale))

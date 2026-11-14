@@ -14,10 +14,12 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class FriendAvatarPlacementRenderingTests
 {
-  [Fact]
-  public void FriendsPageKeepsInitialFallbackAndUsesOnlyTheResolvedPlacement()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void FriendsPageKeepsInitialFallbackAndUsesOnlyTheResolvedPlacement(string imageHost)
   {
-    InstallPageResources();
+    InstallPageResources(imageHost);
     var page = new FriendsPage(
         new FriendsViewModel(Proxy<IFriendsService>()),
         Proxy<ISessionStore>(),
@@ -30,7 +32,7 @@ public sealed class FriendAvatarPlacementRenderingTests
     var image = Assert.Single(Descendants<Image>(card));
     var initial = Assert.Single(Descendants<Label>(card), label => label.Text == "F");
     var name = Assert.Single(Descendants<Label>(card), label => label.Text == row.PrimaryLabel);
-    Assert.Equal(ExpectedAvatarUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.Equal(ExpectedAvatarUrl(imageHost), Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(initial));
     Assert.Equal(row.PrimaryLabel, name.Text);
 
@@ -41,13 +43,14 @@ public sealed class FriendAvatarPlacementRenderingTests
   }
 
   [Theory]
-  [InlineData(FriendRecommendationProvider.Facebook, "via Facebook")]
-  [InlineData(FriendRecommendationProvider.X, "via X")]
-  [InlineData(FriendRecommendationProvider.Github, "via GitHub")]
+  [InlineData(FriendRecommendationProvider.Facebook, "via Facebook", "https://images.test")]
+  [InlineData(FriendRecommendationProvider.Facebook, "via Facebook", "https://replacement-images.test")]
+  [InlineData(FriendRecommendationProvider.X, "via X", "https://images.test")]
+  [InlineData(FriendRecommendationProvider.Github, "via GitHub", "https://images.test")]
   public void RecommendationPageRendersHydratedAvatarAndProviderLabel(
-      FriendRecommendationProvider provider, string expectedProviderLabel)
+      FriendRecommendationProvider provider, string expectedProviderLabel, string imageHost)
   {
-    InstallPageResources();
+    InstallPageResources(imageHost);
     var page = new FriendRecommendationsPage(
         new FriendRecommendationsViewModel(Proxy<IFriendRecommendationsService>()));
     var collection = Assert.Single(Descendants<CollectionView>(page));
@@ -61,7 +64,7 @@ public sealed class FriendAvatarPlacementRenderingTests
     var image = Assert.Single(Descendants<Image>(card));
     var initial = Assert.Single(Descendants<Label>(card), label => label.Text == "F");
     var name = Assert.Single(Descendants<Label>(card), label => label.Text == row.PrimaryLabel);
-    Assert.Equal(ExpectedAvatarUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.Equal(ExpectedAvatarUrl(imageHost), Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(initial));
     Assert.Equal(row.PrimaryLabel, name.Text);
 
@@ -71,10 +74,12 @@ public sealed class FriendAvatarPlacementRenderingTests
     Assert.Equal("F", initial.Text);
   }
 
-  [Fact]
-  public void ProfileFriendsRowsKeepNavigationButtonAlongsideAvatarFallback()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void ProfileFriendsRowsKeepNavigationButtonAlongsideAvatarFallback(string imageHost)
   {
-    InstallPageResources();
+    InstallPageResources(imageHost);
     var page = new ProfilePage();
     var collection = Assert.Single(Descendants<CollectionView>(page), view =>
         view.AutomationId == "profile-friend-collection");
@@ -84,7 +89,7 @@ public sealed class FriendAvatarPlacementRenderingTests
     var image = Assert.Single(Descendants<Image>(row));
     var label = Assert.Single(Descendants<Label>(row), item => item.Text == "F");
     var navigation = Assert.Single(Descendants<Button>(row), item => item.Text == "Friendly User");
-    Assert.Equal(ExpectedAvatarUrl, Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.Equal(ExpectedAvatarUrl(imageHost), Assert.IsType<UriImageSource>(image.Source).Uri);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(label));
     Assert.Equal("Friendly User", navigation.Text);
     Assert.IsType<FriendRow>(navigation.CommandParameter);
@@ -95,11 +100,42 @@ public sealed class FriendAvatarPlacementRenderingTests
     Assert.Equal("F", label.Text);
   }
 
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void ProfileLinkImageUsesPlacementAndKeepsNameWhenWithheld(string imageHost)
+  {
+    InstallPageResources(imageHost);
+    var page = new ProfilePage();
+    var collection = page.FindByName<CollectionView>("ProfileLinksCollection");
+    var card = Assert.IsType<Border>(collection.ItemTemplate.CreateContent());
+    var placement = new TopicImagePlacement("image-202", "placement-302", 1);
+    var link = new ProfileLink("link-1", "user-1", "url", 0, null,
+        "https://example.test", null, "Website", "legacy-image",
+        DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, placement);
+    card.BindingContext = link;
+
+    var image = Assert.Single(Descendants<Image>(card));
+    Assert.Equal(new Uri($"{imageHost}/images/placements/placement-302/1/image-202?w=96"),
+        Assert.IsType<UriImageSource>(image.Source).Uri);
+    Assert.True(image.IsVisible);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(image));
+    Assert.True(string.IsNullOrEmpty(SemanticProperties.GetDescription(image)));
+
+    card.BindingContext = link with { ImagePlacement = null };
+    Assert.Null(image.Source);
+    Assert.False(image.IsVisible);
+
+    card.BindingContext = link;
+    Assert.True(image.IsVisible);
+    Assert.Single(Descendants<Label>(card), label => label.Text == "Website");
+  }
+
   private static readonly TopicImagePlacement Placement =
       new("00000000-0000-7000-8000-000000000201", "00000000-0000-7000-8000-000000000301", 2);
 
-  private static readonly Uri ExpectedAvatarUrl = new(
-      "https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96");
+  private static Uri ExpectedAvatarUrl(string imageHost) => new(
+      $"{imageHost}/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96");
 
   private static FriendRow Row() => new(
       "friend-1",
@@ -116,7 +152,7 @@ public sealed class FriendAvatarPlacementRenderingTests
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
 
-  private static void InstallPageResources()
+  private static void InstallPageResources(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     var app = new Application();
@@ -125,7 +161,7 @@ public sealed class FriendAvatarPlacementRenderingTests
     app.Resources["UiLocalizedValue"] = new UiLocalizedValueConverter(UiLocalization.English);
     app.Resources["UiLocaleVersion"] = new UiLocaleVersion(new UiLocaleController(new StubDeviceLanguageProvider("en")));
     app.Resources["ProfilePlacementImageSource96"] = new PlacementImageSourceConverter(
-        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test")), 96);
+        new AppConfig(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost)), 96);
   }
 
   public class UnusedService : DispatchProxy

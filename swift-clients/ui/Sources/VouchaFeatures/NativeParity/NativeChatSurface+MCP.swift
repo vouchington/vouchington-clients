@@ -7,7 +7,18 @@ extension NativeChatSurface {
     @ViewBuilder
     func mcpControls() -> some View {
         if let mcpSession, let currentUserId, mcpSession.accountId == currentUserId {
+            @Bindable var mcpSession = mcpSession
             VStack(alignment: .leading, spacing: Spacing.sm) {
+                Toggle(
+                    UiMessages.string(.nativeCredentialsWriteAction, locale: nativeUiLocale),
+                    isOn: $mcpSession.requestWriteAccess
+                )
+                .disabled(mcpSession.status == .connecting || mcpSession.status == .switchingAccount)
+                if mcpSession.requestWriteAccess {
+                    Button(UiMessages.string(.nativeSwiftTagManagementViewPlans, locale: nativeUiLocale)) {
+                        onNavigate("/plans")
+                    }
+                }
                 mcpActionButtons(mcpSession)
                 if let error = mcpSession.lastError {
                     Text(UiMessages.string(error, locale: nativeUiLocale))
@@ -41,6 +52,9 @@ extension NativeChatSurface {
                 Button(UiMessages.string(.nativeSwiftChatMcpRefresh, locale: nativeUiLocale)) {
                     Task { do { try await session.refreshTools() } catch {} }
                 }
+                Button(UiMessages.string(.nativeCredentialsChooseScopes, locale: nativeUiLocale)) {
+                    consent(session)
+                }
                 Button(UiMessages.string(.nativeSwiftChatMcpDisconnect, locale: nativeUiLocale)) {
                     Task { do { try await session.disconnect() } catch {} }
                 }
@@ -48,11 +62,7 @@ extension NativeChatSurface {
                 Text(UiMessages.string(.nativeSwiftChatMcpAuthorizationRequired, locale: nativeUiLocale))
                     .font(Typography.caption)
                 Button(UiMessages.string(.nativeSwiftChatMcpConnect, locale: nativeUiLocale)) {
-                    Task {
-                        do {
-                            try await session.connect(presentationWindow: mcpPresentationWindow.value)
-                        } catch {}
-                    }
+                    consent(session)
                 }
                 .disabled(session.status == .connecting || session.status == .switchingAccount)
                 if session.status == .connecting || session.status == .failed {
@@ -61,6 +71,13 @@ extension NativeChatSurface {
                     }
                 }
             }
+        }
+    }
+
+    private func consent(_ session: NativeChatMCPAgentSession) {
+        let scope = session.requestWriteAccess ? "mcp.user:read mcp.user:write" : "mcp.user:read"
+        Task {
+            do { try await session.connect(presentationWindow: mcpPresentationWindow.value, scope: scope) } catch {}
         }
     }
 

@@ -22,7 +22,7 @@ final class MFAChallengeViewModelTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         let service = SignInService(client: apiClient, sessionManager: sessionManager)
         return MFAChallengeViewModel(loginAttemptId: loginAttemptId, signInService: service)
     }
@@ -219,7 +219,7 @@ final class NotificationMarkReadTests: XCTestCase {
 
     private func makeNotificationsPage(ids: [String]) -> Data {
         let items = ids.map { id in
-            "\"\(id)\":{\"id\":\"\(id)\",\"user_id\":\"u1\",\"entity_type\":\"post\",\"post_id\":null,\"rss_feed_item_id\":null,\"actor_user_id\":null,\"community_id\":null,\"conversation_id\":null,\"moderation_report_id\":null,\"review_dispute_id\":null,\"user_warning_id\":null,\"copyright_notice_id\":null,\"actor_label\":null,\"event_key\":null,\"title\":\"Notification \(id)\",\"body\":\"Body\",\"target_path\":null,\"target_entity\":null,\"target_intent\":null,\"read_at\":null,\"created_at\":\"2024-01-01T00:00:00Z\",\"updated_at\":\"2024-01-01T00:00:00Z\",\"pushed_at\":null}"
+            "\"\(id)\":{\"id\":\"\(id)\",\"user_id\":\"u1\",\"entity_type\":\"post\",\"post_id\":null,\"rss_feed_item_id\":null,\"actor_user_id\":null,\"community_id\":null,\"conversation_id\":null,\"moderation_report_id\":null,\"review_dispute_id\":null,\"user_warning_id\":null,\"copyright_notice_id\":null,\"household_id\":null,\"actor_label\":null,\"event_key\":null,\"title\":\"Notification \(id)\",\"body\":\"Body\",\"target_path\":null,\"target_entity\":null,\"target_intent\":null,\"read_at\":null,\"created_at\":\"2024-01-01T00:00:00Z\",\"updated_at\":\"2024-01-01T00:00:00Z\",\"pushed_at\":null}"
         }.joined(separator: ",")
         let results = ids.map { "{\"id\":\"\($0)\",\"read_at\":null}" }.joined(separator: ",")
         return Data("""
@@ -305,7 +305,7 @@ final class ProfileEditTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         return ProfileViewModel(client: apiClient, config: config, sessionManager: sessionManager)
     }
 

@@ -11,14 +11,18 @@ public sealed record ImportResultPresentation(
 
   public string LocalizedDisplayStatus => Localization.Resolve(StatusText());
 
-  public string? ExternalContentError => Result.Error;
+  public string? ExternalContentError => Result.ErrorCode == RssFeedImportErrorCode.RelationLimitReached
+      ? null
+      : Result.Error;
 
   private UiText StatusText() => Result.Status switch
   {
-    ImportResultStatus.Pending when !string.IsNullOrWhiteSpace(Result.Error) =>
+    ImportResultStatus.Pending when Result.IsRetrying() =>
         UiText.Localized(
             UiMessageKey.NativeSwiftImportExportRetrying,
-            ("error", UiText.ExternalContent(Result.Error))),
+            ("error", string.IsNullOrWhiteSpace(Result.Error)
+                ? UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed)
+                : UiText.ExternalContent(Result.Error))),
     ImportResultStatus.Pending =>
         UiText.Localized(UiMessageKey.NativeSwiftImportExportPending),
     ImportResultStatus.Followed =>
@@ -33,6 +37,10 @@ public sealed record ImportResultPresentation(
         UiText.Localized(UiMessageKey.NativeSwiftImportExportAlreadyFollowing),
     _ => UiText.Localized(
         UiMessageKey.NativeSwiftImportExportFailed,
-        ("error", UiText.ExternalContent(Result.Error))),
+        ("error", Result.Status == ImportResultStatus.Skipped ||
+            Result.ErrorCode == RssFeedImportErrorCode.RelationLimitReached ||
+            string.IsNullOrWhiteSpace(Result.Error)
+            ? UiText.Localized(UiMessageKey.NativeDotnetCsharpActionFailed)
+            : UiText.ExternalContent(Result.Error))),
   };
 }

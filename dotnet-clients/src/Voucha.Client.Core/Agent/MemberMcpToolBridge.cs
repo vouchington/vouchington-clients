@@ -1,9 +1,15 @@
 using System.Text;
 using System.Text.Json;
+using Voucha.Client.Core.Chat;
 
 namespace Voucha.Client.Core.Agent;
 
 public sealed record MemberMcpFunctionTool(string Name, string Description, JsonElement Parameters);
+public sealed record MemberMcpValidatedResult(
+    string Envelope,
+    McpFeedPostReceipt? FeedPostFact,
+    McpFeedRssItemReceipt? RssItemFact = null,
+    McpFeedReferralLinkReceipt? ReferralLinkFact = null);
 
 /// <summary>Validates one immutable server catalog before projecting it to a local model.</summary>
 public sealed class MemberMcpToolBridge
@@ -63,13 +69,34 @@ public sealed class MemberMcpToolBridge
       MemberMcpConnectedSnapshot snapshot, Action? onAdmitted,
       CancellationToken cancellationToken = default)
   {
+    var result = await ExecuteValidatedResultAsync(name, rawArguments, session, snapshot,
+        callId: null, onAdmitted, cancellationToken).ConfigureAwait(false);
+    return result.Envelope;
+  }
+
+  public async Task<MemberMcpValidatedResult> ExecuteValidatedResultAsync(
+      string name, string rawArguments, MemberMcpSession session,
+      MemberMcpConnectedSnapshot snapshot, string? callId, Action? onAdmitted = null,
+      CancellationToken cancellationToken = default)
+  {
     ArgumentNullException.ThrowIfNull(session);
     ArgumentNullException.ThrowIfNull(snapshot);
     var arguments = ValidatedArguments(name, rawArguments);
     var result = await session.CallToolAsync(snapshot, name, arguments, onAdmitted, cancellationToken)
         .ConfigureAwait(false);
     if (outputs.TryGetValue(name, out var output)) output.Validate(result, arguments);
-    return SerializeResultEnvelope(result);
+    var envelope = SerializeResultEnvelope(result);
+    McpFeedPostReceipt? postFact = null;
+    McpFeedRssItemReceipt? rssFact = null;
+    McpFeedReferralLinkReceipt? referralFact = null;
+    if (result.IsError != true && result.StructuredContent is { } structured && callId is { Length: > 0 } id)
+    {
+      postFact = McpFeedPostReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, id);
+      rssFact = McpFeedRssItemReceipt.FromValidatedResult(name, arguments, structured, snapshot.AccountId, id);
+      referralFact = McpFeedReferralLinkReceipt.FromValidatedResult(
+          name, arguments, structured, snapshot.AccountId, id);
+    }
+    return new MemberMcpValidatedResult(envelope, postFact, rssFact, referralFact);
   }
 
   internal static string SerializeResultEnvelope(McpToolResult result)

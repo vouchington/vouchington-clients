@@ -10,6 +10,7 @@ extension NativeOAuthAuthorizationCoordinator {
         else { return }
         isWorking = true
         errorMessage = nil
+        let epoch = freshConfirmationEpoch
         defer {
             store.releaseFinalizationLease(flowId: pending.flowId)
             isWorking = false
@@ -18,6 +19,7 @@ extension NativeOAuthAuthorizationCoordinator {
 
         do {
             while now() < pending.expiresAt {
+                if isFreshConfirmationAbandoned(pending, since: epoch) { return }
                 let response: NativeOAuthCompletionResponse = try await client.send(
                     .completeNativeOAuthAuthorization(
                         flowId: pending.flowId,
@@ -25,34 +27,54 @@ extension NativeOAuthAuthorizationCoordinator {
                         completionProofVerifier: pending.completionProofVerifier
                     )
                 )
-                switch response {
-                case .pending:
-                    try await Task.sleep(for: .seconds(1))
-                case .authenticated:
-                    guard await sessionManager.refresh() else {
-                        throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
-                    }
-                    try persistResult(.authenticated(provider: pending.provider), for: pending)
-                    return
-                case let .mfaRequired(loginAttemptId):
-                    try persistResult(
-                        .mfaRequired(provider: pending.provider, loginAttemptId: loginAttemptId),
-                        for: pending
-                    )
-                    return
-                case .connected:
-                    guard await confirmConnectedProvider(pending.provider) else {
-                        throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
-                    }
-                    try persistResult(.connected(provider: pending.provider), for: pending)
-                    return
-                }
+                if isFreshConfirmationAbandoned(pending, since: epoch) { return }
+                if try await handleCompletion(response, pending: pending) { return }
+                try await Task.sleep(for: .seconds(1))
             }
+            if isFreshConfirmationAbandoned(pending, since: epoch) { return }
             persistExpiration(for: pending)
         } catch is CancellationError {
             return
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleCompletion(
+        _ response: NativeOAuthCompletionResponse, pending: PendingNativeOAuthAuthorization
+    ) async throws -> Bool {
+        if pending.purpose == .reauthenticate {
+            return try handleConfirmationCompletion(response, pending: pending)
+        }
+        switch response {
+        case .pending:
+            return false
+        case .authenticated:
+            guard await sessionManager.refresh() else {
+                throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
+            }
+            try persistResult(.authenticated(provider: pending.provider), for: pending)
+        case let .mfaRequired(loginAttemptId):
+            try persistResult(.mfaRequired(provider: pending.provider, loginAttemptId: loginAttemptId), for: pending)
+        case .connected:
+            guard await confirmConnectedProvider(pending.provider) else {
+                throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
+            }
+            try persistResult(.connected(provider: pending.provider), for: pending)
+        }
+        return true
+    }
+
+    private func handleConfirmationCompletion(
+        _ response: NativeOAuthCompletionResponse, pending: PendingNativeOAuthAuthorization
+    ) throws -> Bool {
+        switch response {
+        case .pending: return false
+        case .connected:
+            try persistResult(.confirmationReady(provider: pending.provider, flowId: pending.flowId), for: pending)
+            return true
+        case .authenticated, .mfaRequired:
+            throw NativeOAuthAuthorizationCoordinatorError.invalidAuthorization
         }
     }
 
@@ -96,6 +118,7 @@ extension NativeOAuthAuthorizationCoordinator {
             case .github: response.identity.githubAccount != nil
             case .linkedin: response.identity.linkedinAccount != nil
             case .microsoft: response.identity.microsoftAccount != nil
+            case .google: response.identity.googleAccount != nil
             }
             guard isConnected else { return false }
             sessionManager.synchronize(with: response.identity)

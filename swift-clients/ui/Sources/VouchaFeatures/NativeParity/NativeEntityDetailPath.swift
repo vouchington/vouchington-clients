@@ -13,6 +13,11 @@ enum NativeEntityDetailPath {
         return "/\(segment)/\(escaped(identifier))"
     }
 
+    static func review(id: String, slug: String?) -> String {
+        let identifier = slug.flatMap { $0.isEmpty ? nil : $0 } ?? id
+        return "/review/\(escaped(identifier))"
+    }
+
     static func source(feedId: String, topicId: String?, topicSlug: String?) -> String {
         "/source/\(escaped(topicSlug ?? topicId ?? feedId))"
     }

@@ -117,6 +117,7 @@ public sealed partial class TagManagementViewModelTests
 
     Assert.Single(viewModel.SearchResults);
     Assert.Equal(new TagSearchResultRow("post-2", "Suggested Post", "discussion"), viewModel.SearchResults[0]);
+    Assert.Contains("time_range=all", handler.Requests[^1].PathAndQuery!, StringComparison.Ordinal);
 
     await viewModel.SelectTabAsync("topic", TestContext.Current.CancellationToken);
     Assert.Empty(viewModel.SearchQuery);
@@ -182,7 +183,7 @@ public sealed partial class TagManagementViewModelTests
         [
           "/api/v1/posts/post-1",
           "/api/v1/entity-relations/post/post-1/related/post?limit=25&positiveNetVoteScore=false&sort=best",
-          "/api/v1/posts?limit=10&q=re",
+          "/api/v1/posts?limit=10&q=re&time_range=all",
           "/api/v1/entity-relations/post/post-1/category/topic?limit=25&positiveNetVoteScore=false&sort=best",
           "/api/v1/topics?q=top",
           "/api/v1/entity-relations/post/post-1/related/url?limit=25&positiveNetVoteScore=false&sort=best",

@@ -16,7 +16,8 @@ public struct ApiKeyScopeSelection: Sendable {
         return scopes.filter { entry in
             entry.surfaces.contains(.apiKey) &&
                 !entry.scope.lowercased().hasPrefix("mcp.admin:") &&
-                (type == .rss ? entry.audience == .api : entry.audience == .user)
+                (type == .rss ? entry.audience == .api :
+                    [.user, .communityModeration, .brand].contains(entry.audience))
         }.sorted { $0.scope < $1.scope }
     }
 

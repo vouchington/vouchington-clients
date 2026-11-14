@@ -90,7 +90,7 @@ public sealed partial class ApiCommunitiesService : ICommunitiesService
       client.FetchCommunityAiAgentsAsync(idOrSlug, cancellationToken);
 
   public Task<CommunityAgentPromptsResponse> FetchAgentPromptsAsync(string idOrSlug, CancellationToken cancellationToken = default) =>
-      client.FetchCommunityAgentPromptsAsync(idOrSlug, cancellationToken);
+      client.FetchCommunityAgentPromptsAsync(idOrSlug, cancellationToken: cancellationToken);
 
   public Task<CommunityAgentPromptHistoryResponse> FetchAgentPromptHistoryAsync(
       string idOrSlug,
@@ -150,8 +150,8 @@ public sealed partial class ApiCommunitiesService : ICommunitiesService
   public Task BanAsync(string idOrSlug, BanCommunityMemberRequest request, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.BanCommunityMember(idOrSlug, request), cancellationToken);
 
-  public Task LiftBanAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default) =>
-      client.SendAsync(VouchaApiEndpoints.LiftCommunityBan(idOrSlug, userId), cancellationToken);
+  public Task<CommunityBanLiftResponse> LiftBanAsync(string idOrSlug, string banId, CancellationToken cancellationToken = default) =>
+      client.SendAsync<CommunityBanLiftResponse>(VouchaApiEndpoints.LiftCommunityBan(idOrSlug, banId), cancellationToken);
 
   public Task ActivateRestrictionsAsync(string idOrSlug, ActivateCommunityRestrictionsRequest request, CancellationToken cancellationToken = default) =>
       client.SendAsync(VouchaApiEndpoints.ActivateCommunityRestrictions(idOrSlug, request), cancellationToken);

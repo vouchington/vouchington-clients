@@ -16,6 +16,7 @@ public partial class PostsPage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private string mode;
   private string? postTypes;
+  private bool? hasHackerNewsReferences;
 
   public PostsPage(
       PostsListViewModel viewModel,
@@ -29,8 +30,10 @@ public partial class PostsPage : ContentPage
     this.serviceProvider = serviceProvider;
     this.emailRecovery = emailRecovery;
     mode = sessionStore.Current.IsAuthenticated ? "feed" : "browse";
+    TimeRangePicker.IsVisible = mode == "browse";
     BindingContext = new PostsPageBinding(viewModel, sessionStore, LoadCurrentAsync);
     PaginationControl.LoadNextPageRequested += OnLoadNextPageRequested;
+    viewModel.PropertyChanged += OnViewModelPropertyChanged;
   }
 
   [SuppressMessage(
@@ -63,15 +66,27 @@ public partial class PostsPage : ContentPage
   private async void OnLoadNextPageRequested(object? sender, EventArgs e) =>
       await viewModel.LoadMoreAsync().ConfigureAwait(true);
 
-  private Task LoadCurrentAsync() =>
-      mode == "browse" || !sessionStore.Current.IsAuthenticated
-          ? viewModel.LoadBrowseAsync(postTypes)
-          : viewModel.LoadFeedAsync("any", postTypes);
+  private Task LoadCurrentAsync()
+  {
+    TimeRangePicker.IsVisible = mode == "browse" || !sessionStore.Current.IsAuthenticated;
+    return mode == "browse" || !sessionStore.Current.IsAuthenticated
+          ? viewModel.LoadBrowseAsync(postTypes, viewModel.TimeRange.RequestValue, hasHackerNewsReferences: hasHackerNewsReferences, scope: browseScope)
+          : viewModel.LoadFeedAsync("any", postTypes, PostTimeRanges.LastWeek);
+  }
+
+  private async void OnHackerNewsClicked(object? sender, EventArgs e)
+  {
+    mode = "browse";
+    hasHackerNewsReferences = hasHackerNewsReferences == true ? null : true;
+    if (hasHackerNewsReferences == true) viewModel.TimeRange.Select(PostTimeRanges.LastYear);
+    await LoadCurrentAsync();
+  }
 
   private async void OnFeedClicked(object? sender, EventArgs e)
   {
     mode = "feed";
     postTypes = null;
+    hasHackerNewsReferences = null;
     await LoadCurrentAsync();
   }
 

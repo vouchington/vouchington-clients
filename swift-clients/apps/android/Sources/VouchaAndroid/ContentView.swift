@@ -11,130 +11,74 @@ struct ContentView: View {
     var tab = ContentTab.chat
     @State
     var viewModel = ViewModel()
-    @Environment(\.locale)
-    var locale
-
-    var body: some View {
-        TabView(selection: $tab) {
-            NavigationStack {
-                AndroidChatView(viewModel: viewModel)
-                    .navigationTitle(message(.nativeSwiftAndroidChat))
-            }
-            .tabItem { Text(message(.nativeSwiftAndroidChat)) }
-            .tag(ContentTab.chat)
-
-            NavigationStack {
-                AndroidSettingsView(viewModel: viewModel)
-                    .navigationTitle(message(.nativeSwiftAndroidLocalModels))
-            }
-            .tabItem { Text(message(.nativeSwiftAndroidSettings)) }
-            .tag(ContentTab.settings)
-        }
-        .task { await viewModel.refreshStatus() }
-    }
-
-    private func message(_ key: UiMessageKey) -> String {
-        UiMessages.string(key, locale: locale)
-    }
-}
-
-struct AndroidChatView: View {
-    @Bindable
-    var viewModel: ViewModel
+    @State
+    var account = AndroidAccount()
+    @State
+    var accountReplacement = AndroidAccountReplacementCoordinator()
     @Environment(\.locale)
     var locale
 
     var body: some View {
         VStack {
-            List(viewModel.messages) { chatMessage in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(chatMessage.role == "user" ? message(.nativeSwiftChatYou) : message(.nativeSwiftChatAssistant))
-                        .font(.caption)
-                    Text(chatMessage.content)
-                }
+            AndroidAccountRecoveryView(account: account, isReplacing: accountReplacement.isReplacing) {
+                Task { await discardAndReplaceUnreadableSession() }
             }
-            if viewModel.errorMessage != nil {
-                Text(message(.nativeSwiftAndroidGenerationFailed))
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-            HStack {
-                TextField(message(.nativeSwiftAndroidMessage), text: $viewModel.draft)
-                    .textFieldStyle(.roundedBorder)
-                Button(message(.nativeSwiftAndroidSend)) {
-                    Task { await viewModel.sendOnDevice() }
-                }
-                .disabled(!viewModel.isSelectedProviderAvailable || viewModel.isGenerating)
-            }
-            .padding()
+            accountContent
+        }
+        .androidMutationChallengeSheet(account: account)
+        .onDisappear { account.mutationChallengeBroker.cancel() }
+        .onChange(of: account.session.currentUserId) { _, _ in
+            account.mutationChallengeBroker.cancel()
+            Task { await bindAccountSession() }
+        }
+        .task {
+            await account.installMutationChallengeHandler()
+            await account.restore()
+            await viewModel.refreshStatus()
+            await bindAccountSession()
         }
     }
 
-    private func message(_ key: UiMessageKey) -> String {
-        UiMessages.string(key, locale: locale)
-    }
-}
-
-struct AndroidSettingsView: View {
-    @Bindable
-    var viewModel: ViewModel
-    @State
-    var endpointStatus: String?
-    @Environment(\.locale)
-    var locale
-
-    var body: some View {
-        Form {
-            Section(message(.nativeSwiftAndroidProviderAicore)) {
-                Text(modelStatusText)
-                if viewModel.modelState == .downloadable {
-                    Button(message(.nativeSwiftAndroidDownloadModel)) {
-                        Task { await viewModel.downloadModel() }
+    private var accountContent: some View {
+        Group {
+            if account.isRestoring {
+                ProgressView()
+            } else if account.session.isSignedIn {
+                TabView(selection: $tab) {
+                    NavigationStack {
+                        AndroidChatView(viewModel: viewModel)
+                            .navigationTitle(message(.nativeSwiftAndroidChat))
                     }
-                }
-                Button(message(.nativeSwiftAndroidCheckModelStatus)) {
-                    Task { await viewModel.refreshStatus() }
-                }
-            }
-            Section(message(.nativeSwiftAndroidOpenAiCompatibleEndpoint)) {
-                Picker(message(.nativeSwiftAndroidChatProvider), selection: Binding(
-                    get: { viewModel.selectedProvider },
-                    set: { provider in Task { await viewModel.selectProvider(provider) } }
-                )) {
-                    Text(message(.nativeSwiftAndroidProviderAicore)).tag(AndroidChatProvider.aiCore)
-                    Text(message(.nativeSwiftAndroidConfiguredEndpoint)).tag(AndroidChatProvider.endpoint)
-                }
-                TextField(message(.nativeSwiftAndroidEndpointUrl), text: $viewModel.endpoint)
-                TextField(message(.nativeSwiftAndroidModelName), text: $viewModel.endpointModel)
-                SecureField(message(.nativeSwiftAndroidApiKey), text: $viewModel.endpointAPIKey)
-                Button(message(.nativeSwiftAndroidSaveEndpoint)) {
-                    Task {
-                        do {
-                            try await viewModel.saveEndpointSettings()
-                            endpointStatus = message(.nativeSwiftAndroidEndpointSaved)
-                        } catch {
-                            endpointStatus = message(.nativeSwiftAndroidEndpointSaveFailed)
+                    .tabItem { Text(message(.nativeSwiftAndroidChat)) }
+                    .tag(ContentTab.chat)
+
+                    NavigationStack {
+                        AndroidSettingsView(
+                            viewModel: viewModel,
+                            signOutErrorMessage: account.session.lastSignOutErrorMessage
+                        ) {
+                            await signOutAndReplaceAccount()
                         }
+                        .navigationTitle(message(.nativeSwiftAndroidLocalModels))
                     }
+                    .tabItem { Text(message(.nativeSwiftAndroidSettings)) }
+                    .tag(ContentTab.settings)
                 }
-                if let endpointStatus {
-                    Text(endpointStatus)
-                }
+                .disabled(accountReplacement.isReplacing)
+            } else {
+                AndroidSignInView(account: account)
             }
-        }
-    }
-
-    var modelStatusText: String {
-        switch viewModel.modelState {
-        case .checking: message(.nativeSwiftAndroidStatusChecking)
-        case .unavailable: message(.nativeSwiftAndroidModelUnavailable)
-        case .downloadable: message(.nativeSwiftAndroidModelDownloadable)
-        case .downloading: message(.nativeSwiftAndroidDownloadingModel)
-        case .available: message(.nativeSwiftAndroidModelAvailable)
         }
     }
 
     private func message(_ key: UiMessageKey) -> String {
         UiMessages.string(key, locale: locale)
     }
+
+    @MainActor
+    private func bindAccountSession() async {
+        let userID = account.session.currentUserId
+        await viewModel.bindAccount(client: userID == nil ? nil : account.apiClient, userID: userID)
+    }
+
 }

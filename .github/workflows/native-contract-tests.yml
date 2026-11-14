@@ -19,6 +19,8 @@ concurrency:
 jobs:
   produce:
     name: Publish verified native contracts
+    outputs:
+      contract-run-attempt: ${{ steps.artifact.outputs.run_attempt }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -77,7 +79,9 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Set up pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        env:
+          NPM_CONFIG_AUDIT: 'false'
         with:
           version: latest-12
       - name: Check out candidate clients as data
@@ -87,49 +91,62 @@ jobs:
           path: candidate-clients
           persist-credentials: false
           allow-unsafe-pr-checkout: true
-      - name: Assert authorized Vouchington source
-        run: >-
-          jq -e
-          '.repository == "vouchington/vouchington" and .ref == "main"'
-          candidate-clients/contracts/filaments.json
-      - name: Check out Vouchington
+      - name: Assert the pinned Vouchington commit is merged to producer main
+        id: pin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          commit="$(node scripts/assert-pinned-commit-on-main.mjs --config "$GITHUB_WORKSPACE/candidate-clients/contracts/vouchington.json")"
+          printf 'commit=%s\n' "$commit" >>"$GITHUB_OUTPUT"
+      - name: Check out the pinned Vouchington commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: vouchington/vouchington
-          ref: main
-          path: filaments
+          ref: ${{ steps.pin.outputs.commit }}
+          path: vouchington
           persist-credentials: false
       - name: Resolve immutable checkout identities
         id: identities
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
-          FILAMENTS_ROOT: ${{ github.workspace }}/filaments
+          PINNED_COMMIT: ${{ steps.pin.outputs.commit }}
+          VOUCHINGTON_ROOT: ${{ github.workspace }}/vouchington
         run: |
           set -euo pipefail
+          test "$(git -C "$VOUCHINGTON_ROOT" rev-parse HEAD)" = "$PINNED_COMMIT"
           printf 'candidate_revision_sha=%s\n' "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
-          printf 'filaments_sha=%s\n' "$(git -C "$FILAMENTS_ROOT" rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+          printf 'vouchington_sha=%s\n' "$PINNED_COMMIT" >>"$GITHUB_OUTPUT"
       - name: Restore Vouchington pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: vouchington-pnpm-store
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/pnpm-store
-          key: ${{ runner.os }}-pnpm-vouchington-${{ hashFiles('filaments/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-vouchington-${{ hashFiles('vouchington/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-vouchington-
       - name: Install trusted Vouchington exporter dependencies
-        working-directory: filaments
+        working-directory: vouchington
         env:
           pnpm_config_store_dir: ${{ runner.temp }}/pnpm-store
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Save Vouchington pnpm store from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.vouchington-pnpm-store.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/pnpm-store
+          key: ${{ steps.vouchington-pnpm-store.outputs.cache-primary-key }}
       - name: Stage trusted native contract
         env:
           CANDIDATE_ROOT: ${{ github.workspace }}/candidate-clients
           CONTRACT_STAGE_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
-          FILAMENTS_ROOT: ${{ github.workspace }}/filaments
+          VOUCHINGTON_ROOT: ${{ github.workspace }}/vouchington
         run: |
           set -euo pipefail
           mkdir -p "$CONTRACT_STAGE_ROOT"
           node scripts/stage-native-contract.mjs \
-            --filaments-root "$FILAMENTS_ROOT" \
+            --vouchington-root "$VOUCHINGTON_ROOT" \
             --output-root "$CONTRACT_STAGE_ROOT" \
             --consumer-root "$CANDIDATE_ROOT"
       - name: Assert extracted localization representatives
@@ -138,18 +155,16 @@ jobs:
         run: >-
           node scripts/assert-extracted-localization.mjs
           --contract-root "$CONTRACT_STAGE_ROOT"
-      - name: Assert candidate generated localization parity
+      - name: Verify the staged contract layout
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
-        run: >-
-          node scripts/contracts.mjs check
-          --destination-root "${{ github.workspace }}/candidate-clients"
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node scripts/contracts.mjs verify
       - name: Create verified contract artifact
         id: artifact
         env:
           ARTIFACT_ROOT: ${{ runner.temp }}/native-contract-${{ github.run_id }}-${{ github.run_attempt }}
-          FILAMENTS_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
-          FILAMENTS_SHA: ${{ steps.identities.outputs.filaments_sha }}
+          VOUCHINGTON_ROOT: ${{ runner.temp }}/native-contract-stage-${{ github.run_id }}-${{ github.run_attempt }}
+          VOUCHINGTON_SHA: ${{ steps.identities.outputs.vouchington_sha }}
           BASE_SHA: ${{ steps.event.outputs.base_sha }}
           CANDIDATE_EVENT: ${{ steps.event.outputs.candidate_event }}
           CANDIDATE_NUMBER: ${{ steps.event.outputs.candidate_number }}
@@ -162,10 +177,10 @@ jobs:
             candidate_args+=(--candidate-number "$CANDIDATE_NUMBER")
           fi
           node scripts/contract-artifact.mjs create \
-            --filaments-root "$FILAMENTS_ROOT" \
+            --vouchington-root "$VOUCHINGTON_ROOT" \
             --output-root "$ARTIFACT_ROOT" \
             --contract-repository vouchington/vouchington \
-            --filaments-sha "$FILAMENTS_SHA" \
+            --vouchington-sha "$VOUCHINGTON_SHA" \
             --clients-repository "$GITHUB_REPOSITORY" \
             "${candidate_args[@]}" \
             --base-sha "$BASE_SHA" \
@@ -174,10 +189,11 @@ jobs:
             --producer-run-id "$GITHUB_RUN_ID" \
             --producer-run-attempt "$GITHUB_RUN_ATTEMPT"
           printf 'path=%s\n' "$ARTIFACT_ROOT" >>"$GITHUB_OUTPUT"
+          printf 'run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT" >>"$GITHUB_OUTPUT"
       - name: Upload native contracts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
-          name: native-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-contract-${{ github.run_id }}
           path: ${{ steps.artifact.outputs.path }}
           if-no-files-found: error
           retention-days: 1
@@ -192,9 +208,11 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
+      contract-run-attempt: ${{ needs.produce.outputs.contract-run-attempt }}
       base-sha: ${{ steps.identity.outputs.base_sha }}
       revision-sha: ${{ steps.identity.outputs.revision_sha }}
       windows-image-preview: ${{ steps.windows-image-preview-route.outputs.windows-image-preview }}
+      windows-language-model-surface: ${{ steps.windows-language-model-surface-route.outputs.windows-language-model-surface }}
       windows-maui: ${{ steps.windows-maui-route.outputs.windows-maui }}
     steps:
       - name: Check out consumer tooling
@@ -208,7 +226,7 @@ jobs:
       - name: Download exact producer artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: native-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-contract-${{ github.run_id }}
           path: ${{ runner.temp }}/native-contract
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -217,7 +235,7 @@ jobs:
         env:
           ARTIFACT_ROOT: ${{ runner.temp }}/native-contract
           PRODUCER_RUN_ID: ${{ github.run_id }}
-          PRODUCER_RUN_ATTEMPT: ${{ github.run_attempt }}
+          PRODUCER_RUN_ATTEMPT: ${{ needs.produce.outputs.contract-run-attempt }}
         run: >-
           node scripts/contract-artifact.mjs verify
           --artifact-root "$ARTIFACT_ROOT"
@@ -242,39 +260,40 @@ jobs:
           node --input-type=module <<'NODE'
           import { appendFileSync, readFileSync } from 'node:fs'
           import { execFileSync } from 'node:child_process'
+          import { validatePullRequestCandidate } from './scripts/validate-native-contract-candidate.mjs'
 
           const manifest = JSON.parse(readFileSync(`${process.env.ARTIFACT_ROOT}/manifest.json`, 'utf8'))
           if (process.env.EVENT_NAME === 'pull_request') {
-            if (manifest.candidate.event !== 'pull_request') throw new Error('artifact is not for a pull request')
-            if (manifest.candidate.number !== Number(process.env.PR_NUMBER)) throw new Error('pull request number changed')
-            if (manifest.candidate.base !== process.env.PR_BASE_SHA) throw new Error('event base SHA changed')
-            if (manifest.candidate.head !== process.env.PR_HEAD_SHA) throw new Error('event head SHA changed')
-
-            const pr = JSON.parse(execFileSync('gh', [
-              'api',
-              `repos/${manifest.clientsRepository}/pulls/${manifest.candidate.number}`,
-            ], { encoding: 'utf8' }))
-            if (pr.state !== 'open') throw new Error(`pull request is ${pr.state}`)
-            if (pr.base.sha !== manifest.candidate.base) throw new Error('pull request base SHA changed')
-            if (pr.head.sha !== manifest.candidate.head) throw new Error('pull request head SHA changed')
-
-            const revision = JSON.parse(execFileSync('gh', [
-              'api',
-              `repos/${manifest.clientsRepository}/git/ref/pull/${manifest.candidate.number}/merge`,
-            ], { encoding: 'utf8' })).object.sha
-            if (revision !== manifest.candidate.revision) throw new Error('pull request merge SHA changed')
+            const identity = validatePullRequestCandidate({
+              candidate: manifest.candidate,
+              event: {
+                number: process.env.PR_NUMBER,
+                baseSha: process.env.PR_BASE_SHA,
+                headSha: process.env.PR_HEAD_SHA,
+              },
+              readPullRequest: number => JSON.parse(execFileSync('gh', [
+                'api',
+                `repos/${manifest.clientsRepository}/pulls/${number}`,
+              ], { encoding: 'utf8' })),
+              readCurrentMergeRevision: number => JSON.parse(execFileSync('gh', [
+                'api',
+                `repos/${manifest.clientsRepository}/git/ref/pull/${number}/merge`,
+              ], { encoding: 'utf8' })).object.sha,
+            })
+            appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${identity.baseSha}\n`)
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${identity.revisionSha}\n`)
           } else if (process.env.EVENT_NAME === 'push' && process.env.EVENT_REF === 'refs/heads/main') {
             if (manifest.candidate.event !== 'push') throw new Error('artifact is not for a push')
             if (manifest.candidate.number !== null) throw new Error('push artifact has a pull request number')
             if (manifest.candidate.base !== process.env.EVENT_BEFORE) throw new Error('push base SHA changed')
             if (manifest.candidate.head !== process.env.EVENT_SHA) throw new Error('push head SHA changed')
             if (manifest.candidate.revision !== process.env.EVENT_SHA) throw new Error('push revision SHA changed')
+            appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
           } else {
             throw new Error(`unsupported native test event ${process.env.EVENT_NAME}`)
           }
 
-          appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
-          appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
           NODE
       - name: Check out exact candidate revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -282,12 +301,15 @@ jobs:
           ref: ${{ steps.identity.outputs.revision_sha }}
           path: candidate-clients
           persist-credentials: false
-      - name: Assert candidate against verified artifact
+      - name: Assert the verified artifact is the candidate's pinned contract
         env:
-          VOUCHA_FILAMENTS_CONTRACT_ROOT: ${{ runner.temp }}/native-contract
-        run: >-
-          node candidate-clients/scripts/contracts.mjs check
-          --destination-root "${{ github.workspace }}/candidate-clients"
+          ARTIFACT_ROOT: ${{ runner.temp }}/native-contract
+          VOUCHA_CONTRACT_ROOT: ${{ runner.temp }}/native-contract
+        run: |
+          set -euo pipefail
+          pinned="$(jq -r .commit candidate-clients/contracts/vouchington.json)"
+          jq -e --arg sha "$pinned" '.vouchington.sha == $sha' "$ARTIFACT_ROOT/manifest.json"
+          node candidate-clients/scripts/contracts.mjs verify
       - name: Route Windows image preview tests from the exact candidate diff
         id: windows-image-preview-route
         working-directory: candidate-clients
@@ -302,6 +324,13 @@ jobs:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/windows-maui-test-routing.mjs "$BASE_SHA" "$REVISION_SHA"
+      - name: Route Windows language-model surface probe from the exact candidate diff
+        id: windows-language-model-surface-route
+        working-directory: candidate-clients
+        env:
+          BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
+        run: node scripts/windows-language-model-surface-routing.mjs "$BASE_SHA" "$REVISION_SHA"
   dotnet-portable:
     name: .NET portable
     needs: verify
@@ -325,7 +354,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -355,7 +384,7 @@ jobs:
           "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
       - name: Test .NET DTO fixture parity separately
         id: dotnet-dto-fixture-parity
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -373,6 +402,14 @@ jobs:
             exit 1
           }
           cp "$reports" TestResults/core/lcov.info
+      - name: Upload .NET Core LCOV
+        timeout-minutes: 2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: dotnet-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          path: candidate-clients/dotnet-clients/TestResults/core/lcov.info
+          retention-days: 1
+          if-no-files-found: error
       - name: Enforce Core patch coverage
         working-directory: candidate-clients
         env:
@@ -398,7 +435,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
@@ -419,7 +456,7 @@ jobs:
     name: Swift Periphery (UI)
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
       VOUCHA_PERIPHERY_SWIFT_TOOLCHAIN: xcode
@@ -435,7 +472,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
@@ -464,7 +501,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Test core and test-support packages
         working-directory: candidate-clients
@@ -472,10 +509,10 @@ jobs:
           docker run --rm
           --user "$(id -u):$(id -g)"
           --volume "$PWD:/workspace"
-          --volume "$VOUCHA_FILAMENTS_CONTRACT_ROOT:/contract:ro"
+          --volume "$VOUCHA_CONTRACT_ROOT:/contract:ro"
           --tmpfs /tmp:rw,exec,mode=1777
           --workdir /workspace --env HOME=/tmp --env TMPDIR=/tmp
-          --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract
+          --env VOUCHA_CONTRACT_ROOT=/contract
           swift:6.4.0-noble@sha256:31d14d727f4451f25e29bac9c42563a098c39ac66415e8bad970f48038e38aca
           /bin/bash -c 'swift test --package-path swift-clients/test-support --force-resolved-versions
           --build-path /tmp/voucha-test-support-build --no-parallel
@@ -489,6 +526,7 @@ jobs:
     timeout-minutes: 22
     outputs:
       dto-fixture-parity-outcome: ${{ steps.swift-dto-fixture-parity.outcome }}
+      artifact-attempt: ${{ github.run_attempt }}
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -503,7 +541,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
@@ -530,7 +568,7 @@ jobs:
           if-no-files-found: error
       - name: Test Swift DTO fixture parity separately
         id: swift-dto-fixture-parity
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -538,14 +576,12 @@ jobs:
           --force-resolved-versions --disable-dependency-cache
           --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
   build-swift-android:
-    name: Swift Android ${{ matrix.phase }}
-    strategy:
-      fail-fast: false
-      matrix:
-        phase: [app, test-libs]
+    name: Swift Android app
     needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -558,13 +594,9 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Restore checksummed Swift Android archives
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/voucha/swift-android/downloads
-          key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', '.github/workflows/native-contract-tests.yml') }}
+          skip-candidate-install: true
       - name: Resolve Java for Android SDK setup
         shell: bash
         run: |
@@ -611,62 +643,419 @@ jobs:
             [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
           done
           rm -rf -- "$cache_root/extracted"
-      - name: Prefetch and materialize Skip Swift Android SDK
-        working-directory: candidate-clients
-        timeout-minutes: 12
-        run: |
-          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
-          mise exec -- bash swift-clients/apps/android/tooling/materialize-skip-sdk.sh
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: false
       - name: Resolve Android Swift package with shared artifact cache
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
-      - name: Verify Android host test compiler
-        working-directory: candidate-clients
-        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
-      - name: Test Android Swift package
-        working-directory: candidate-clients
-        run: >-
-          mise exec swift@6.3.3 -- swift test --package-path swift-clients/apps/android
-          --force-resolved-versions --disable-dependency-cache --disable-keychain --disable-netrc
       - name: Restore Gradle user home
-        if: matrix.phase == 'app'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: android-gradle-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+      - name: Select Gradle task-output cache path
+        id: android-task-cache-path
+        shell: bash
+        env:
+          TASK_CACHE_KIND: app
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+          PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
+          TASK_CACHE_CONFIG_HASH: ${{ hashFiles('candidate-clients/.mise.toml', 'candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle.properties', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh', 'candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
+        run: |
+          set -euo pipefail
+          cache_dir="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
+          node candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs \
+            "$cache_dir" "$GITHUB_OUTPUT"
+      - name: Restore Gradle task-output cache
+        id: android-task-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache-path.outputs.cache-key }}
+          restore-keys: |
+            ${{ steps.android-task-cache-path.outputs.previous-key }}
+            ${{ steps.android-task-cache-path.outputs.compatible-prefix }}
       - name: Build the selected Android validation phase
         working-directory: candidate-clients
         env:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
           VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
           VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
-          ANDROID_BUILD_PHASE: ${{ matrix.phase }}
+          ANDROID_BUILD_PHASE: app
         run: |
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
-  test-swift-android:
-    name: Swift Android Skip
-    needs: [verify, build-swift-android]
-    if: ${{ always() }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - name: Require both Android validation phases
+      - name: Package exact candidate Android app and instrumentation APKs
         env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
-          ANDROID_PHASES_RESULT: ${{ needs.build-swift-android.result }}
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
-          test "$VERIFY_RESULT" = success
-          test "$ANDROID_PHASES_RESULT" = success
-  test-swift-ui:
-    name: Swift UI tests and coverage
+          set -euo pipefail
+          [[ "$(git -C candidate-clients rev-parse HEAD)" == "$CANDIDATE_REVISION" ]]
+          app_apk=candidate-clients/swift-clients/apps/android/.build/Android/app/outputs/apk/debug/app-debug.apk
+          test_apk=candidate-clients/swift-clients/apps/android/.build/Android/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          [[ -f "$app_apk" && -f "$test_apk" ]]
+          bash candidate-clients/swift-clients/apps/android/tooling/run-cookie-restart-emulator.sh \
+            verify-native-abi "$app_apk"
+          proof_root="$RUNNER_TEMP/android-cookie-apks"
+          mkdir -p "$proof_root"
+          cp "$app_apk" "$proof_root/app-debug.apk"
+          cp "$test_apk" "$proof_root/app-debug-androidTest.apk"
+          printf '%s\n' "$CANDIDATE_REVISION" > "$proof_root/candidate-revision.txt"
+          (cd "$proof_root" && shasum -a 256 app-debug.apk app-debug-androidTest.apk > sha256sums.txt)
+      - name: Upload candidate Android APKs for runtime proof
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-cookie-apks-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-cookie-apks
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save Gradle user home from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-gradle-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/voucha/gradle
+          key: ${{ steps.android-gradle-cache.outputs.cache-primary-key }}
+      - name: Bound Gradle task-output cache save
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' }}
+        id: android-task-cache-save
+        shell: bash
+        env:
+          RESTORED_CACHE_PATH: ${{ steps.android-task-cache-path.outputs.path }}
+        run: |
+          set -euo pipefail
+          selected="$(bash candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh)"
+          [[ "$selected" == "$RESTORED_CACHE_PATH" ]]
+          node candidate-clients/swift-clients/apps/android/tooling/check-gradle-build-cache.mjs \
+            "$selected" "$GITHUB_OUTPUT"
+      - name: Save Gradle task-output cache from successful main APK build
+        if: ${{ steps.android-task-cache-save.outputs.save == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.android-task-cache-path.outputs.path }}
+          key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
+  test-swift-android-libs:
+    name: Swift Android test-libs
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 22
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+      - name: Set up mise-managed Swift compiler
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: swift
+      - name: Configure Skip Swift home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
+      - name: Remove obsolete Swift Android executable cache
+        run: |
+          cache_root="$HOME/.cache/voucha/swift-android"
+          for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
+            [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
+          done
+          rm -rf -- "$cache_root/extracted"
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: true
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Build the selected Android validation phase
+        working-directory: candidate-clients
+        env:
+          VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
+          VOUCHA_BUILD_LOCK_COMMAND_TIMEOUT_SECONDS: 600
+          VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST: '1'
+          ANDROID_BUILD_PHASE: test-libs
+        run: |
+          export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
+          mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
+  test-swift-android-host:
+    name: Swift Android host tests
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+      - name: Install mise for the pinned host compiler
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          cache: false
+          install: false
+      - name: Configure isolated host compiler installation
+        working-directory: candidate-clients
+        run: |
+          {
+            echo "MISE_DATA_DIR=$RUNNER_TEMP/mise-data"
+            echo "MISE_CACHE_DIR=$RUNNER_TEMP/mise-cache"
+            echo 'MISE_DISABLE_TOOLS=actionlint,dotnet,shellcheck,github:boyter/scc,zizmor,aqua:gitleaks/gitleaks,aqua:lycheeverse/lychee,swiftformat'
+          } >> "$GITHUB_ENV"
+          mise trust "$PWD/.mise.toml"
+      - name: Select Xcode 26.6 for Android host SwiftPM tests
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Install and verify pinned host Swift compiler
+        working-directory: candidate-clients
+        run: bash swift-clients/apps/android/tooling/verify-android-host-swift.sh
+      - name: Configure Skip Swift home
+        run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
+      - name: Remove obsolete Swift Android executable cache
+        run: |
+          cache_root="$HOME/.cache/voucha/swift-android"
+          for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
+            [[ ! -L "$cache_path" && ( ! -e "$cache_path" || -d "$cache_path" ) ]] || { echo "unsafe Swift Android cache path: $cache_path" >&2; exit 1; }
+          done
+          rm -rf -- "$cache_root/extracted"
+      - name: Prepare checksummed Swift Android SDK and archives
+        uses: ./.github/actions/prepare-android-archives
+        timeout-minutes: 14
+        with:
+          save-cache: false
+          host-only: true
+      - name: Resolve Android Swift package with shared artifact cache
+        working-directory: candidate-clients
+        run: |
+          resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
+          env MISE_EXEC_AUTO_INSTALL=false mise exec swift@6.3.3 -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
+          ! grep -E 'Downloading binary artifact' "$resolve_log"
+      - name: Record Android host test start marker
+        run: touch "$RUNNER_TEMP/android-host-test-start-marker"
+      - name: Test Android Swift package
+        id: android-host-tests
+        working-directory: candidate-clients
+        env:
+          # Swift backtracing is opt-in on macOS; noninteractive output defaults to stderr.
+          SWIFT_BACKTRACE: enable=yes,interactive=no
+        run: >-
+          bash swift-clients/apps/android/tooling/run-android-host-swift-tests.sh
+          --package-path swift-clients/apps/android
+          --filter VouchaAndroidTests
+      - name: Collect Android host xctest crash reports
+        if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}
+        timeout-minutes: 2
+        continue-on-error: true
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, re, stat, time
+          from pathlib import Path
+
+          reports = Path.home() / "Library/Logs/DiagnosticReports"
+          marker = Path(os.environ["RUNNER_TEMP"]) / "android-host-test-start-marker"
+          output = Path(os.environ["RUNNER_TEMP"]) / "android-host-crash-reports"
+          output.mkdir(exist_ok=True)
+          bundle = "voucha-androidPackageTests"
+          max_file_bytes, max_total_bytes = 8 * 1024 * 1024, 16 * 1024 * 1024
+          collected, total = [], 0
+          warnings = set()
+
+          def matches(text, suffix):
+              if suffix == ".crash":
+                  return bool(re.search(r"^Process:\s+xctest\s+\[", text, re.M)) and bool(
+                      re.search(r"/" + bundle + r"\.xctest/Contents/MacOS/" + bundle + r"(?:\s|$)", text))
+              decoder, records, offset = json.JSONDecoder(), [], 0
+              while text[offset:].strip():
+                  offset += len(text[offset:]) - len(text[offset:].lstrip())
+                  record, end = decoder.raw_decode(text, offset)
+                  records.append(record)
+                  offset = end
+              return any(isinstance(record, dict) and record.get("procName") == "xctest"
+                         and any(isinstance(image, dict) and image.get("name") == bundle
+                                 and ("/" + bundle + ".xctest/Contents/MacOS/" + bundle) in image.get("path", "")
+                                 for image in record.get("usedImages", [])) for record in records)
+
+          for attempt in range(6):
+              if reports.is_dir():
+                  with os.scandir(reports) as entries:
+                      for index, entry in enumerate(entries):
+                          if index >= 512:
+                              warnings.add("Diagnostic report inventory exceeded 512 entries")
+                              break
+                          path = Path(entry.path)
+                          if path.suffix not in (".ips", ".crash"):
+                              continue
+                          try:
+                              # Do not follow symlinks, including a replacement between scan and open.
+                              fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                              with os.fdopen(fd, "rb") as stream:
+                                  info = os.fstat(stream.fileno())
+                                  if not stat.S_ISREG(info.st_mode) or info.st_mtime_ns <= marker.stat().st_mtime_ns:
+                                      continue
+                                  if info.st_size > max_file_bytes or total + info.st_size > max_total_bytes:
+                                      warnings.add("Diagnostic report byte limit reached")
+                                      continue
+                                  data = stream.read(max_file_bytes + 1)
+                              if len(data) > max_file_bytes or total + len(data) > max_total_bytes:
+                                  warnings.add("Diagnostic report byte limit reached")
+                                  continue
+                              if not matches(data.decode("utf-8"), path.suffix):
+                                  continue
+                              (output / path.name).write_bytes(data)
+                              collected.append(path.name)
+                              total += len(data)
+                          except (OSError, ValueError, UnicodeError, TypeError):
+                              warnings.add("Unreadable or invalid diagnostic report ignored")
+              if collected:
+                  break
+              if attempt < 5:
+                  time.sleep(5)
+          provenance = dict(candidate_revision=os.environ["CANDIDATE_REVISION"],
+                            run_id=os.environ["WORKFLOW_RUN_ID"], run_attempt=os.environ["WORKFLOW_RUN_ATTEMPT"],
+                            process="xctest", bundle=bundle + ".xctest", marker_ns=marker.stat().st_mtime_ns,
+                            reports=collected, bytes=total, warnings=sorted(warnings))
+          (output / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+          if not collected:
+              print("::warning::No new Android host xctest crash report was available; original test failure remains fatal")
+          for warning in sorted(warnings):
+              print("::warning::" + warning)
+          PYTHON
+      - name: Upload Android host xctest crash reports
+        if: ${{ failure() && steps.android-host-tests.outcome == 'failure' }}
+        timeout-minutes: 1
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-host-crash-reports-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-host-crash-reports
+          retention-days: 1
+          if-no-files-found: warn
+  test-swift-android-cookie:
+    name: Swift Android Skip
+    needs: [verify, build-swift-android, test-swift-android-libs, test-swift-android-host]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require every Android validation phase
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          ANDROID_APP_RESULT: ${{ needs.build-swift-android.result }}
+          ANDROID_LIBS_RESULT: ${{ needs.test-swift-android-libs.result }}
+          ANDROID_HOST_RESULT: ${{ needs.test-swift-android-host.result }}
+        run: |
+          test "$VERIFY_RESULT" = success
+          test "$ANDROID_APP_RESULT" = success
+          test "$ANDROID_LIBS_RESULT" = success
+          test "$ANDROID_HOST_RESULT" = success
+      - name: Check out exact candidate runtime script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.revision-sha }}
+          path: candidate-clients
+          persist-credentials: false
+      - name: Download exact candidate Android APKs
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: android-cookie-apks-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ needs.build-swift-android.outputs.artifact-attempt }}
+          path: ${{ runner.temp }}/android-cookie-apks
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+      - name: Reject invalid Android artifact and instrumentation results
+        timeout-minutes: 1
+        run: bash candidate-clients/swift-clients/apps/android/tooling/test-cookie-restart-runner.sh
+      - name: Select job-scoped Android SDK location
+        run: |
+          android_sdk="$RUNNER_TEMP/android-sdk"
+          echo "ANDROID_HOME=$android_sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
+      - name: Install Android emulator Linux runtime libraries
+        timeout-minutes: 4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libx11-6 libpulse0 libpng16-16t64 libnss3 libexpat1 \
+            libdrm2 libxi6 libxext6 libxkbfile1
+      - name: Install Android emulator and API 35 Google APIs image
+        timeout-minutes: 10
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;36.0.0
+            emulator
+            system-images;android-35;google_apis;x86_64
+      - name: Enable Linux emulator acceleration
+        run: |
+          set -euo pipefail
+          [[ -c /dev/kvm ]]
+          sudo chmod 0666 /dev/kvm
+          [[ -r /dev/kvm && -w /dev/kvm ]]
+      - name: Prove checked encrypted storage survives Android process restarts
+        timeout-minutes: 12
+        env:
+          CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          [[ "$(git -C candidate-clients rev-parse HEAD)" == "$CANDIDATE_REVISION" ]]
+          bash candidate-clients/swift-clients/apps/android/tooling/run-cookie-restart-emulator.sh \
+            run "$RUNNER_TEMP/android-cookie-apks" "$CANDIDATE_REVISION"
+      - name: Upload Android runtime identity and bounded failure log
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: android-cookie-runtime-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/voucha-cookie-runtime.txt
+            ${{ runner.temp }}/voucha-cookie-emulator-failure-tail.log
+          if-no-files-found: ignore
+          retention-days: 1
+  build-swift-ui-tests:
+    name: Swift UI build for testing
+    needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
+    runs-on: macos-latest
+    timeout-minutes: 13
+    permissions:
+      actions: read
+      contents: read
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
@@ -681,20 +1070,89 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Select Xcode 26.6 Apple SDK and Swift compiler
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Build complete UI test bundle with coverage
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        run: >-
+          xcrun swift build --package-path swift-clients/ui --build-tests
+          --force-resolved-versions --disable-dependency-cache --enable-code-coverage
+      - name: Package exact UI test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: >-
+          python3 scripts/swift-ui-test-artifact.py create
+          "$GITHUB_WORKSPACE/candidate-clients/swift-clients/ui"
+          "$RUNNER_TEMP/swift-ui-test-products.tar.gz"
+          "$RUNNER_TEMP/swift-ui-test-products.json"
+          --expected-revision "$EXPECTED_REVISION"
+      - name: Upload UI test products
+        timeout-minutes: 3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: swift-ui-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/swift-ui-test-products.tar.gz
+            ${{ runner.temp }}/swift-ui-test-products.json
+          if-no-files-found: error
+          retention-days: 1
+  test-swift-ui:
+    name: Swift UI tests and coverage
+    needs: [verify, build-swift-ui-tests]
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
+    runs-on: macos-latest
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Select Xcode 26.6 Apple SDK and Swift compiler
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Download exact UI test products
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: swift-ui-test-products-${{ github.run_id }}-${{ needs.build-swift-ui-tests.outputs.artifact-attempt }}
+          path: ${{ runner.temp }}/swift-ui-test-artifact
+      - name: Verify and restore UI test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-swift-ui-tests.outputs.artifact-attempt }}
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: >-
+          python3 scripts/swift-ui-test-artifact.py verify
+          "$GITHUB_WORKSPACE/candidate-clients/swift-clients/ui"
+          "$RUNNER_TEMP/swift-ui-test-artifact/swift-ui-test-products.tar.gz"
+          "$RUNNER_TEMP/swift-ui-test-artifact/swift-ui-test-products.json"
+          --expected-revision "$EXPECTED_REVISION"
       - name: Record swift test start marker
         run: |
           mkdir -p "$RUNNER_TEMP"
           touch "$RUNNER_TEMP/swift-ui-test-start-marker"
       - name: Test UI package with coverage
+        timeout-minutes: 8
         working-directory: candidate-clients
         run: >-
           xcrun swift test --package-path swift-clients/ui
-          --force-resolved-versions --disable-dependency-cache --enable-code-coverage
+          --skip-build --force-resolved-versions --disable-dependency-cache --enable-code-coverage
       - name: Collect xctest crash reports
         if: ${{ failure() }}
         timeout-minutes: 3
@@ -724,6 +1182,7 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
       - name: Export deterministic UI LCOV
+        timeout-minutes: 3
         working-directory: candidate-clients
         run: bash swift-clients/tooling/write-lcov.sh swift-clients/ui VouchaUIPackageTests coverage/ui/lcov.info
       - name: Upload UI LCOV
@@ -750,17 +1209,17 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Download Core LCOV
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          name: swift-core-lcov-${{ github.run_id }}-${{ needs.test-swift-core.outputs.artifact-attempt }}
           path: candidate-clients/coverage/core
       - name: Download UI LCOV
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
         with:
-          name: swift-ui-lcov-${{ github.run_id }}-${{ github.run_attempt }}
+          name: swift-ui-lcov-${{ github.run_id }}-${{ needs.test-swift-ui.outputs.artifact-attempt }}
           path: candidate-clients/coverage/ui
       - name: Enforce 90% Swift patch coverage
         working-directory: candidate-clients
@@ -783,7 +1242,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore checksummed Swift Android archives
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -809,7 +1268,7 @@ jobs:
     name: Swift macOS app smoke
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
       XCODEGEN_VERSION: 2.45.4
@@ -826,7 +1285,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Install pinned XcodeGen
         working-directory: candidate-clients
@@ -839,6 +1298,22 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Verify hosted macOS GUI session
+        run: |
+          if [[ "$(uname -s)" != Darwin ]]; then
+            echo "::error::macOS root-shell launch smoke requires a macOS GUI runner"
+            exit 1
+          fi
+          if ! pgrep -qx WindowServer; then
+            echo "::error::WindowServer is not running; refusing to skip the macOS root-shell launch smoke"
+            exit 1
+          fi
+          console_uid="$(stat -f %u /dev/console)"
+          current_uid="$(id -u)"
+          if [[ -z "$console_uid" || "$console_uid" != "$current_uid" ]]; then
+            echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
+            exit 1
+          fi
       - name: Build macOS app shell
         working-directory: candidate-clients
         env:
@@ -848,11 +1323,72 @@ jobs:
           rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-  build-ios-app:
-    name: Swift iOS Simulator launch smoke
+      - name: Run Sentry SDK boundary and launch transport tests
+        timeout-minutes: 10
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
+        run: |
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -only-testing:VouchaLaunchTransportTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
+      - name: Run feed transport boundary tests
+        timeout-minutes: 5
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
+        run: |
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaFeedTransportTests -resultBundlePath "$RUNNER_TEMP/macos-feed-transport.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-feed-transport.xcresult" | jq -e '.totalTestCount == 5 and .passedTests == 5 and .failedTests == 0 and .skippedTests == 0'
+      - name: Launch macOS root shell, sidebar feeds, and email sign-in
+        timeout-minutes: 15
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
+        run: |
+          destinations="$(xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -showdestinations -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" 2>&1)"
+          if ! printf '%s\n' "$destinations" | grep -q 'platform:macOS'; then
+            echo "::error::Selected Xcode has no macOS test destination for the root-shell launch smoke"
+            printf '%s\n' "$destinations"
+            exit 1
+          fi
+          rm -rf "$XCODE_DERIVED_DATA/Build/Products/Debug/Voucha.app"
+          xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPostsTests/testPostsFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/SourceCreationSmokeTests/testCreatesAndOpensSourceFromEveryVertical -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedRecoveryTests/testVideoFeedRetryRecoversCanonicalRow -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 7 and .passedTests == 7 and .failedTests == 0 and .skippedTests == 0'
+      - name: Collect failed macOS launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          diagnostics="$RUNNER_TEMP/macos-launch-diagnostics"
+          mkdir -p "$diagnostics"
+          log show --last 5m --style compact --predicate 'process == "Voucha"' > "$diagnostics/launch.log" 2>&1 || true
+          reports_dir="$HOME/Library/Logs/DiagnosticReports"
+          if [ -d "$reports_dir" ]; then
+            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
+          fi
+      - name: Upload failed macOS launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: macos-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/macos-launch-smoke.xcresult
+            ${{ runner.temp }}/macos-feed-transport.xcresult
+            ${{ runner.temp }}/macos-launch-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
+  build-ios-tests:
+    name: Swift iOS Simulator build for testing
     needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 13
     permissions:
       actions: read
       contents: read
@@ -869,7 +1405,7 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Verify pinned Xcode
         run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
@@ -885,15 +1421,167 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
-      - name: Start iPhone Simulator for launch smoke
-        timeout-minutes: 3
+      - name: Build selected iPhone test products
+        timeout-minutes: 10
         working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ github.workspace }}/ios-test-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
         run: |
+          set -euo pipefail
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
-          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .udid][0] // empty')"
-          if [[ -z "$simulator_id" ]]; then
+          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .name][0] // empty')"
+          if [[ -z "$simulator_name" ]]; then
             echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          ./swift-clients/tooling/generate.sh iOS
+          destination="platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          test ! -e "$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test ! -L "$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "$destination" -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation -only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse -only-testing:VouchaFlowTransportTests/NewsFlowTransportTests -only-testing:VouchaPresentationTests -testProductsPath "$GITHUB_WORKSPACE/Voucha.xctestproducts" build-for-testing VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test -f "$bundle/Info.plist"
+          app="$(find "$bundle" -type d -name Voucha.app -print -quit)"
+          runner="$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)"
+          test_bundle="$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)"
+          flow_test_bundle="$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)"
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
+          jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg bundle "$bundle" --arg app "$app" --arg runner "$runner" --arg testBundle "$test_bundle" --arg flowTestBundle "$flow_test_bundle" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,bundle:$bundle,app:$app,runner:$runner,testBundle:$testBundle,flowTestBundle:$flowTestBundle}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
+      - name: Package iOS test products
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          COPYFILE_DISABLE=1 tar -C "$GITHUB_WORKSPACE" -czf "$RUNNER_TEMP/ios-test-products.tar.gz" Voucha.xctestproducts
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" "$RUNNER_TEMP/ios-test-products.tar.gz"
+          shasum -a 256 "$RUNNER_TEMP/ios-test-products.tar.gz" | awk '{print $1}' > "$RUNNER_TEMP/ios-test-products.sha256"
+          cp "$GITHUB_WORKSPACE/ios-test-manifest.json" "$RUNNER_TEMP/ios-test-manifest.json"
+      - name: Upload iOS test products
+        timeout-minutes: 3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: ios-test-products-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ios-test-products.tar.gz
+            ${{ runner.temp }}/ios-test-products.sha256
+            ${{ runner.temp }}/ios-test-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build-ios-x86:
+    name: Swift iOS Simulator x86_64 build
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 12
+    permissions:
+      actions: read
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      XCODEGEN_VERSION: 2.45.4
+      XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Install pinned XcodeGen
+        timeout-minutes: 5
+        working-directory: candidate-clients
+        run: |
+          xcodegen_root="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          curl --fail --location --connect-timeout 15 --max-time 60 --retry 2 --retry-max-time 120 --retry-all-errors --silent --show-error "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip" --output "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION.zip" -d "$xcodegen_root"
+          xcodegen_bin="$xcodegen_root/xcodegen/bin/xcodegen"
+          test -x "$xcodegen_bin"
+          test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
+          dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Compile x86_64 iOS Simulator app
+        timeout-minutes: 9
+        working-directory: candidate-clients
+        env:
+          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-x86-derived-data
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-x86-package-clones
+        run: |
+          set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_name="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPhone "))) | .name][0] // empty')"
+          if [[ -z "$simulator_name" ]]; then
+            echo "::error::Pinned Xcode has no available iPhone Simulator for $runtime_identifier x86_64 compile"
+            exit 1
+          fi
+          ./swift-clients/tooling/generate.sh iOS
+          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=x86_64" build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+  build-ios-app:
+    name: Swift iOS Simulator launch smoke (${{ matrix.shard }})
+    needs: [verify, build-ios-tests]
+    runs-on: macos-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: root-shell
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaPresentationTests'
+            expected_count: 7
+          - shard: feed
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation'
+            expected_count: 1
+          - shard: sign-in
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
+            expected_count: 1
+          - shard: news
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
+            expected_count: 1
+          - shard: news-transport
+            only_testing: '-only-testing:VouchaFlowTransportTests/NewsFlowTransportTests'
+            expected_count: 3
+    permissions:
+      actions: read
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Download iOS test products
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: ios-test-products-${{ github.run_id }}-${{ needs.build-ios-tests.outputs.artifact-attempt }}
+          path: ${{ runner.temp }}/ios-test-artifact
+      - name: Start iPhone Simulator for launch smoke
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
             exit 1
           fi
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
@@ -903,31 +1591,97 @@ jobs:
             Booted) ;;
             *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
           esac
-      - name: Build iOS app for Simulator
-        timeout-minutes: 20
-        working-directory: candidate-clients
-        env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
-        run: |
-          ./swift-clients/tooling/generate.sh iOS
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'generic/platform=iOS Simulator' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+          skip-candidate-checkout: true
       - name: Wait for iPhone Simulator readiness
-        timeout-minutes: 12
-        working-directory: candidate-clients
+        timeout-minutes: 4
         run: |
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
-      - name: Launch iOS app on Simulator
-        timeout-minutes: 10
-        working-directory: candidate-clients
+      - name: Verify and unpack iOS test products
+        timeout-minutes: 3
         env:
-          XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
+          EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-ios-tests.outputs.artifact-attempt }}
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/ios-test-artifact"
+          manifest="$artifact/ios-test-manifest.json"
+          test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
+          test "$(jq -r '.attempt' "$manifest")" = "$EXPECTED_ARTIFACT_RUN_ATTEMPT"
+          test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
+          test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test "$(jq -r '.bundle' "$manifest")" = "$bundle"
+          test ! -e "$bundle"
+          test ! -L "$bundle"
+          for product in app runner testBundle flowTestBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            case "$path" in
+              "$bundle"/*) ;;
+              *) echo "::error::Invalid $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+            case "$path" in
+              */../*|*/./*) echo "::error::Non-canonical $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+          done
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg name "$simulator_name" '[.devices[$runtime][]? | select(.isAvailable and .name == $name) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available $simulator_name Simulator for $runtime_identifier launch smoke"
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          printf '%s\n' "$destination" > "$RUNNER_TEMP/ios-launch-destination"
+          printf '%s\n' "$bundle" > "$RUNNER_TEMP/ios-launch-test-products"
+          cd "$artifact"
+          printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
+          tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
+          test -f "$bundle/Info.plist"
+          for product in app runner testBundle flowTestBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            test -d "$path"
+          done
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
+      - name: Launch iOS app on Simulator
+        timeout-minutes: 7
+        run: |
+          bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
+          destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-          xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,id=$simulator_id" -destination-timeout 120 -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == 1 and .passedTests == 1 and .failedTests == 0 and .skippedTests == 0'
+          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
+          case "$app" in
+            "$bundle"/*) ;;
+            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
+          esac
+          test -d "$app"
+          if [[ "${{ matrix.shard }}" != news-transport ]]; then
+          python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
+          fi
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
+          xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
       - name: Collect failed iOS launch diagnostics
         if: ${{ failure() }}
         timeout-minutes: 2
@@ -950,18 +1704,212 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
-          name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: |
             ${{ runner.temp }}/ios-launch-smoke.xcresult
             ${{ runner.temp }}/ios-launch-diagnostics
           retention-days: 1
           if-no-files-found: warn
 
-  dotnet-maui:
-    name: .NET MAUI Mac Catalyst
+  build-ios-ipad:
+    name: ${{ matrix.name }}
+    needs: [verify, build-ios-tests]
+    runs-on: macos-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: root-shell
+            name: Swift iPad Simulator root-shell launch
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell'
+            expected_count: 1
+          - shard: sign-in
+            name: Swift iPad Simulator sign-in flow
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
+            expected_count: 1
+          - shard: news
+            name: Swift iPad Simulator News flow
+            only_testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
+            expected_count: 1
+    permissions:
+      actions: read
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+          skip-candidate-install: true
+          skip-candidate-checkout: true
+      - name: Verify pinned Xcode
+        run: test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = 26.6
+      - name: Start iPad Simulator for root-shell launch
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" '[.devices[$runtime][]? | select(.isAvailable and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ -z "$simulator_id" ]]; then
+            echo "::error::Pinned Xcode has no available iPad Simulator for $runtime_identifier root-shell launch"
+            exit 1
+          fi
+          ipad_name="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .name][0] // empty')"
+          if [[ "$ipad_name" != iPad\ * ]]; then
+            echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
+            exit 1
+          fi
+          printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
+          printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
+          printf '%s\n' "platform=iOS Simulator,id=$simulator_id" > "$RUNNER_TEMP/ipad-launch-destination"
+          simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
+          case "$simulator_state" in
+            Shutdown) xcrun simctl boot "$simulator_id" ;;
+            Booted) ;;
+            *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
+          esac
+      - name: Download iOS test products
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
+        with:
+          name: ios-test-products-${{ github.run_id }}-${{ needs.build-ios-tests.outputs.artifact-attempt }}
+          path: ${{ runner.temp }}/ios-test-artifact
+      - name: Wait for iPad Simulator readiness
+        timeout-minutes: 4
+        run: |
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          xcrun simctl bootstatus "$simulator_id" -b
+      - name: Verify and unpack iOS test products
+        timeout-minutes: 3
+        env:
+          EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-ios-tests.outputs.artifact-attempt }}
+          EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/ios-test-artifact"
+          manifest="$artifact/ios-test-manifest.json"
+          test "$(jq -r '.run' "$manifest")" = "$GITHUB_RUN_ID"
+          test "$(jq -r '.attempt' "$manifest")" = "$EXPECTED_ARTIFACT_RUN_ATTEMPT"
+          test "$(jq -r '.revision' "$manifest")" = "$EXPECTED_REVISION"
+          test "$(jq -r '.xcode' "$manifest")" = "$(xcodebuild -version | tr '\n' ' ')"
+          simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          test "$(jq -r '.sdk' "$manifest")" = "$simulator_sdk"
+          bundle="$GITHUB_WORKSPACE/Voucha.xctestproducts"
+          test "$(jq -r '.bundle' "$manifest")" = "$bundle"
+          test ! -e "$bundle"
+          test ! -L "$bundle"
+          for product in app runner testBundle flowTestBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            case "$path" in
+              "$bundle"/*) ;;
+              *) echo "::error::Invalid $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+            case "$path" in
+              */../*|*/./*) echo "::error::Non-canonical $product path in iOS test manifest" >&2; exit 1 ;;
+            esac
+          done
+          destination="$(jq -r '.destination' "$manifest")"
+          simulator_name="${destination#*name=}"
+          simulator_name="${simulator_name%%,OS=*}"
+          test "$destination" = "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=arm64"
+          runtime_identifier="com.apple.CoreSimulator.SimRuntime.iOS-${simulator_sdk//./-}"
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          ipad_name="$(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
+          if [[ "$ipad_name" != iPad\ * ]]; then
+            echo "::error::Selected simulator is not an iPad: $ipad_name" >&2
+            exit 1
+          fi
+          selected="$(xcrun simctl list devices available -j | jq -r --arg runtime "$runtime_identifier" --arg udid "$simulator_id" '[.devices[$runtime][]? | select(.isAvailable and .udid == $udid and (.name | startswith("iPad "))) | .udid][0] // empty')"
+          if [[ "$selected" != "$simulator_id" ]]; then
+            echo "::error::Pre-booted iPad is not available for $runtime_identifier root-shell launch" >&2
+            exit 1
+          fi
+          test "$(cat "$RUNNER_TEMP/ipad-launch-destination")" = "platform=iOS Simulator,id=$simulator_id"
+          printf '%s\n' "$bundle" > "$RUNNER_TEMP/ipad-launch-test-products"
+          cd "$artifact"
+          printf '%s  %s\n' "$(cat ios-test-products.sha256)" ios-test-products.tar.gz | shasum -a 256 -c -
+          python3 "$GITHUB_WORKSPACE/scripts/verify-ios-test-tar.py" ios-test-products.tar.gz
+          tar -C "$GITHUB_WORKSPACE" -xzf ios-test-products.tar.gz
+          test -f "$bundle/Info.plist"
+          for product in app runner testBundle flowTestBundle; do
+            path="$(jq -r --arg product "$product" '.[$product]' "$manifest")"
+            test -d "$path"
+          done
+          test "$(find "$bundle" -type d -name Voucha.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
+          test "$(find "$bundle" -type d -name Voucha.app -print -quit)" = "$(jq -r '.app' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests-Runner.app -print -quit)" = "$(jq -r '.runner' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
+          test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
+      - name: Launch iPad root shell on Simulator
+        timeout-minutes: 9
+        run: |
+          bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
+          destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"
+          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
+          case "$app" in
+            "$bundle"/*) ;;
+            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
+          esac
+          test -d "$app"
+          python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
+          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
+          xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true
+          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+            {
+              echo "### iPad ${{ matrix.shard }}"
+              echo
+              echo "Simulator: $(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
+              echo
+              echo "Accepted one passed test and zero skipped tests."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Collect failed iPad launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          diagnostics="$RUNNER_TEMP/ipad-launch-diagnostics"
+          mkdir -p "$diagnostics"
+          xcrun simctl list devices available -j > "$diagnostics/simulators.json" || true
+          if [ -f "$RUNNER_TEMP/ipad-launch-simulator-id" ]; then
+            simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
+            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
+          fi
+          reports_dir="$HOME/Library/Logs/DiagnosticReports"
+          if [ -d "$reports_dir" ]; then
+            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
+          fi
+      - name: Upload failed iPad launch diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: ipad-launch-diagnostics-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ipad-launch-smoke.xcresult
+            ${{ runner.temp }}/ipad-launch-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
+
+  dotnet-maui-tests:
+    name: .NET MAUI rendered pages
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     env:
       UseArtifactsOutput: 'true'
     steps:
@@ -978,10 +1926,10 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-dotnet-cache
@@ -1022,7 +1970,7 @@ jobs:
         run: >-
           dotnet workload install maui-maccatalyst
           --configfile dotnet-clients/NuGet.config
-      - name: Verify all eleven committed NuGet locks
+      - name: Verify all twelve committed NuGet locks
         working-directory: candidate-clients
         run: >-
           bash dotnet-clients/tooling/restore-locks.sh verify
@@ -1045,6 +1993,34 @@ jobs:
             --logger "console;verbosity=detailed" \
             --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type mini \
             --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+      - name: Test Debug notification fixture support
+        working-directory: candidate-clients
+        run: >-
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          --configuration Debug --no-restore
+      - name: Test Debug Catalyst fixtures and session isolation
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: |
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj \
+            --configuration Debug --no-restore --no-build \
+            --filter FullyQualifiedName~CatalystFixture \
+            --logger 'trx;LogFileName=catalyst-fixture.trx' \
+            --results-directory "$RUNNER_TEMP/voucha-maui-test-results"
+          python3 - "$RUNNER_TEMP/voucha-maui-test-results/catalyst-fixture.trx" <<'PYTHON'
+          import sys
+          import xml.etree.ElementTree as ET
+          counters = ET.parse(sys.argv[1]).find("{*}ResultSummary/{*}Counters")
+          assert counters is not None, "Missing Debug Catalyst fixture test counters"
+          expected = {"total": "4", "executed": "4", "passed": "4", "failed": "0", "notExecuted": "0"}
+          assert all(counters.get(key) == value for key, value in expected.items()), counters.attrib
+          PYTHON
+      - name: Test Debug auth and News fixture backend
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: >-
+          dotnet test dotnet-clients/tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
+          --configuration Debug --no-restore --filter FullyQualifiedName~CatalystAuthNews
       - name: Upload failed MAUI test diagnostics
         if: ${{ failure() || cancelled() }}
         timeout-minutes: 2
@@ -1055,6 +2031,81 @@ jobs:
           path: ${{ runner.temp }}/voucha-maui-test-results
           retention-days: 1
           if-no-files-found: warn
+  dotnet-maui:
+    name: .NET MAUI Mac Catalyst
+    needs: verify
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      VOUCHA_SENTRY_DSN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VOUCHA_SENTRY_DSN_DOTNET || '' }}
+      VOUCHA_SENTRY_RELEASE: voucha-dotnet@${{ github.sha }}
+      VOUCHA_SENTRY_ENVIRONMENT: production
+      UseArtifactsOutput: 'true'
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        id: maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
+      - name: Configure isolated MAUI paths
+        shell: bash
+        run: |
+          {
+            echo "ArtifactsPath=$RUNNER_TEMP/voucha-dotnet-lock-artifacts/app-tests"
+            echo "VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-artifacts"
+            echo "VOUCHA_DOTNET_LOCK_SCRATCH_ROOT=$RUNNER_TEMP/voucha-dotnet-lock-scratch"
+          } >>"$GITHUB_ENV"
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload
+        if: steps.workload.outputs.install == 'true'
+        working-directory: candidate-clients
+        run: >-
+          dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Verify all twelve committed NuGet locks
+        working-directory: candidate-clients
+        run: >-
+          bash dotnet-clients/tooling/restore-locks.sh verify
       - name: Select compatible Xcode
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
@@ -1085,8 +2136,281 @@ jobs:
         run: >-
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-maccatalyst
+          -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}"
-          --no-restore
+          -p:DebugType=portable -p:DebugSymbols=true --no-restore -clp:PerformanceSummary
+      - name: Save NuGet packages from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ steps.maui-nuget-cache.outputs.cache-primary-key }}
+
+      - name: Collect trusted app PDBs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: candidate-clients
+        env:
+          SYMBOL_ROOT: ${{ env.VOUCHA_DOTNET_LOCK_ARTIFACTS_ROOT }}/app-${{ steps.rid.outputs.runtime_identifier }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/sentry-dotnet"
+          for assembly in Voucha.Client.App Voucha.Client.Core; do
+            mapfile_path="$RUNNER_TEMP/$assembly-pdb-paths.txt"
+            find "$SYMBOL_ROOT/bin" -type f -name "$assembly.pdb" -print > "$mapfile_path"
+            test -s "$mapfile_path"
+            while IFS= read -r pdb; do
+              cmp_target="$RUNNER_TEMP/sentry-dotnet/$assembly.pdb"
+              if [[ -f "$cmp_target" ]]; then
+                cmp "$pdb" "$cmp_target"
+              else
+                cp "$pdb" "$cmp_target"
+              fi
+            done < "$mapfile_path"
+          done
+      - name: Retain trusted app PDBs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: sentry-dotnet-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sentry-dotnet/
+          if-no-files-found: error
+          retention-days: 1
+
+  sentry-dotnet-symbols:
+    permissions:
+      contents: read
+      actions: read
+    needs: dotnet-maui
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/sentry-symbols.yml
+    with:
+      artifact: sentry-dotnet-${{ github.run_id }}-${{ needs.dotnet-maui.outputs.artifact-attempt }}
+      project: ${{ vars.SENTRY_PROJECT_DOTNET }}
+
+  dotnet-catalyst-gui:
+    name: Mac Catalyst GUI preflight
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-dotnet-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/packages
+            ${{ github.workspace }}/candidate-clients/.nuget/http-cache
+            ${{ github.workspace }}/candidate-clients/.nuget/plugins-cache
+          key: ${{ runner.os }}-nuget-maui-${{ hashFiles('candidate-clients/dotnet-clients/**/*.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-maui-
+      - name: Restore Appium Mac2
+        id: catalyst-appium-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ runner.os }}-appium-3.8.0-mac2-4.5.0
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Detect pinned MAUI workload
+        id: workload
+        working-directory: candidate-clients
+        run: |
+          set -euo pipefail
+          expected=$(jq -r '.sdk.workloadVersion' global.json)
+          installed=$(dotnet workload --version 2>/dev/null || true)
+          if [ "$installed" = "$expected" ] && dotnet workload list | awk '$1 == "maui-maccatalyst" { found = 1 } END { exit !found }'; then
+            echo 'install=false' >>"$GITHUB_OUTPUT"
+          else
+            echo 'install=true' >>"$GITHUB_OUTPUT"
+          fi
+      - name: Install pinned MAUI workload
+        if: steps.workload.outputs.install == 'true'
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        run: >-
+          dotnet workload install maui-maccatalyst
+          --configfile dotnet-clients/NuGet.config
+      - name: Select compatible Xcode
+        working-directory: candidate-clients
+        run: bash dotnet-clients/tooling/select-xcode.sh 26.6
+      - name: Detect host Mac Catalyst RID
+        id: rid
+        shell: bash
+        run: |
+          case "$(uname -m)" in
+            arm64) rid=maccatalyst-arm64 ;;
+            x86_64) rid=maccatalyst-x64 ;;
+            *) echo "Unsupported macOS architecture: $(uname -m)"; exit 1 ;;
+          esac
+          echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
+      - name: Install Appium Mac2
+        timeout-minutes: 2
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+        run: |
+          set -euo pipefail
+          prefix="$CATALYST_APPIUM_PREFIX"
+          mkdir -p "$prefix/home"
+          if [[ ! -x "$prefix/node_modules/.bin/appium" ]]; then
+            npm init -y --prefix "$prefix" >/dev/null
+            npm install --prefix "$prefix" appium@3.8.0
+          fi
+          if [[ ! -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac" ]]; then
+            APPIUM_HOME="$prefix/home" "$prefix/node_modules/.bin/appium" driver install --source npm appium-mac2-driver@4.5.0
+          fi
+          test -x "$prefix/node_modules/.bin/appium"
+          test -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac"
+      - name: Restore the Debug Mac Catalyst graph
+        timeout-minutes: 2
+        working-directory: candidate-clients
+        run: |
+          dotnet restore dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            -p:Configuration=Debug -p:TargetFramework=net10.0-maccatalyst \
+            -p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }} --locked-mode
+          dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
+            -p:Configuration=Debug -p:TargetFramework=net10.0 --locked-mode
+      - name: Build the Debug app and the Mac2 host
+        timeout-minutes: 6
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+        run: |
+          set -euo pipefail
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --prebuild-host &
+          host_pid=$!
+          dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj \
+            --configuration Debug --framework net10.0-maccatalyst \
+            "-p:RuntimeIdentifier=${{ steps.rid.outputs.runtime_identifier }}" \
+            -p:CodesignEntitlements= \
+            --no-restore &
+          app_pid=$!
+          host_status=0
+          app_status=0
+          wait "$host_pid" || host_status=$?
+          wait "$app_pid" || app_status=$?
+          if [[ "$host_status" -ne 0 || "$app_status" -ne 0 ]]; then
+            echo "::error::Debug app status $app_status; Mac2 host status $host_status"
+            exit 1
+          fi
+      - name: Launch the root shell and notification settings sessions
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+          CATALYST_GUI_RESULT: ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+        run: |
+          set -euo pipefail
+          if ! pgrep -qx WindowServer; then
+            echo "::error::WindowServer is not running; refusing to skip the Mac Catalyst GUI preflight"
+            exit 1
+          fi
+          console_uid="$(stat -f %u /dev/console)"
+          current_uid="$(id -u)"
+          if [[ -z "$console_uid" || "$console_uid" != "$current_uid" ]]; then
+            echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
+            exit 1
+          fi
+          diagnostics="${{ runner.temp }}/catalyst-gui-diagnostics"
+          mkdir -p "$diagnostics"
+          find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name '*.app' >"$diagnostics/apps.txt" || true
+          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' -print -quit)"
+          if [[ -z "$app" || ! -d "$app" ]]; then
+            echo "::error::Debug Mac Catalyst app was not built"
+            exit 1
+          fi
+          test "$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' | wc -l | tr -d ' ')" -eq 1
+          staged="$PWD/$app/Contents/Resources/preflight-contract"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --stage-fixture "$staged"
+          codesign --force --sign - "$PWD/$app"
+          export CATALYST_APP_PATH="$PWD/$app"
+          export VOUCHA_CONTRACT_ROOT="$staged"
+          export CATALYST_GUI_RESULT="$diagnostics/root-result.json"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --root-session
+          jq -e '.total == 3 and .passed == 3 and .failed == 0 and .skipped == 0' "$CATALYST_GUI_RESULT"
+          export CATALYST_GUI_RESULT="$diagnostics/result.json"
+          export CATALYST_NATIVE_REVISION="${{ needs.verify.outputs.revision-sha }}"
+          node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
+          node scripts/catalyst-notification-evidence.mjs "$CATALYST_GUI_RESULT" "$CATALYST_NATIVE_REVISION"
+      - name: Exercise Catalyst email sign-in and News controls
+        timeout-minutes: 3
+        working-directory: candidate-clients
+        env:
+          CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
+          CATALYST_FLOWS_RESULT: ${{ runner.temp }}/catalyst-gui-diagnostics/auth-news-result.json
+          CATALYST_NATIVE_REVISION: ${{ needs.verify.outputs.revision-sha }}
+        run: |
+          set -euo pipefail
+          app="$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' -print -quit)"
+          test -n "$app" && test -d "$app"
+          test "$(find dotnet-clients/src/Voucha.Client.App/bin/Debug -type d -name 'Voucha.app' | wc -l | tr -d ' ')" -eq 1
+          staged="$PWD/$app/Contents/Resources/auth-news-contract"
+          node dotnet-clients/tooling/catalyst-gui-auth-news.mjs --stage-fixture "$staged"
+          codesign --force --sign - "$PWD/$app"
+          export CATALYST_APP_PATH="$PWD/$app"
+          export VOUCHA_CONTRACT_ROOT="$staged"
+          node dotnet-clients/tooling/catalyst-gui-auth-news.mjs --session
+          node scripts/catalyst-auth-news-evidence.mjs "$CATALYST_FLOWS_RESULT" "$CATALYST_NATIVE_REVISION"
+      - name: Save Appium Mac2 from main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
+      - name: Upload Catalyst control and dispatch evidence
+        if: ${{ success() }}
+        timeout-minutes: 1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-notification-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/catalyst-gui-diagnostics/result.json
+            ${{ runner.temp }}/catalyst-gui-diagnostics/result.json.app.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload Catalyst auth and News evidence
+        if: ${{ success() }}
+        timeout-minutes: 1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-auth-news-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics/auth-news-result.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload failed Catalyst GUI diagnostics
+        if: ${{ failure() }}
+        timeout-minutes: 1
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: catalyst-gui-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/catalyst-gui-diagnostics
+          retention-days: 1
+          if-no-files-found: warn
 
   dotnet-windows-image-preview:
     name: .NET Windows image preview
@@ -1111,10 +2435,11 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-image-preview-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -1139,12 +2464,28 @@ jobs:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-image-preview-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-image-preview-nuget-cache.outputs.cache-primary-key }}
   dotnet-windows-maui:
     name: .NET MAUI Windows
     needs: verify
     if: needs.verify.outputs.windows-maui == 'true'
+    outputs:
+      artifact-attempt: ${{ github.run_attempt }}
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      VOUCHA_SENTRY_DSN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VOUCHA_SENTRY_DSN_DOTNET || '' }}
+      VOUCHA_SENTRY_RELEASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('voucha-dotnet@{0}', github.sha) || '' }}
+      VOUCHA_SENTRY_ENVIRONMENT: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || '' }}
     permissions:
       actions: read
       contents: read
@@ -1162,10 +2503,11 @@ jobs:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
           github-token: ${{ github.token }}
-          producer-run-attempt: ${{ github.run_attempt }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
-      - name: Cache NuGet packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore NuGet packages
+        id: windows-maui-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -1220,11 +2562,112 @@ jobs:
         run: >-
           dotnet build dotnet-clients/src/Voucha.Client.App/Voucha.Client.App.csproj
           --configuration Release --framework net10.0-windows10.0.26100.0 --no-restore
+          -p:VouchaTurnstileSiteKey=0x4AAAAAAAAexample
           -p:RuntimeIdentifier=win-x64 -p:WindowsPackageType=None
           -p:GenerateAppxPackageOnBuild=false -p:AppxPackageSigningEnabled=false
+          -p:DebugType=portable -p:DebugSymbols=true
+      - name: Collect trusted Windows app symbols
+        timeout-minutes: 1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: candidate-clients
+        shell: pwsh
+        run: node scripts/sentry-windows-symbols.mjs . "$env:RUNNER_TEMP/sentry-dotnet-windows"
+      - name: Retain trusted Windows app symbols
+        timeout-minutes: 2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        with:
+          name: sentry-dotnet-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sentry-dotnet-windows/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-maui-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-maui-nuget-cache.outputs.cache-primary-key }}
+
+  sentry-dotnet-windows-symbols:
+    permissions:
+      contents: read
+      actions: read
+    needs: dotnet-windows-maui
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/sentry-symbols.yml
+    with:
+      artifact: sentry-dotnet-windows-${{ github.run_id }}-${{ needs.dotnet-windows-maui.outputs.artifact-attempt }}
+      project: ${{ vars.SENTRY_PROJECT_DOTNET }}
+
+  dotnet-windows-language-model-surface:
+    name: .NET Windows language-model surface
+    needs: verify
+    if: needs.verify.outputs.windows-language-model-surface == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out consumer tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Prepare verified candidate
+        uses: ./.github/actions/prepare-native-contract
+        with:
+          candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
+          expected-contract-repository: vouchington/vouchington
+          github-token: ${{ github.token }}
+          producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
+          producer-run-id: ${{ github.run_id }}
+      - name: Restore NuGet packages
+        id: windows-language-model-surface-nuget-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ runner.os }}-nuget-windows-language-model-surface-${{ hashFiles('candidate-clients/dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/packages.lock.json', 'candidate-clients/dotnet-clients/Directory.Packages.props', 'candidate-clients/global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-windows-language-model-surface-
+      - name: Set up mise-managed .NET SDK
+        uses: ./.github/actions/setup-mise-toolchain
+        with:
+          client-root: candidate-clients
+          tool: dotnet
+      - name: Restore the locked Windows language-model surface probe
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        run: dotnet restore dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --locked-mode --configfile dotnet-clients/NuGet.config -p:MSBuildEnableWorkloadResolver=false
+      - name: Probe the pinned Windows language-model surface
+        working-directory: candidate-clients
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
+        run: dotnet test dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --configuration Release --no-restore -p:MSBuildEnableWorkloadResolver=false --logger "console;verbosity=detailed"
+      - name: Save NuGet packages from main
+        if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.windows-language-model-surface-nuget-cache.outputs.cache-hit != 'true' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/voucha-windows-nuget-packages
+            ${{ runner.temp }}/voucha-windows-nuget-http-cache
+          key: ${{ steps.windows-language-model-surface-nuget-cache.outputs.cache-primary-key }}
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
-    if: always()
+    if: ${{ !cancelled() }}
     needs:
       - dotnet-portable
       - test-swift-core
@@ -1245,7 +2688,7 @@ jobs:
 
   tests:
     name: Tests
-    if: always()
+    if: ${{ !cancelled() }}
     needs:
       - produce
       - verify
@@ -1254,14 +2697,20 @@ jobs:
       - periphery-swift-ui
       - test-swift-core-linux
       - test-swift-core
-      - test-swift-android
+      - test-swift-android-cookie
       - test-swift-ui
+      - build-swift-ui-tests
       - swift-patch-coverage
       - build-android-core
       - build-macos-app
       - build-ios-app
+      - build-ios-ipad
+      - build-ios-x86
+      - dotnet-maui-tests
       - dotnet-maui
+      - dotnet-catalyst-gui
       - dotnet-windows-image-preview
+      - dotnet-windows-language-model-surface
       - dotnet-windows-maui
     runs-on: ubuntu-slim
     timeout-minutes: 5
@@ -1271,13 +2720,16 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
           WINDOWS_IMAGE_PREVIEW_ROUTE: ${{ needs.verify.outputs.windows-image-preview }}
+          WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: ${{ needs.verify.outputs.windows-language-model-surface }}
           WINDOWS_MAUI_ROUTE: ${{ needs.verify.outputs.windows-maui }}
         run: |
           set -euo pipefail
-          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" '
-            all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-maui"); .value.result == "success") and
+          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" --arg surface "$WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE" '
+            all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-language-model-surface" and .key != "dotnet-windows-maui"); .value.result == "success") and
             ((."dotnet-windows-image-preview".result == "success") or
              ($route == "false" and ."dotnet-windows-image-preview".result == "skipped")) and
+            ((."dotnet-windows-language-model-surface".result == "success") or
+             ($surface == "false" and ."dotnet-windows-language-model-surface".result == "skipped")) and
             ((."dotnet-windows-maui".result == "success") or
              ($maui == "false" and ."dotnet-windows-maui".result == "skipped"))
           ' <<<"$NEEDS_JSON"

@@ -78,27 +78,29 @@ final class EndpointViewModelTests: XCTestCase {
     }
 
     func testEndpointGenerationUsesConfiguredEndpoint() async throws {
-        let (viewModel, endpointClient) = try await makeEndpointGeneratingViewModel(response: "Endpoint answer")
+        let context = try await makeEndpointGeneratingViewModel(response: "Endpoint answer")
+        defer { AndroidTranscriptURLProtocol.uninstall(host: context.transcriptClient.host) }
 
-        await viewModel.sendOnDevice()
+        await context.viewModel.sendOnDevice()
 
-        XCTAssertEqual(viewModel.messages.last?.content, "Endpoint answer")
-        let endpointCallCount = await endpointClient.callCount()
+        XCTAssertEqual(context.viewModel.messages.last?.content, "Endpoint answer")
+        let endpointCallCount = await context.endpointClient.callCount()
         XCTAssertEqual(endpointCallCount, 1)
     }
 
     func testEndpointFailureRestoresDraftWithoutAICoreFallback() async throws {
         let runtime = FakeAICoreRuntime(state: .available, response: "Unexpected fallback")
-        let (viewModel, endpointClient) = try await makeEndpointGeneratingViewModel(
+        let context = try await makeEndpointGeneratingViewModel(
             runtime: runtime,
             error: TestError.failed
         )
+        defer { AndroidTranscriptURLProtocol.uninstall(host: context.transcriptClient.host) }
 
-        await viewModel.sendOnDevice()
+        await context.viewModel.sendOnDevice()
 
-        XCTAssertEqual(viewModel.draft, "Endpoint request")
-        XCTAssertTrue(viewModel.messages.isEmpty)
-        let endpointCallCount = await endpointClient.callCount()
+        XCTAssertEqual(context.viewModel.draft, "Endpoint request")
+        XCTAssertTrue(context.viewModel.messages.isEmpty)
+        let endpointCallCount = await context.endpointClient.callCount()
         let runtimeCallCount = await runtime.generationSnapshot().callCount
         XCTAssertEqual(endpointCallCount, 1)
         XCTAssertEqual(runtimeCallCount, 0)
@@ -122,7 +124,14 @@ final class EndpointViewModelTests: XCTestCase {
         runtime: FakeAICoreRuntime = FakeAICoreRuntime(state: .available),
         response: String = "",
         error: Error? = nil
-    ) async throws -> (ViewModel, FakeEndpointClient) {
+    ) async throws -> EndpointGeneratingTestContext {
+        let transcriptClient = try AndroidTranscriptTestFactory.makeClient()
+        AndroidTranscriptTestFactory.enqueueEmptyConversationCreation(on: transcriptClient.recorder)
+        AndroidTranscriptTestFactory.enqueueGeneratedTurn(
+            on: transcriptClient.recorder,
+            userText: "Endpoint request",
+            assistantText: response
+        )
         let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let settingsStore = LocalLLMSettingsStore(
             fileURL: fileURL,
@@ -140,57 +149,12 @@ final class EndpointViewModelTests: XCTestCase {
         viewModel.endpointModel = "local-model"
         try await viewModel.saveEndpointSettings()
         await viewModel.selectProvider(.endpoint)
+        await viewModel.bindAccount(client: transcriptClient.client, userID: "fixture-user")
         viewModel.draft = "Endpoint request"
-        return (viewModel, endpointClient)
-    }
-}
-
-private struct EndpointSettingsTestContext {
-    let viewModel: ViewModel
-    let settingsStore: LocalLLMSettingsStore
-    let secrets: FakeEndpointSecrets
-}
-
-private final class FakeEndpointSecrets: AndroidEndpointSecretStoring {
-    var values: [String: String] = [:]
-
-    func string(forKey key: String) throws -> String? {
-        values[key]
-    }
-
-    func set(_ value: String, forKey key: String) throws {
-        values[key] = value
-    }
-
-    func removeValue(forKey key: String) throws {
-        values[key] = nil
-    }
-}
-
-private actor FakeEndpointClient: AndroidEndpointGenerating {
-    let response: String
-    let error: Error?
-    private var calls = 0
-
-    init(response: String, error: Error? = nil) {
-        self.response = response
-        self.error = error
-    }
-
-    func generateAssistantResponse(
-        message _: String,
-        history _: [LocalLLMChatMessage],
-        endpoint _: LocalLLMEndpointProfile,
-        apiKey _: String?
-    ) async throws -> String? {
-        calls += 1
-        if let error {
-            throw error
-        }
-        return response
-    }
-
-    func callCount() -> Int {
-        calls
+        return EndpointGeneratingTestContext(
+            viewModel: viewModel,
+            endpointClient: endpointClient,
+            transcriptClient: transcriptClient
+        )
     }
 }

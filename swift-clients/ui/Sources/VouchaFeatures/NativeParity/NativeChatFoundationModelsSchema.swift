@@ -11,6 +11,10 @@ import VouchaCore
         enum Failure: Error { case unsupported }
         static let maximumSessionArgumentBytes = 1_200
 
+        static func exactNameMap<Value>(_ values: [String: Value]) -> [Data: Value] {
+            Dictionary(uniqueKeysWithValues: values.map { (Data($0.key.utf8), $0.value) })
+        }
+
         static func project(_ data: Data) throws -> GenerationSchema {
             let root = try projectionFields(from: data)
             var projection = Projection()
@@ -126,16 +130,18 @@ import VouchaCore
                     throw Failure.unsupported
                 }
                 let properties = projectedObjectProperties(fields)
-                let required = Set(fields["required"] as? [String] ?? [])
-                guard required.isSubset(of: properties.keys) else { throw Failure.unsupported }
-                try validateObjectBounds(fields, requiredCount: required.count, propertyCount: properties.count)
+                let propertyNames = NativeChatFoundationModelsSchema.exactNameMap(properties)
+                let requiredNames = Set((fields["required"] as? [String] ?? []).map { Data($0.utf8) })
+                guard requiredNames.isSubset(of: propertyNames.keys) else { throw Failure.unsupported }
+                let requiredCount = requiredNames.count
+                try validateObjectBounds(fields, requiredCount: requiredCount, propertyCount: properties.count)
                 return try .init(name: name(), properties: properties.keys.sorted().map { key in
-                    guard let property = properties[key] else { throw Failure.unsupported }
+                    guard let property = propertyNames[Data(key.utf8)] else { throw Failure.unsupported }
                     return try .init(
                         name: key,
                         description: property["description"] as? String,
                         schema: project(property),
-                        isOptional: !required.contains(key)
+                        isOptional: !requiredNames.contains(Data(key.utf8))
                     )
                 })
             }

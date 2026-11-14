@@ -7,8 +7,8 @@ import VouchaFeatures
 ///
 /// All view models are stored as `@State` properties so pagination and scroll position
 /// are preserved when the user navigates away and back. On macOS, sub-option selection
-/// is driven externally (column-2 list in `RootView`). On iOS, a toolbar segmented
-/// picker inside this view drives sub-option selection.
+/// is driven externally (column-2 list in `RootView`). On iOS, a toolbar control
+/// inside this view drives sub-option selection.
 @MainActor
 struct SectionDetailView: View {
     @Environment(\.locale)
@@ -130,4 +130,17 @@ struct SectionDetailView: View {
         _friendsVM = State(initialValue: factory.makeFriendsListViewModel())
         _profileVM = State(initialValue: factory.makeProfileViewModel())
     }
+}
+
+extension SectionDetailView {
+    // Leading, so iOS does not group this tap target with the trailing Customize action.
+    #if os(iOS)
+        var signInToolbarPlacement: ToolbarItemPlacement {
+            .topBarLeading
+        }
+    #else
+        var signInToolbarPlacement: ToolbarItemPlacement {
+            .primaryAction
+        }
+    #endif
 }

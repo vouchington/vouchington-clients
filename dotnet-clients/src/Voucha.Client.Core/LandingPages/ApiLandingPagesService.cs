@@ -23,12 +23,12 @@ public sealed class ApiLandingPagesService : ILandingPagesService
       client.FetchAdminUserLandingPagesAsync(userId, cancellationToken);
 
   public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(
-      string pageId,
+      string username, string slug,
       CancellationToken cancellationToken = default) =>
-      client.FetchAdminLandingPageAnalyticsAsync(pageId, cancellationToken);
+      client.FetchAdminLandingPageAnalyticsAsync(username, slug, cancellationToken);
 
-  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) =>
-      client.FetchLandingPageCandidatesAsync(cancellationToken);
+  public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
+      client.FetchLandingPageCandidatesAsync(limit, after, cancellationToken);
 
   public Task<LandingPageDetailResponse> FetchDetailAsync(string pageId, CancellationToken cancellationToken = default) =>
       client.FetchLandingPageAsync(pageId, cancellationToken);

@@ -34,8 +34,7 @@ extension NativeRouteSurfaceViewModel {
                 title: rawText($0.flagType),
                 detail: .joined([
                     appText($0.resolvedAt == nil ? .nativeSwiftRouteSurfacePending : .nativeSwiftRouteSurfaceResolved),
-                    rawText($0.postId ?? $0.topicId ?? $0.hostnameId ?? $0.entityRelationId
-                        ?? $0.agentModerationId ?? $0.id)
+                    rawText($0.entityLabel)
                 ])
             )
         }
@@ -55,6 +54,7 @@ extension NativeRouteSurfaceViewModel {
                 title: rawText($0.flagType),
                 detail: .joined([
                     appText($0.resolvedAt == nil ? .nativeSwiftRouteSurfacePending : .nativeSwiftRouteSurfaceResolved),
+                    rawText($0.entityLabel),
                     countText($0.reporterCount, item: "reporter")
                 ])
             )
@@ -81,6 +81,20 @@ extension NativeRouteSurfaceViewModel {
     }
 
     private func loadAppealPage(client: APIClient, after: String?, mine: Bool) async throws -> NativeForwardPage {
+        if mine {
+            let response: MemberAppealListResponse = try await client.send(
+                .appeals(limit: 25, after: after, mine: true)
+            )
+            let rows = response.appeals.map {
+                forwardRow(
+                    id: $0.id,
+                    icon: "arrow.uturn.left.circle",
+                    title: appealSummaryTitle($0.targetContext),
+                    detail: appText($0.status.titleKey)
+                )
+            }
+            return NativeForwardPage(rows: rows, pageInfo: response.pageInfo)
+        }
         let response: ModerationAppealListResponse = try await client.send(
             .appeals(limit: 25, after: after, mine: mine)
         )
@@ -88,7 +102,7 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "arrow.uturn.left.circle",
-                title: rawText($0.caseId ?? $0.id),
+                title: appealSummaryTitle($0.targetContext),
                 detail: appText($0.status.titleKey)
             )
         }
@@ -116,7 +130,7 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "exclamationmark.bubble",
-                title: rawText($0.claimText),
+                title: rawText($0.postLabel),
                 detail: .joined([
                     appText($0.status.titleKey),
                     $0.recommendedAction.map { appText($0.titleKey) }

@@ -48,6 +48,21 @@ struct PasskeyAuthenticationResponse: Encodable {
     }
 }
 
+extension PasskeyAuthenticationResponse {
+    init(assertion: any ASAuthorizationPublicKeyCredentialAssertion) {
+        let credentialID = assertion.credentialID.base64URLEncodedString()
+        let userID: Data? = assertion.userID
+        id = credentialID
+        rawId = credentialID
+        response = .init(
+            authenticatorData: assertion.rawAuthenticatorData.base64URLEncodedString(),
+            clientDataJSON: assertion.rawClientDataJSON.base64URLEncodedString(),
+            signature: assertion.signature.base64URLEncodedString(),
+            userHandle: (userID ?? Data()).base64URLEncodedString()
+        )
+    }
+}
+
 private enum PasskeyAuthenticationJSONValue: Encodable {
     case string(String)
     case object([String: PasskeyAuthenticationJSONValue])
@@ -79,18 +94,11 @@ final class PasskeyAssertionController: NSObject, ASAuthorizationControllerDeleg
         guard continuation == nil else {
             throw VouchaError.api(statusCode: 0, preconditionCode: "PASSKEY_ASSERTION_IN_PROGRESS")
         }
-        let challenge = try Data(base64URLEncoded: options.challenge)
-        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: options.rpId)
-        let request = provider.createCredentialAssertionRequest(challenge: challenge)
-        request.userVerificationPreference = options.userVerificationPreference
-        request.allowedCredentials = (options.allowCredentials ?? []).compactMap { descriptor in
-            guard let credentialID = try? Data(base64URLEncoded: descriptor.id) else { return nil }
-            return ASAuthorizationPlatformPublicKeyCredentialDescriptor(credentialID: credentialID)
-        }
+        let requests = try options.authorizationRequests()
 
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
-            let controller = ASAuthorizationController(authorizationRequests: [request])
+            let controller = ASAuthorizationController(authorizationRequests: requests)
             controller.delegate = self
             controller.presentationContextProvider = self
             self.controller = controller
@@ -107,21 +115,12 @@ final class PasskeyAssertionController: NSObject, ASAuthorizationControllerDeleg
         didCompleteWithAuthorization authorization: ASAuthorization
     ) {
         Task { @MainActor in
-            guard let credential = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialAssertion
+            guard let credential = authorization.credential as? any ASAuthorizationPublicKeyCredentialAssertion
             else {
                 finish(throwing: VouchaError.api(statusCode: 0, preconditionCode: "INVALID_PASSKEY_ASSERTION"))
                 return
             }
-            finish(returning: PasskeyAuthenticationResponse(
-                id: credential.credentialID.base64URLEncodedString(),
-                rawId: credential.credentialID.base64URLEncodedString(),
-                response: .init(
-                    authenticatorData: credential.rawAuthenticatorData.base64URLEncodedString(),
-                    clientDataJSON: credential.rawClientDataJSON.base64URLEncodedString(),
-                    signature: credential.signature.base64URLEncodedString(),
-                    userHandle: credential.userID.base64URLEncodedString()
-                )
-            ))
+            finish(returning: PasskeyAuthenticationResponse(assertion: credential))
         }
     }
 
@@ -154,17 +153,5 @@ final class PasskeyAssertionController: NSObject, ASAuthorizationControllerDeleg
     }
 }
 
-private extension PasskeyAuthenticationOptions {
-    var userVerificationPreference: ASAuthorizationPublicKeyCredentialUserVerificationPreference {
-        switch userVerification {
-        case "required":
-            .required
-        case "discouraged":
-            .discouraged
-        default:
-            .preferred
-        }
-    }
-}
 #endif
 // swiftformat:enable indent

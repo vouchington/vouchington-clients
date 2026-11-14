@@ -6,9 +6,10 @@ namespace Voucha.Client.Core.ReferralLinks;
 
 public sealed partial class ReferralLinksViewModel
 {
-  private int BeginLoad()
+  private int BeginLoad(bool preserveFeed = false)
   {
     var currentRequest = Interlocked.Increment(ref requestId);
+    if (!preserveFeed) ResetFeedPagination();
     State = LoadState.Loading;
     ErrorMessage = null;
     return currentRequest;
@@ -126,21 +127,23 @@ public sealed partial class ReferralLinksViewModel
           item.Id,
           UiText.Verbatim(item.Label ?? item.Url),
           ParseUri(item.Url),
-          UiText.Localized(
-              UiMessageKey.NativeDotnetReferralLinksPriorityGroup,
-              ("group", item.PriorityGroup)),
-          Localization: localization);
+          item.PriorityGroup switch
+          {
+            5 => UiText.Localized(UiMessageKey.ExtractedReferralLinksReferralLinkListUseOurOfficialLinks1626a49d),
+            6 => UiText.Localized(UiMessageKey.ExtractedReferralLinksReferralLinkListEveryoneElse919112f4),
+            _ => UiText.Localized(UiMessageKey.NativeDotnetReferralLinksPriorityGroup, ("group", item.PriorityGroup)),
+          },
+          Localization: localization,
+          OfficialBadgeText: item.IsOfficial
+              ? UiText.Localized(UiMessageKey.ExtractedReferralLinksReferralLinkCardOfficialVouchaA2d311b4)
+              : null);
 
-  private ReferralLinkRow RowFromTrendingProgram(TrendingReferralProgram item) =>
+  private ReferralLinkRow RowFromProgram(string id, string? name) =>
       new(
-          item.Id,
-          UiText.Verbatim(item.Id),
+          id,
+          UiText.Verbatim(name ?? id),
           null,
-          item.LinkCount is int count
-              ? UiText.Localized(
-                  UiMessageKey.NativeDotnetReferralLinksActiveLinks,
-                  ("count", count))
-              : UiText.Localized(UiMessageKey.NativeDotnetReferralLinksTrendingReferralProgram),
+          UiText.Localized(UiMessageKey.NativeDotnetReferralLinksTrendingReferralProgram),
           Localization: localization);
 
   private static Uri? ParseUri(string? value) =>

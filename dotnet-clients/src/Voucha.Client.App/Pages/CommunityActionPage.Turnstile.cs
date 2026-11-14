@@ -23,7 +23,7 @@ public sealed partial class CommunityActionPage
 
     try
     {
-      viewModel.TurnstileToken = await turnstileTokenProvider.GetTokenAsync().ConfigureAwait(true);
+      viewModel.TurnstileToken = await turnstileTokenProvider.GetTokenAsync("communities.create").ConfigureAwait(true);
       return true;
     }
     catch (OperationCanceledException)

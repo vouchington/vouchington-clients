@@ -25,15 +25,30 @@ public sealed partial class VouchaApiClientTests
   {
     var (client, handler) = CreateClient("native.landing-page-candidates.default");
 
-    var response = await client.FetchLandingPageCandidatesAsync(TestContext.Current.CancellationToken);
+    var response = await client.FetchLandingPageCandidatesAsync(cancellationToken: TestContext.Current.CancellationToken);
 
     AssertRequest(handler, HttpMethod.Get, "/api/v1/my/landing-pages/candidates");
+    Assert.Equal(100, response.ItemLimit);
+    Assert.False(response.PageInfo.HasNextPage);
     Assert.Single(response.Candidates.ProfileLinks);
     Assert.Equal("profile-link-1", response.Candidates.ProfileLinks[0].Id);
     Assert.Equal(["review-1", "review-2"], response.Candidates.Reviews.Select(review => review.Id));
     Assert.Equal(
         ["referral-link-1", "referral-link-2"],
         response.Candidates.ReferralLinks.Select(link => link.Id));
+  }
+
+  [Fact]
+  public async Task CandidateQueryForwardsOpaqueCursorAndLimit()
+  {
+    var (client, handler) = CreateClient("native.landing-page-candidates.default");
+    await client.FetchLandingPageCandidatesAsync(7, "opaque/+==", TestContext.Current.CancellationToken);
+    Assert.Equal(HttpMethod.Get, handler.Method);
+    var request = Assert.IsType<string>(handler.PathAndQuery).Split('?', 2);
+    Assert.Equal("/api/v1/my/landing-pages/candidates", request[0]);
+    Assert.Equal(
+        ["after=opaque%2F%2B%3D%3D", "limit=7"],
+        request[1].Split('&').Order(StringComparer.Ordinal));
   }
 
   [Fact]
@@ -83,7 +98,7 @@ public sealed partial class VouchaApiClientTests
 
     var pages = await client.FetchAdminUserLandingPagesAsync("user-abc", TestContext.Current.CancellationToken);
     var analytics = await client.FetchAdminLandingPageAnalyticsAsync(
-        "landing-page-1",
+        "alice", "my-links",
         TestContext.Current.CancellationToken);
 
     Assert.Equal("landing-page-1", pages.Results[0].Id);
@@ -92,7 +107,7 @@ public sealed partial class VouchaApiClientTests
     Assert.Collection(
         handler.Requests,
         request => Assert.Equal("/api/v1/admin/users/user-abc/landing-pages", request.PathAndQuery),
-        request => Assert.Equal("/api/v1/admin/landing-pages/landing-page-1/analytics", request.PathAndQuery));
+        request => Assert.Equal("/api/v1/admin/users/alice/landing-pages/my-links/analytics", request.PathAndQuery));
   }
 
   [Fact]
@@ -100,17 +115,17 @@ public sealed partial class VouchaApiClientTests
   {
     var handler = new RecordingHandler([
         new RecordedResponse("""
-          {"landing_page":{"id":"landing-page-3","user_id":"user-abc","title":"New Page","subtitle":null,"slug":"new-page","is_default":false,"created_at":"2026-06-30T10:00:00Z","updated_at":"2026-06-30T10:00:00Z","items":[]}}
+          {"item_limit":100,"landing_page":{"id":"landing-page-3","user_id":"user-abc","title":"New Page","subtitle":null,"slug":"new-page","is_default":false,"created_at":"2026-06-30T10:00:00Z","updated_at":"2026-06-30T10:00:00Z","items":[]}}
           """),
         new RecordedResponse("""
-          {"landing_page":{"id":"landing-page-1","user_id":"user-abc","title":"My Links","subtitle":"Cards and reviews I recommend","slug":"links","is_default":true,"created_at":"2026-06-28T10:00:00Z","updated_at":"2026-06-29T10:00:00Z","items":[]}}
+          {"item_limit":100,"landing_page":{"id":"landing-page-1","user_id":"user-abc","title":"My Links","subtitle":"Cards and reviews I recommend","slug":"links","is_default":true,"created_at":"2026-06-28T10:00:00Z","updated_at":"2026-06-29T10:00:00Z","items":[]}}
           """),
         new RecordedResponse("""
-          {"landing_page":{"id":"landing-page-1","user_id":"user-abc","title":"My Links","subtitle":"Cards and reviews I recommend","slug":"links","is_default":true,"created_at":"2026-06-28T10:00:00Z","updated_at":"2026-06-29T10:00:00Z","items":[]}}
+          {"item_limit":100,"landing_page":{"id":"landing-page-1","user_id":"user-abc","title":"My Links","subtitle":"Cards and reviews I recommend","slug":"links","is_default":true,"created_at":"2026-06-28T10:00:00Z","updated_at":"2026-06-29T10:00:00Z","items":[]}}
           """),
         new RecordedResponse("{}"),
         new RecordedResponse("""
-          {"landing_page":{"id":"landing-page-1","user_id":"user-abc","title":"My Links","subtitle":"Cards and reviews I recommend","slug":"links","is_default":true,"created_at":"2026-06-28T10:00:00Z","updated_at":"2026-06-29T10:00:00Z","items":[]}}
+          {"item_limit":100,"landing_page":{"id":"landing-page-1","user_id":"user-abc","title":"My Links","subtitle":"Cards and reviews I recommend","slug":"links","is_default":true,"created_at":"2026-06-28T10:00:00Z","updated_at":"2026-06-29T10:00:00Z","items":[]}}
           """),
     ]);
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });

@@ -24,6 +24,7 @@ public sealed partial class CommunityDetailViewModel :
   private bool hasPendingApplication;
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
+  private UiMessageKey? capErrorKey;
   private long communityContextRevision;
   private readonly IDisposable? localeSubscription;
 
@@ -96,27 +97,18 @@ public sealed partial class CommunityDetailViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
 
   public string? ErrorMessage
   {
-    get => errorMessage;
+    get => capErrorKey is { } key ? localization.Localize(key) : errorMessage;
     private set
     {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
+      capErrorKey = null;
+      SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
     }
   }
 
@@ -146,6 +138,7 @@ public sealed partial class CommunityDetailViewModel :
       throw new ArgumentException("Value cannot be empty.", nameof(idOrSlug));
     }
 
+    ResetAgentPromptContext();
     Interlocked.Increment(ref communityContextRevision);
     communityIdOrSlug = idOrSlug;
     BeginLoad();

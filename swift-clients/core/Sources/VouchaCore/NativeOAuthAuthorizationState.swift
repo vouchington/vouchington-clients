@@ -7,6 +7,7 @@ public enum NativeOAuthProvider: String, CaseIterable, Codable, Identifiable, Se
     case github
     case linkedin
     case microsoft
+    case google
 
     public var id: String {
         rawValue
@@ -16,6 +17,7 @@ public enum NativeOAuthProvider: String, CaseIterable, Codable, Identifiable, Se
 public enum NativeOAuthAuthorizationPurpose: String, Codable, Sendable {
     case authenticate
     case connect
+    case reauthenticate
 }
 
 public struct PendingNativeOAuthAuthorization: Codable, Equatable, Sendable {
@@ -35,6 +37,7 @@ public enum NativeOAuthAuthorizationResult: Codable, Equatable, Sendable {
     case authenticated(provider: NativeOAuthProvider)
     case mfaRequired(provider: NativeOAuthProvider, loginAttemptId: String)
     case connected(provider: NativeOAuthProvider)
+    case confirmationReady(provider: NativeOAuthProvider, flowId: String)
     case expired(provider: NativeOAuthProvider, purpose: NativeOAuthAuthorizationPurpose)
 
     public var mfaLoginAttemptId: String? {

@@ -410,6 +410,7 @@ public sealed partial class PostComposeImageTests
   private sealed class RecordingPostsService : IPostsService
   {
     public CreatePostBody? Body { get; private set; }
+    public Exception? Failure { get; set; }
 
     public Task<PostsFeedResponse> FetchFeedAsync(
         FetchPostsFeedRequest request,
@@ -435,6 +436,7 @@ public sealed partial class PostComposeImageTests
         CancellationToken cancellationToken = default)
     {
       Body = body;
+      if (Failure is not null) return Task.FromException<PostMutationResponse>(Failure);
       return Task.FromResult(new PostMutationResponse(new Post("post-1", "discussion", "Title", "Body", "user-1")));
     }
 

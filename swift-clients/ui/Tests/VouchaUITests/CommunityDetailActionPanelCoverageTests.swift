@@ -122,7 +122,7 @@ final class CommunityDetailActionPanelCoverageTests: NativeRouteSurfaceViewModel
 
     private func tapAllButtons(in view: some View) throws {
         let buttons = try buttons(in: view)
-        for button in buttons {
+        for button in buttons where !button.isDisabled() {
             try button.tap()
         }
     }

@@ -1,12 +1,27 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import ViewInspector
+@testable import VouchaAPI
 @testable import VouchaFeatures
+import VouchaLocalization
 import VouchaModels
 import XCTest
 
 @MainActor
 final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
+    func testTypedStatusErrorAlertUsesSelectedAppLocale() throws {
+        let model = makeViewModel(route: .sources(initialExportFilter: nil))
+        model.errorMessageKey = .nativeSwiftImportExportUnknownError
+        for locale in [Locale(identifier: "es"), Locale(identifier: "fr")] {
+            let view = ImportExportView(route: model.route, viewModel: model).environment(\.locale, locale)
+            let alert = try view.inspect().find(ViewType.Form.self).alert()
+            XCTAssertEqual(
+                try alert.message().text().string(),
+                UiMessages.string(.nativeSwiftImportExportUnknownError, locale: locale)
+            )
+        }
+    }
+
     func testSourceFilePickerOnlyOffersSupportedFormats() {
         XCTAssertEqual(ImportExportView.sourceImportContentTypes, [.commaSeparatedText, .xml, .vouchaOPML])
         XCTAssertFalse(ImportExportView.sourceImportContentTypes.contains(.plainText))
@@ -166,6 +181,52 @@ final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(try view.inspect().find(text: "Share export").string(), "Share export")
     }
 
+    func testCanonicalPendingErrorCodeRendersLocalizedRetrying() throws {
+        let status = try APIClient.makeDecoder().decode(
+            RssFeedImportStatus.self, from: ApiFixtureLoader.data("native.import-export.rss-feeds.status.retrying")
+        )
+        let route = ImportExportRoute.sources(initialExportFilter: nil)
+        let model = makeViewModel(route: route)
+        model.results = status.rows
+        model.sourceSummary = status.import
+        for locale in [UiLocale.english, .spanish] {
+            let view = ImportExportView(route: route, viewModel: model)
+                .environment(\.locale, Locale(identifier: locale.rawValue))
+            let expected = UiMessages.string(
+                .nativeSwiftImportExportRetrying,
+                parameters: ["error": UiMessages.string(.nativeSwiftImportExportUnknownError, locale: locale)],
+                locale: locale
+            )
+            XCTAssertNoThrow(try view.inspect().find(text: expected))
+            XCTAssertNoThrow(try view.inspect().find(text: UiMessages.string(
+                .nativeSwiftImportExportPending,
+                locale: locale
+            )))
+            XCTAssertThrowsError(try view.inspect().find(text: "IMPORT_FAILED"))
+        }
+    }
+
+    func testBlankRetryMessageUsesLocalizedFallback() throws {
+        let route = ImportExportRoute.sources(initialExportFilter: nil)
+        let model = makeViewModel(route: route)
+        for error in ["", " \t\n"] {
+            model.results = [ImportResult(
+                input: "https://example.test/feed.xml", status: .pending,
+                error: error, errorCode: .importFailed
+            )]
+            for locale in [UiLocale.english, .spanish] {
+                let view = ImportExportView(route: route, viewModel: model)
+                    .environment(\.locale, Locale(identifier: locale.rawValue))
+                let expected = UiMessages.string(
+                    .nativeSwiftImportExportRetrying,
+                    parameters: ["error": UiMessages.string(.nativeSwiftImportExportUnknownError, locale: locale)],
+                    locale: locale
+                )
+                XCTAssertNoThrow(try view.inspect().find(text: expected))
+            }
+        }
+    }
+
     func testSourceProgressShowsRetryStopAndStatusRetryControls() throws {
         let route = ImportExportRoute.sources(initialExportFilter: nil)
         let viewModel = makeViewModel(route: route)
@@ -230,7 +291,7 @@ final class ImportExportViewTests: NativeRouteSurfaceViewModelTestCase {
             service: ImportExportService(
                 importTopics: { _ in TopicImportResponse(results: []) },
                 importSources: { _ in throw URLError(.badServerResponse) },
-                sourceStatus: { _ in throw URLError(.badServerResponse) },
+                sourceStatus: { _, _ in throw URLError(.badServerResponse) },
                 downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
             )
         )
@@ -247,7 +308,7 @@ private actor RenderedStatusRecorder {
         ImportExportService(
             importTopics: { _ in TopicImportResponse(results: []) },
             importSources: { _ in throw URLError(.badServerResponse) },
-            sourceStatus: { _ in await self.status() },
+            sourceStatus: { _, _ in await self.status() },
             downloadExport: { _, _, _ in throw URLError(.badServerResponse) }
         )
     }

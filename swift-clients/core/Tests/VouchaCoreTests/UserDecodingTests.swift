@@ -106,6 +106,26 @@ final class UserDecodingTests: XCTestCase {
         XCTAssertNil(encoded["username"])
     }
 
+    func testPrivateUserGoogleAccountRoundTripsAndSurvivesProfileImageUpdate() throws {
+        let replacement = """
+          "facebook_account": null,
+          "google_account": {"id": "google-1", "name": "Alice Google", "email_address": "alice@gmail.com"},
+        """
+        let json = privateUserJSON(username: .present("alice")).replacingOccurrences(
+            of: "\"facebook_account\": null,",
+            with: replacement
+        )
+        let user: PrivateUser = try decodeJSON(json)
+
+        XCTAssertEqual(user.googleAccount?.id, "google-1")
+        XCTAssertEqual(user.googleAccount?.name, "Alice Google")
+        let encoded = try encodedObject(user)
+        let googleAccount = try XCTUnwrap(encoded["google_account"] as? [String: Any])
+        XCTAssertEqual(googleAccount["id"] as? String, "google-1")
+        XCTAssertEqual(googleAccount["name"] as? String, "Alice Google")
+        XCTAssertEqual(user.withProfileImageId("new-image").googleAccount?.id, "google-1")
+    }
+
     private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase

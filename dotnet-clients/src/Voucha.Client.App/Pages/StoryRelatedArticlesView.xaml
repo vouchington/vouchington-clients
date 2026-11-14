@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:app="clr-namespace:Voucha.Client.App" xmlns:pages="clr-namespace:Voucha.Client.App.Pages" xmlns:newsFeeds="clr-namespace:Voucha.Client.Core.NewsFeeds;assembly=Voucha.Client.Core" x:Class="Voucha.Client.App.Pages.StoryRelatedArticlesView" x:Name="StoryRoot" x:DataType="newsFeeds:NewsFeedItem">
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:app="clr-namespace:Voucha.Client.App" xmlns:controls="clr-namespace:Voucha.Client.App.Controls" xmlns:pages="clr-namespace:Voucha.Client.App.Pages" xmlns:newsFeeds="clr-namespace:Voucha.Client.Core.NewsFeeds;assembly=Voucha.Client.Core" x:Class="Voucha.Client.App.Pages.StoryRelatedArticlesView" x:Name="StoryRoot" x:DataType="newsFeeds:NewsFeedItem">
     <ContentView.Resources>
         <ResourceDictionary>
             <pages:StoryDiscussionVisibilityConverter x:Key="StoryDiscussionVisibilityConverter"/>
@@ -16,8 +16,9 @@
                         <Border Padding="12" Stroke="#D8DEE9" StrokeThickness="1">
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}"/>
-                                <Label Text="{Binding Title}" Style="{StaticResource Headline}"/>
+                                <Label Text="{Binding Title}" AutomationId="{Binding Id, StringFormat='news-related-title-{0}'}" Style="{StaticResource Headline}"/>
                                 <Label Text="{Binding Summary}" Style="{StaticResource Body}"/>
+                                <controls:HackerNewsReferencesView Presentation="{Binding HackerNews}"/>
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
                                     <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}"/>
                                     <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}"/>

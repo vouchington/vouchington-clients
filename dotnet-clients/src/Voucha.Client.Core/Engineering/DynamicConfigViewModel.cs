@@ -57,7 +57,7 @@ public sealed partial class DynamicConfigViewModel : ObservableObject, IDisposab
     private set
     {
       localizedErrorText = null;
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
+      SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
     }
   }
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -65,8 +65,8 @@ public sealed partial class DynamicConfigViewModel : ObservableObject, IDisposab
       localizedFeedbackText is { } text ? localization.Resolve(text) : feedbackMessage;
   public string? LocalizedFeedbackMessage => FeedbackMessage;
   public bool IsLoading { get => isLoading; private set => SetProperty(ref isLoading, value); }
-  public bool IsSaving { get => isSaving; private set { if (SetProperty(ref isSaving, value)) OnPropertyChanged(nameof(CanMutate)); } }
-  public bool IsSelecting { get => isSelecting; private set { if (SetProperty(ref isSelecting, value)) OnPropertyChanged(nameof(CanMutate)); } }
+  public bool IsSaving { get => isSaving; private set => SetPropertyAndNotify(ref isSaving, value, nameof(CanMutate)); }
+  public bool IsSelecting { get => isSelecting; private set => SetPropertyAndNotify(ref isSelecting, value, nameof(CanMutate)); }
   public bool CanMutate => SelectedNamespace?.CanUpdate == true && !IsSaving && !IsSelecting;
   public bool IsReadOnly => SelectedNamespace is { CanUpdate: false };
 

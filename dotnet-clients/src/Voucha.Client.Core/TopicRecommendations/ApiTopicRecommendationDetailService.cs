@@ -9,7 +9,7 @@ public sealed class ApiTopicRecommendationDetailService(VouchaApiClient client) 
   public Task<PostResponse> FetchAsync(
       string recommendationId,
       CancellationToken cancellationToken = default) =>
-      client.SendAsync<PostResponse>(VouchaApiEndpoints.TopicRecommendation(recommendationId), cancellationToken);
+      client.SendAsync<PostResponse>(VouchaApiEndpoints.Post(recommendationId), cancellationToken);
 
   public Task VoteAsync(
       string recommendationId,

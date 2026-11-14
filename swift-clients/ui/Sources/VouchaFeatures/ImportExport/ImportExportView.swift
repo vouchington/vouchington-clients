@@ -52,7 +52,7 @@ public struct ImportExportView: View {
             }
         } message: {
             Text(UiMessages.string(
-                presentedError ?? viewModel.errorMessage.map(UiVerbatimText.verbatim) ?? .verbatim(""),
+                presentedError ?? viewModel.errorText ?? .verbatim(""),
                 locale: nativeUiLocale
             ))
         }
@@ -62,7 +62,7 @@ public struct ImportExportView: View {
     }
 
     private var errorIsPresented: Binding<Bool> {
-        Binding(get: { presentedError != nil || viewModel.errorMessage != nil }, set: {
+        Binding(get: { presentedError != nil || viewModel.errorText != nil }, set: {
             if !$0 {
                 presentedError = nil
                 viewModel.errorMessage = nil

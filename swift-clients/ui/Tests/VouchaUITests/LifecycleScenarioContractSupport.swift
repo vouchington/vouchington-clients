@@ -6,7 +6,7 @@ struct LifecycleScenarioContract: Decodable {
     let claims: [LifecycleClaim]
 
     static func load() throws -> Self {
-        let root = try FilamentsContractRoot.url(requiredPaths: [
+        let root = try ContractRoot.url(requiredPaths: [
             "api-fixtures/v1/lifecycle-scenarios.json",
             "api-fixtures/v1/lifecycle-scenarios.schema.json"
         ])

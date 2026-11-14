@@ -9,11 +9,14 @@ public sealed partial class CommunityDetailViewModel
       ICommunitiesService service,
       ISessionStore? sessionStore = null,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      IUiThreadDispatcher? uiDispatcher = null)
   {
     this.service = service ?? throw new ArgumentNullException(nameof(service));
     this.sessionStore = sessionStore;
+
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    if (sessionStore is not null) agentPromptSessionObserver = new(this, sessionStore, uiDispatcher);
   }
 }

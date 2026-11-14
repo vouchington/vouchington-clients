@@ -21,6 +21,11 @@ final class HouseholdService: HouseholdServicing {
         try await client.send(.households(access: access, after: after, limit: limit))
     }
 
+    func currentIndividual() async throws -> HouseholdIndividual {
+        let response: CurrentIndividualResponse = try await client.send(.currentIndividual)
+        return response.individual
+    }
+
     func createHousehold() async throws -> Household {
         let response: HouseholdCreateResponse = try await client.send(.createHousehold)
         return response.household

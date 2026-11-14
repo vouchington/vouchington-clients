@@ -77,8 +77,7 @@ extension NativeChatMCPInputSchema {
         if second < 60 { return true }
         let signRange = Range(match.range(at: 8), in: text)
         let sign = signRange.map { text[$0] == "-" } == true ? -1 : 1
-        let utcMinute = minute - offsetMinute * sign
-        let utcHour = hour - offsetHour * sign - (utcMinute < 0 ? 1 : 0)
-        return (utcHour == 23 || utcHour == -1) && (utcMinute == 59 || utcMinute == -1)
+        let utcMinute = hour * 60 + minute - (offsetHour * 60 + offsetMinute) * sign
+        return (utcMinute == 1_439 && day == days[month]) || (utcMinute == -1 && day == 1)
     }
 }

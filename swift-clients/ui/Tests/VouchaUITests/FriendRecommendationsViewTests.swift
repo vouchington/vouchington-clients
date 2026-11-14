@@ -1,6 +1,7 @@
 import Foundation
 import ViewInspector
 import VouchaCore
+import VouchaDesignSystem
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
@@ -80,8 +81,39 @@ final class FriendRecommendationsViewTests: NativeRouteSurfaceViewModelTestCase 
             "https://images.example/images/placements/placement-1/2/image-1?w=96"
         )
 
+        let avatar = try inspection.find(Avatar.self).actualView()
+        XCTAssertEqual(
+            avatar.imageURL,
+            "https://images.example/images/placements/placement-1/2/image-1?w=96"
+        )
+        XCTAssertEqual(avatar.username, "alice")
+
         try inspection.find(button: "Dismissed").tap()
         XCTAssertEqual(routes, ["/my/friend-recommendations/dismissed"])
+    }
+
+    func testCanonicalRecommendationWithheldPlacementKeepsNamedAvatarFallback() async throws {
+        var root = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("native.friend-recommendations.default")
+        ) as? [String: Any])
+        var users = try XCTUnwrap(root["users"] as? [String: [String: Any]])
+        users["user-1"]?["profile_image_placement"] = NSNull()
+        root["users"] = users
+        CannedFeedURLProtocol.handlers[recommendationsPath] = try (
+            JSONSerialization.data(withJSONObject: root), 200
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            PrivateUserTestFixture.identityEnvelope(), 200
+        )
+        let model = try FriendRecommendationsViewModel(client: makeClient())
+        await model.load()
+        let view = FriendRecommendationsView(viewModel: model)
+        let avatar = try view.inspect().find(Avatar.self).actualView()
+        XCTAssertNil(avatar.imageURL)
+        XCTAssertEqual(avatar.username, "testuser")
+        XCTAssertTrue(try avatar.inspect().findAll(ViewType.AsyncImage.self).isEmpty)
+        XCTAssertNoThrow(try avatar.inspect().find(text: "TE"))
+        XCTAssertNoThrow(try view.inspect().find(text: "testuser"))
     }
 
     func testPaginationRemainsReachableAfterFollowingLastVisibleRecommendation() async throws {

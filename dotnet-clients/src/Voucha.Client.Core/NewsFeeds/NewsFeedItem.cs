@@ -38,7 +38,8 @@ public sealed record NewsFeedItem(
     string? DeliveryId = null,
     Api.PublicContentProvenance? Provenance = null,
     Api.StaffContentProvenance? StaffProvenance = null,
-    bool IsStaffViewer = false)
+    bool IsStaffViewer = false,
+    Api.HackerNewsReferences? HackerNewsReferences = null)
 {
   public string FeedRowId => DeliveryId ?? Id;
 
@@ -96,6 +97,7 @@ public sealed record NewsFeedItem(
       mediaType?.Trim().StartsWith($"{mediaKind}/", StringComparison.OrdinalIgnoreCase) == true ||
       string.Equals(mediaType?.Trim(), mediaKind, StringComparison.OrdinalIgnoreCase);
 
+  public HackerNewsPresentation HackerNews => new(HackerNewsReferences, L);
 
   private IUiLocalization L => Localization ?? UiLocalization.English;
 

@@ -22,8 +22,11 @@ public extension Endpoint {
         Endpoint(.POST, path: "/api/v1/my/import/rss-feeds", body: input)
     }
 
-    static func rssFeedImportStatus(importId: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/my/import/rss-feeds/\(pathSegment(importId))")
+    static func rssFeedImportStatus(importId: String, after: String? = nil) -> Endpoint {
+        Endpoint(
+            .GET, path: "/api/v1/my/import/rss-feeds/\(pathSegment(importId))",
+            queryItems: after.map { [.init(name: "after", value: $0)] } ?? []
+        )
     }
 
     static func exportRssFeeds(feedType: SourceFeedType?, format: SourceExportFormat) -> Endpoint {

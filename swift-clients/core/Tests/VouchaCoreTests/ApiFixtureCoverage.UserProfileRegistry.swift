@@ -15,6 +15,13 @@ let userProfileApiFixtureCoverage: [RegisteredFixture] = [
             ignoring: userProfileIgnoredFields
         )
     },
+    RegisteredFixture(id: "native.users.profile.private-counts.owner") {
+        try assertFixtureCoversDTO(
+            $0,
+            as: UserProfileResponse.self,
+            ignoring: userProfileIgnoredFields
+        )
+    },
     RegisteredFixture(id: "native.users.vouch-context.default") {
         try assertFixtureCoversDTO($0, as: UserTrustContext.self)
     },
@@ -82,10 +89,7 @@ private let userProfileIgnoredFields: Set<String> = [
     "user.is_moderation_emails_enabled", "user.news_digest_frequency",
     "user.rewards_program_statuses_visibility", "user.rss_feed_follows_visibility",
     "user.spending_categories_visibility", "user.topic_follows_visibility",
-    "user_metrics.__entity_type", "user_metrics.bookmarks",
-    "user_metrics.bookmarks.follow", "user_metrics.bookmarks.follow.posts",
-    "user_metrics.bookmarks.follow.topics", "user_metrics.bookmarks.follow.users",
-    "user_metrics.bookmarks__updated_at"
+    "user_metrics.__entity_type"
 ]
 
 private let profilePostFeedIgnoredFields: Set<String> = [

@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaCore
 import VouchaLocalization
 import VouchaModels
 
@@ -44,7 +45,13 @@ extension FriendRecommendationsViewModel {
             tombstones[recommendation.id] = tombstone
         } catch {
             rollbackMutation(userId: recommendation.id, token: token)
-            mutationErrorMessage = .verbatim(error.localizedDescription)
+            switch error {
+            case VouchaError.api(409, "RELATION_LIMIT_REACHED"),
+                 VouchaError.apiMessage(409, "RELATION_LIMIT_REACHED", _):
+                mutationErrorMessage = .message(.nativeCommonSomethingWentWrong)
+            default:
+                mutationErrorMessage = .verbatim(error.localizedDescription)
+            }
         }
         if mutationTokens[recommendation.id] == token {
             mutationTokens.removeValue(forKey: recommendation.id)

@@ -30,9 +30,9 @@ final class MemberAppealsViewModel {
     let route: MemberAppealsRoute
     let draftStore: MemberAppealDraftStore
 
-    var pendingAppealPagination = CursorPaginationState<ModerationAppeal>()
-    var resolvedAppealPagination = CursorPaginationState<ModerationAppeal>()
-    var dismissedAppealPagination = CursorPaginationState<ModerationAppeal>()
+    var pendingAppealPagination = CursorPaginationState<ModerationAppealReadProjection>()
+    var resolvedAppealPagination = CursorPaginationState<ModerationAppealReadProjection>()
+    var dismissedAppealPagination = CursorPaginationState<ModerationAppealReadProjection>()
     var warningPagination = CursorPaginationState<MemberWarningNotice>()
     var banPagination = CursorPaginationState<MemberCommunityBanNotice>()
     var removalPagination = CursorPaginationState<MemberRemovedPostNotice>()
@@ -62,7 +62,7 @@ final class MemberAppealsViewModel {
         self.draftStore = draftStore ?? .session
     }
 
-    var appeals: [ModerationAppeal] {
+    var appeals: [ModerationAppealReadProjection] {
         let values = pendingAppealPagination.items
             + resolvedAppealPagination.items
             + dismissedAppealPagination.items
@@ -100,7 +100,7 @@ final class MemberAppealsViewModel {
         activeSubmissionRevision != nil
     }
 
-    func appealPagination(status: ModerationAppealStatus) -> CursorPaginationState<ModerationAppeal> {
+    func appealPagination(status: ModerationAppealStatus) -> CursorPaginationState<ModerationAppealReadProjection> {
         switch status {
         case .pending: pendingAppealPagination
         case .resolved: resolvedAppealPagination
@@ -175,7 +175,7 @@ final class MemberAppealsViewModel {
     }
 }
 
-private extension ModerationAppeal {
+private extension ModerationAppealReadProjection {
     func matches(_ target: MemberAppealTarget) -> Bool {
         switch target {
         case let .warning(id, _, _, _): return userWarningId == id

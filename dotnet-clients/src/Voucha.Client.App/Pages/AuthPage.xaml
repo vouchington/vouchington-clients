@@ -9,8 +9,8 @@
     <ScrollView>
         <VerticalStackLayout x:Name="ContentStack" Padding="20" Spacing="18">
             <VerticalStackLayout Spacing="4">
-                <Label Text="{DynamicResource native.dotnet.auth.session}" Style="{StaticResource Headline}" />
-                <Label Text="{Binding SessionLabel}" Style="{StaticResource Body}" />
+                <Label AutomationId="auth-session-heading" Text="{DynamicResource native.dotnet.auth.session}" Style="{StaticResource Headline}" />
+                <Label AutomationId="auth-session-label" Text="{Binding SessionLabel}" Style="{StaticResource Body}" />
                 <Label Text="{Binding StatusMessage}" Style="{StaticResource Metadata}" />
             </VerticalStackLayout>
 
@@ -20,16 +20,17 @@
                 </Border.StrokeShape>
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{DynamicResource native.dotnet.auth.emailCode}" Style="{StaticResource Headline}" />
-                    <Entry Placeholder="{DynamicResource native.auth.emailAddress}" Text="{Binding Email}" Keyboard="Email" />
+                    <Entry AutomationId="auth-email-address" Placeholder="{DynamicResource native.auth.emailAddress}" Text="{Binding Email}" Keyboard="Email" />
                     <HorizontalStackLayout Spacing="8">
-                        <Button Text="{DynamicResource native.dotnet.auth.sendEmailCode}" Clicked="OnSendEmailCodeClicked" />
+                        <Button AutomationId="auth-send-email-code" Text="{DynamicResource native.dotnet.auth.sendEmailCode}" Clicked="OnSendEmailCodeClicked" />
                         <Button
+                            AutomationId="auth-resend-email-code"
                             Text="{DynamicResource native.dotnet.auth.resendCode}"
                             Clicked="OnResendEmailCodeClicked"
                             IsVisible="{Binding CanResendEmailOtp}" />
                     </HorizontalStackLayout>
-                    <Entry Placeholder="{DynamicResource native.dotnet.auth.oneTimeCode}" Text="{Binding Code}" Keyboard="Numeric" />
-                    <Button Text="{DynamicResource native.dotnet.auth.verifyEmailCode}" Clicked="OnVerifyEmailOtpClicked" />
+                    <Entry AutomationId="auth-one-time-code" Placeholder="{DynamicResource native.dotnet.auth.oneTimeCode}" Text="{Binding Code}" Keyboard="Text" />
+                    <Button AutomationId="auth-verify-email-code" Text="{DynamicResource native.dotnet.auth.verifyEmailCode}" Clicked="OnVerifyEmailOtpClicked" />
                 </VerticalStackLayout>
             </Border>
 
@@ -69,6 +70,11 @@
                         x:Name="MicrosoftOAuthButton"
                         Text="{DynamicResource native.taxonomy.settings.microsoft}"
                         Clicked="OnMicrosoftOAuthClicked"
+                        IsVisible="False" />
+                    <Button
+                        x:Name="GoogleOAuthButton"
+                        Text="{DynamicResource native.taxonomy.settings.google}"
+                        Clicked="OnGoogleOAuthClicked"
                         IsVisible="False" />
                     <Button
                         x:Name="CancelOAuthButton"

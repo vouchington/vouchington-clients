@@ -36,5 +36,8 @@ public sealed record HouseholdMembershipsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<HouseholdMembership> Results,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
+public sealed record CurrentIndividualResponse(
+    [property: JsonPropertyName("individual")] HouseholdIndividual Individual);
+
 public sealed record HouseholdCreateResponse(
     [property: JsonPropertyName("household")] Household Household);

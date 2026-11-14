@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.LandingPages;
+using Voucha.Client.Core.Support;
 using Microsoft.Maui.Controls;
 
 namespace Voucha.Client.App.Pages;
@@ -16,21 +16,10 @@ public partial class LandingPagesPage : ContentPage, IQueryAttributable
     BindingContext = viewModel;
   }
 
-  [SuppressMessage(
-      "Design",
-      "CA1031:Do not catch general exception types",
-      Justification = "MAUI lifecycle handlers surface failures through view model state.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try
-    {
-      await LoadForAppearanceAsync().ConfigureAwait(true);
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => LoadForAppearanceAsync()).ConfigureAwait(true);
   }
 
   public async Task LoadForAppearanceAsync(CancellationToken cancellationToken = default)
@@ -78,6 +67,9 @@ public partial class LandingPagesPage : ContentPage, IQueryAttributable
 
   private async void OnDeleteClicked(object? sender, EventArgs e) =>
       await viewModel.DeleteSelectedAsync().ConfigureAwait(true);
+
+  private async void OnLoadMoreCandidatesClicked(object? sender, EventArgs e) =>
+      await viewModel.LoadMoreCandidatesAsync().ConfigureAwait(true);
 
   private void OnAddItemClicked(object? sender, EventArgs e) => viewModel.AddSelectedItem();
 

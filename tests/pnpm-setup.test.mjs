@@ -89,6 +89,26 @@ async function compositesWithPnpmSetup() {
 }
 
 describe('pnpm 12 without a pinned version', () => {
+  it('disables the stalled npm audit only for native CI pnpm bootstrap steps', async () => {
+    const nativeBootstrapFiles = new Map([
+      ['.github/actions/prepare-native-contract/action.yml', 1],
+      ['.github/workflows/native-contract-tests.yml', 1],
+      ['.github/workflows/validate.yml', 2],
+    ])
+    for (const [path, source] of await readActionsYaml()) {
+      if (!nativeBootstrapFiles.has(path)) continue
+      const steps = stepLists(source).flat()
+      const setupSteps = steps.filter(step => actionSetupStep.test(step))
+      assert.equal(setupSteps.length, nativeBootstrapFiles.get(path), `${path} setup count changed`)
+      for (const step of setupSteps) {
+        assert.match(step, /^\s*env:\s*\n\s+NPM_CONFIG_AUDIT: 'false'\s*$/mu)
+      }
+      for (const step of steps.filter(item => !actionSetupStep.test(item))) {
+        assert.doesNotMatch(step, /NPM_CONFIG_AUDIT/u, `${path} disables audit beyond pnpm setup`)
+      }
+    }
+  })
+
   it('passes pnpm/action-setup only the latest release of one major', async () => {
     for (const [path, step] of await pnpmSetupSteps()) {
       assert.match(

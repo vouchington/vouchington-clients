@@ -10,12 +10,15 @@ public enum ModerationReportSort { Severity, MostReported, CreatedAtAsc, Created
 public enum ModerationReportResolution { Reviewed, Dismissed }
 
 public sealed record ModerationReportJudgement(
+    [property: JsonPropertyName("id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string Id,
     [property: JsonPropertyName("recommended_action")] string RecommendedAction,
     [property: JsonPropertyName("public_response")] string PublicResponse,
     [property: JsonPropertyName("internal_response")] string InternalResponse,
     [property: JsonPropertyName("is_stale")] bool IsStale,
     [property: JsonPropertyName("judged_report_count")] int? JudgedReportCount,
-    [property: JsonPropertyName("current_report_count")] int CurrentReportCount);
+    [property: JsonPropertyName("current_report_count")] int CurrentReportCount,
+    [property: JsonPropertyName("current_report_count_capped")] bool CurrentReportCountCapped = false,
+    [property: JsonPropertyName("judged_report_count_capped")] bool JudgedReportCountCapped = false);
 
 public sealed record CommunityBanEvasionContext(
     [property: JsonPropertyName("community_id")] string CommunityId,
@@ -23,7 +26,8 @@ public sealed record CommunityBanEvasionContext(
     [property: JsonPropertyName("source_user_id")] string SourceUserId,
     [property: JsonPropertyName("source_username")] string? SourceUsername,
     [property: JsonPropertyName("score")] double Score,
-    [property: JsonPropertyName("flagged_at")] DateTimeOffset FlaggedAt);
+    [property: JsonPropertyName("flagged_at")] DateTimeOffset FlaggedAt,
+    [property: JsonPropertyName("source_display_name")] string? SourceDisplayName = null);
 
 public sealed record StaffModerationReport(
     [property: JsonPropertyName("id")] string Id,
@@ -33,7 +37,7 @@ public sealed record StaffModerationReport(
     [property: JsonPropertyName("entity_type")] string EntityType,
     [property: JsonPropertyName("entity_id")] string EntityId,
     [property: JsonPropertyName("admin_action_path")] string? AdminActionPath,
-    [property: JsonPropertyName("target_label")] string? TargetLabel,
+    [property: JsonPropertyName("target_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TargetLabel,
     [property: JsonPropertyName("target_path")] string? TargetPath,
     [property: JsonPropertyName("target_user_id")] string? TargetUserId,
     [property: JsonPropertyName("target_available")] bool? TargetAvailable,
@@ -52,7 +56,12 @@ public sealed record StaffModerationReport(
     [property: JsonPropertyName("post_moderation_context")] JsonElement? PostModerationContext,
     [property: JsonPropertyName("cursor_created_at")] DateTimeOffset? CursorCreatedAt = null,
     [property: JsonPropertyName("cursor_report_count")] int? CursorReportCount = null,
-    [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank = null);
+    [property: JsonPropertyName("cursor_severity_rank")] int? CursorSeverityRank = null,
+    [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null,
+    [property: JsonPropertyName("automatic_judgement_enabled"), JsonRequired] bool AutomaticJudgementEnabled = false,
+    [property: JsonPropertyName("report_count_capped")] bool ReportCountCapped = false);
 
 public sealed record MemberModerationReport(
     [property: JsonPropertyName("id")] string Id,
@@ -61,7 +70,7 @@ public sealed record MemberModerationReport(
     [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt,
     [property: JsonPropertyName("entity_type")] string EntityType,
     [property: JsonPropertyName("entity_id")] string EntityId,
-    [property: JsonPropertyName("target_label")] string? TargetLabel,
+    [property: JsonPropertyName("target_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string TargetLabel,
     [property: JsonPropertyName("target_path")] string? TargetPath,
     [property: JsonPropertyName("target_available")] bool? TargetAvailable,
     [property: JsonPropertyName("target_content")] AuthoredContentText? TargetContent,

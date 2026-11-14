@@ -110,7 +110,7 @@ public sealed class MemberMcpOAuthRequest
     if (values.ContainsKey("code") == values.ContainsKey("error"))
       throw new InvalidDataException("OAuth callback has no single authorization outcome.");
     if (values.TryGetValue("error", out var error))
-      throw new InvalidDataException($"OAuth authorization was denied: {error}");
+      throw new McpAuthorizationDeniedException($"OAuth authorization was denied: {error}");
     if (!values.TryGetValue("code", out var code) || string.IsNullOrEmpty(code))
       throw new InvalidDataException("OAuth callback has no code.");
     return code;

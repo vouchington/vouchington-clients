@@ -13,10 +13,13 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
     )
 
     static let registry: [String: Endpoint] = moderationFixtureEndpoints
+        .merging(communityBanFixtureEndpoints) { _, replacement in replacement }
         .merging(entityProvenanceFixtureEndpoints) { _, replacement in replacement }
         .merging(communityAutomodFixtureEndpoints) { _, replacement in replacement }
+        .merging(communityLimitFixtureEndpoints) { _, replacement in replacement }
         .merging(userProfileFixtureEndpointRegistry) { _, replacement in replacement }
         .merging(credentialFixtureEndpoints) { _, replacement in replacement }
+        .merging(contractDriftFixtureEndpoints) { _, replacement in replacement }
         .merging(currentContractFixtureEndpoints) { _, replacement in replacement }
         .merging([
             "web.admin.mq.queues.domains.default": .mqQueueDomains(name: "background"),
@@ -88,6 +91,9 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 idOrSlug: "test-community",
                 title: "Greeting",
                 body: "Thanks for writing in."
+            ),
+            "web.communities.application.default": Endpoint.communityApplication(
+                idOrSlug: "test-community", applicationId: "application-1"
             ),
             "web.communities.applications.default": Endpoint.communityApplications(idOrSlug: "test-community"),
             "web.communities.invites.default": Endpoint.communityInvites(idOrSlug: "test-community"),
@@ -170,6 +176,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.topics.publisher-types.default": Endpoint.publisherTypes(),
             "web.topics.search.default": Endpoint.topics(query: "tech"),
             "web.topics.show.default": Endpoint.topic(id: "test-topic"),
+            "web.topics.show.viewer-lower-bound": Endpoint.topic(id: "test-topic"),
+            "web.topics.show.viewer-review-data-lower-bound": Endpoint.topic(id: "test-topic"),
             "web.topics.mutation.default": Endpoint.createTopic(
                 body: CreateTopicBody(name: "Tech", slug: "tech", topicType: "topic")
             ),
@@ -181,8 +189,8 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             ),
             "web.referral-links.feed.default": Endpoint.referralLinksFeed(feedType: "follow_users"),
             "native.referral-links.mine.default": Endpoint.referralLinks(),
+            "native.referral-links.user.public": Endpoint.userReferralLinks(userId: "user-2"),
             "native.referral-clicks.mine.default": Endpoint.myReferralClicks(),
-            "web.trending-referral-programs.default": Endpoint.trendingReferralPrograms(),
             "web.referral-links.prioritized.default": Endpoint.prioritizedReferralLinks(
                 referralProgramId: "referral-program-1",
                 all: true
@@ -195,7 +203,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "web.admin.mq.queues.resume.default": Endpoint.mqResumeQueue(name: "psql"),
             "web.admin.mq.scheduled-jobs.default": Endpoint.mqScheduledJobs,
             "web.admin.mq.scheduled-jobs.trigger.default": Endpoint.mqRunScheduledJob(
-                id: "kagi-smallweb-sync"
+                id: "imports-recover-stalled"
             ),
             "web.admin.mq.backfills.default": Endpoint.mqBackfills,
             "web.admin.mq.backfills.trigger.default": Endpoint.mqRunBackfill(
@@ -281,7 +289,7 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.rss-feed-item.detail.default": Endpoint.rssFeedItem(
                 id: "00000000-0000-7000-8000-000000007886"
             ),
-            "native.topic-recommendation.detail.default": Endpoint.topicRecommendation(id: "recommendation-1"),
+            "native.topic-recommendation.detail.default": Endpoint.post(idOrSlug: "recommendation-1"),
             "native.topic-recommendations.top-hashtags.default": Endpoint.topHashtags(),
             "native.bookmarks.posts.saved.default": Endpoint.userPosts(userId: "user-abc", listType: "saved"),
             "native.bookmarks.posts.saved.next-page": Endpoint.userPosts(
@@ -326,7 +334,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
                 userId: "user-abc",
                 listType: "proxy-following"
             ),
-            "swift.posts.feed.default": Endpoint.posts(feedType: "any"),
+            "swift.posts.feed.default": Endpoint.posts(
+                feedType: "any",
+                timeRange: ApiFixtureLoader.optionalQueryValue("swift.posts.feed.default", "time_range")
+            ),
             "swift.notifications.default": Endpoint.notifications(),
             "native.notifications.redirect-target.default": Endpoint
                 .notificationRedirectTarget(notificationId: "notification-1"),
@@ -337,12 +348,6 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "swift.integration.rss-feed-items.video": Endpoint.rssFeedItems(mediaType: "video"),
             "swift.integration.rss-feed-items.audio": Endpoint.rssFeedItems(mediaType: "audio"),
             "native.comments.post-detail.default": Endpoint.post(idOrSlug: "comment-root"),
-            "native.comments.descendants.default": Endpoint.postDescendants(
-                postId: "comment-root-post",
-                after: "fixture-root-and-subtree-scoped-cursor",
-                limit: 2
-            ),
-            "native.comments.ancestors.permalink": Endpoint.postAncestors(postId: "comment-b"),
             "native.lists.default": Endpoint.lists(),
             "native.list-items.default": Endpoint.listItems(listId: "list-1"),
             "native.hostname.default": Endpoint.hostname(idOrHostname: "hostname-1"),
@@ -360,7 +365,10 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
             "native.landing-page-detail.default": Endpoint.myLandingPage(id: "landing-page-1"),
             "native.landing-page-analytics.default": Endpoint.myLandingPageAnalytics(pageId: "landing-page-1"),
             "native.admin-user-landing-pages.default": Endpoint.adminUserLandingPages(userId: "user-abc"),
-            "native.admin-landing-page-analytics.default": Endpoint.adminLandingPageAnalytics(pageId: "landing-page-1"),
+            "native.admin-landing-page-analytics.default": Endpoint.adminLandingPageAnalytics(
+                username: "fixture-user",
+                slug: "links"
+            ),
             "native.landing-page-candidates.default": Endpoint.myLandingPageCandidates,
             "native.landing-page-items-mutation.default": nativeLandingPageItemsMutationEndpoint(),
             "native.landing-page-mutation.default": Endpoint.updateMyLandingPage(
@@ -441,6 +449,9 @@ final class ApiFixtureEndpointCoverageTests: XCTestCase {
         .merging(copyrightMediaFixtureEndpoints) { _, replacement in replacement }
         .merging(copyrightNoticesFixtureEndpoints) { _, replacement in replacement }
         .merging(storyFixtureEndpoints) { _, replacement in replacement }
-        .merging(membershipGrantAndAncestorFixtureEndpoints) { _, replacement in replacement }
+        .merging(nativeContentFixtureEndpoints) { _, replacement in replacement }
         .merging(membershipStoreFixtureEndpoints) { _, replacement in replacement }
+        .merging(topicClaimFixtureEndpoints) { _, replacement in replacement }
+        .merging(nativeSessionFixtureEndpoints) { _, replacement in replacement }
+        .merging(topicRecommendationCreateFixtureEndpoints) { _, replacement in replacement }
 }

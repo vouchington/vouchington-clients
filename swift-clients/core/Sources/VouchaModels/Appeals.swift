@@ -56,16 +56,24 @@ public struct ModerationAppealSubmissionRequest: Sendable {
 }
 
 public struct ModerationAppeal: Codable, Identifiable, Sendable {
+    public let aiDraftRequestedRunId: String
+    @RequiredNullable
+    public var aiDraftRunId: String?
     public let id: String
     public let caseId: String?
     public let appellantUserId: String?
-    @RequiredNullable public var userWarningId: String?
+    @RequiredNullable
+    public var userWarningId: String?
     @RequiredNullable
     public var userSuspensionId: String?
-    @RequiredNullable public var communityBanId: String?
-    @RequiredNullable public var postId: String?
-    @RequiredNullable public var communityId: String?
-    @RequiredNullable public var postRemovalKind: ModerationAppealPostRemovalKind?
+    @RequiredNullable
+    public var communityBanId: String?
+    @RequiredNullable
+    public var postId: String?
+    @RequiredNullable
+    public var communityId: String?
+    @RequiredNullable
+    public var postRemovalKind: ModerationAppealPostRemovalKind?
     public let appealReason: String?
     public let status: ModerationAppealStatus
     public let recommendedAction: ModerationAppealAction?
@@ -73,18 +81,30 @@ public struct ModerationAppeal: Codable, Identifiable, Sendable {
     public let aiInternalResponse: String?
     public let model: String?
     public let aiDraftedAt: Date?
-    @RequiredNullable public var publicResponse: String?
-    @RequiredNullable public var internalNotes: String?
-    @RequiredNullable public var draftedAt: Date?
-    @RequiredNullable public var editedAt: Date?
-    @RequiredNullable public var editedById: String?
-    @RequiredNullable public var approvedAt: Date?
-    @RequiredNullable public var approvedById: String?
-    @RequiredNullable public var sentAt: Date?
-    @RequiredNullable public var resolvedAt: Date?
-    @RequiredNullable public var resolvedById: String?
-    @RequiredNullable public var resolutionAction: ModerationAppealAction?
-    @RequiredNullable public var latestLifecycleChangeId: String?
+    @RequiredNullable
+    public var publicResponse: String?
+    @RequiredNullable
+    public var internalNotes: String?
+    @RequiredNullable
+    public var draftedAt: Date?
+    @RequiredNullable
+    public var editedAt: Date?
+    @RequiredNullable
+    public var editedById: String?
+    @RequiredNullable
+    public var approvedAt: Date?
+    @RequiredNullable
+    public var approvedById: String?
+    @RequiredNullable
+    public var sentAt: Date?
+    @RequiredNullable
+    public var resolvedAt: Date?
+    @RequiredNullable
+    public var resolvedById: String?
+    @RequiredNullable
+    public var resolutionAction: ModerationAppealAction?
+    @RequiredNullable
+    public var latestLifecycleChangeId: String?
     public let createdAt: Date
     public let updatedAt: Date
     public let isOverdue: Bool?
@@ -97,8 +117,8 @@ public struct ModerationAppealEnvelope: Codable, Sendable {
 }
 
 public struct ModerationAppealListResponse: Codable, Sendable {
-    public let appeals: [ModerationAppeal]
-    public let pageInfo: Page<ModerationAppeal>.PageInfo
+    public let appeals: [ModerationAppealSummary]
+    public let pageInfo: Page<ModerationAppealSummary>.PageInfo
 }
 
 public struct ModerationAppealSubmissionResponse: Codable, Sendable {
@@ -107,6 +127,7 @@ public struct ModerationAppealSubmissionResponse: Codable, Sendable {
 }
 
 public struct ModerationAppealQueueResponse: Codable, Sendable {
+    public let runId: String
     public let queued: Bool
     public let rerunById: String?
 }
@@ -116,6 +137,10 @@ public enum ModerationDisputeStatus: String, Codable, Sendable {
 }
 
 public struct ModerationDispute: Codable, Identifiable, Sendable {
+    public let postLabel: String
+    public let aiDraftRequestedRunId: String
+    @RequiredNullable
+    public var aiDraftRunId: String?
     public let id: String
     public let postId: String?
     public let status: ModerationDisputeStatus
@@ -159,11 +184,12 @@ public struct ModerationDispute: Codable, Identifiable, Sendable {
     public var resolvedById: String?
     @RequiredNullable
     public var sentAt: Date?
-    @RequiredNullable public var postContent: ReviewDisputePostContent?
+    @RequiredNullable
+    public var postContent: ReviewDisputePostContent?
     public let staffContext: ReviewDisputeStaffContext?
 }
 
 public struct ModerationDisputeListResponse: Codable, Sendable {
-    public let disputes: [ModerationDispute]
-    public let pageInfo: Page<ModerationDispute>.PageInfo
+    public let disputes: [ModerationDisputeReadProjection]
+    public let pageInfo: Page<ModerationDisputeReadProjection>.PageInfo
 }

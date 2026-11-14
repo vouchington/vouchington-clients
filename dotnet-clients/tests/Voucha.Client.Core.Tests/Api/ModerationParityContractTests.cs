@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Xunit;
 
@@ -8,67 +7,40 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed class ModerationParityContractTests
 {
   [Fact]
-  public void AppealContextsDecodeAndRemainOptionalForOldResponses()
+  public void StaffAppealsDecodeSummaryWhileDetailRetainsDraftAndStaffContext()
   {
-    var json = ApiFixtureLoader.LoadResponse("native.moderation.appeals.default");
-    var response = JsonSerializer.Deserialize<ModerationAppealListResponse>(json, VouchaApiJson.Options);
-    var appeal = Assert.Single(Assert.IsType<ModerationAppealListResponse>(response).Appeals);
-
-    var target = Assert.IsType<ModerationAppealPostRemovalContext>(appeal.TargetContext);
-    Assert.Equal("A removed review", target.Title);
-    Assert.Equal("appealing-reviewer", appeal.StaffContext?.Appellant.Username);
-    Assert.Equal("moderator", appeal.StaffContext?.OriginalDecision.Actor?.Username);
-
-    var oldShape = RemoveAggregateKey(json, "appeals", "target_context", "staff_context");
-    var oldResponse = JsonSerializer.Deserialize<ModerationAppealListResponse>(
-        oldShape,
-        VouchaApiJson.Options);
-    var oldAppeal = Assert.Single(Assert.IsType<ModerationAppealListResponse>(oldResponse).Appeals);
-    Assert.Null(oldAppeal.TargetContext);
-    Assert.Null(oldAppeal.StaffContext);
+    var list = JsonSerializer.Deserialize<StaffModerationAppealListResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.appeals.default"), VouchaApiJson.Options)!;
+    var row = Assert.Single(list.Appeals);
+    Assert.True(row.HasAiDraft);
+    Assert.False(row.HasDraft);
+    Assert.Equal("appealing-reviewer", row.Appellant?.Username);
+    Assert.Equal("A removed review", Assert.IsType<ModerationAppealPostRemovalContext>(row.TargetContext).Title);
+    var encoded = JsonSerializer.SerializeToElement(row, VouchaApiJson.Options);
+    Assert.False(encoded.TryGetProperty("staff_context", out _));
+    Assert.False(encoded.TryGetProperty("ai_public_response", out _));
+    var detail = JsonSerializer.Deserialize<ModerationAppealResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.appeals.detail.default"), VouchaApiJson.Options)!;
+    Assert.NotNull(detail.Appeal.StaffContext);
+    Assert.NotNull(detail.Appeal.AiPublicResponse);
   }
 
   [Fact]
-  public void DisputeContextsAndLifecycleEnvelopesDecode()
+  public void StaffDisputesDecodeSummaryWhileDetailRetainsClaim()
   {
-    var json = ApiFixtureLoader.LoadResponse("native.moderation.disputes.default");
-    var response = JsonSerializer.Deserialize<ModerationDisputeListResponse>(json, VouchaApiJson.Options);
-    var dispute = Assert.Single(Assert.IsType<ModerationDisputeListResponse>(response).Disputes);
-
-    Assert.Equal("native-claimant", dispute.StaffContext?.Disputant.Username);
-    Assert.Equal("A disputed review", dispute.StaffContext?.Review.Post.Title);
-    Assert.Equal("Native topic", dispute.StaffContext?.Review.Topic?.Name);
-    Assert.Equal(1, dispute.StaffContext?.Review.Rating);
-
-    var envelopeFixtures = new[]
-    {
-      "native.moderation.disputes.detail.default",
-      "native.moderation.disputes.update.default",
-      "native.moderation.disputes.approval.default",
-      "native.moderation.disputes.delivery.default",
-      "native.moderation.disputes.resolution.remove",
-      "native.moderation.disputes.resolution.annotate",
-      "native.moderation.disputes.resolution.dismiss",
-    };
-    foreach (var fixtureId in envelopeFixtures)
-    {
-      var envelope = JsonSerializer.Deserialize<ModerationDisputeResponse>(
-          ApiFixtureLoader.LoadResponse(fixtureId),
-          VouchaApiJson.Options);
-      Assert.NotNull(envelope?.Dispute.StaffContext);
-    }
-
-    var rerun = JsonSerializer.Deserialize<ModerationDisputeQueueResponse>(
-        ApiFixtureLoader.LoadResponse("native.moderation.disputes.resolution-drafts.default"),
-        VouchaApiJson.Options);
-    Assert.True(rerun?.Queued);
-    Assert.Equal("staff-1", rerun?.RerunById);
-
-    var oldShape = RemoveAggregateKey(json, "disputes", "staff_context");
-    var oldResponse = JsonSerializer.Deserialize<ModerationDisputeListResponse>(
-        oldShape,
-        VouchaApiJson.Options);
-    Assert.Null(Assert.Single(Assert.IsType<ModerationDisputeListResponse>(oldResponse).Disputes).StaffContext);
+    var list = JsonSerializer.Deserialize<StaffModerationDisputeListResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.disputes.default"), VouchaApiJson.Options)!;
+    var row = Assert.Single(list.Disputes);
+    Assert.Equal("native-claimant", row.Disputant?.Username);
+    Assert.Equal("A disputed review", row.PostContent?.Text);
+    Assert.False(row.HasDraft);
+    var encoded = JsonSerializer.SerializeToElement(row, VouchaApiJson.Options);
+    Assert.False(encoded.TryGetProperty("claim_text", out _));
+    Assert.False(encoded.TryGetProperty("staff_context", out _));
+    var detail = JsonSerializer.Deserialize<ModerationDisputeResponse>(
+        ApiFixtureLoader.LoadResponse("native.moderation.disputes.detail.default"), VouchaApiJson.Options)!;
+    Assert.Equal("Native review dispute", detail.Dispute.ClaimText);
+    Assert.NotNull(detail.Dispute.StaffContext);
   }
 
   [Fact]
@@ -101,25 +73,4 @@ public sealed class ModerationParityContractTests
     Assert.Equal(new DateTimeOffset(2026, 7, 29, 20, 0, 0, TimeSpan.Zero), cooldown?.Exposure.CooldownEndsAt);
   }
 
-  private static string RemoveAggregateKey(
-      string json,
-      string collectionKey,
-      params string[] removedKeys)
-  {
-    var root = JsonNode.Parse(json)?.AsObject() ??
-        throw new InvalidOperationException("Fixture must contain a JSON object.");
-    var rows = root[collectionKey]?.AsArray() ??
-        throw new InvalidOperationException($"Fixture must contain {collectionKey}.");
-    foreach (var row in rows)
-    {
-      var value = row?.AsObject() ??
-          throw new InvalidOperationException($"{collectionKey} must contain objects.");
-      foreach (var removedKey in removedKeys)
-      {
-        value.Remove(removedKey);
-      }
-    }
-
-    return root.ToJsonString();
-  }
 }

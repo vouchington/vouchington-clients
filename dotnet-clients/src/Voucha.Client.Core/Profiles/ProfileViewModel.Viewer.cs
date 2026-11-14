@@ -15,7 +15,10 @@ public sealed partial class ProfileViewModel
       bool? canCreateUserTagVotes = null,
       bool isStaffViewer = false)
   {
+    if (!string.Equals(currentViewerUserId, userId, StringComparison.Ordinal) && userMetrics is not null)
+      userMetrics = userMetrics with { PrivateCount = null, PrivateCountCapped = null };
     currentViewerUserId = userId;
+    NotifyPrivateMetrics();
     currentViewerUsername = username;
     currentViewerIsStaff = isStaffViewer;
     currentViewerCanCastPublicVotes = canCastPublicVotes;

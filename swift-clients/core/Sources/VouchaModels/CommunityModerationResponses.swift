@@ -86,6 +86,7 @@ public struct CommunitySavedReplyResponse: Codable, Sendable {
 
 public struct CommunityAgentPromptsResponse: Codable, Sendable {
     public let communityAgentPrompts: [CommunityAgentPrompt]
+    public let pageInfo: CommunityAgentPromptPageInfo
     public let slotInfo: CommunityAgentPromptSlotInfo
 }
 
@@ -123,8 +124,17 @@ public struct CommunityPlatformModeration: Codable, Sendable {
     public let status: AdminReviewQueueClearanceStatus
 }
 
+public struct CommunityAgentModerationSummary: Codable, Identifiable, Sendable {
+    public let id: String
+    public let postId: String
+    public let communityPromptId: String
+    public let isFlagged: Bool
+    public let createdAt: Date
+}
+
 public struct CommunityModerationResultsResponse: Codable, Sendable {
-    public let communityAgentModerations: [DecodedJSONValue]
+    public let results: [CommunityAgentModerationSummary]
+    public let pageInfo: Page<CommunityAgentModerationSummary>.PageInfo
     public let platformModeration: CommunityPlatformModeration
 }
 

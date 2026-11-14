@@ -124,7 +124,7 @@ internal static partial class ModerationAppealCardPresentation
     _ => UiMessageKey.NativeSwiftModerationAppealsUnknown,
   });
 
-  private static UiText Action(ModerationAppealAction action) => UiText.Localized(action switch
+  public static UiText Action(ModerationAppealAction action) => UiText.Localized(action switch
   {
     ModerationAppealAction.Accept => UiMessageKey.NativeSwiftModerationAppealsAccept,
     ModerationAppealAction.Reduce => UiMessageKey.NativeSwiftModerationAppealsReduce,

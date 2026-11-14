@@ -18,7 +18,7 @@ This workspace contains the .NET client stack for Voucha. The product target is 
   and [machine-readable evidence contract](https://github.com/vouchington/vouchington/blob/main/docs/requirements/client-feature-parity.json)
   for exact capability status and tracked gaps.
 - API core: typed fixture-backed helpers plus Swift/web-route-parity endpoint factories under `src/Voucha.Client.Core/Api`.
-- Auth core: cookie-backed session state, email OTP, MFA TOTP, dev-cookie injection, and a passkey assertion seam for platform implementations.
+- Auth core: cookie-backed session state, email OTP, MFA TOTP, dev-cookie injection, and a passkey assertion seam for platform implementations. Session renewal rotates both cookies through one shared operation and persists the server-provided lifetimes before releasing requests. Buffered JSON requests and bodyless GET exports may replay once after an exact `401 AUTH_REQUIRED`; auth routes and streaming uploads do not replay. Logout clears local credentials before its network request, and session generations fence delayed responses from earlier accounts. Product refresh flows use `CookieSessionStore`; low-level `RefreshSession` requests retain their explicit body and fenced `Set-Cookie` persistence without entering automatic recovery.
 - Deep linking: `voucha` protocol activation on Windows and Mac Catalyst, with MAUI lifecycle hooks and an app-shell coordinator that selects existing native targets or opens Session for login links.
 - Post compose: native signed-in post/community-post creation for discussions, reviews, data points, links, articles, and blogs. CAPTCHA-gated submissions open the shared MAUI Turnstile challenge and send the resulting token; local development can opt into omitting it with `VOUCHA_POST_COMPOSE_CAPTCHA_BYPASS=true`, which only succeeds against backends already configured with `SKIP_CAPTCHA_VERIFICATION=true`.
 - CI: portable restore/build/test plus Core changed-line coverage at 80% on Linux, rendered
@@ -54,8 +54,10 @@ mise exec -- ./dotnet-clients/tooling/harness.sh --checks resx-path
 
 The harness restores the portable solution in locked mode, verifies formatting, runs the ast-grep
 presentation and Core-boundary scans, proves generated RESX satellite resources still load when the
-MSBuild artifacts path contains an apostrophe, and builds in Release. It ignores an ambient
-`ArtifactsPath` so concurrent worktrees keep build outputs isolated, including when the checkout
+MSBuild artifacts path contains an apostrophe, and builds in Release. Selecting `--checks fmt`
+also restores first, so it works in a fresh worktree. Restore runs once when both checks are
+selected; a failed restore skips formatting and reports the original restore diagnostics. It ignores
+an ambient `ArtifactsPath` so concurrent worktrees keep build outputs isolated, including when the checkout
 path contains spaces or apostrophes. Full portable tests, rendered MAUI page tests, and MAUI smoke
 builds remain in CI. The rendered page tests require the pinned MAUI workload, run separately from
 the portable solution, and do not require the exact Xcode version used by the Mac Catalyst smoke
@@ -137,7 +139,7 @@ diagnostics remain `check-failure`. See
 When changing a MAUI dependency, regenerate the framework-only Core Mac Catalyst lock and both app and Core locks for `maccatalyst-arm64` and `maccatalyst-x64`. Use the matrix helper below so every restore receives the correct `TargetFramework` and `RuntimeIdentifier` properties. Regenerate from an empty `NUGET_PACKAGES` and `NUGET_HTTP_CACHE_PATH`, then repeat every restore with `--locked-mode` and confirm the lockfiles remain unchanged. SDK and workload updates must change both pins in the repository-root `global.json` together before regenerating the locks.
 
 Follow the repository [frozen-install policy](../docs/development/reference-dependency-updates-frozen-install-policy.md#nuget)
-for dependency review and audit evidence. For the complete nine-lock matrix, use
+for dependency review and audit evidence. For the complete twelve-lock matrix, use
 `bash dotnet-clients/tooling/restore-locks.sh update` followed by
 `bash dotnet-clients/tooling/restore-locks.sh verify` with isolated `NUGET_PACKAGES` and
 `NUGET_HTTP_CACHE_PATH`, `NUGET_PLUGINS_CACHE_PATH`, and `NUGET_SCRATCH`, while keeping lock-restore
@@ -150,7 +152,7 @@ Unlike ordinary development, this lock boundary uses a fresh job-scoped SDK root
 exact `sdk.version` declared in the repository-root `global.json`; this prevents `latestPatch` from selecting a newer SDK
 left by an earlier job on a persistent runner.
 
-Windows packaging can be built locally on Windows. CI compiles the actual Windows MAUI app on `windows-latest` for relevant source and toolchain changes, without packaging or signing. Mac Catalyst remains the rendered App test host.
+Windows packaging can be built locally on Windows. CI compiles the actual Windows MAUI app on `windows-latest` for relevant source and toolchain changes, without packaging or signing. The same runner compiles and reads the pinned Windows App SDK 1.8 language-model WinMD when that surface probe changes. That probe does not generate text. Mac Catalyst remains the rendered App test host.
 
 ## Structure
 
@@ -167,17 +169,30 @@ Windows packaging can be built locally on Windows. CI compiles the actual Window
 ## Configuration
 
 Release builds default to `https://voucha.ai`. Set `VOUCHA_API_BASE_URL` and `VOUCHA_WEB_BASE_URL`
-for local development. Set `VOUCHA_TURNSTILE_SITE_KEY` when testing CAPTCHA-gated flows; app startup
-must remain safe when the key is absent.
+for local development. `VOUCHA_TURNSTILE_SITE_KEY` overrides
+`NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`, which overrides packaged assembly metadata.
+
+Debug and other non-Release builds use Cloudflare's always-pass visible test site key
+`1x00000000000000000000AA` when those inputs are absent. The widget then returns Cloudflare's
+dummy token `XXXX.DUMMY.TOKEN.XXXX`. That token verifies only against a server configured with
+Cloudflare's matching Turnstile test secret. Production secrets reject it, so a Debug app works
+with a local or staging server that uses the test secret and does not verify against production.
 
 The MAUI project embeds the public `VouchaApiBaseUrl` and `VouchaTurnstileSiteKey` MSBuild
-properties as assembly metadata. The properties accept `VOUCHA_API_BASE_URL` and
-`VOUCHA_TURNSTILE_SITE_KEY` from the build environment; the site key also accepts the producer's
-public `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` input. Runtime environment values override
-the packaged values, followed by production defaults. Pass the environment's public site key
-at Release build time; a development machine's runtime environment does not configure an
-installed app. Missing site keys remain empty and CAPTCHA-gated operations fail closed. No
-site key or credential is checked in, and this does not introduce a packaging/signing pipeline.
+properties as assembly metadata. `TurnstileSiteKey.targets` accepts `VOUCHA_TURNSTILE_SITE_KEY`
+and the producer's public `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`. A Release build fails when
+the resolved key is empty or is a Cloudflare test site or secret key. Runtime environment values
+override the packaged values. Pass an explicit non-test public site key with
+`-p:VouchaTurnstileSiteKey` for a Release build; a development machine's runtime environment does
+not configure an installed app. The Release runtime also rejects a missing or test key. The
+production site key stays outside this repository, and this does not introduce a packaging or
+signing pipeline.
+
+`VOUCHA_SENTRY_DSN` overrides the packaged `VouchaSentryDsn` assembly metadata. Both Debug and
+Release leave that value empty, and an empty value does not start Sentry, does not fail the
+Release build, and does not send events. A configured DSN reports crashes and performance with
+the opaque account id only. Release/environment overrides and trusted debug-symbol upload are
+described in [Native Sentry releases](../docs/development/native-sentry-releases.md).
 
 ## Agent rules
 

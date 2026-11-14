@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Voucha.Client.Core.Posts;
 
 namespace Voucha.Client.Core.Api;
 
@@ -15,7 +16,10 @@ public sealed record FetchPostsRequest(
     string? Sort = "hot",
     string? After = null,
     int Limit = 25,
-    string? SemanticSearchQuery = null);
+    string? SemanticSearchQuery = null,
+    string? TimeRange = PostTimeRanges.Last30Days,
+    bool? HasHackerNewsReferences = null,
+    string? DataPointTopic = null);
 
 public sealed record PostResponse(
     [property: JsonPropertyName("post")] Post Post,
@@ -28,7 +32,8 @@ public sealed record PostResponse(
     [property: JsonPropertyName("election_vote")] ElectionVote? ElectionVote = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>>? Bookmarks = null,
     [property: JsonPropertyName("author_aside")] PostDetailAuthorAside? AuthorAside = null,
-    [property: JsonPropertyName("link_embed")] UrlEmbed? LinkEmbed = null);
+    [property: JsonPropertyName("link_embed")] UrlEmbed? LinkEmbed = null,
+    [property: JsonPropertyName("post_hacker_news_references")] IReadOnlyDictionary<string, HackerNewsReferences>? PostHackerNewsReferences = null);
 
 public sealed record PostMutationResponse(
     [property: JsonPropertyName("post")] Post Post,
@@ -52,7 +57,13 @@ public sealed record TopicResponse(
     [property: JsonPropertyName("topic_children")] IReadOnlyList<JsonElement>? TopicChildren = null,
     [property: JsonPropertyName("topic_parents")] IReadOnlyList<JsonElement>? TopicParents = null,
     [property: JsonPropertyName("topic_content_update"),
-        JsonIgnore(Condition = JsonIgnoreCondition.Never)] JsonElement? TopicContentUpdate = null);
+        JsonIgnore(Condition = JsonIgnoreCondition.Never)] JsonElement? TopicContentUpdate = null,
+    [property: JsonPropertyName("referral_program_attributes")] ReferralProgramAttributes? ReferralProgramAttributes = null);
+
+public sealed record ReferralProgramAttributes(
+    [property: JsonPropertyName("company_topic_id")] string? CompanyTopicId = null,
+    [property: JsonPropertyName("enabled_at")] DateTimeOffset? EnabledAt = null,
+    [property: JsonPropertyName("disabled_at")] DateTimeOffset? DisabledAt = null);
 
 public sealed record TopicMetrics(
     [property: JsonPropertyName("count")] IReadOnlyDictionary<string, int>? Count = null,
@@ -62,7 +73,9 @@ public sealed record TopicMetrics(
     [property: JsonPropertyName("ratings")] TopicRatingMetrics? Ratings = null,
     [property: JsonPropertyName("ratings__updated_at")] DateTimeOffset? RatingsUpdatedAt = null,
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, int>? Bookmarks = null,
-    [property: JsonPropertyName("bookmarks__updated_at")] DateTimeOffset? BookmarksUpdatedAt = null);
+    [property: JsonPropertyName("bookmarks__updated_at")] DateTimeOffset? BookmarksUpdatedAt = null,
+    [property: JsonPropertyName("viewer_count_capped")] IReadOnlyDictionary<string, bool>? ViewerCountCapped = null,
+    [property: JsonPropertyName("count_capped")] IReadOnlyDictionary<string, bool>? CountCapped = null);
 
 public sealed record TopicRatingMetrics(
     [property: JsonPropertyName("count")] IReadOnlyDictionary<string, int> Count);

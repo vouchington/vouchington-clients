@@ -8,8 +8,10 @@ the closed allowlist:
 - `ubuntu-latest` is used for Linux work that needs Docker, a tool container, or a full GitHub
   Ubuntu image.
 - `macos-latest` is used for macOS native build, test, and dead-code checks.
-- `windows-latest` runs changed-file-routed .NET `BitmapDecoder` tests and the actual Windows
-  MAUI app compile check. These exercise Windows-only source and WinUI.
+- `windows-latest` runs changed-file-routed .NET `BitmapDecoder` tests, the pinned Windows App SDK
+  language-model surface probe, and the actual Windows MAUI app compile check. These exercise
+  Windows-only source and WinUI. The surface probe reads restored package metadata and compiles the
+  projected admission APIs. It does not generate with the language model.
 
 Which native tests belong on each label, and when a second OS is forbidden, is documented in
 [native CI test placement](native-ci-test-placement.md).
@@ -21,9 +23,10 @@ compatibility; the current Android NDK compiler is x86_64-only. `macos-latest` a
 
 The MAUI Mac Catalyst smoke build is required. Its Xcode selector resolves the macOS SDK with
 `xcrun`, checks the SDK's Mac Catalyst support and asset compiler, and fails if the pinned workload's
-required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green.
+required Xcode version is unavailable. A missing toolchain must not turn an unrun app build green. The Mac Catalyst GUI preflight is a
+separate required job with a 10-minute limit. It does not add steps to the MAUI smoke job.
 
-Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The two
+Do not add `self-hosted`, other `windows-*`, or unlisted `ubuntu-*` / `macos-*` labels. The three
 Windows jobs run only for their relevant source/toolchain changes; Windows app packaging and signing remain out of scope.
 
 Hosted VMs are single-job and discarded after the run. Jobs check out the revision they execute and
@@ -33,7 +36,21 @@ must not run persistent-workspace cleanup, restore a trusted base only to wipe t
 Jobs may restore hash-keyed GitHub Actions caches for package stores and checksum-verified download
 archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--locked-mode`,
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
-are not cached.
+are not cached. Shared pnpm stores restore on every run. A missing primary key is saved only after
+the frozen install on a `push` to `refs/heads/main`. Pull requests restore and install, and they
+do not save. Another job may reserve that key first; the lost save does not fail the run.
+
+The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
+`main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
+still perform the same locked restore and tests on a cache miss; they do not upload a separate
+multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
+toolchain reuse.
+
+The three Windows NuGet caches use the same main-only save policy, after each job's tests or app
+build succeeds. Their exact keys, package paths, and workload-specific restore prefixes stay the
+same. A PR with new dependencies may restore a main prefix and download the missing packages,
+but it does not save a branch-local cache copy. This reduces competing cache writes; it does not
+guarantee that a cache remains available or that a job gets faster.
 
 ## pnpm
 
@@ -54,8 +71,6 @@ misread it. Unpinned, the lockfile stays one document.
   v6.1.0), so the action skips `self-update` and keeps it. pnpm 12.3.0 through 12.4.2 make
   `pnpm dlx` exit 1 with `ERR_PNPM_IGNORED_BUILDS` for packages with build scripts, such as
   `wrangler`; 12.5.0 fixed it.
-- The `/plan` and `/fix` gate jobs stay checkout-free: the action needs no `package.json`, and
-  those jobs only run `pnpm dlx`.
 - Workflows, scripts, and the native lock wrappers run `pnpm` from `PATH`. Nothing bootstraps pnpm
   through Corepack or a versioned `npx pnpm@<version>` call.
 - Dependabot runs the pnpm bundled with its updater image.
@@ -66,13 +81,59 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 ## Android validation
 
-Swift Android APK assembly and native test-library preparation run in parallel on separate
-macOS VMs. Both phases retain the verified contract setup and host Swift package tests;
-they do not share a SwiftPM build directory. The stable `Swift Android Skip` check requires
-both phases to succeed, and the aggregate `Tests` check requires that result. Local Android
-validation defaults to both phases; `pre-push.sh --phase app` and `--phase test-libs` select
-individual phases for CI. This compiles the app and packages Android test libraries without
-a device; it does not claim device test execution.
+Swift Android native compilation and APK assembly run in one macOS job that executes
+`pre-push.sh --phase app`: a single Gradle invocation builds the native Swift product, the Kotlin
+libraries and both APKs, with Gradle parallelism enabled. Host Swift package tests and native
+test-library preparation run in parallel jobs. The job still verifies the exact native contract
+but omits candidate pnpm installation; its candidate tooling uses Node builtins, shell, Swift, and
+Gradle. Extracted Swift, Android SDK, and NDK toolchains are materialized in the job. The existing
+cookie runtime job also reports the stable `Swift Android Skip` check: it first requires the app
+job, host tests, and test libraries to succeed, then runs the full cookie restart proof. `Tests`
+requires that job's result directly. The job budget is 35 minutes, a safety bound and not evidence
+that the under-ten-minute target has been met.
+The dedicated host job runs the planner-selected source tests with
+`run-android-host-swift-tests.sh --package-path swift-clients/apps/android --filter
+VouchaAndroidTests` on Xcode 26.6 with Swift 6.3.3. Swift 6.4 remains on the Android Gradle
+path, and the later emulator instrumentation uses the exact candidate APKs. The Gradle build
+records a pinned `--profile` summary.
+Reported task and category durations may overlap and are not a critical-path sum.
+
+The Android archive and Gradle caches restore by pinned input keys on every run. Gradle's
+task-output build cache is separate from its user home: local builds use the canonical Darwin
+temporary directory, while GitHub Actions uses a private stable runner-home path because cache
+archives retain absolute paths across hosts. The app job restores the task-output cache. Test-library validation uses SwiftPM without Gradle, so it does not download
+that cache. The app job uses the same checked task-output path that `pre-push.sh` gives Gradle. Only a `main` push writes a missing key:
+the test-library phase saves the shared checksummed-download archive after SDK materialization,
+and the app job saves its Gradle user home and task-output snapshot after APK upload. The
+task-output save accepts at most 512 MiB of logical regular-file bytes, 100,000 members, and a
+30-second scan; an oversized cache simply stays job-scoped. Full app tasks and candidate APK
+checks remain required on hits.
+Pull requests still compile from source on a miss, but do not write large per-PR cache copies
+that compete with the default-branch entries. The archive key follows the checksum-bearing
+materialization script, so an unrelated workflow edit does not invalidate verified downloads.
+The task-output key partitions runner OS, architecture, canonical cache path, pinned Swift/Skip/
+Gradle configuration, candidate revision, and snapshot kind (`app`). A pull request first requests
+its exact base revision; a `main` push requests its own revision (for reruns), then its exact
+predecessor. The job falls back to a compatible prefix within the same OS, architecture, path, and
+configuration partition. Gradle still fingerprints task inputs and executes missing work. Pull
+requests never publish persistent snapshots.
+
+A missing compatible cache or changed configuration still requires a cold build. The single app
+job has a 35-minute budget; native performance and warm-cache timing still require hosted-run
+validation.
+
+The cookie restart runner bounds emulator shutdown after the instrumentation phases. It stops
+and reaps only its captured emulator child, including a child that ignores termination or is
+stopped. Cleanup preserves an earlier test failure and fails an otherwise successful run if the
+owned emulator cannot be stopped. Host regression tests cover shutdown behavior; they do not
+replace emulator instrumentation.
+
+The app build uses pinned Gradle's local `--profile` report. CI writes its configuration,
+dependency, and task durations, plus bounded generated-state size measurements, to the existing
+job summary and log. Task durations can overlap and do not represent critical-path wall time.
+The report is diagnostic only: the same app and instrumentation tasks remain required, and a
+profiling-summary error cannot turn a failed build green. Generated build trees and extracted
+toolchains remain job-scoped; the summary does not publish or cache them.
 
 ## Event-driven orchestration
 
@@ -83,12 +144,29 @@ polling and remain permitted.
 
 ## Dependabot native repair
 
-`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's eleven lockfiles, while
+`repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's twelve lockfiles, while
 `dependabot-automerge.yml` repairs Android Skip's checked archive version and checksum before
 enabling auto-merge. Their `pull_request_target` producers check out only the exact default-branch
 base and fetch candidate dependency files as inert API data. They never check out or execute the
 Dependabot head. Fork pull requests run on hosted `pull_request` without repository secrets; do not
 reintroduce self-hosted labels for untrusted code.
+
+The auto-merge workflow first checks the exact live head's API identity and verification status.
+Only a verified Dependabot-authored head committed by GitHub's `web-flow` identity proceeds to the
+existing metadata signature verification.
+Human-authored or unsigned repair commits use the ordinary reviewed PR path; they do not enable
+trusted repair or auto-merge. API failures and malformed or mismatched commit responses still fail
+closed. Retarget cleanup and substantive native validation remain separate from this eligibility
+decision.
+
+After the initial live PR identity is verified, the prepare job records its exact base and head and
+defaults eligibility to false before looking up commit verification. If that later lookup fails,
+the prepare job fails and its downstream repair and auto-merge jobs remain blocked; a separate
+`always()` cleanup may still disable inherited auto-merge after it independently revalidates the
+same open Dependabot PR and head. It skips cleanly when the REST response says `auto_merge: null`,
+and rejects a missing or malformed `auto_merge` value. The cleanup uses
+`DEPENDABOT_AUTOMERGE_TOKEN`; its fresh identity check narrows the race but is not an atomic
+compare-and-disable operation.
 
 Read-only publishers revalidate the live Dependabot identity, base and head SHAs, raw Git change
 types, candidate and artifact allowlists, artifact provenance, hashes, and the head lease. They

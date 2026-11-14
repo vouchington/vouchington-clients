@@ -3,6 +3,16 @@ import Foundation
 import XCTest
 
 final class LandingPageEndpointCoverageTests: XCTestCase {
+    func testCandidatePaginationForwardsOpaqueParameters() {
+        let cursor = "opaque+/= &cursor"
+        let endpoint = Endpoint.myLandingPageCandidates(limit: 37, after: cursor)
+        XCTAssertEqual(endpoint.queryItems, [
+            URLQueryItem(name: "limit", value: "37"),
+            URLQueryItem(name: "after", value: cursor)
+        ])
+        XCTAssertTrue(Endpoint.myLandingPageCandidates().queryItems.isEmpty)
+    }
+
     func testLandingPageEndpointsUseExpectedRoutesAndBodies() {
         assertEndpoint(Endpoint.myLandingPages, path: "/api/v1/my/landing-pages")
         assertEndpoint(Endpoint.myLandingPageCandidates, path: "/api/v1/my/landing-pages/candidates")
@@ -110,6 +120,52 @@ final class LandingPageEndpointCoverageTests: XCTestCase {
                     ]
                 ]
             ]
+        )
+    }
+
+    func testProductSurfaceSignalsMatchTheWebRequestShape() {
+        assertEndpoint(
+            Endpoint.landingPageVisit(
+                landingPageId: "page 1",
+                signal: LandingPageVisitSignal(utmSource: "newsletter", utmMedium: "email")
+            ),
+            method: .POST,
+            path: "/api/v1/landing-pages/page%201/visits",
+            body: ["utm_source": "newsletter", "utm_medium": "email"]
+        )
+        assertEndpoint(
+            Endpoint.landingPageVisit(landingPageId: "page 1", signal: LandingPageVisitSignal()),
+            method: .POST,
+            path: "/api/v1/landing-pages/page%201/visits",
+            body: [:]
+        )
+        assertEndpoint(
+            Endpoint.landingPageClick(
+                landingPageId: "page 1",
+                signal: LandingPageClickSignal(landingPageItemId: "item 1", groupMemberId: "member 1")
+            ),
+            method: .POST,
+            path: "/api/v1/landing-pages/page%201/clicks",
+            body: ["landing_page_item_id": "item 1", "group_member_id": "member 1"]
+        )
+        assertEndpoint(
+            Endpoint.landingPageClick(
+                landingPageId: "page 1",
+                signal: LandingPageClickSignal(landingPageItemId: "item 1")
+            ),
+            method: .POST,
+            path: "/api/v1/landing-pages/page%201/clicks",
+            body: ["landing_page_item_id": "item 1"]
+        )
+        assertEndpoint(
+            Endpoint.rssFeedView(rssFeedId: "feed 1"),
+            method: .POST,
+            path: "/api/v1/rss-feeds/feed%201/views"
+        )
+        assertEndpoint(
+            Endpoint.rssFeedItemView(itemId: "item 1"),
+            method: .POST,
+            path: "/api/v1/rss-feed-items/item%201/views"
         )
     }
 }

@@ -9,7 +9,7 @@ using Voucha.Client.Core.Auth;
 namespace Voucha.Client.App;
 
 #if MACCATALYST
-public sealed class PlatformPasskeyAssertionProvider :
+public sealed partial class PlatformPasskeyAssertionProvider :
     NSObject,
     IPasskeyAssertionProvider,
     IASAuthorizationControllerDelegate,
@@ -36,18 +36,7 @@ public sealed class PlatformPasskeyAssertionProvider :
 
     cancellationToken.ThrowIfCancellationRequested();
 
-    ASAuthorizationPlatformPublicKeyCredentialAssertionRequest request;
-    using (var provider = new ASAuthorizationPlatformPublicKeyCredentialProvider(options.RpId))
-    {
-      request = provider.CreateCredentialAssertionRequest(NSData.FromArray(Base64UrlDecode(options.Challenge)));
-      request.UserVerificationPreference = UserVerificationPreference(options.UserVerification);
-      request.AllowedCredentials = (options.AllowCredentials ?? [])
-          .Select(credential => new ASAuthorizationPlatformPublicKeyCredentialDescriptor(
-              NSData.FromArray(Base64UrlDecode(credential.Id))))
-          .ToArray();
-    }
-
-    controller = new ASAuthorizationController([request])
+    controller = new ASAuthorizationController(CreateRequests(options))
     {
       Delegate = this,
       PresentationContextProvider = this,
@@ -84,46 +73,29 @@ public sealed class PlatformPasskeyAssertionProvider :
   [Export("authorizationController:didCompleteWithAuthorization:")]
   public void DidComplete(ASAuthorizationController controller, ASAuthorization authorization)
   {
-    if (authorization.GetCredential<ASAuthorizationPlatformPublicKeyCredentialAssertion>() is not { } assertion)
+    using var credentialKey = new NSString("credential");
+    var credential = authorization.ValueForKey(credentialKey);
+    if (credential is ASAuthorizationPlatformPublicKeyCredentialAssertion platform)
+    {
+      Finish(PasskeyAssertionEncoding.Create(platform.CredentialId.ToArray(),
+          platform.RawAuthenticatorData.ToArray(), platform.RawClientDataJson.ToArray(),
+          platform.Signature.ToArray(), platform.UserId?.ToArray()));
+    }
+    else if (credential is ASAuthorizationSecurityKeyPublicKeyCredentialAssertion securityKey)
+    {
+      Finish(PasskeyAssertionEncoding.Create(securityKey.CredentialId.ToArray(),
+          securityKey.RawAuthenticatorData.ToArray(), securityKey.RawClientDataJson.ToArray(),
+          securityKey.Signature.ToArray(), securityKey.UserId?.ToArray()));
+    }
+    else
     {
       Finish(new InvalidOperationException("AuthenticationServices returned an invalid passkey assertion."));
-      return;
     }
-
-    var credentialId = assertion.CredentialId.ToArray().Base64UrlEncode();
-    Finish(new PasskeyAssertionResponse(
-        credentialId,
-        credentialId,
-        new PasskeyAssertionAuthenticatorResponse(
-            assertion.RawAuthenticatorData.ToArray().Base64UrlEncode(),
-            assertion.RawClientDataJson.ToArray().Base64UrlEncode(),
-            assertion.Signature.ToArray().Base64UrlEncode(),
-            assertion.UserId.ToArray().Base64UrlEncode())));
   }
 
   [Export("authorizationController:didCompleteWithError:")]
   public void DidComplete(ASAuthorizationController controller, NSError error) =>
       Finish(new InvalidOperationException(error.LocalizedDescription));
-
-  private static NSString UserVerificationPreference(string? preference) =>
-      preference switch
-      {
-        "required" => ASAuthorizationPublicKeyCredentialUserVerificationPreference.Required,
-        "discouraged" => ASAuthorizationPublicKeyCredentialUserVerificationPreference.Discouraged,
-        _ => ASAuthorizationPublicKeyCredentialUserVerificationPreference.Preferred,
-      };
-
-  private static byte[] Base64UrlDecode(string value)
-  {
-    var base64 = value.Replace('-', '+').Replace('_', '/');
-    var padding = base64.Length % 4;
-    if (padding > 0)
-    {
-      base64 = base64.PadRight(base64.Length + 4 - padding, '=');
-    }
-
-    return Convert.FromBase64String(base64);
-  }
 
   protected override void Dispose(bool disposing)
   {

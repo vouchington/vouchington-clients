@@ -3,13 +3,13 @@ import VouchaModels
 
 extension MemberAppealsViewModel {
     func loadTracking(_ client: APIClient) async throws {
-        async let pending: Result<ModerationAppealListResponse, Error> = captureInitialResponse {
+        async let pending: Result<MemberAppealListResponse, Error> = captureInitialResponse {
             try await client.send(.appeals(status: .pending, limit: 25, mine: true))
         }
-        async let resolved: Result<ModerationAppealListResponse, Error> = captureInitialResponse {
+        async let resolved: Result<MemberAppealListResponse, Error> = captureInitialResponse {
             try await client.send(.appeals(status: .resolved, limit: 25, mine: true))
         }
-        async let dismissed: Result<ModerationAppealListResponse, Error> = captureInitialResponse {
+        async let dismissed: Result<MemberAppealListResponse, Error> = captureInitialResponse {
             try await client.send(.appeals(status: .dismissed, limit: 25, mine: true))
         }
         async let warnings: Result<MemberWarningNoticesResponse, Error> = captureInitialResponse {

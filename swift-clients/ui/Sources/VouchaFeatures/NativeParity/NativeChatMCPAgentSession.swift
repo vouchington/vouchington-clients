@@ -22,29 +22,21 @@ public final class NativeChatMCPAgentSession {
         case failed
     }
 
-    public private(set) var accountId: String?
+    public var requestWriteAccess = false
+    public internal(set) var accountId: String?
     public internal(set) var status: Status = .disconnected
     public internal(set) var toolCatalog: DecodedJSONValue?
     public internal(set) var lastError: UiVerbatimText?
     public internal(set) var revision = 0
 
     let service: any NativeChatMCPServicing
-    private var generation = 0
-    private var operation: Task<DecodedJSONValue, Error>?
+    var generation = 0
+    var operation: Task<DecodedJSONValue, Error>?
     private var pendingCleanupAccountIds: [String] = []
     var inFlightCalls: [UUID: Task<MemberMCPClient.ToolResult, Error>] = [:]
 
     public init(service: any NativeChatMCPServicing) {
         self.service = service
-    }
-
-    public func connectedSnapshot() -> ConnectedSnapshot? {
-        guard status == .connected, let accountId, let toolCatalog else { return nil }
-        return .init(accountId: accountId, revision: revision, catalog: toolCatalog)
-    }
-
-    public func isCurrent(_ snapshot: ConnectedSnapshot) -> Bool {
-        status == .connected && accountId == snapshot.accountId && revision == snapshot.revision
     }
 
     public func useAccount(_ nextAccountId: String?) async {
@@ -56,6 +48,7 @@ public final class NativeChatMCPAgentSession {
         operation = nil
         cancelCalls()
         let previousAccountId = accountId
+        requestWriteAccess = false
         accountId = nextAccountId
         toolCatalog = nil
         lastError = nil
@@ -73,7 +66,7 @@ public final class NativeChatMCPAgentSession {
         status = .disconnected
     }
 
-    public func connect(presentationWindow: AnyObject? = nil) async throws {
+    public func connect(presentationWindow: AnyObject? = nil, scope: String? = nil) async throws {
         guard let accountId, status != .switchingAccount, status != .connecting else { return }
         generation += 1
         revision += 1
@@ -81,10 +74,18 @@ public final class NativeChatMCPAgentSession {
         operation?.cancel()
         cancelCalls()
         status = .connecting
+        toolCatalog = nil
         lastError = nil
         let task = Task {
             try await drainPendingCleanup()
             try Task.checkCancellation()
+            if let scope {
+                return try await service.authorize(
+                    accountId: accountId,
+                    scope: scope,
+                    presentationWindow: presentationWindow
+                )
+            }
             return try await service.connect(accountId: accountId, presentationWindow: presentationWindow)
         }
         operation = task
@@ -98,34 +99,13 @@ public final class NativeChatMCPAgentSession {
         } catch {
             guard generation == currentGeneration, self.accountId == accountId else { return }
             toolCatalog = nil
-            lastError = .verbatim(error.localizedDescription)
-            status = .failed
-            operation = nil
-            throw error
-        }
-    }
-
-    public func refreshTools() async throws {
-        guard let accountId, status == .connected else { return }
-        generation += 1
-        revision += 1
-        let currentGeneration = generation
-        operation?.cancel()
-        cancelCalls()
-        toolCatalog = nil
-        let task = Task { try await service.refreshTools(accountId: accountId) }
-        operation = task
-        do {
-            let catalog = try await task.value
+            if scope != nil, let catalog = try? await service.refreshTools(accountId: accountId) {
+                guard generation == currentGeneration, self.accountId == accountId else { return }
+                toolCatalog = try? NativeChatMCPToolCatalog.validatedCapacity(catalog)
+            }
             guard generation == currentGeneration, self.accountId == accountId else { return }
-            toolCatalog = try NativeChatMCPToolCatalog.validatedCapacity(catalog)
-            lastError = nil
-            operation = nil
-        } catch {
-            guard generation == currentGeneration, self.accountId == accountId else { return }
-            toolCatalog = nil
             lastError = .verbatim(error.localizedDescription)
-            status = .failed
+            status = toolCatalog == nil ? .failed : .connected
             operation = nil
             throw error
         }
@@ -155,45 +135,17 @@ public final class NativeChatMCPAgentSession {
         }
     }
 
-    private func enqueueCleanup(_ accountId: String) {
+    func enqueueCleanup(_ accountId: String) {
         if !pendingCleanupAccountIds.contains(accountId) {
             pendingCleanupAccountIds.append(accountId)
         }
     }
 
-    private func drainPendingCleanup() async throws {
+    func drainPendingCleanup() async throws {
         while let accountId = pendingCleanupAccountIds.first {
             try await service.disconnect(accountId: accountId)
             pendingCleanupAccountIds.removeAll { $0 == accountId }
         }
     }
 
-}
-
-public extension NativeChatMCPAgentSession {
-    /// Completes local grant removal while the app still knows which member is signing out.
-    func prepareForSignOut(accountId signingOutAccountId: String) async throws {
-        generation += 1
-        revision += 1
-        let currentGeneration = generation
-        operation?.cancel()
-        operation = nil
-        cancelCalls()
-        if let accountId { enqueueCleanup(accountId) }
-        enqueueCleanup(signingOutAccountId)
-        accountId = nil
-        toolCatalog = nil
-        lastError = nil
-        status = .switchingAccount
-        do {
-            try await drainPendingCleanup()
-            guard generation == currentGeneration else { return }
-            status = .disconnected
-        } catch {
-            guard generation == currentGeneration else { throw error }
-            status = .failed
-            lastError = .verbatim(error.localizedDescription)
-            throw error
-        }
-    }
 }

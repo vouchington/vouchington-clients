@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaAPI
+import VouchaCore
 import VouchaModels
 import XCTest
 
@@ -47,10 +48,37 @@ final class ImportExportEndpointTests: XCTestCase {
         )
     }
 
+    func testStatusCursorSurvivesRequestEncoding() async throws {
+        let client = APIClient(bootstrapSession: false)
+        let request = try await client.buildRequest(.rssFeedImportStatus(importId: "batch", after: "opaque+/=?&"))
+        let url = try XCTUnwrap(request.url)
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        XCTAssertEqual(url.path, "/api/v1/my/import/rss-feeds/batch")
+        XCTAssertEqual(query, [.init(name: "after", value: "opaque+/=?&")])
+    }
+
+    func testRelationLimit409PreservesPublicErrorCode() async throws {
+        struct EmptyResponse: Decodable {}
+        CapturingURLProtocol.responseStatusCode = 409
+        CapturingURLProtocol.responseData = Data(#"{"code":"RELATION_LIMIT_REACHED"}"#.utf8)
+        let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
+        do {
+            let _: EmptyResponse = try await client.send(.followUser(userId: "other"))
+            XCTFail("Expected relation refusal")
+        } catch let VouchaError.api(statusCode, code) {
+            XCTAssertEqual(statusCode, 409)
+            XCTAssertEqual(code, "RELATION_LIMIT_REACHED")
+        }
+    }
+
     func testSourceStatusAndExportEndpoints() {
         assertEndpoint(
             .rssFeedImportStatus(importId: "70000000-0000-7000-8000-000000000001"),
             path: "/api/v1/my/import/rss-feeds/70000000-0000-7000-8000-000000000001"
+        )
+        XCTAssertEqual(
+            Endpoint.rssFeedImportStatus(importId: "batch", after: "opaque+/=").queryItems,
+            [.init(name: "after", value: "opaque+/=")]
         )
         let csv = Endpoint.exportRssFeeds(feedType: .podcast, format: .csv)
         XCTAssertEqual(
@@ -95,6 +123,91 @@ final class ImportExportEndpointTests: XCTestCase {
             XCTAssertEqual(try Data(contentsOf: url), expected)
         }
     #endif
+
+    func testStagedRssStatusPreservesTerminalPaginationMetadata() throws {
+        for id in ["native.import-export.rss-feeds.status.retrying", "native.import-export.rss-feeds.status.partial"] {
+            let data = ApiFixtureLoader.data(id)
+            let original = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let page = try XCTUnwrap(original["page_info"] as? [String: Any])
+            let status = try makeVouchaDecoder().decode(RssFeedImportStatus.self, from: data)
+            XCTAssertFalse(status.pageInfo.hasNextPage)
+            XCTAssertEqual(status.pageInfo.startCursor, try XCTUnwrap(page["start_cursor"] as? String))
+            XCTAssertNil(status.pageInfo.endCursor)
+            let encoder = JSONEncoder()
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(status)) as? [String: Any])
+            XCTAssertEqual(encoded["page_info"] as? NSDictionary, page as NSDictionary)
+            let constructed = RssFeedImportStatus(import: status.import, rows: status.rows)
+            XCTAssertEqual(constructed.pageInfo, .init(hasNextPage: false))
+        }
+    }
+
+    func testRssStatusPreservesOpaqueContinuationCursorsAndRequiresMetadata() throws {
+        var fields = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("native.import-export.rss-feeds.status.retrying")
+        ) as? [String: Any])
+        // The real status fixture is terminal; this in-memory page exercises continuation metadata.
+        let page: [String: Any] = [
+            "has_next_page": true, "start_cursor": "opaque+/=first", "end_cursor": "opaque+/=next"
+        ]
+        fields["page_info"] = page
+        let status = try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: JSONSerialization.data(withJSONObject: fields)
+        )
+        XCTAssertEqual(status.pageInfo, .init(
+            hasNextPage: true, endCursor: "opaque+/=next", startCursor: "opaque+/=first"
+        ))
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(status)) as? [String: Any])
+        XCTAssertEqual(encoded["page_info"] as? NSDictionary, page as NSDictionary)
+        fields.removeValue(forKey: "page_info")
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: JSONSerialization.data(withJSONObject: fields)
+        ))
+    }
+
+    func testCanonicalRssRowsPreserveTypedErrorsAndTopicIdentity() throws {
+        let retrying = try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: ApiFixtureLoader.data("native.import-export.rss-feeds.status.retrying")
+        )
+        XCTAssertEqual(retrying.rows[0].status, .pending)
+        XCTAssertEqual(retrying.rows[0].errorCode, .importFailed)
+        XCTAssertNil(retrying.rows[0].error)
+        XCTAssertTrue(retrying.rows[0].isRetrying)
+        XCTAssertFalse(retrying.rows[1].isRetrying)
+        XCTAssertNil(retrying.rows[1].errorCode)
+        XCTAssertEqual(retrying.import.pendingRows, 2)
+        XCTAssertEqual(retrying.import.failedRows, 0)
+
+        let partial = try makeVouchaDecoder().decode(
+            RssFeedImportStatus.self, from: ApiFixtureLoader.data("native.import-export.rss-feeds.status.partial")
+        )
+        XCTAssertEqual(partial.rows[0].status, .followed)
+        XCTAssertEqual(partial.rows[0].entityId, "70000000-0000-7000-8000-000000000004")
+        XCTAssertEqual(partial.rows[0].topicSlug, "local-news")
+        XCTAssertNil(partial.rows[0].errorCode)
+        XCTAssertEqual(partial.rows[1].status, .error)
+        XCTAssertFalse(partial.rows[1].isRetrying)
+        XCTAssertEqual(partial.rows[1].errorCode, .importFailed)
+        XCTAssertEqual(partial.import.pendingRows, 0)
+        XCTAssertNotNil(partial.import.completedAt)
+    }
+
+    func testRssErrorCodesPreserveCanonicalWireValues() throws {
+        let values: [(String, RssFeedImportErrorCode)] = [
+            ("INVALID_URL", .invalidURL), ("INVALID_FEED_CONTENT", .invalidFeedContent),
+            ("FEED_FETCH_TIMEOUT", .feedFetchTimeout),
+            ("CONTRIBUTION_LIMIT_EXCEEDED", .contributionLimitExceeded), ("IMPORT_FAILED", .importFailed),
+            ("RELATION_LIMIT_REACHED", .relationLimitReached), ("ACCOUNT_SUSPENDED", .accountSuspended)
+        ]
+        for (wire, expected) in values {
+            let data = Data("\"\(wire)\"".utf8)
+            XCTAssertEqual(try JSONDecoder().decode(RssFeedImportErrorCode.self, from: data), expected)
+            XCTAssertEqual(try JSONEncoder().encode(expected), data)
+        }
+        XCTAssertThrowsError(try JSONDecoder().decode(RssFeedImportErrorCode.self, from: Data("\"UNKNOWN\"".utf8)))
+    }
 
     func testImportExportFixturesRoundTripWithoutDroppingFields() throws {
         try assertFixtureCoversDTO(

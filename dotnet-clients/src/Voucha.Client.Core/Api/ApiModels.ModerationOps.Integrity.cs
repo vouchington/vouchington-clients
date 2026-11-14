@@ -18,7 +18,10 @@ public sealed record VoteIntegrityFlag(
     [property: JsonPropertyName("resolved_at")] DateTimeOffset? ResolvedAt,
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById,
     [property: JsonPropertyName("resolution")] string? Resolution,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("entity_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string EntityLabel = "",
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);
 
 public sealed record VoteIntegrityFlagsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<VoteIntegrityFlag> Results,
@@ -40,7 +43,17 @@ public sealed record VoteWeightPenalty(
     [property: JsonPropertyName("created_by_id")] string? CreatedById,
     [property: JsonPropertyName("revoked_at")] DateTimeOffset? RevokedAt,
     [property: JsonPropertyName("revoked_by_id")] string? RevokedById,
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("user_username")] string? UserUsername = null,
+    [property: JsonPropertyName("user_display_name")] string? UserDisplayName = null,
+    [property: JsonPropertyName("creator_username")] string? CreatorUsername = null,
+    [property: JsonPropertyName("creator_display_name")] string? CreatorDisplayName = null,
+    [property: JsonPropertyName("revoker_username")] string? RevokerUsername = null,
+    [property: JsonPropertyName("revoker_display_name")] string? RevokerDisplayName = null,
+    [property: JsonPropertyName("source_flag_type")] string? SourceFlagType = null,
+    [property: JsonPropertyName("reviewed_by_id")] string? ReviewedById = null,
+    [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt = null,
+    [property: JsonPropertyName("review_due_at")] DateTimeOffset? ReviewDueAt = null);
 
 public sealed record VoteIntegrityPenaltyFilterScope(
     [property: JsonPropertyName("source")] string Source,
@@ -68,7 +81,11 @@ public sealed record ReportIntegrityFlag(
     [property: JsonPropertyName("resolved_by_id")] string? ResolvedById,
     [property: JsonPropertyName("resolution")] string? Resolution,
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-    [property: JsonPropertyName("vote_count")] int? VoteCount = null);
+    [property: JsonPropertyName("vote_count")] int? VoteCount = null,
+    [property: JsonPropertyName("entity_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string EntityLabel = "",
+    [property: JsonPropertyName("reported_username")] string? ReportedUsername = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);
 
 public sealed record ReportIntegrityFlagsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<ReportIntegrityFlag> Results,
@@ -86,7 +103,17 @@ public sealed record ReportAbusePenalty(
     [property: JsonPropertyName("revoked_at")] DateTimeOffset? RevokedAt = null,
     [property: JsonPropertyName("revoked_by_id")] string? RevokedById = null,
     [property: JsonPropertyName("created_at")] DateTimeOffset? CreatedAt = null,
-    [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null);
+    [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt = null,
+    [property: JsonPropertyName("user_username")] string? UserUsername = null,
+    [property: JsonPropertyName("user_display_name")] string? UserDisplayName = null,
+    [property: JsonPropertyName("creator_username")] string? CreatorUsername = null,
+    [property: JsonPropertyName("creator_display_name")] string? CreatorDisplayName = null,
+    [property: JsonPropertyName("revoker_username")] string? RevokerUsername = null,
+    [property: JsonPropertyName("revoker_display_name")] string? RevokerDisplayName = null,
+    [property: JsonPropertyName("source_flag_type")] string? SourceFlagType = null,
+    [property: JsonPropertyName("reviewed_by_id")] string? ReviewedById = null,
+    [property: JsonPropertyName("reviewed_at")] DateTimeOffset? ReviewedAt = null,
+    [property: JsonPropertyName("review_due_at")] DateTimeOffset? ReviewDueAt = null);
 
 public sealed record ReportIntegrityPenaltyResponse(
     [property: JsonPropertyName("flag")] ReportIntegrityFlag Flag,

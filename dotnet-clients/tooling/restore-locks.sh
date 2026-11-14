@@ -40,6 +40,7 @@ expected_workload="$(jq -er '.sdk.workloadVersion' "$root/global.json")"
 MSBuildEnableWorkloadResolver=false ArtifactsPath="$artifacts_root/portable" dotnet restore "${restore_mode[@]}" -p:Configuration=Release Voucha.DotNet.sln
 ArtifactsPath="$artifacts_root/app-tests" dotnet restore "${restore_mode[@]}" -p:Configuration=Release tests/Voucha.Client.App.Tests/Voucha.Client.App.Tests.csproj
 ArtifactsPath="$artifacts_root/windows-image-preview-tests" dotnet restore "${restore_mode[@]}" -p:Configuration=Release tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj
+ArtifactsPath="$artifacts_root/windows-language-model-surface-tests" dotnet restore "${restore_mode[@]}" -p:Configuration=Release tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj
 # The standalone Mac Catalyst App restore reaches Core as one framework, while the portable
 # solution restore above keeps Core's generic lock. Give this graph its own no-RID Core lock;
 # RID restores below continue to use the architecture-specific lock files.
@@ -73,6 +74,7 @@ locks=(
   src/Voucha.Client.Core/packages.net10.0-maccatalyst.maccatalyst-x64.lock.json
   tests/Voucha.Client.App.Tests/packages.lock.json
   tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json
+  tests/Voucha.Client.WindowsLanguageModelSurface.Tests/packages.lock.json
   tests/Voucha.Client.Core.Tests/packages.lock.json
 )
 for lock in "${locks[@]}"; do

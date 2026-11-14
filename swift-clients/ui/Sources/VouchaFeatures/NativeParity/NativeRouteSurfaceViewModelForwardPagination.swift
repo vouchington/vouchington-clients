@@ -48,6 +48,7 @@ extension NativeRouteSurfaceViewModel {
 
     private var supportsForwardPagination: Bool {
         guard focusedRssFeedItemId == nil else { return false }
+        if topicPostCollection != nil { return true }
         return switch destination {
         case .feedPosts, .postsBrowse, .storiesBrowse,
              .feedNews, .feedPodcasts, .feedVideos,
@@ -65,6 +66,7 @@ extension NativeRouteSurfaceViewModel {
     private var moderationPathSupportsForwardPagination: Bool {
         guard let path = routeMatch?.path else { return true }
         return path == "/appeals"
+            || path == "/my/appeals"
             || path == "/admin/modlog"
             || path.contains("disputes")
             || path.contains("vote-integrity")
@@ -73,7 +75,7 @@ extension NativeRouteSurfaceViewModel {
 
     private func loadForwardPage(client: APIClient, after: String?) async throws -> NativeForwardPage {
         switch destination {
-        case .feedPosts, .postsBrowse, .storiesBrowse:
+        case .feedPosts, .postsBrowse, .storiesBrowse, .topicDetail, .sourceDetail:
             try await loadPostPage(client: client, after: after)
         case .feedNews, .feedPodcasts, .feedVideos:
             try await loadRssFeedItemPage(client: client, after: after)

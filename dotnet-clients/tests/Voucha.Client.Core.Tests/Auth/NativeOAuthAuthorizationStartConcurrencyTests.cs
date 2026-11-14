@@ -112,7 +112,7 @@ public sealed class NativeOAuthAuthorizationStartConcurrencyTests
       RecordingHandler handler,
       INativeOAuthAuthorizationPersistence persistence) =>
       new(
-          new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }),
+          new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") }, new TestAccountChangeConfirmation()),
           persistence,
           new SuccessfulBrowser(),
           new NoopSessionStore(),

@@ -49,7 +49,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(applicationRows, [
             verbatimRow(
                 icon: "doc.badge.clock",
-                title: "Application application-1",
+                title: "Application testuser",
                 detail: "Awaiting review"
             )
         ])
@@ -312,10 +312,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (
-            Data(
-                #"{"results":[{"id":"application-1"}],"page_info":{"has_next_page":false,"end_cursor":null},"community_applications":{}}"#
-                    .utf8
-            ),
+            ApiFixtureLoader.data("web.communities.applications.default"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/invites"] = (
@@ -353,7 +350,7 @@ final class CommunitySurfaceRoutingTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/reports/pending"] = (
             Data(
                 """
-                {"reports":[{"id":"report-1","case_id":"case-report-1","entity_type":"post","entity_id":"post-report-1","target_label":"report-1","target_path":null,"target_content":null,"reason":"spam","status":"pending","report_count":1,"created_at":"2026-01-01T00:00:00Z","reviewed_at":null,"target_user_id":null,"reporter_user_id":null,"reporter_username":null,"note":null,"resolved_by_id":null,"admin_action_path":null,"target_available":true,"judgement":null,"community_ban_evasion":null,"claim":null,"escalated_at":null,"escalated_by_id":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}
+                {"reports":[{"id":"report-1","case_id":"case-report-1","entity_type":"post","entity_id":"post-report-1","target_label":"report-1","target_path":null,"target_content":null,"reason":"spam","status":"pending","report_count":1,"created_at":"2026-01-01T00:00:00Z","reviewed_at":null,"target_user_id":null,"reporter_user_id":null,"reporter_username":null,"note":null,"resolved_by_id":null,"admin_action_path":null,"target_available":true,"automatic_judgement_enabled":false,"judgement":null,"community_ban_evasion":null,"claim":null,"escalated_at":null,"escalated_by_id":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}
                 """.utf8
             ),
             200

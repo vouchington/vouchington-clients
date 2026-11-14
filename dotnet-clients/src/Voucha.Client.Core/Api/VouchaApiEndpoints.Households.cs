@@ -2,6 +2,8 @@ namespace Voucha.Client.Core.Api;
 
 public static partial class VouchaApiEndpoints
 {
+  public static ApiRequest CurrentIndividual() => Get("/api/v1/me/individual");
+
   public static ApiRequest Households(
       HouseholdAccess access = HouseholdAccess.All,
       string? after = null,

@@ -13,7 +13,7 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
     };
     var viewModel = new LandingPagesViewModel(service)
     {
@@ -59,10 +59,10 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([initialPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(initialPage),
-      UpdateResponse = new LandingPageDetailResponse(MakePage(title: "Updated Links")),
-      DefaultResponse = new LandingPageDetailResponse(MakePage(title: "Updated Links", isDefault: true)),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(initialPage) { ItemLimit = 100 },
+      UpdateResponse = new LandingPageDetailResponse(MakePage(title: "Updated Links")) { ItemLimit = 100 },
+      DefaultResponse = new LandingPageDetailResponse(MakePage(title: "Updated Links", isDefault: true)) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
 
@@ -98,8 +98,8 @@ public sealed class LandingPagesViewModelMutationResilienceTests
       PagesResponse = new LandingPagesResponse(
           [MakePage(isDefault: true), travelPage],
           new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(travelPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(travelPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     viewModel.SetInitialSlug("travel");
@@ -119,13 +119,13 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([defaultPage, travelPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(defaultPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(defaultPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    service.DetailResponse = new LandingPageDetailResponse(travelPage);
+    service.DetailResponse = new LandingPageDetailResponse(travelPage) { ItemLimit = 100 };
     viewModel.SetInitialSlug("travel");
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
@@ -142,13 +142,13 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([defaultPage, travelPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(defaultPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(defaultPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    service.DetailResponse = new LandingPageDetailResponse(travelPage);
+    service.DetailResponse = new LandingPageDetailResponse(travelPage) { ItemLimit = 100 };
     await viewModel.SelectPageAsync("landing-page-2", TestContext.Current.CancellationToken);
 
     service.PagesResponse = new LandingPagesResponse([defaultPage], new PageInfo(null, false, null));
@@ -171,7 +171,7 @@ public sealed class LandingPagesViewModelMutationResilienceTests
             MakePage(id: "landing-page-2", title: "Travel Stack", slug: "travel"),
           ],
           new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
     };
     var viewModel = new LandingPagesViewModel(service);
     viewModel.SetInitialSlug("missing");
@@ -194,8 +194,8 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([MakePage(isDefault: true), travelPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(travelPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(travelPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     viewModel.SetInitialSlug("travel");
@@ -219,13 +219,13 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([defaultPage, travelPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(defaultPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(defaultPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     service.PagesResponse = new LandingPagesResponse([travelPage], new PageInfo(null, false, null));
-    service.DetailResponse = new LandingPageDetailResponse(travelPage);
+    service.DetailResponse = new LandingPageDetailResponse(travelPage) { ItemLimit = 100 };
 
     var deleted = await viewModel.DeleteSelectedAsync(TestContext.Current.CancellationToken);
 
@@ -303,9 +303,9 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([originalPage], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(originalPage),
-      UpdateResponse = new LandingPageDetailResponse(renamedPage),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(originalPage) { ItemLimit = 100 },
+      UpdateResponse = new LandingPageDetailResponse(renamedPage) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     viewModel.SetInitialSlug("featured");
@@ -316,7 +316,7 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var saved = await viewModel.SaveDetailsAsync(TestContext.Current.CancellationToken);
 
     service.PagesResponse = new LandingPagesResponse([renamedPage], new PageInfo(null, false, null));
-    service.DetailResponse = new LandingPageDetailResponse(renamedPage);
+    service.DetailResponse = new LandingPageDetailResponse(renamedPage) { ItemLimit = 100 };
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
     Assert.True(saved);
@@ -342,7 +342,7 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     Assert.True(viewModel.IsLoading);
     var secondCreate = await viewModel.CreateAsync("Ignored", null, "ignored", TestContext.Current.CancellationToken);
 
-    createGate.SetResult(new LandingPageDetailResponse(createdPage));
+    createGate.SetResult(new LandingPageDetailResponse(createdPage) { ItemLimit = 100 });
     Assert.True(await firstCreate);
     Assert.False(secondCreate);
     Assert.Equal(1, service.CreateCalls);
@@ -375,7 +375,7 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     public Task<LandingPagesResponse> FetchPagesAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(PagesResponse ?? throw new InvalidOperationException("Missing pages response."));
 
-    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(CancellationToken cancellationToken = default) =>
+    public Task<LandingPageCandidatesResponse> FetchCandidatesAsync(int? limit = null, string? after = null, CancellationToken cancellationToken = default) =>
         Task.FromResult(CandidatesResponse ?? throw new InvalidOperationException("Missing candidates response."));
 
     public Task<LandingPageAnalyticsResponse> FetchMyLandingPageAnalyticsAsync(
@@ -389,7 +389,7 @@ public sealed class LandingPagesViewModelMutationResilienceTests
         throw new NotSupportedException();
 
     public Task<AdminLandingPageAnalyticsResponse> FetchAdminLandingPageAnalyticsAsync(
-        string pageId,
+        string username, string slug,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
@@ -463,8 +463,8 @@ public sealed class LandingPagesViewModelMutationResilienceTests
     var service = new RecordingLandingPagesService
     {
       PagesResponse = new LandingPagesResponse([MakePage()], new PageInfo(null, false, null)),
-      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])),
-      DetailResponse = new LandingPageDetailResponse(MakePage()),
+      CandidatesResponse = new LandingPageCandidatesResponse(new LandingPageCandidates(false, [], [], [])) { ItemLimit = 100, PageInfo = new(null, false, null) },
+      DetailResponse = new LandingPageDetailResponse(MakePage()) { ItemLimit = 100 },
     };
     var viewModel = new LandingPagesViewModel(service);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);

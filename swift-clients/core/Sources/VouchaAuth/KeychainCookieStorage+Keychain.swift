@@ -37,6 +37,12 @@ import Foundation
                         accessGroup: accessGroup,
                         backend: backend
                     )
+                },
+                commitPersistedCookies: {
+                    try KeychainCookiePersistence.saveChecked(
+                        $0, serviceName: serviceName, keychainKey: keychainKey,
+                        accessGroup: accessGroup, backend: backend
+                    )
                 }
             )
         }

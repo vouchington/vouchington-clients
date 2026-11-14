@@ -41,9 +41,9 @@ public extension PrivateUser {
             githubAccount: githubAccount,
             linkedinAccount: linkedinAccount,
             microsoftAccount: microsoftAccount,
+            googleAccount: googleAccount,
             processingRestrictedAt: processingRestrictedAt,
             thirdPartyMarketing: thirdPartyMarketing,
-            hnDiscussions: hnDiscussions,
             country: country,
             uiLocale: uiLocale
         )

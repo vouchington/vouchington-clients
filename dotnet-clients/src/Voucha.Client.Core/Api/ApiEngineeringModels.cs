@@ -49,7 +49,8 @@ public sealed record PsqlMigrationsResponse(IReadOnlyList<string> Applied, IRead
 
 public sealed record PartitionInfo(
     string Name,
-    [property: JsonPropertyName("size_bytes")] long SizeBytes);
+    [property: JsonPropertyName("size_bytes")] long SizeBytes,
+    [property: JsonPropertyName("drop_refusal")] string? DropRefusal = null);
 
 public sealed record PartitionTable(
     string Name,
@@ -59,7 +60,9 @@ public sealed record PartitionTable(
 
 public sealed record PartitionStatusResponse(IReadOnlyList<PartitionTable> Tables);
 
-public sealed record PsqlJobBody(string Type);
+public sealed record PsqlClassifierRange(string FromDate, string ToDate, int? MaxDefaultRows = null);
+
+public sealed record PsqlJobBody(string Type, PsqlClassifierRange? ClassifierRange = null, PsqlClassifierRange? RequestRange = null);
 
 public sealed record EngineeringSuccessResponse(bool Success);
 

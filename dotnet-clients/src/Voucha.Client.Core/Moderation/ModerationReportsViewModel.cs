@@ -16,8 +16,12 @@ public sealed partial class ModerationReportsViewModel :
   private readonly HashSet<string> selectedIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> actionIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> successfulReportIds = new(StringComparer.Ordinal);
-  private readonly Dictionary<string, string> rowErrors = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, UiText> rowErrors = new(StringComparer.Ordinal);
   private readonly IDisposable? localeSubscription;
+  private readonly ReportJudgementAdmissionStore judgementAdmissions;
+  private readonly ReportJudgementAdmissionStore.OwnerKey? judgementOwner;
+  private readonly int judgementRunReads;
+  private readonly Func<CancellationToken, Task> judgementRunDelay;
   private CancellationTokenSource? loadCancellation;
   private IReadOnlyList<StaffModerationReport> staffReports = [];
   private IReadOnlyList<MemberModerationReport> memberReports = [];
@@ -38,15 +42,27 @@ public sealed partial class ModerationReportsViewModel :
   public ModerationReportsViewModel(
       IModerationService service,
       NavigationViewer viewer,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      int judgementRunReads = ReportJudgementRunReconciliation.DefaultReadCount,
+      Func<CancellationToken, Task>? judgementRunDelay = null,
+      ReportJudgementAdmissionStore? judgementAdmissions = null,
+      Uri? apiBaseUrl = null)
   {
-    this.service = service ?? throw new ArgumentNullException(nameof(service));
     ArgumentNullException.ThrowIfNull(viewer);
+    this.judgementAdmissions = judgementAdmissions ?? new ReportJudgementAdmissionStore();
+    judgementOwner = apiBaseUrl is null && judgementAdmissions is null
+        ? new ReportJudgementAdmissionStore.OwnerKey(Guid.NewGuid().ToString(), "", "", 0, "")
+        : ReportJudgementAdmissionStore.ForOwner(viewer.IdentityId, apiBaseUrl);
+    this.service = service ?? throw new ArgumentNullException(nameof(service));
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(judgementRunReads);
     IsAdministrator = viewer.Roles.Contains("administrator", StringComparer.Ordinal);
     IsStaff = IsAdministrator || viewer.Roles.Contains("moderator", StringComparer.Ordinal);
     mode = IsStaff ? ModerationReportsMode.Grouped : ModerationReportsMode.Flat;
     sort = IsStaff ? ModerationReportSort.Severity : ModerationReportSort.CreatedAtDesc;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    this.judgementRunReads = judgementRunReads;
+    this.judgementRunDelay = judgementRunDelay
+        ?? (token => Task.Delay(ReportJudgementRunReconciliation.ReadSpacing, token));
   }
 
   public bool IsStaff { get; }
@@ -58,19 +74,13 @@ public sealed partial class ModerationReportsViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value)) OnPropertyChanged(nameof(IsQueueInteractionBlocked));
-    }
+    private set => SetPropertyAndNotify(ref state, value, nameof(IsQueueInteractionBlocked));
   }
   public bool IsLoading => State == LoadState.Loading;
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
   public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
   public string? Notice { get => notice; private set => SetProperty(ref notice, value); }
@@ -90,7 +100,11 @@ public sealed partial class ModerationReportsViewModel :
   public IReadOnlyList<StaffModerationReportEntityCluster> Clusters { get => clusters; private set => SetProperty(ref clusters, value); }
   public IReadOnlyList<StaffModerationReportDuplicateCluster> DuplicateClusters { get => duplicateClusters; private set => SetProperty(ref duplicateClusters, value); }
   public IReadOnlySet<string> SelectedIds => selectedIds;
-  public IReadOnlyDictionary<string, string> RowErrors => rowErrors;
+  public IReadOnlyDictionary<string, UiText> RowErrors => rowErrors;
+
+  private static UiText RowError(Exception error) => error is ReportJudgementRunEndedException ended
+      ? UiText.Localized(ended.Key)
+      : UiText.Verbatim(error.Message);
   public bool IsQueueMutationRunning => IsBulkActionRunning || actionIds.Count > 0;
   public bool IsQueueInteractionBlocked => IsLoading || IsQueueMutationRunning;
 

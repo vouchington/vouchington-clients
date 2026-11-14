@@ -63,7 +63,7 @@ private struct ClientIntentParityContract: Decodable {
     let intents: [ClientIntentParityIntent]
 
     static func loadFixtureData() throws -> Data {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/client-intents.json"])
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/client-intents.json"])
         return try Data(contentsOf: root.appendingPathComponent("api-fixtures/v1/client-intents.json"))
     }
 

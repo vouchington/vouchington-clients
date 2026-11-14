@@ -1,10 +1,22 @@
 @testable import VouchaAPI
+import VouchaModels
 
 let pendingAppealsPageCursor =
     "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDEwMiIsInNjb3BlIjoiYXBwZWFsczpwZW5kaW5nOnN0YWZmLWFsbDppZC1kZXNjIn0"
 let pendingAppealId = "00000000-0000-7000-8000-000000000102"
 
 let moderationAppealEndpointRegistry: [String: Endpoint] = [
+    "native.moderation.appeals.member.default": .appeals(status: .pending, limit: 25),
+    "native.moderation.appeals.member.page-2": .appeals(
+        status: .pending, limit: 25,
+        after: "eyJpZCI6IjAwMDAwMDAwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDEwMiIsInNjb3BlIjoiYXBwZWFsczpwZW5kaW5nOnVzZXItMTppZC1kZXNjIn0"
+    ),
+    "native.moderation.appeals.member.resolved": .appeals(status: .resolved, limit: 25),
+    "native.moderation.appeals.detail.member.default": .appeal(id: pendingAppealId),
+    "native.moderation.appeals.detail.member.sent": .appeal(id: pendingAppealId),
+    "native.moderation.appeals.create.member.default": .submitAppeal(ModerationAppealSubmissionRequest(
+        targetType: .suspension, reason: .other, details: "Please review this again."
+    )),
     "native.moderation.appeals.default": Endpoint.appeals(status: .pending, limit: 25),
     "native.moderation.appeals.page-2": Endpoint.appeals(
         status: .pending,
@@ -28,6 +40,22 @@ let moderationAppealEndpointRegistry: [String: Endpoint] = [
     "native.moderation.appeals.resolution.deny": Endpoint.appealResolution(
         id: pendingAppealId,
         action: .deny
+    ),
+    "native.moderation.appeals.resolution-draft-run.active": Endpoint.appealResolutionDraftRun(
+        id: pendingAppealId,
+        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+    ),
+    "native.moderation.appeals.resolution-draft-run.succeeded": Endpoint.appealResolutionDraftRun(
+        id: pendingAppealId,
+        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+    ),
+    "native.moderation.appeals.resolution-draft-run.failed": Endpoint.appealResolutionDraftRun(
+        id: pendingAppealId,
+        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+    ),
+    "native.moderation.appeals.resolution-draft-run.expired": Endpoint.appealResolutionDraftRun(
+        id: pendingAppealId,
+        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
     ),
     "native.moderation.appeals.resolution-drafts.default": Endpoint.appealResolutionDrafts(id: pendingAppealId)
 ]

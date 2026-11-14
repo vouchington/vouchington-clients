@@ -70,5 +70,6 @@ fi
 clean_build_output "$REPO_ROOT"
 
 pnpm --dir "$REPO_ROOT" install --frozen-lockfile
+pnpm --dir "$REPO_ROOT" run prepare
 
 echo "Worktree reset to origin/main on $new_branch."

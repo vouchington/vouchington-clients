@@ -17,17 +17,47 @@ pnpm run test:plan:dotnet --base origin/main --head HEAD
 
 Pass one or more `--changed-file <path>` arguments instead of `--base`/`--head` when planning an
 uncommitted edit. The planner emits the canonical client harness commands; run those commands from
-this checkout so its host-lock and coverage policies apply.
+this checkout so its host-lock and coverage policies apply. Android host plans emit
+`swift-clients/apps/android/tooling/run-android-host-swift-tests.sh` instead of `swift test`.
+That entrypoint requires Xcode 26.6 and Swift 6.3.3 and stops before SwiftPM when they are absent.
+Wrap the emitted command with `swift-clients/tooling/with-build-lock.sh` locally. Hosted CI runs
+the same command without the lock. Swift 6.4 remains the Android SDK and Gradle toolchain.
 
 Vouchington remains the producer of the shared API fixture and localization inputs. Its durable
 references are the
 [API fixture contract](https://github.com/vouchington/vouchington/blob/main/backend/test-helpers/api-fixtures/README.md)
 and
 [native localization exporter](https://github.com/vouchington/vouchington/blob/main/dev/native-localization.mts).
-Stage those producer outputs with `scripts/stage-native-contract.mjs`, then point
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
-`contracts:check`. Native quality and test planning never read product source from Vouchington.
+Run `pnpm run contracts:pull` to fetch the commit pinned in `contracts/vouchington.json`, run the
+exporter against this checkout, and write the (gitignored) generated localization; export the root
+it prints as `VOUCHA_CONTRACT_ROOT` for fixture tests. Native quality and test planning never read
+product source from Vouchington.
+
+Rerun `contracts:pull` after changing product localization references, even when generated
+resources have not changed: the producer exporter checks unknown keys and unused consumer claims
+against this checkout. `contracts:check` reruns that staging without writing, so it validates the
+final product references too.
+
+Collect local .NET patch coverage with the portable CI filter
+`FullyQualifiedName!~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto`, then run
+`pnpm run coverage:dotnet-core`. The separately run DTO round-trip advisory intentionally does not
+contribute to the coverage gate.
 
 CI placement is a quality rule: portable .NET tests run once on Linux; Swift core tests run on
 Linux and macOS only because those jobs compile different networking and Security slices. See
 [native CI test placement](native-ci-test-placement.md).
+
+## Refresh a stale stacked pull-request candidate
+
+The native contract handoff is bound to the event's pull request number, base SHA, head SHA, and
+merge revision. If verification reports that the live pull request no longer matches the artifact,
+that run is stale. Do not reuse its artifact or rely on rerunning the same event: the original event
+identity remains unchanged.
+
+For a stacked pull request, wait until its parent has landed on the intended base. Then update the
+child's base and branch to the current parent result and push the real child update. Use only the new
+pull-request event run, after its artifact's number, base SHA, head SHA, and merge revision all
+match the live pull request and merge ref. Artifact verification also binds the producing run ID
+and attempt; both must match the new run. If any identity differs, keep the stale run rejected and
+refresh the child again from the current parent result. This recovery preserves exact-candidate
+verification; it does not turn a stale artifact into a valid one.

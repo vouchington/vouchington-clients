@@ -13,7 +13,7 @@ struct MemberModerationReportCard: View {
         GroupBox {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 reportHeader(
-                    label: report.targetLabel ?? report.entityType,
+                    label: report.targetLabel,
                     status: report.status,
                     path: report.targetPath,
                     locale: nativeUiLocale,

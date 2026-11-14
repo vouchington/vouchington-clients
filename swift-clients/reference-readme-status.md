@@ -7,8 +7,9 @@
 - **macOS**: Active native client with authenticated member, content, messaging, settings, media,
   and role-gated staff surfaces
 - **iOS/iPadOS**: Generated app shell sharing the macOS SwiftUI capability sources; CI compiles the
-  app for a generic iOS Simulator destination and runs the shared root-shell launch smoke on an
-  available iPhone Simulator. This does not exercise an iPad or a signed device build.
+  app for a generic iOS Simulator destination, runs the shared root-shell and canonical video-feed
+  launch smoke on an available iPhone Simulator, then runs only the root-shell launch smoke on an
+  available iPad Simulator. This does not exercise a signed device build.
 - **Android**: A [Skip Fuse 1.9+ shell](apps/android/README.md) cross-compiles with the Swift Android SDK,
   uses ML Kit Prompt API for explicit-download on-device generation, and stores endpoint secrets
   with SkipKeychain. The effective floor is Android API 28. Play Store, Play Integrity, and broader
@@ -22,6 +23,9 @@ for current capability status and tracked gaps.
 
 - macOS 14.4 (Sonoma) or later
 - Xcode 16+
+- SwiftUI package tests use that Xcode's bundled `xcrun swift` through
+  `swift-clients/tooling/test-ui.sh`. The pinned mise Swift toolchain is for Core, Linux, and
+  Android; it does not compile the locked ViewInspector sources against the Xcode 27 SDK.
 - xcodegen 2.42+
 - swiftformat 0.54+
 - swiftlint 0.57+
@@ -42,7 +46,8 @@ cd swift-clients
 ./tooling/generate.sh iOS     # generate the iPhone/iPad project
 open apps/macOS/Voucha.xcodeproj
 open apps/iOS/Voucha.xcodeproj
-swift test --package-path apps/android
+# Host SwiftPM source tests need Xcode 26.6 and Swift 6.3.3. See apps/android/README.md#checks.
+# The Swift 6.4 SDK / Gradle path is separate from those host source tests:
 cd apps/android && skip android build --android-api-level 28
 ```
 
@@ -58,28 +63,45 @@ VOUCHA_API_BASE_URL = http:$(VOUCHA_URL_SLASH)$(VOUCHA_URL_SLASH)localhost:3000
 Generated Debug schemes reference the file, so changing the URL does not require project
 regeneration. Clean generation creates a production-default XCConfig when it is absent. See
 [web-mode resource allocation](https://github.com/vouchington/vouchington/blob/main/dev/reference-resource-allocation-web-mode.md)
-for the backend port contract. Set
-`VOUCHA_TURNSTILE_SITE_KEY` (or shared `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`) when testing
-CAPTCHA-gated flows against an environment with a Cloudflare Turnstile widget — native clients
-intentionally do not keep a checked-in site-key fallback because Cloudflare registers staging and
-production widgets separately. App startup must not fail solely because the site key is absent. In
-Xcode: Product → Scheme → Edit → Run → Arguments → Environment Variables.
+for the backend port contract. `VOUCHA_TURNSTILE_SITE_KEY` overrides
+`NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`, which overrides the packaged plist value. In Xcode:
+Product → Scheme → Edit → Run → Arguments → Environment Variables.
+
+Debug builds use Cloudflare's always-pass visible test site key `1x00000000000000000000AA` when
+those inputs are absent. The widget then returns Cloudflare's dummy token `XXXX.DUMMY.TOKEN.XXXX`.
+That token verifies only against a server configured with Cloudflare's matching Turnstile test
+secret. Production secrets reject it, so a Debug app works with a local or staging server that
+uses the test secret and does not verify against production.
 
 Packaged macOS/iOS apps read configuration in this order: process environment, the app's
 `Info.plist`, then production API/image defaults. XcodeGen writes `VOUCHA_API_BASE_URL`,
 `VOUCHA_IMAGE_BASE_URL`, and `VOUCHA_TURNSTILE_SITE_KEY` into the plist from the corresponding
-build settings. Set the public Turnstile site key in the existing local XCConfig or pass
-`VOUCHA_TURNSTILE_SITE_KEY` to `xcodebuild` when creating a Release build. Release automation
-should map its environment's `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` into that build setting;
-scheme environment variables alone do not configure an installed app. A missing key remains
-empty and CAPTCHA-gated operations fail closed. No site key or credential is checked in.
+build settings. Debug configuration defaults the site-key setting to the always-pass test key.
+Release builds run `swift-clients/tooling/turnstile-release-site-key.sh` and fail when the setting
+is empty or is any Cloudflare test site or secret key listed in
+`turnstile-test-site-keys.txt`. Pass an explicit non-test public site key in the local XCConfig or
+as `VOUCHA_TURNSTILE_SITE_KEY` on the Release `xcodebuild` command. Release automation should map
+its environment's `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY` into that build setting; scheme
+environment variables alone do not configure an installed app. The Release runtime also rejects a
+missing or test key. The production site key stays outside this repository.
+
+`VOUCHA_SENTRY_DSN` uses the same environment-then-plist order and defaults to empty in Debug and
+Release. An empty DSN does not start Sentry, does not fail the Release build, and does not send
+events. Debug symbol upload stays out of the app build until a Sentry auth token exists.
 
 ## Workflow
 
 CI builds the macOS app shell and compiles the generated iOS app for a generic iOS Simulator
 destination in `build-macos-app` and `build-ios-app` in
-`.github/workflows/native-contract-tests.yml`. The iOS job then launches the unsigned app on an
-available iPhone Simulator and requires the root-shell UI smoke test to pass. CI also
+`.github/workflows/native-contract-tests.yml`. The macOS job then requires a hosted GUI session
+and launches the ad-hoc signed app, with no Team ID and the launch-smoke entitlements, using
+`VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell`,
+accepting only one passed test and no skips. The iOS arm64 test bundle is built once and reused.
+`build-ios-app` launches it on an available iPhone Simulator and requires its root-shell,
+canonical video-feed, and email OTP sign-in UI tests to pass. The sign-in test uses fixture
+responses and does not complete Turnstile or cover another platform. `build-ios-ipad` launches
+only the root-shell UI test on an available iPad Simulator and accepts that result only when
+exactly one test passed and none were skipped. CI also
 cross-compiles `core/` for Android in the Linux Docker
 `build-android-core` gate via `./tooling/harness.sh --checks build-android`.
 
@@ -137,11 +159,11 @@ swift-clients/
 
 ## Coverage
 
-Run with coverage locally:
+Run with coverage locally from `swift-clients`:
 
 ```sh
 bash tooling/with-build-lock.sh swift test --package-path core --force-resolved-versions --enable-code-coverage
-bash tooling/with-build-lock.sh swift test --package-path ui --force-resolved-versions --enable-code-coverage
+bash tooling/test-ui.sh --enable-code-coverage
 ```
 
 To test SwiftUI Views, use [ViewInspector](https://github.com/nalexn/ViewInspector) (already

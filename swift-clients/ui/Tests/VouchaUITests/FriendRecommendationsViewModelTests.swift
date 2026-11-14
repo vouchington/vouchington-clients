@@ -59,6 +59,19 @@ final class FriendRecommendationsViewModelTests: NativeRouteSurfaceViewModelTest
         )
     }
 
+    func testRelationLimitRefusalRestoresRecommendationAndShowsLocalizedFailure() async throws {
+        let model = try await loadedViewModel(ids: ["user-1"])
+        let recommendation = try XCTUnwrap(model.recommendations.first)
+        CannedFeedURLProtocol.handlers["/api/v1/bookmarks/user/user-1/follow"] = (
+            Data(#"{"code":"RELATION_LIMIT_REACHED"}"#.utf8), 409
+        )
+
+        await model.follow(recommendation)
+
+        XCTAssertEqual(model.recommendations.map(\.id), ["user-1"])
+        XCTAssertEqual(model.mutationErrorMessage, .message(.nativeCommonSomethingWentWrong))
+    }
+
     func testFollowAndDismissRemoveImmediatelyAndRejectDuplicateMutation() async throws {
         let viewModel = try await loadedViewModel(ids: ["user-1", "user-2"])
         let first = try XCTUnwrap(viewModel.recommendations.first)

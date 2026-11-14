@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import VouchaAPI
 import VouchaCore
+import VouchaLocalization
 import VouchaModels
 
 @Observable
@@ -45,6 +46,8 @@ public final class FriendsListViewModel {
     public var hasPaginationError: Bool {
         pagination(for: tab).lastError != nil
     }
+
+    public internal(set) var statusMessage: UiVerbatimText?
 
     var inFlightFollows: Set<String> = []
 

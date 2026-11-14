@@ -30,7 +30,7 @@ extension MemberMCPClient {
                 guard case let .object(block) = content,
                       case let .string(text)? = block["text"],
                       let data = text.data(using: .utf8),
-                      let value = try? JSONDecoder().decode(DecodedJSONValue.self, from: data),
+                      let value = try? MCPResponseReader.exactJSON(data),
                       case let .object(body) = value,
                       case let .object(error)? = body["error"],
                       case let .string(code)? = error["code"], code == "RATE_LIMIT"

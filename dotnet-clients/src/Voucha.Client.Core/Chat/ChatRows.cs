@@ -37,7 +37,10 @@ public sealed record ChatMessageRow(
     string? Error = null,
     string? CompletionStatus = null,
     UiMessageKey? ErrorMessageKey = null,
-    IUiLocalization? Localization = null) : INotifyPropertyChanged
+    IUiLocalization? Localization = null,
+    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null,
+    IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts = null,
+    IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts = null) : INotifyPropertyChanged
 {
   public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -53,11 +56,36 @@ public sealed record ChatMessageRow(
       ? Localization?.Localize(key)
       : Error;
 
+  public bool HasFeedPostFacts => FeedPostReceipts is { Count: > 0 };
+
+  public bool HasRssItemFacts => RssItemReceipts is { Count: > 0 };
+
+  public bool HasReferralLinkFacts => ReferralLinkReceipts is { Count: > 0 };
+
+  public string? DisplayRssItemFacts => McpFeedRssItemReceipt.Display(RssItemReceipts, Localization);
+
+  public string? DisplayReferralLinkFacts =>
+      McpFeedReferralLinkReceipt.Display(ReferralLinkReceipts, Localization);
+
+  public string? DisplayFeedPostFacts => FeedPostReceipts is not { Count: > 0 } receipts ? null :
+      string.Join("\n", new[] { Localization?.Localize(UiMessageKey.NativeDotnetResidualPosts) ?? string.Empty }
+          .Concat(receipts.SelectMany(receipt => receipt.PostIds.Count == 0
+              ? [Localization?.Localize(UiMessageKey.NativeDotnetPostsNoPostsYet) ?? string.Empty]
+              : receipt.PostIds.Select(id =>
+                  $"{Localization?.Localize(UiMessageKey.NativeDotnetCsharpCommunitiesPostId)}: " +
+                  (Localization ?? UiLocalization.English).Resolve(UiText.ProtocolValue(id))))));
+
   internal void NotifyLocalizationChanged()
   {
     if (ErrorMessageKey is not null)
     {
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayError)));
     }
+    if (HasFeedPostFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayFeedPostFacts)));
+    if (HasRssItemFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayRssItemFacts)));
+    if (HasReferralLinkFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayReferralLinkFacts)));
   }
 }

@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
 
@@ -63,7 +64,7 @@ public sealed partial class NativeMarkdownEditorView
           .Where(suggestion => suggestion is not null)
           .Cast<AutocompleteSuggestion>()
           .ToArray(),
-      '!' => (await ApiClient.SearchPostsAsync(token.Query, 8, cancellationToken).ConfigureAwait(true))
+      '!' => (await ApiClient.SearchPostsAsync(token.Query, 8, PostTimeRanges.AllTime, cancellationToken).ConfigureAwait(true))
           .Results
           .Select(result => PostSuggestion(result))
           .Where(suggestion => suggestion is not null)

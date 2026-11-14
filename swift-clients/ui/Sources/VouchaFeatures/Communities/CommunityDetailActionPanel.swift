@@ -24,14 +24,6 @@ struct CommunityDetailActionPanel: View {
                 CommunityPinnedPostControls(viewModel: viewModel, isSignedIn: isSignedIn, showSignIn: showSignIn)
             }
 
-            if viewModel.canModerateCommunity, viewModel.selectedTab == .applications {
-                CommunityApplicationReviewControls(
-                    viewModel: viewModel,
-                    isSignedIn: isSignedIn,
-                    showSignIn: showSignIn
-                )
-            }
-
             if viewModel.canModerateCommunity, viewModel.selectedTab == .invites {
                 CommunityInviteManagementControls(
                     viewModel: viewModel,

@@ -33,11 +33,13 @@ public sealed class ModerationIntegrityPageTests
         new PageInfo(null, false, "report-1")));
     await loading;
 
+    Assert.DoesNotContain(VisualTreeElements.Descendants<Label>(page), label =>
+        label.Text == "user-1" || label.Text == "report-1");
     var status = Find<Picker>(page, "report-integrity-status");
     Assert.Equal(["Pending", "Resolved", "All"], Assert.IsAssignableFrom<IEnumerable>(
         status.ItemsSource).Cast<string>());
     Assert.Contains(VisualTreeElements.Descendants<Label>(page), label =>
-        label.Text?.Contains("reporter_user_ids", StringComparison.Ordinal) == true);
+        label.Text?.Contains("window_minutes", StringComparison.Ordinal) == true);
     Assert.Equal(
         "/user/user-1",
         Find<Button>(page, "integrity-entity-user-1").CommandParameter);
@@ -54,7 +56,7 @@ public sealed class ModerationIntegrityPageTests
     var authoritative = ReportFlag(
         "report-1", userId: "user-1", resolution: "penalized",
         resolvedAt: DateTimeOffset.Parse("2026-06-02T12:00:00Z"),
-        resolvedById: "admin-1");
+        resolvedById: "admin-1") with { ResolverDisplayName = "Moderator" };
     var service = new PageService
     {
       Reports = (_, _, _) => Task.FromResult(
@@ -71,13 +73,13 @@ public sealed class ModerationIntegrityPageTests
     Find<Button>(page, "report-integrity-penalize-report-1").SendClicked();
     Assert.Equal(0, service.ReportPenaltyCalls);
     Find<Button>(page, "report-integrity-penalize-confirm-report-1").SendClicked();
-    await WaitUntilAsync(() => service.ReportPenaltyCalls == 1 &&
+    await PageTestWait.WaitUntilAsync(() => service.ReportPenaltyCalls == 1 &&
         VisualTreeElements.Descendants<Label>(page).Any(label => label.Text == UiLocalization.English.Format(
             UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", 2))));
 
     Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == UiLocalization.English.Localize(
         UiMessageKey.NativeSwiftIntegrityPenalizedResolution));
-    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "admin-1");
+    Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Moderator");
     Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
         button.AutomationId?.StartsWith("report-integrity-dismiss-", StringComparison.Ordinal) == true);
   }
@@ -175,14 +177,14 @@ public sealed class ModerationIntegrityPageTests
         button.AutomationId == "vote-integrity-penalty-confirm-vote-1");
     Find<Button>(page, "vote-integrity-penalty-vote-1").SendClicked();
     Find<Button>(page, "vote-integrity-penalty-confirm-vote-1").SendClicked();
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page)
         .Any(label => label.Text == UiLocalization.English.Format(
             UiMessageKey.NativeSwiftIntegrityPenalizedUsers, ("count", 3))));
     Assert.True(Find<Button>(page, "vote-integrity-suspended-vote-1").IsEnabled);
     Assert.False(Find<Button>(page, "vote-integrity-penalty-vote-1").IsEnabled);
 
     Find<Button>(page, "vote-integrity-suspended-vote-1").SendClicked();
-    await WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
+    await PageTestWait.WaitUntilAsync(() => VisualTreeElements.Descendants<Label>(page).Any(label =>
         label.Text == UiLocalization.English.Localize(
             UiMessageKey.NativeSwiftIntegritySuspendedResolution)));
     Assert.DoesNotContain(VisualTreeElements.Descendants<Button>(page), button =>
@@ -217,7 +219,7 @@ public sealed class ModerationIntegrityPageTests
         UiLocalization.English.Localize(UiMessageKey.NativeSwiftIntegrityConfirmRevoke),
         Find<Button>(page, "report-integrity-penalties-revoke-penalty-1").Text);
     Find<Button>(page, "report-integrity-penalties-revoke-penalty-1").SendClicked();
-    await WaitUntilAsync(() => !VisualTreeElements.Descendants<Border>(page).Any(border =>
+    await PageTestWait.WaitUntilAsync(() => !VisualTreeElements.Descendants<Border>(page).Any(border =>
         border.AutomationId == "report-integrity-penalties-penalty-1"));
   }
 
@@ -273,7 +275,13 @@ public sealed class ModerationIntegrityPageTests
     await penalties.SelectStatusAsync(
         IntegrityPenaltyStatus.Revoked, TestContext.Current.CancellationToken);
 
+    var detailPage = new ModerationDetailPage<ReportIntegrityRow>(
+        _ => Task.FromResult(reports.PresentDetail(evidenceFlag)),
+        detail => IntegrityPageViews.CardLines(reports.PresentDetail(detail.Flag).Evidence), reports);
+    var lifecycle = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
+    detailPage.GetType().GetMethod("OnAppearing", lifecycle)!.Invoke(detailPage, null);
     AssertRenderedEvidence(reportPage, "12.5", "3.25");
+    AssertRenderedEvidence(detailPage, "12.5", "3.25");
 
     foreach (var locale in new[] { "es", "fr", "pt" })
     {
@@ -282,7 +290,9 @@ public sealed class ModerationIntegrityPageTests
       AssertPicker(votePage, "vote-integrity-status", localization, true);
       AssertPicker(penaltyPage, "report-integrity-penalties-status", localization, false);
       AssertRenderedEvidence(reportPage, "12,5", "3,25");
+      AssertRenderedEvidence(detailPage, "12,5", "3,25");
     }
+    detailPage.GetType().GetMethod("OnDisappearing", lifecycle)!.Invoke(detailPage, null);
   }
 
   [Fact]
@@ -351,13 +361,6 @@ public sealed class ModerationIntegrityPageTests
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
 
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++)
-      await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
-
   private static ReportIntegrityFlag ReportFlag(
       string id,
       string? userId = null,
@@ -367,7 +370,7 @@ public sealed class ModerationIntegrityPageTests
       new(
           id, userId is null ? "post-1" : null, userId, null, null,
           "mass_report_suspected", 5, 0.6,
-          Details("""{"reporter_user_ids":["reporter-1"],"window_minutes":30}"""),
+          Details("""{"window_minutes":30}"""),
           resolvedAt, resolvedById, resolution, DateTimeOffset.Parse("2026-06-01T12:00:00Z"));
 
   private static VoteIntegrityFlag VoteFlag(
@@ -388,19 +391,26 @@ public sealed class ModerationIntegrityPageTests
   private sealed class PageService : IModerationIntegrityService
   {
     public Func<IntegrityFlagStatus, string?, CancellationToken, Task<ReportIntegrityFlagsResponse>>
-        Reports { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        Reports
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<IntegrityFlagStatus, string?, CancellationToken, Task<VoteIntegrityFlagsResponse>>
-        Votes { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        Votes
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<string, CancellationToken, Task<ReportIntegrityPenaltyResponse>>
-        ReportPenalty { get; init; } = (_, _) => throw new InvalidOperationException();
+        ReportPenalty
+    { get; init; } = (_, _) => throw new InvalidOperationException();
     public Func<string, VoteIntegrityResolution, CancellationToken, Task<VoteIntegrityFlagResponse>>
-        VoteResolution { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        VoteResolution
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<string, CancellationToken, Task<VoteIntegrityPenaltyApplicationResponse>>
-        VotePenalty { get; init; } = (_, _) => throw new InvalidOperationException();
+        VotePenalty
+    { get; init; } = (_, _) => throw new InvalidOperationException();
     public Func<IntegrityPenaltyStatus, string?, CancellationToken, Task<ReportIntegrityPenaltiesResponse>>
-        ReportPenalties { get; init; } = (_, _, _) => throw new InvalidOperationException();
+        ReportPenalties
+    { get; init; } = (_, _, _) => throw new InvalidOperationException();
     public Func<string, CancellationToken, Task<ReportAbusePenaltyResponse>>
-        ReportRevoke { get; init; } = (_, _) => throw new InvalidOperationException();
+        ReportRevoke
+    { get; init; } = (_, _) => throw new InvalidOperationException();
     public TaskCompletionSource ReportStarted { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource VoteStarted { get; } =

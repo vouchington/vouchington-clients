@@ -99,7 +99,7 @@ final class ForwardPaginationSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
     private func itemPage(id: String, hasMore: Bool, cursor: String?) -> Data {
         Data(
-            #"{"results":[{"id":"\#(id)"}],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(cursor.map { "\"\($0)\"" } ?? "null")},"list_items":{"\#(id)":{"id":"\#(id)","list_id":"list-one","item_type":"post","entity_id":"\#(id)","order_index":0,"created_at":"2026-01-01T00:00:00Z","media_type":"video"}}}"#
+            #"{"results":[{"id":"\#(id)"}],"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(cursor.map { "\"\($0)\"" } ?? "null")},"list_items":{"\#(id)":{"id":"\#(id)","list_id":"list-one","item_type":"post","entity_label":null,"entity_id":"\#(id)","order_index":0,"created_at":"2026-01-01T00:00:00Z","media_type":"video"}}}"#
                 .utf8
         )
     }

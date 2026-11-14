@@ -67,7 +67,7 @@ struct ReviewDisputeCard: View {
             .disabled(!viewModel.canEdit(dispute))
             .accessibilityLabel(localized(
                 .nativeSwiftReviewDisputesPublicResponseAccessibility,
-                parameters: ["id": dispute.id]
+                parameters: ["id": dispute.postLabel]
             ))
             if let draft = dispute.aiPublicResponse, !draft.isEmpty {
                 DisclosureGroup(localized(.nativeSwiftReviewDisputesAiPublicDraft)) {
@@ -83,7 +83,7 @@ struct ReviewDisputeCard: View {
             .disabled(!(viewModel.canMutate(dispute) && dispute.sentAt != nil))
             .accessibilityLabel(localized(
                 .nativeSwiftReviewDisputesAnnotationAccessibility,
-                parameters: ["id": dispute.id]
+                parameters: ["id": dispute.postLabel]
             ))
         }
     }

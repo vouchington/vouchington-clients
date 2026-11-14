@@ -112,11 +112,11 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 
         @available(macOS 26.4, iOS 26.4, *)
         func testPublishedMCPToolsSelectBoundedFoundationModelsSession() async throws {
-            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
-            let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
+            let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+            let url = try ContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
             let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
             let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
-            let server = try XCTUnwrap(servers.first { $0["surface"] as? String == "mcp" })
+            let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })
             let entries = try XCTUnwrap(server["tools"] as? [[String: Any]])
             let publishedTools = try entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }
             let catalog = try JSONDecoder().decode(DecodedJSONValue.self, from: JSONSerialization.data(
@@ -204,11 +204,11 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
     }
 
     func testPublishedUserSchemasProjectWithoutDroppingOptionRefs() throws {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
-        let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+        let url = try ContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
         let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
-        let server = try XCTUnwrap(servers.first { $0["surface"] as? String == "mcp" })
+        let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })
         let entries = try XCTUnwrap(server["tools"] as? [[String: Any]])
         let tools = try entries.map { try XCTUnwrap($0["tool"] as? [String: Any]) }
         let catalog = try JSONDecoder().decode(
@@ -411,7 +411,7 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 @MainActor
 final class BridgeMCPService: NativeChatMCPServicing {
     private(set) var calls = 0
-    private(set) var lastArguments: [String: DecodedJSONValue]?
+    private(set) var lastArguments: DecodedJSONObject?
     var holdCalls = false
     var toolResult: MemberMCPClient.ToolResult?
     var catalog = BridgeMCPService.defaultCatalog
@@ -439,7 +439,7 @@ final class BridgeMCPService: NativeChatMCPServicing {
     func disconnect(accountId _: String) async throws {}
 
     func callTool(
-        accountId _: String, name _: String, arguments: [String: DecodedJSONValue]
+        accountId _: String, name _: String, arguments: DecodedJSONObject
     ) async throws -> MemberMCPClient.ToolResult {
         calls += 1
         lastArguments = arguments

@@ -1,5 +1,6 @@
 import SwiftUI
 import VouchaAPI
+import VouchaAuth
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -8,11 +9,23 @@ public struct EmailAddressManager: View {
     var nativeUiLocale
     @State
     private var viewModel: EmailAddressManagerViewModel
+    let broker: NativeOAuthAuthorizationCoordinator?
     private let recoveryMode: Bool
     private let onVerified: () -> Void
 
-    public init(client: APIClient, recoveryMode: Bool = false, onVerified: @escaping () -> Void = {}) {
-        _viewModel = State(initialValue: EmailAddressManagerViewModel(client: client))
+    public init(
+        client: APIClient,
+        broker: NativeOAuthAuthorizationCoordinator? = nil,
+        googleAssertion: (any FreshProviderAssertion)? = nil,
+        recoveryMode: Bool = false,
+        onVerified: @escaping () -> Void = {}
+    ) {
+        _viewModel = State(initialValue: EmailAddressManagerViewModel(
+            client: client,
+            broker: broker,
+            googleAssertion: googleAssertion
+        ))
+        self.broker = broker
         self.recoveryMode = recoveryMode
         self.onVerified = onVerified
     }
@@ -71,16 +84,22 @@ public struct EmailAddressManager: View {
             case .enterCode:
                 Text(viewModel.emailAddress).font(Typography.subheadline)
                 TextField(
-                    UiMessages.string(.nativeSwiftSettingsMessage8CharacterCode, locale: nativeUiLocale),
+                    UiMessages.string(.nativeSwiftSettingsVerificationCodeLength, locale: nativeUiLocale),
                     text: $viewModel.verificationCode
                 )
                 .textFieldStyle(.roundedBorder)
+                #if os(iOS)
+                    .keyboardType(.asciiCapable)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .textContentType(.oneTimeCode)
+                #endif
                 HStack {
                     Button(UiMessages.string(.nativeSwiftCommonVerify, locale: nativeUiLocale)) {
                         Task { await viewModel.verify() }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.verificationCode.count != 8 || viewModel.isLoading)
+                    .disabled(!viewModel.canVerifyCode)
                     Button(UiMessages.string(.nativeSwiftSettingsUseAnotherAddress, locale: nativeUiLocale)) {
                         viewModel.startAnotherAddress()
                     }
@@ -103,6 +122,10 @@ public struct EmailAddressManager: View {
                 Text(verbatim: UiMessages.string(error, locale: nativeUiLocale)).foregroundStyle(.red)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { viewModel.freshConfirmation.isPresented },
+            set: { if !$0 { viewModel.freshConfirmation.cancel() } }
+        )) { FreshAccountConfirmationView(model: viewModel.freshConfirmation) }
         .task { await viewModel.load() }
     }
 }

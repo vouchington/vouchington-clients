@@ -291,7 +291,11 @@ private final class SessionBootstrapURLProtocol: URLProtocol {
             headerFields: ["Content-Type": "application/json"]
         )!
         let data = request.url?.path == "/api/v1/session"
-            ? Data(#"{"session":{"dt":"device-token","st":"session-token","dte":3600,"ste":1800,"secure":true}}"#.utf8)
+            ?
+            Data(
+                #"{"session":{"dt":"device-token","st":"session-token","dte":3600,"ste":1800,"secure":true,"did":"device","sid":"session","uid":"user","session":{"client":"web","did":"device","sid":"session","rca":1,"sca":1,"rol":[],"uid":"user"}}}"#
+                    .utf8
+            )
             : Data("{}".utf8)
         deliverIfNotStopped { client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
         deliverIfNotStopped { client?.urlProtocol(self, didLoad: data) }

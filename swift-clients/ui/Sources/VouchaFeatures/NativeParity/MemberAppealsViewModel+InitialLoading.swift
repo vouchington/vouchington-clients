@@ -3,7 +3,7 @@ import VouchaModels
 
 extension MemberAppealsViewModel {
     func loadWarnings(_ client: APIClient) async throws {
-        async let pending: ModerationAppealListResponse = pendingAppeals(client)
+        async let pending: MemberAppealListResponse = pendingAppeals(client)
         async let warnings: MemberWarningNoticesResponse = client.send(.memberWarningNotices())
         var firstError: Error?
         do {
@@ -22,7 +22,7 @@ extension MemberAppealsViewModel {
     }
 
     func loadBans(_ client: APIClient) async throws {
-        async let pending: ModerationAppealListResponse = pendingAppeals(client)
+        async let pending: MemberAppealListResponse = pendingAppeals(client)
         async let bans: MemberCommunityBanNoticesResponse = client.send(.memberCommunityBanNotices())
         var firstError: Error?
         do {
@@ -41,7 +41,7 @@ extension MemberAppealsViewModel {
     }
 
     func loadRemovedPosts(_ client: APIClient) async throws {
-        async let pending: ModerationAppealListResponse = pendingAppeals(client)
+        async let pending: MemberAppealListResponse = pendingAppeals(client)
         async let removals: MemberRemovedPostNoticesResponse = client.send(.memberRemovedPostNotices())
         var firstError: Error?
         do {
@@ -60,7 +60,7 @@ extension MemberAppealsViewModel {
     }
 
     func loadSuspension(_ client: APIClient) async throws {
-        async let pending: ModerationAppealListResponse = pendingAppeals(client)
+        async let pending: MemberAppealListResponse = pendingAppeals(client)
         async let identity: NativeIdentityResponse = client.send(.myIdentity)
         var firstError: Error?
         do {
@@ -79,9 +79,9 @@ extension MemberAppealsViewModel {
     }
 
     func apply(
-        pending: ModerationAppealListResponse? = nil,
-        resolved: ModerationAppealListResponse? = nil,
-        dismissed: ModerationAppealListResponse? = nil,
+        pending: MemberAppealListResponse? = nil,
+        resolved: MemberAppealListResponse? = nil,
+        dismissed: MemberAppealListResponse? = nil,
         warnings: MemberWarningNoticesResponse? = nil,
         bans: MemberCommunityBanNoticesResponse? = nil,
         removals: MemberRemovedPostNoticesResponse? = nil,
@@ -114,8 +114,11 @@ extension MemberAppealsViewModel {
     }
 
     private func apply(
-        _ response: ModerationAppealListResponse?,
-        to keyPath: ReferenceWritableKeyPath<MemberAppealsViewModel, CursorPaginationState<ModerationAppeal>>
+        _ response: MemberAppealListResponse?,
+        to keyPath: ReferenceWritableKeyPath<
+            MemberAppealsViewModel,
+            CursorPaginationState<ModerationAppealReadProjection>
+        >
     ) {
         guard let response else { return }
         self[keyPath: keyPath].reset(items: response.appeals)
@@ -171,7 +174,7 @@ extension MemberAppealsViewModel {
         }
     }
 
-    private func pendingAppeals(_ client: APIClient) async throws -> ModerationAppealListResponse {
+    private func pendingAppeals(_ client: APIClient) async throws -> MemberAppealListResponse {
         try await client.send(.appeals(status: .pending, limit: 25, mine: true))
     }
 }

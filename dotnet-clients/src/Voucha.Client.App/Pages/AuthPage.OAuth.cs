@@ -58,6 +58,9 @@ public partial class AuthPage
     MicrosoftOAuthButton.IsVisible = oauthCoordinator.Supports(
         OAuthBrokerProvider.Microsoft,
         OAuthAuthorizationPurpose.Authenticate);
+    GoogleOAuthButton.IsVisible = oauthCoordinator.Supports(
+        OAuthBrokerProvider.Google,
+        OAuthAuthorizationPurpose.Authenticate);
     var canStart = oauthCoordinator.Pending is null &&
         oauthCoordinator.Result is null &&
         oauthCoordinator.State is not
@@ -68,6 +71,7 @@ public partial class AuthPage
     GithubOAuthButton.IsEnabled = canStart;
     LinkedinOAuthButton.IsEnabled = canStart;
     MicrosoftOAuthButton.IsEnabled = canStart;
+    GoogleOAuthButton.IsEnabled = canStart;
     RetryOAuthCapabilitiesButton.IsVisible = oauthCoordinator.CanRetryCapabilityLoading;
     CancelOAuthButton.IsVisible = oauthCoordinator.CanCancelPendingAuthorization;
     OAuthStatus.Text = oauthCoordinator.State switch
@@ -125,6 +129,9 @@ public partial class AuthPage
 
   private async void OnMicrosoftOAuthClicked(object? sender, EventArgs e) =>
       await StartOAuthAsync(OAuthBrokerProvider.Microsoft).ConfigureAwait(true);
+
+  private async void OnGoogleOAuthClicked(object? sender, EventArgs e) =>
+      await StartOAuthAsync(OAuthBrokerProvider.Google).ConfigureAwait(true);
 
   private async void OnCancelOAuthClicked(object? sender, EventArgs e)
   {

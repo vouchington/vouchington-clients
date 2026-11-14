@@ -1,5 +1,6 @@
 using System.Globalization;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.App.Pages;
@@ -57,24 +58,6 @@ public abstract partial class CommunitySectionPage
     };
   }
 
-  private View BuildApplicationsActions()
-  {
-    var applicationId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesApplicationId);
-    var status = TextField(UiMessageKey.NativeDotnetResidualStatus, UiText.Verbatim("approved"));
-    var reason = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReason);
-    return new HorizontalStackLayout
-    {
-      Spacing = 8,
-      Children =
-      {
-        applicationId,
-        status,
-        reason,
-        ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReview).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ReviewApplicationAsync(applicationId.Text ?? string.Empty, status.Text ?? "approved", reason.Text, ct)).ConfigureAwait(true)),
-      },
-    };
-  }
-
   private View BuildPinnedPostsActions()
   {
     var postIds = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPostIds);
@@ -110,7 +93,7 @@ public abstract partial class CommunitySectionPage
               DateTimeOffset? parsed = DateTimeOffset.TryParse(expiresAt.Text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value) ? value : null;
               return viewModel.BanAsync(userId.Text ?? string.Empty, OptionalText(reason), parsed, ct);
             }).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesLift).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.LiftBanAsync(userId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
+            BuildBanRowActions(),
           },
         },
       },

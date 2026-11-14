@@ -212,6 +212,9 @@ public sealed class EngineeringValkeyViewModelTests
     public Task<PartitionStatusResponse> FetchPartitionsAsync(CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
+    public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(PsqlJobBody body, CancellationToken cancellationToken = default) =>
+        EnqueuePsqlJobAsync(body.Type, cancellationToken);
+
     public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(string type, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 

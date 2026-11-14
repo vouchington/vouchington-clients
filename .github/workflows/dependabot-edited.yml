@@ -1,0 +1,25 @@
+name: Dependabot Metadata Edits
+
+on:
+  pull_request_target:
+    types: [edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dependabot:
+    # Gate the call itself: human PR edits create one skipped caller check,
+    # without instantiating the worker's jobs. Human edits of bot PRs still run.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'dependabot/')
+    uses: ./.github/workflows/dependabot-automerge.yml
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    secrets:
+      DEPENDABOT_AUTOMERGE_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}

@@ -62,9 +62,24 @@ public struct ListItem: Codable, Identifiable, Sendable {
     public let listId: String
     public let itemType: ListItemType
     public let entityId: String
+    @RequiredNullable
+    public var entityLabel: String?
     public let orderIndex: Int?
     public let createdAt: Date
-    public let mediaType: String?
+    @TolerantNullable
+    public var mediaType: String?
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(listId, forKey: .listId)
+        try container.encode(itemType, forKey: .itemType)
+        try container.encode(entityId, forKey: .entityId)
+        try container.encode(entityLabel, forKey: .entityLabel)
+        try container.encodeIfPresent(orderIndex, forKey: .orderIndex)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(mediaType, forKey: .mediaType)
+    }
 }
 
 public struct ListReference: Codable, Identifiable, Sendable {

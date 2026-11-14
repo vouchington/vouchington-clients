@@ -27,7 +27,7 @@ extension NativeRouteSurfaceViewModel {
             return forwardRow(
                 id: result.id,
                 icon: "chart.line.uptrend.xyaxis",
-                title: rawText(click.landingUrl),
+                title: rawText(click.landingUrl ?? "—"),
                 detail: appText(
                     click.signedUpAt == nil
                         ? .nativeSwiftRouteSurfaceClick

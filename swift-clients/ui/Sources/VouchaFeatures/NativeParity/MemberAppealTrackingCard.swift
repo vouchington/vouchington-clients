@@ -4,8 +4,9 @@ import VouchaLocalization
 import VouchaModels
 
 struct MemberAppealTrackingCard: View {
-    @Environment(\.locale) private var locale
-    let appeal: ModerationAppeal
+    @Environment(\.locale)
+    private var locale
+    let appeal: ModerationAppealReadProjection
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -69,7 +70,7 @@ struct MemberAppealTrackingCard: View {
     }
 }
 
-private extension ModerationAppeal {
+private extension ModerationAppealReadProjection {
     var memberTargetTitle: UiVerbatimText? {
         guard let targetContext else {
             return .message(memberTargetTitleKey)

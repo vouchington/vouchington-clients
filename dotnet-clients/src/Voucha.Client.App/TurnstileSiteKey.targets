@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == ''">$(VOUCHA_TURNSTILE_SITE_KEY)</VouchaTurnstileSiteKey>
+    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == ''">$(NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY)</VouchaTurnstileSiteKey>
+    <VouchaTurnstileSiteKey Condition="'$(VouchaTurnstileSiteKey)' == '' and '$(Configuration)' != 'Release'">1x00000000000000000000AA</VouchaTurnstileSiteKey>
+    <VouchaTurnstileSiteKey>$([System.String]::Copy('$(VouchaTurnstileSiteKey)').Trim())</VouchaTurnstileSiteKey>
+    <VouchaTurnstileTestSiteKeyFile>$(MSBuildThisFileDirectory)../../../swift-clients/tooling/turnstile-test-site-keys.txt</VouchaTurnstileTestSiteKeyFile>
+  </PropertyGroup>
+
+  <Target Name="RejectReleaseTurnstileTestKey" BeforeTargets="CoreCompile" Condition="'$(Configuration)' == 'Release'">
+    <Error
+      Condition="'$(VouchaTurnstileSiteKey)' == ''"
+      Text="Release builds require an explicit non-test VOUCHA_TURNSTILE_SITE_KEY." />
+    <ReadLinesFromFile File="$(VouchaTurnstileTestSiteKeyFile)">
+      <Output TaskParameter="Lines" ItemName="_VouchaTurnstileTestSiteKey" />
+    </ReadLinesFromFile>
+    <Error
+      Condition="'%(_VouchaTurnstileTestSiteKey.Identity)' == '$(VouchaTurnstileSiteKey)'"
+      Text="Release builds reject Cloudflare Turnstile test site keys." />
+  </Target>
+</Project>

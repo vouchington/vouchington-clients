@@ -9,6 +9,31 @@ import XCTest
     @MainActor
     @available(macOS 26.4, iOS 26.4, *)
     final class NativeChatFoundationModelsProjectionBudgetTests: XCTestCase {
+        func testUnicodeEquivalentSchemaPropertiesFailClosedBeforeFoundationProjection() throws {
+            let raw = Data(
+                #"{"type":"object","properties":{"é":{"type":"string"},"e\u0301":{"type":"string"}},"additionalProperties":false}"#
+                    .utf8
+            )
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(raw))
+
+            let mismatchedRequired = Data(
+                #"{"type":"object","properties":{"é":{"type":"string"}},"required":["e\u0301"],"additionalProperties":false}"#
+                    .utf8
+            )
+            XCTAssertThrowsError(try NativeChatFoundationModelsSchema.projectWithProperty(mismatchedRequired))
+        }
+
+        func testDistinctUnicodeRequiredNamesDoNotMakeObjectChoicesDisjoint() {
+            let left: [String: Any] = [
+                "type": "object", "properties": ["é": ["const": "left"]], "required": ["é"]
+            ]
+            let right: [String: Any] = [
+                "type": "object", "properties": ["e\u{301}": ["const": "right"]], "required": ["e\u{301}"]
+            ]
+
+            XCTAssertFalse(NativeChatFoundationModelsSchema.branchesAreDisjoint([left, right]))
+        }
+
         func testMaximumBooleanOutputUsesFalseSerializationWidth() throws {
             func schema(count: Int) throws -> Data {
                 try JSONSerialization.data(withJSONObject: [
@@ -70,6 +95,13 @@ import XCTest
         }
 
         func testGeneratedNodeNameSkipsReachableDefinitionName() throws {
+            var projection = NativeChatFoundationModelsSchema.Projection()
+            _ = try projection.schema([
+                "$ref": "#/$defs/MCPNode_1",
+                "$defs": ["MCPNode_1": ["type": "object", "properties": [String: Any]()]]
+            ])
+            XCTAssertNotEqual(projection.name(), "MCPNode_1")
+
             let raw = Data(
                 ##"{"type":"object","$defs":{"MCPNode_1":{"type":"string","enum":["ready"]}},"properties":{"value":{"$ref":"#/$defs/MCPNode_1"}}}"##
                     .utf8
@@ -80,9 +112,17 @@ import XCTest
                 schema: authoritative
             ))
             let projected = try NativeChatFoundationModelsSchema.project(raw)
-            let encoded = try XCTUnwrap(String(data: JSONEncoder().encode(projected), encoding: .utf8))
-            XCTAssertTrue(encoded.contains("MCPNode_1"))
-            XCTAssertTrue(encoded.contains("MCPNode_2"))
+            let projectedSchema = try JSONDecoder().decode(
+                DecodedJSONValue.self, from: JSONEncoder().encode(projected)
+            )
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["value": .string("ready")]), schema: projectedSchema
+            ))
+            for rejected in [DecodedJSONValue.string("other"), .object([:]), .null] {
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                    .object(["value": rejected]), schema: projectedSchema
+                ))
+            }
         }
 
         func testNestedRequiredArraysShareOneOutputBudget() throws {
@@ -317,7 +357,7 @@ import XCTest
             let branches: [[String: Any]] = Array(repeating: ["type": "string"], count: 64)
             var properties: [String: Any] = [:]
             var required: [String] = []
-            var arguments: [String: DecodedJSONValue] = [:]
+            var arguments: DecodedJSONObject = [:]
             for index in 0 ..< 64 {
                 let key = "field\(index)"
                 properties[key] = ["anyOf": branches]

@@ -10,10 +10,30 @@ struct NativeChatToolResultStatusView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ForEach(ledger.receipts) { receipt in
-                Text(UiMessages.string(
-                    receipt.kind == .toolError ? .sharedChatMcpToolErrorReceived : .sharedChatMcpResultReceived,
-                    locale: locale
-                ))
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(UiMessages.string(
+                        receipt.kind == .toolError ? .sharedChatMcpToolErrorReceived : .sharedChatMcpResultReceived,
+                        locale: locale
+                    ))
+                    switch receipt.fact {
+                    case let .emailPreferences(preferences):
+                        NativeChatEmailPreferencesFactView(preferences: preferences, locale: locale)
+                    case let .generalPreferences(preferences):
+                        NativeChatGeneralPreferencesFactView(preferences: preferences, locale: locale)
+                    case let .profileBio(bio):
+                        NativeChatProfileBioFactView(bio: bio, locale: locale)
+                    case let .profileLinks(links):
+                        NativeChatProfileLinksFactView(links: links, locale: locale)
+                    case let .feedPostIds(postIds):
+                        NativeChatFeedPostFactView(postIds: postIds, locale: locale)
+                    case let .feedRssItemIds(itemIds):
+                        NativeChatFeedRssItemFactView(itemIds: itemIds, locale: locale)
+                    case let .feedReferralLinks(links):
+                        NativeChatFeedReferralLinkFactView(links: links, locale: locale)
+                    case nil:
+                        EmptyView()
+                    }
+                }
             }
             if ledger.continuation == .contextStopped {
                 Text(UiMessages.string(.sharedChatMcpModelContextStopped, locale: locale))

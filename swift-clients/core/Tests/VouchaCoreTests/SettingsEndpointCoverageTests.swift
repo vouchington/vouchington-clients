@@ -73,7 +73,6 @@ final class SettingsEndpointCoverageTests: XCTestCase {
                 moderationEmailTimeOfDay: "09:00",
                 moderationEmailTimezone: "America/Los_Angeles",
                 thirdPartyMarketing: true,
-                hnDiscussions: true,
                 uiLocale: "fr"
             ),
             method: .PATCH,
@@ -91,8 +90,7 @@ final class SettingsEndpointCoverageTests: XCTestCase {
                 "moderation_email_time_of_day": "09:00",
                 "moderation_email_timezone": "America/Los_Angeles",
                 "ui_locale": "fr",
-                "third_party_marketing": true,
-                "hn_discussions": true
+                "third_party_marketing": true
             ]
         )
         assertEndpoint(

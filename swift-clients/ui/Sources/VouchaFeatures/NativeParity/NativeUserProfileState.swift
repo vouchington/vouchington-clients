@@ -32,6 +32,7 @@ struct NativeUserProfilePageInfo {
 struct NativeUserProfileCollectionPage {
     let collection: NativeUserProfileCollection
     let pageInfo: NativeUserProfilePageInfo
+    var hackerNewsReferences: [String: HackerNewsReferences] = [:]
 }
 
 enum NativeUserProfileCollection {
@@ -41,6 +42,7 @@ enum NativeUserProfileCollection {
     case topics([Topic])
     case sources([RssFeedSource])
     case communities([Community])
+    case referralLinks([NativeReferralLink])
 
     var isEmpty: Bool {
         switch self {
@@ -50,6 +52,7 @@ enum NativeUserProfileCollection {
         case let .topics(items): items.isEmpty
         case let .sources(items): items.isEmpty
         case let .communities(items): items.isEmpty
+        case let .referralLinks(items): items.isEmpty
         }
     }
 
@@ -61,6 +64,7 @@ enum NativeUserProfileCollection {
         case let .topics(items): items.count
         case let .sources(items): items.count
         case let .communities(items): items.count
+        case let .referralLinks(items): items.count
         }
     }
 
@@ -72,6 +76,7 @@ enum NativeUserProfileCollection {
         case let .topics(items): items.map { .init(id: $0.id) }
         case let .sources(items): items.map { .init(id: $0.id) }
         case let .communities(items): items.map { .init(id: $0.id) }
+        case let .referralLinks(items): items.map { .init(id: $0.id) }
         }
     }
 
@@ -82,6 +87,7 @@ enum NativeUserProfileCollection {
         case let (.topics(current), .topics(items)): .topics(Self.merge(current, items))
         case let (.sources(current), .sources(items)): .sources(Self.merge(current, items))
         case let (.communities(current), .communities(items)): .communities(Self.merge(current, items))
+        case let (.referralLinks(current), .referralLinks(items)): .referralLinks(Self.merge(current, items))
         case (.none, _): next
         default: next
         }

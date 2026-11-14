@@ -8,6 +8,7 @@ public struct Endpoint: Sendable {
     public let queryItems: [URLQueryItem]
     public let headers: [String: String]
     public let body: (any Encodable & Sendable)?
+    let preEncodedJSONBody: Data?
     public let bodyKeyEncodingStrategy: EndpointBodyKeyEncodingStrategy
     private static let pathSegmentAllowedCharacters: CharacterSet = {
         var characters = CharacterSet.urlPathAllowed
@@ -28,6 +29,24 @@ public struct Endpoint: Sendable {
         self.queryItems = queryItems
         self.headers = headers
         self.body = body
+        preEncodedJSONBody = nil
+        self.bodyKeyEncodingStrategy = bodyKeyEncodingStrategy
+    }
+
+    init(
+        _ method: HTTPMethod,
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        headers: [String: String] = [:],
+        preEncodedJSONBody: Data,
+        bodyKeyEncodingStrategy: EndpointBodyKeyEncodingStrategy = .convertToSnakeCase
+    ) {
+        self.path = path
+        self.method = method
+        self.queryItems = queryItems
+        self.headers = headers
+        body = nil
+        self.preEncodedJSONBody = preEncodedJSONBody
         self.bodyKeyEncodingStrategy = bodyKeyEncodingStrategy
     }
 
@@ -41,7 +60,17 @@ public struct Endpoint: Sendable {
     /// Returns a copy of this endpoint with `additionalHeaders` merged in, overriding any
     /// existing header of the same name.
     public func withHeaders(_ additionalHeaders: [String: String]) -> Endpoint {
-        Endpoint(
+        if let preEncodedJSONBody {
+            return Endpoint(
+                method,
+                path: path,
+                queryItems: queryItems,
+                headers: headers.merging(additionalHeaders) { _, new in new },
+                preEncodedJSONBody: preEncodedJSONBody,
+                bodyKeyEncodingStrategy: bodyKeyEncodingStrategy
+            )
+        }
+        return Endpoint(
             method,
             path: path,
             queryItems: queryItems,
@@ -61,29 +90,12 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/search", queryItems: items)
     }
 
-    static func rssFeedItems(
-        feedType: String = "any",
-        after: String? = nil,
-        limit: Int = 20,
-        mediaType: String? = nil
-    ) -> Endpoint {
-        var additional: [URLQueryItem] = []
-        if let mediaType {
-            additional.append(.init(name: "media_type", value: mediaType))
-        }
-        return pagedGet(
-            path: "/api/v1/feeds/rss_feed_items/\(feedType)",
-            after: after,
-            limit: limit,
-            queryItems: additional
-        )
-    }
-
     static func posts(
         feedType: String = "any",
         after: String? = nil,
         limit: Int = 20,
-        postTypes: String? = nil
+        postTypes: String? = nil,
+        timeRange: String? = "1w"
     ) -> Endpoint {
         var items: [URLQueryItem] = [.init(name: "limit", value: "\(limit)"), .init(name: "sort", value: "hot")]
         if let after {
@@ -91,6 +103,10 @@ public extension Endpoint {
         }
         if let postTypes {
             items.append(.init(name: "post_types", value: postTypes))
+        }
+        // Native Feed uses an explicit week; a low-level caller may deliberately pass nil.
+        if let timeRange {
+            items.append(.init(name: "time_range", value: timeRange))
         }
         return Endpoint(.GET, path: "/api/v1/feeds/posts/\(feedType)", queryItems: items)
     }
@@ -183,15 +199,6 @@ public extension Endpoint {
     /// Resolve the final navigation target for a notification redirect placeholder.
     static func notificationRedirectTarget(notificationId: String) -> Endpoint {
         Endpoint(.GET, path: "/api/v1/my/notifications/\(pathSegment(notificationId))/redirect-target")
-    }
-
-    /// All RSS feed items — global feed, no personalization scope required.
-    static func allRssFeedItems(after: String? = nil, limit: Int = 20, mediaType: String? = nil) -> Endpoint {
-        var additional: [URLQueryItem] = []
-        if let mediaType {
-            additional.append(.init(name: "media_type", value: mediaType))
-        }
-        return pagedGet(path: "/api/v1/rss-feed-items", after: after, limit: limit, queryItems: additional)
     }
 
     /// Public RSS feed sources, optionally filtered by feed_type and paginated with a cursor.

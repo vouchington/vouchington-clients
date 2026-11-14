@@ -128,7 +128,7 @@ final class AppSectionTests: XCTestCase {
 final class ApiFixtureLoaderTests: XCTestCase {
     func testContractRootRejectsSymbolicLinkedRequiredPath() throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filaments-ui-contract-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("vouchington-ui-contract-\(UUID().uuidString)", isDirectory: true)
         let fixtures = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
         try FileManager.default.createDirectory(at: fixtures, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -138,8 +138,8 @@ final class ApiFixtureLoaderTests: XCTestCase {
         try FileManager.default.createSymbolicLink(at: manifest, withDestinationURL: outside)
 
         XCTAssertThrowsError(
-            try FilamentsContractRoot.url(
-                environment: [FilamentsContractRoot.environmentKey: root.path],
+            try ContractRoot.url(
+                environment: [ContractRoot.environmentKey: root.path],
                 requiredPaths: ["api-fixtures/v1/manifest.json"]
             )
         ) { error in

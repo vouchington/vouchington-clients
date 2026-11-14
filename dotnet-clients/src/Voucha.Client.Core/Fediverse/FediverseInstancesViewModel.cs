@@ -26,7 +26,7 @@ public sealed class FediverseInstancesViewModel(
 
   public Task LoadAsync(string? query = null, CancellationToken cancellationToken = default)
   {
-    return LoadPageAsync(NormalizeQuery(query), null, append: false, cancellationToken);
+    return LoadPageAsync(TrimmedText.NonEmpty(query), null, append: false, cancellationToken);
   }
 
   public Task LoadMoreAsync(CancellationToken cancellationToken = default) =>
@@ -80,7 +80,4 @@ public sealed class FediverseInstancesViewModel(
       if (generation == requestGeneration) IsLoading = false;
     }
   }
-
-  private static string? NormalizeQuery(string? query) =>
-      string.IsNullOrWhiteSpace(query) ? null : query.Trim();
 }

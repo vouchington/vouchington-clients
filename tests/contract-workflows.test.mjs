@@ -1,31 +1,23 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
-
+import { jobBlock } from './workflow-job-block.mjs'
 const readWorkflow = name =>
   readFile(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8')
 const readAction = name =>
   readFile(new URL(`../.github/actions/${name}/action.yml`, import.meta.url), 'utf8')
 
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
-
 const preparedCandidateInputs = [
   'candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}',
   'expected-contract-repository: vouchington/vouchington',
-  'producer-run-attempt: ${{ github.run_attempt }}',
+  'producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}',
   'producer-run-id: ${{ github.run_id }}',
 ]
 
 describe('native contract workflow boundary', () => {
   it('keeps contract path ownership in the checked-in configuration', async () => {
     const config = JSON.parse(
-      await readFile(new URL('../contracts/filaments.json', import.meta.url), 'utf8'),
+      await readFile(new URL('../contracts/vouchington.json', import.meta.url), 'utf8'),
     )
     const consumers = await Promise.all([
       readFile(new URL('../scripts/contract-artifact.mjs', import.meta.url), 'utf8'),
@@ -36,7 +28,6 @@ describe('native contract workflow boundary', () => {
       for (const consumer of consumers) assert.equal(consumer.includes(path), false)
     }
   })
-
   it('uses full checkouts and pinned artifact actions', async () => {
     const files = await Promise.all([
       readWorkflow('native-contract-tests.yml'),
@@ -64,11 +55,13 @@ describe('native contract workflow boundary', () => {
       assert.match(action, new RegExp(`inputs\\.${input}`, 'u'))
     for (const expectation of [
       /fetch-depth: 0/u,
+      /skip-candidate-checkout:[\s\S]*?default: 'false'/u,
+      /name: Check out exact candidate revision\n\s+if: \$\{\{ inputs\.skip-candidate-checkout != 'true' \}\}/u,
       /ref: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
       /path: candidate-clients/u,
       /persist-credentials: false/u,
       /run-id: \$\{\{ inputs\.producer-run-id \}\}/u,
-      /native-contract-\$\{\{ inputs\.producer-run-id \}\}-\$\{\{ inputs\.producer-run-attempt \}\}/u,
+      /name: native-contract-\$\{\{ inputs\.producer-run-id \}\}\n/u,
       /EXPECTED_REVISION_SHA: \$\{\{ inputs\.candidate-revision-sha \}\}/u,
       /EXPECTED_CONTRACT_REPOSITORY: \$\{\{ inputs\.expected-contract-repository \}\}/u,
       /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u,
@@ -77,15 +70,16 @@ describe('native contract workflow boundary', () => {
       assert.match(action, expectation)
 
     assert.match(action, /expected-contract-repository:[\s\S]*?default: vouchington\/vouchington/u)
+    assert.equal(workflow.split('skip-candidate-checkout: true').length - 1, 2)
 
-    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 14)
+    for (const input of preparedCandidateInputs) assert.equal(workflow.split(input).length - 1, 23)
     assert.equal(workflow.split('ref: ${{ github.sha }}').length - 1, 0)
     assert.equal(workflow.split('ref: ${{ steps.event.outputs.trusted_ref }}').length - 1, 1)
     assert.equal(
       workflow.split('ref: ${{ github.event.pull_request.base.sha || github.sha }}').length - 1,
       0,
     )
-    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 14)
+    assert.equal(workflow.split('uses: ./.github/actions/prepare-native-contract').length - 1, 23)
     assert.match(jobBlock(workflow, 'produce'), /trusted_ref="\$EVENT_SHA"/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /trusted_ref="\$PR_BASE_SHA"/u)
   })
@@ -98,7 +92,6 @@ describe('native contract workflow boundary', () => {
     const portable = jobBlock(workflow, 'dotnet-portable')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const windows = jobBlock(workflow, 'dotnet-windows-image-preview')
-
     assert.match(portable, /^    name: \.NET portable$/mu)
     assert.match(portable, /runs-on: ubuntu-latest/u)
     assert.doesNotMatch(portable, /matrix:/u)
@@ -106,7 +99,7 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(portable, /matrix\.os/u)
     assert.match(maui, /runs-on: macos-latest/u)
     assert.equal(windows.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
-    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 2)
+    assert.equal(workflow.split('-p:MSBuildEnableWorkloadResolver=false').length - 1, 4)
     assert.match(workflow, /dotnet test Voucha\.DotNet\.sln[\s\S]*XPlat Code Coverage/u)
     assert.match(workflow, /coverage\.info[\s\S]*TestResults\/core\/lcov\.info/u)
     assert.match(workflow, /run: pnpm run coverage:dotnet-core/u)
@@ -141,6 +134,7 @@ describe('native contract workflow boundary', () => {
 
     assert.equal(jobBlock(workflow, 'dotnet-portable').split('tool: dotnet').length - 1, 1)
     assert.equal(jobBlock(workflow, 'dotnet-maui').split('tool: dotnet').length - 1, 1)
+    assert.equal(jobBlock(workflow, 'dotnet-maui-tests').split('tool: dotnet').length - 1, 1)
     assert.doesNotMatch(workflow, /actions\/setup-dotnet@/u)
     assert.match(action, /expected="\$\(jq -er '\.sdk\.version' global\.json\)"/u)
     assert.match(action, /actual="\$\(mise exec -- dotnet --version\)"/u)
@@ -160,12 +154,15 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-ui:',
       'test-swift-core-linux:',
       'test-swift-core:',
-      'test-swift-android:',
+      'test-swift-android-cookie:',
       'test-swift-ui:',
+      'build-swift-ui-tests:',
       'swift-patch-coverage:',
       'build-android-core:',
       'build-macos-app:',
       'build-ios-app:',
+      'build-ios-tests:',
+      'build-ios-x86:',
     ])
       assert.match(workflow, new RegExp(`^  ${job}`, 'mu'))
     assert.match(
@@ -192,7 +189,7 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /setup-mise-toolchain[\s\S]*?tool: swift/u)
     assert.match(
       workflow,
-      /verify-android-host-swift\.sh[\s\S]*?mise exec swift@6\.3\.3 -- swift test/u,
+      /run-android-host-swift-tests\.sh\s+--package-path swift-clients\/apps\/android\s+--filter VouchaAndroidTests/u,
     )
     assert.doesNotMatch(workflow, /swiftly|SWIFTLY_HOME_DIR/u)
     assert.match(workflow, /materialize-skip-sdk\.sh/u)
@@ -213,11 +210,11 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA" "\$SWIFT_PACKAGE_CLONES"/u)
     assert.doesNotMatch(candidateJobs, /coverage-transport|s3_transport|secrets\./u)
-    assert.match(action, /VOUCHA_FILAMENTS_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
+    assert.match(action, /VOUCHA_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
     assert.equal(
       workflow.split('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}').length - 1,
-      14,
+      23,
     )
   })
 
@@ -237,6 +234,8 @@ describe('native contract workflow boundary', () => {
       'periphery-swift-ui',
       'test-swift-core',
       'build-swift-android',
+      'test-swift-android-libs',
+      'test-swift-android-host',
       'test-swift-ui',
       'build-macos-app',
     ])
@@ -294,6 +293,7 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /jq -er '\.sdk\.version' global\.json/u)
     assert.match(action, /mise install "\$MISE_TOOL"/u)
     assert.doesNotMatch(validation, /actions\/setup-dotnet@/u)
+    // no-mistakes-disable-next-line test-no-dependency-pins -- setup-dotnet input this repository must not select
     assert.doesNotMatch(validation, /dotnet-version: 10\.0\.x/u)
     assert.doesNotMatch(validation, /DOTNET_INSTALL_DIR/u)
     assert.doesNotMatch(validation, /mise_dir:/u)
@@ -306,9 +306,9 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /pull_request:/u)
     assert.doesNotMatch(workflow, /pull_request_target:/u)
     assert.doesNotMatch(jobBlock(workflow, 'produce'), /pull_request\.head\.repo\.full_name/u)
-    assert.doesNotMatch(workflow, /FILAMENTS_DEPLOY_KEY/u)
+    assert.doesNotMatch(workflow, /VOUCHINGTON_DEPLOY_KEY/u)
     assert.doesNotMatch(workflow, /ssh-key:/u)
-    assert.match(workflow, /candidate-clients\/contracts\/filaments\.json/u)
+    assert.match(workflow, /candidate-clients\/contracts\/vouchington\.json/u)
     assert.match(
       workflow,
       /  produce:[\s\S]*?repository: vouchington\/vouchington[\s\S]*?  verify:/u,
@@ -320,7 +320,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       workflow.split('expected-contract-repository: vouchington/vouchington').length - 1,
-      14,
+      23,
     )
     assert.match(action, /--expected-contract-repository "\$EXPECTED_CONTRACT_REPOSITORY"/u)
     assert.doesNotMatch(action, /secrets\./u)
@@ -333,18 +333,18 @@ describe('native contract workflow boundary', () => {
     assert.match(producer, /name: Install trusted Vouchington exporter dependencies/u)
     assert.match(
       producer,
-      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: filaments\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile/u,
+      /name: Install trusted Vouchington exporter dependencies\n\s+working-directory: vouchington\n\s+env:\n\s+pnpm_config_store_dir: \$\{\{ runner\.temp \}\}\/pnpm-store\n\s+run: pnpm install --frozen-lockfile --ignore-scripts/u,
     )
     assert.match(producer, /name: Stage trusted native contract/u)
     assert.match(producer, /scripts\/stage-native-contract\.mjs/u)
-    assert.match(producer, /--filaments-root "\$FILAMENTS_ROOT"/u)
+    assert.match(producer, /--vouchington-root "\$VOUCHINGTON_ROOT"/u)
     assert.match(producer, /--output-root "\$CONTRACT_STAGE_ROOT"/u)
     assert.match(producer, /--consumer-root "\$CANDIDATE_ROOT"/u)
     assert.match(producer, /name: Assert extracted localization representatives/u)
     assert.match(producer, /scripts\/assert-extracted-localization\.mjs/u)
     assert.match(
       producer,
-      /VOUCHA_FILAMENTS_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
+      /VOUCHA_CONTRACT_ROOT: \$\{\{ runner\.temp \}\}\/native-contract-stage-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/u,
     )
     assert.equal(
       producer.indexOf('name: Install trusted Vouchington exporter dependencies') <
@@ -358,9 +358,42 @@ describe('native contract workflow boundary', () => {
     )
     assert.equal(
       producer.indexOf('name: Assert extracted localization representatives') <
-        producer.indexOf('name: Assert candidate generated localization parity'),
+        producer.indexOf('name: Verify the staged contract layout'),
       true,
     )
+  })
+
+  it('executes only a producer commit that is pinned and merged to producer main', async () => {
+    const producer = jobBlock(await readWorkflow('native-contract-tests.yml'), 'produce')
+
+    assert.match(producer, /id: pin\n\s+env:\n\s+GH_TOKEN: \$\{\{ github\.token \}\}/u)
+    assert.match(producer, /scripts\/assert-pinned-commit-on-main\.mjs --config/u)
+    assert.match(producer, /ref: \$\{\{ steps\.pin\.outputs\.commit \}\}/u)
+    assert.doesNotMatch(producer, /ref: main/u)
+    assert.match(producer, /rev-parse HEAD\)" = "\$PINNED_COMMIT"/u)
+    assert.ok(
+      producer.indexOf('assert-pinned-commit-on-main') <
+        producer.indexOf('name: Check out the pinned Vouchington commit'),
+      'the reachability check must precede the producer checkout and install',
+    )
+  })
+
+  it('materializes generated localization from the verified artifact in every candidate job', async () => {
+    const [action, workflow] = await Promise.all([
+      readAction('prepare-native-contract'),
+      readWorkflow('native-contract-tests.yml'),
+    ])
+
+    assert.match(
+      action,
+      /name: Pull generated localization from the verified contract\n\s+if: \$\{\{ inputs\.skip-candidate-checkout != 'true' \}\}\n\s+shell: bash\n\s+working-directory: candidate-clients\n\s+run: node scripts\/contracts-pull\.mjs/u,
+    )
+    assert.match(action, /VOUCHA_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
+    assert.ok(
+      action.indexOf('Check out exact candidate revision') <
+        action.indexOf('Pull generated localization'),
+    )
+    assert.match(workflow, /'\.vouchington\.sha == \$sha'/u)
   })
 
   it('restores a hash-keyed pnpm store for Vouchington and candidate installs', async () => {
@@ -370,10 +403,12 @@ describe('native contract workflow boundary', () => {
     ])
     const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
     assert.match(workflow, cachePin)
-    assert.match(action, cachePin)
+    assert.match(action, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
+    assert.match(action, /actions\/cache\/save@[a-f0-9]{40}(?=\s|$)/u)
+    assert.doesNotMatch(action, /uses: actions\/cache@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(
       jobBlock(workflow, 'produce'),
-      /key: \$\{\{ runner\.os \}\}-pnpm-vouchington-\$\{\{ hashFiles\('filaments\/pnpm-lock\.yaml'\) \}\}/u,
+      /key: \$\{\{ runner\.os \}\}-pnpm-vouchington-\$\{\{ hashFiles\('vouchington\/pnpm-lock\.yaml'\) \}\}/u,
     )
     assert.match(action, /hashFiles\('candidate-clients\/pnpm-lock\.yaml'\)/u)
     assert.match(action, /key: \$\{\{ runner\.os \}\}-pnpm-clients-/u)
@@ -382,52 +417,13 @@ describe('native contract workflow boundary', () => {
     assert.doesNotMatch(action, /path:.*skip-swift-home/u)
   })
 
-  it('restores checksummed Android archives and the Skip Gradle user home', async () => {
-    const workflow = await readWorkflow('native-contract-tests.yml')
-    const skip = jobBlock(workflow, 'build-swift-android')
-    const androidCore = jobBlock(workflow, 'build-android-core')
-    const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
-
-    assert.match(skip, cachePin)
-    assert.match(androidCore, cachePin)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(androidCore, /path: ~\/\.cache\/voucha\/swift-android\/downloads/u)
-    assert.match(
-      skip,
-      /hashFiles\('candidate-clients\/swift-clients\/apps\/android\/tooling\/materialize-skip-sdk\.sh', '\.github\/workflows\/native-contract-tests\.yml'\)/u,
-    )
-    assert.match(
-      androidCore,
-      /hashFiles\('candidate-clients\/swift-clients\/tooling\/build-android-core\.sh'\)/u,
-    )
-    assert.match(skip, /Sources\/VouchaAndroid\/Skip\/skip\.yml/u)
-    assert.doesNotMatch(skip, /restore-keys:/u)
-    assert.doesNotMatch(androidCore, /restore-keys:/u)
-    assert.match(skip, /path: ~\/\.cache\/voucha\/gradle/u)
-    assert.match(skip, /name: Restore Gradle user home\n\s+if: matrix\.phase == 'app'/u)
-    assert.match(
-      skip,
-      /name: Restore Gradle user home[\s\S]*name: Build the selected Android validation phase/u,
-    )
-    assert.match(
-      skip,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch and materialize Skip Swift Android SDK/u,
-    )
-    assert.match(
-      androidCore,
-      /name: Restore checksummed Swift Android archives[\s\S]*name: Prefetch Swift Android SDK and NDK archives/u,
-    )
-    assert.doesNotMatch(skip, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(androidCore, /path:.*skip-swift-home/u)
-    assert.doesNotMatch(skip, /path:.*android-sdk/u)
-  })
-
   it('restores the job-scoped NuGet package cache for portable and MAUI jobs', async () => {
     const [action, workflow] = await Promise.all([
       readAction('prepare-native-contract'),
       readWorkflow('native-contract-tests.yml'),
     ])
     const portable = jobBlock(workflow, 'dotnet-portable')
+    const mauiTests = jobBlock(workflow, 'dotnet-maui-tests')
     const maui = jobBlock(workflow, 'dotnet-maui')
     const cachePin = /actions\/cache@[a-f0-9]{40}(?=\s|$)/u
     const nugetKey =
@@ -436,7 +432,8 @@ describe('native contract workflow boundary', () => {
     assert.match(action, /VOUCHA_DOTNET_CACHE_ROOT=\$RUNNER_TEMP\/voucha-dotnet-cache/u)
     assert.match(action, /VOUCHA_DOTNET_TEMP_ROOT=\$RUNNER_TEMP\/voucha-dotnet-temp/u)
     assert.match(portable, cachePin)
-    assert.match(maui, cachePin)
+    assert.match(mauiTests, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
+    assert.match(maui, /actions\/cache\/restore@[a-f0-9]{40}(?=\s|$)/u)
     assert.match(portable, /path: \$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(maui, /path: \|[\s\S]*\$\{\{ runner\.temp \}\}\/voucha-dotnet-cache/u)
     assert.match(portable, nugetKey)
@@ -445,6 +442,7 @@ describe('native contract workflow boundary', () => {
       /key: \$\{\{ runner\.os \}\}-nuget-maui-\$\{\{ hashFiles\('candidate-clients\/dotnet-clients\/\*\*\/\*\.lock\.json', 'candidate-clients\/dotnet-clients\/Directory\.Packages\.props', 'candidate-clients\/global\.json'\) \}\}/u,
     )
     assert.match(maui, /candidate-clients\/\.nuget\/packages/u)
+    assert.match(mauiTests, /candidate-clients\/\.nuget\/packages/u)
     assert.doesNotMatch(portable, /path:.*voucha-dotnet-temp/u)
     assert.doesNotMatch(maui, /path:.*voucha-dotnet-temp/u)
     assert.doesNotMatch(maui, /path:.*voucha-dotnet-lock-scratch/u)
@@ -459,9 +457,9 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /retention-days: 1/u)
     assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
     assert.match(workflow, /--expected-producer-run-attempt/u)
-    assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: always\(\)/u)
+    assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: \$\{\{ !cancelled\(\) \}\}/u)
     assert.doesNotMatch(workflow, /pull_request\.head\.repo\.full_name/u)
-    assert.doesNotMatch(workflow, /Filaments contract parity|check-runs/u)
+    assert.doesNotMatch(workflow, /Vouchington contract parity|check-runs/u)
   })
 
   it('reports DTO fixture field drift in one advisory check outside the Tests gate', async () => {
@@ -477,7 +475,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(
       dotnetJob,
-      /name: Test \.NET DTO fixture parity separately[\s\S]*if: always\(\)[\s\S]*continue-on-error: true/u,
+      /name: Test \.NET DTO fixture parity separately[\s\S]*if: \$\{\{ !cancelled\(\) \}\}[\s\S]*continue-on-error: true/u,
     )
     assert.match(
       swiftJob,
@@ -485,7 +483,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(
       swiftJob,
-      /name: Test Swift DTO fixture parity separately[\s\S]*if: always\(\)[\s\S]*continue-on-error: true/u,
+      /name: Test Swift DTO fixture parity separately[\s\S]*if: \$\{\{ !cancelled\(\) \}\}[\s\S]*continue-on-error: true/u,
     )
     assert.ok(
       swiftJob.indexOf('name: Test Swift DTO fixture parity separately') >

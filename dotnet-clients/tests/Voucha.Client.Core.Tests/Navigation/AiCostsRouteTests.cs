@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Navigation;
+using Voucha.Client.Core.Tests.Support;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Navigation;
@@ -24,10 +25,10 @@ public sealed class AiCostsRouteTests
   [Fact]
   public void AppShellAndAdministratorHubRouteToDedicatedAiCostsPage()
   {
-    var routing = File.ReadAllText(RepoPath("dotnet-clients", "src", "Voucha.Client.App", "AppShell.Engineering.cs"));
-    var hubCode = File.ReadAllText(RepoPath("dotnet-clients", "src", "Voucha.Client.App", "Pages", "EngineeringPage.xaml.cs"));
-    var hubXaml = File.ReadAllText(RepoPath("dotnet-clients", "src", "Voucha.Client.App", "Pages", "EngineeringPage.xaml"));
-    var services = File.ReadAllText(RepoPath("dotnet-clients", "src", "Voucha.Client.App", "MauiProgram.Engineering.cs"));
+    var routing = File.ReadAllText(RepositoryFilePath.Find("dotnet-clients", "src", "Voucha.Client.App", "AppShell.Engineering.cs"));
+    var hubCode = File.ReadAllText(RepositoryFilePath.Find("dotnet-clients", "src", "Voucha.Client.App", "Pages", "EngineeringPage.xaml.cs"));
+    var hubXaml = File.ReadAllText(RepositoryFilePath.Find("dotnet-clients", "src", "Voucha.Client.App", "Pages", "EngineeringPage.xaml"));
+    var services = File.ReadAllText(RepositoryFilePath.Find("dotnet-clients", "src", "Voucha.Client.App", "MauiProgram.Engineering.cs"));
 
     Assert.Contains("path == \"/admin/ai-costs\"", routing, StringComparison.Ordinal);
     Assert.Contains("GetRequiredService<AiCostsPage>()", routing, StringComparison.Ordinal);
@@ -36,18 +37,5 @@ public sealed class AiCostsRouteTests
     Assert.Contains("x:Name=\"OperationsCards\"", hubXaml, StringComparison.Ordinal);
     Assert.Contains("AutomationId=\"engineering-open-ai-costs\"", hubXaml, StringComparison.Ordinal);
     Assert.Contains("AddTransient<AiCostsPage>()", services, StringComparison.Ordinal);
-  }
-
-  private static string RepoPath(params string[] segments)
-  {
-    var directory = new DirectoryInfo(AppContext.BaseDirectory);
-    while (directory is not null)
-    {
-      var candidate = Path.Combine(new[] { directory.FullName }.Concat(segments).ToArray());
-      if (File.Exists(candidate)) return candidate;
-      directory = directory.Parent;
-    }
-
-    throw new DirectoryNotFoundException("Could not find repository root from test output directory.");
   }
 }

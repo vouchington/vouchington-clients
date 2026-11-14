@@ -20,6 +20,7 @@ public sealed class ApiNewsFeedServiceDeliveryIdentityTests
     Assert.Equal(["direct", "share-A", "share-B"], items.Select(item => item.FeedRowId));
     Assert.Equal(["item-X", "item-X", "item-X"], items.Select(item => item.Id));
     Assert.All(items, item => Assert.Equal("Shared article", item.Title));
+    Assert.All(items, item => Assert.Equal("Seen on Hacker News · 1 · Mentioned · 2", item.HackerNews.Summary));
     Assert.Equal("story-1", items[0].StoryId);
     Assert.Equal("peer-1", Assert.Single(items[0].StoryArticles!.Items).Id);
     Assert.All(items.Skip(1), item => Assert.Null(item.StoryId));
@@ -59,6 +60,7 @@ public sealed class ApiNewsFeedServiceDeliveryIdentityTests
             "page_info": { "has_next_page": false, "end_cursor": null }
           }
         },
+        "rss_feed_item_hacker_news_references": {"item-X":{"story_count":1,"comment_count":2}},
         "rss_feed_items": {
           "item-X": {
             "id": "item-X",

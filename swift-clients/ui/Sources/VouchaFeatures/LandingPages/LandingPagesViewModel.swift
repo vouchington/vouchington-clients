@@ -7,6 +7,10 @@ import VouchaLocalization
 @Observable
 @MainActor
 public final class LandingPagesViewModel {
+    public internal(set) var isItemLimitReached = false
+    public internal(set) var itemLimit: Int?
+    public internal(set) var candidatePageInfo: LandingPageCandidatePageInfo?
+    public internal(set) var isLoadingMoreCandidates = false
     public var pages: [LandingPage] = []
     public internal(set) var candidates: LandingPageCandidates = .empty
     public internal(set) var selectedPage: LandingPageWithItems?
@@ -72,6 +76,7 @@ public final class LandingPagesViewModel {
     }
 
     public var isLoading: Bool {
+        if isLoadingMoreCandidates { return true }
         if case .loading = state {
             return true
         }
@@ -90,20 +95,25 @@ public final class LandingPagesViewModel {
         guard !isLoading, let client = requireClient() else { return }
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         let selectedPageID = selectedPage?.id
         do {
             async let pagesResponse: LandingPagesResponse = client.send(.myLandingPages)
             async let candidatesResponse: LandingPageCandidatesResponse = client.send(.myLandingPageCandidates)
             let stagedPages = try await pagesResponse.results
-            let stagedCandidates = try await candidatesResponse.candidates
+            let candidateResponse = try await candidatesResponse
+            let stagedCandidates = candidateResponse.candidates
             let pageID = selectedPageIDForLoad(in: stagedPages, selectedPageID: selectedPageID)
             let stagedPage: LandingPageWithItems?
             if let pageID {
                 let response: LandingPageWithItemsResponse = try await client.send(.myLandingPage(id: pageID))
                 stagedPage = response.landingPage
+                itemLimit = response.itemLimit
             } else {
                 stagedPage = nil
             }
+            if stagedPage == nil { itemLimit = candidateResponse.itemLimit }
+            candidatePageInfo = candidateResponse.pageInfo
             commitLoad(pages: stagedPages, candidates: stagedCandidates, page: stagedPage)
             state = .loaded
         } catch {
@@ -122,6 +132,7 @@ public final class LandingPagesViewModel {
         let isReselectingCurrentPage = selectedPage?.id == id
         state = .loading
         errorMessage = nil
+        isItemLimitReached = false
         do {
             try await loadPage(id: id, preservingSamePageDrafts: isReselectingCurrentPage)
             state = .loaded
@@ -150,6 +161,7 @@ public final class LandingPagesViewModel {
     func loadPage(id: String, preservingSamePageDrafts: Bool = false) async throws {
         guard let client else { throw LandingPagesViewModelError.missingClient }
         let detail: LandingPageWithItemsResponse = try await client.send(.myLandingPage(id: id))
+        itemLimit = detail.itemLimit
         if preservingSamePageDrafts, selectedPage?.id == detail.landingPage.id {
             commitLoad(pages: pages, candidates: candidates, page: detail.landingPage)
         } else {
@@ -157,29 +169,4 @@ public final class LandingPagesViewModel {
         }
     }
 
-    func requireClient() -> APIClient? {
-        guard let client else {
-            handle(LandingPagesViewModelError.missingClient)
-            return nil
-        }
-        return client
-    }
-
-    func handle(_ error: Error) {
-        if let error = error as? VouchaError {
-            state = .error(error)
-            errorMessage = .verbatim(String(describing: error))
-        } else {
-            state = .error(.api(statusCode: 0, preconditionCode: nil))
-            errorMessage = .verbatim(error.localizedDescription)
-        }
-    }
-}
-
-private enum LandingPagesViewModelError: LocalizedError {
-    case missingClient
-
-    var errorDescription: String? {
-        "Landing pages are unavailable because the API client is not configured."
-    }
 }

@@ -198,6 +198,18 @@ let bookmarkReferralSwiftCoverage: [RegisteredFixture] = [
             ]
         )
     },
+    RegisteredFixture(id: "native.referral-links.user.public") {
+        try assertFixtureCoversDTO(
+            $0,
+            as: Page<NativeReferralLink>.self,
+            ignoring: [
+                "page_info.end_cursor",
+                "page_info.start_cursor",
+                "results.deleted_at",
+                "results.parent_link_id"
+            ]
+        )
+    },
     RegisteredFixture(id: "native.referral-clicks.mine.default") {
         try assertFixtureCoversDTO(
             $0,
@@ -211,16 +223,6 @@ let bookmarkReferralSwiftCoverage: [RegisteredFixture] = [
                 "results.__entity_type",
                 "users.user-2.__entity_type",
                 "users.user-2.profile_image_id"
-            ]
-        )
-    },
-    RegisteredFixture(id: "web.trending-referral-programs.default") {
-        try assertFixtureCoversDTO(
-            $0,
-            as: TrendingReferralProgramsResponse.self,
-            ignoring: [
-                "page_info.end_cursor",
-                "page_info.start_cursor"
             ]
         )
     },

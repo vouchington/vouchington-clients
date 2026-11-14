@@ -56,7 +56,7 @@ public sealed class StaffProvenanceContractTests
   }
 
   private static T Read<T>(string entity) =>
-      JsonSerializer.Deserialize<T>(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+      JsonSerializer.Deserialize<T>(File.ReadAllText(ContractPaths.ApiFixture(
           $"responses/entity-provenance.{entity}.json")), VouchaApiJson.Options)
       ?? throw new InvalidOperationException($"Missing {entity} fixture response.");
 }

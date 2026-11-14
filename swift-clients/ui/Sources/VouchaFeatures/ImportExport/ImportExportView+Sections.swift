@@ -68,7 +68,7 @@ extension ImportExportView {
                     ), role: .cancel) { viewModel.stopMonitoring() }
                 } else if viewModel.canResumeMonitoring {
                     Button(UiMessages.string(
-                        viewModel.errorMessage == nil
+                        viewModel.errorText == nil
                             ? .nativeSwiftImportExportResumeMonitoring
                             : .nativeSwiftImportExportTryStatusAgain,
                         locale: nativeUiLocale
@@ -85,7 +85,7 @@ extension ImportExportView {
                         : result.input)
                     Text(UiMessages.string(statusText(result), locale: nativeUiLocale))
                         .font(.caption)
-                        .foregroundStyle(result.status == .error ? .red : .secondary)
+                        .foregroundStyle((result.status == .error || result.status == .skipped) ? .red : .secondary)
                 }
                 .accessibilityElement(children: .combine)
             }

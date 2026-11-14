@@ -52,7 +52,7 @@ extension NativeChatMCPInputSchema {
     }
 
     private static func sameOutputObjects(
-        _ left: [String: DecodedJSONValue], _ right: [String: DecodedJSONValue], remainingWork: inout Int
+        _ left: DecodedJSONObject, _ right: DecodedJSONObject, remainingWork: inout Int
     ) throws -> Bool {
         guard left.count == right.count else { return false }
         var expected: [Data: DecodedJSONValue] = [:]

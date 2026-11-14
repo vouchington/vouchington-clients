@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using Voucha.Client.Core.Tests.Support;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Moderation;
@@ -27,8 +27,7 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void ReportsPageRendersErrorState()
   {
-    var root = ClientRepositoryRoot();
-    var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
+    var page = Page("ModerationReportsPage.cs");
     var cards = CardsSource();
 
     Assert.Contains("errorLabel,", page, StringComparison.Ordinal);
@@ -38,8 +37,7 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void BulkActionsRequireConfirmationBeforeMutation()
   {
-    var actions = Source(
-        ClientRepositoryRoot(), "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Actions.cs");
+    var actions = Page("ModerationReportsPage.Actions.cs");
 
     var confirmation = actions.IndexOf("DisplayAlertAsync", StringComparison.Ordinal);
     var mutation = actions.IndexOf("await action().ConfigureAwait(true)", StringComparison.Ordinal);
@@ -50,11 +48,9 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void GroupedRenderingUsesActiveReportsAndEligibleActions()
   {
-    var root = ClientRepositoryRoot();
-    var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
+    var page = Page("ModerationReportsPage.cs");
     var cards = CardsSource();
-    var actions = Source(
-        root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Actions.cs");
+    var actions = Page("ModerationReportsPage.Actions.cs");
 
     Assert.Contains("viewModel.ReportsForCluster(cluster)", cards, StringComparison.Ordinal);
     Assert.DoesNotContain("foreach (var report in cluster.Reports)", cards, StringComparison.Ordinal);
@@ -71,12 +67,11 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void MauiReportsRouteUsesDedicatedNativeTriageSurface()
   {
-    var root = ClientRepositoryRoot();
-    var route = Source(root, "dotnet-clients/src/Voucha.Client.App/AppShell.ModerationRoutes.cs");
-    var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
-    var cards = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Cards.cs");
-    var presentation = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Presentation.cs");
-    var actions = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Actions.cs");
+    var route = AppSource("AppShell.ModerationRoutes.cs");
+    var page = Page("ModerationReportsPage.cs");
+    var cards = Page("ModerationReportsPage.Cards.cs");
+    var presentation = Page("ModerationReportsPage.Presentation.cs");
+    var actions = Page("ModerationReportsPage.Actions.cs");
 
     Assert.Contains("GetRequiredService<ModerationReportsPage>", route, StringComparison.Ordinal);
     Assert.Contains("foreach (var content in EnumerateShellContents(\"moderation\"))", route, StringComparison.Ordinal);
@@ -110,9 +105,8 @@ public sealed class ModerationReportsPageSourceTests
   [Fact]
   public void ModePickerUsesTypedOptionsAndSafeMapping()
   {
-    var root = ClientRepositoryRoot();
-    var page = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.cs");
-    var filters = Source(root, "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Filters.cs");
+    var page = Page("ModerationReportsPage.cs");
+    var filters = Page("ModerationReportsPage.Filters.cs");
 
     Assert.Contains("record ModeOption(string Label, ModerationReportsMode Mode)", page, StringComparison.Ordinal);
     Assert.Contains("modePicker.ItemsSource = ModeOptions();", page, StringComparison.Ordinal);
@@ -122,21 +116,21 @@ public sealed class ModerationReportsPageSourceTests
     Assert.DoesNotContain("modePicker.SelectedIndex = (int)viewModel.Mode", page + filters, StringComparison.Ordinal);
   }
 
-  private static string Source(string root, string relativePath) =>
-      File.ReadAllText(Path.Combine(root, relativePath));
+  private static string CardsSource() => Page("ModerationReportsPage.Cards.cs");
 
-  private static string CardsSource() => Source(
-      ClientRepositoryRoot(), "dotnet-clients/src/Voucha.Client.App/Pages/ModerationReportsPage.Cards.cs");
+  private static string Page(string file) => Read(
+      "dotnet-clients",
+      "src",
+      "Voucha.Client.App",
+      "Pages",
+      file);
 
-  private static string ClientRepositoryRoot([CallerFilePath] string sourcePath = "")
-  {
-    DirectoryInfo? directory = new(Path.GetDirectoryName(sourcePath)!);
-    while (directory is not null)
-    {
-      if (File.Exists(Path.Combine(directory.FullName, "dotnet-clients", "Voucha.DotNet.sln")))
-        return directory.FullName;
-      directory = directory.Parent;
-    }
-    throw new DirectoryNotFoundException("Could not find client repository root from source path.");
-  }
+  private static string AppSource(string file) => Read(
+      "dotnet-clients",
+      "src",
+      "Voucha.Client.App",
+      file);
+
+  private static string Read(params string[] relativeParts) =>
+      File.ReadAllText(RepositoryFilePath.Find(relativeParts));
 }

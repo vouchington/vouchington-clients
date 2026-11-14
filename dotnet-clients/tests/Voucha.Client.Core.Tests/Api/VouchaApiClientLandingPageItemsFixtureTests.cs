@@ -29,6 +29,7 @@ public sealed partial class VouchaApiClientTests
         body,
         TestContext.Current.CancellationToken);
 
+    Assert.Equal(100, response.ItemLimit);
     AssertRequest(handler, HttpMethod.Put, "/api/v1/my/landing-pages/landing-page-1/items");
     var request = Assert.Single(handler.Requests);
     var expected = ApiFixtureLoader.ManifestFixtures

@@ -14,11 +14,9 @@ public sealed class ImportExportValidationTests
     var fiveHundred = "\"url\",title\n" + string.Join('\n', rows);
 
     Assert.Null(ImportExportValidation.Validate(new(SourceImportFormat.Csv, Text: fiveHundred)));
-    Assert.Equal(
-        "Import up to 500 sources at a time.",
-        Resolve(ImportExportValidation.Validate(new(
-            SourceImportFormat.Csv,
-            Text: fiveHundred + "\nhttps://example.test/501,Feed 501"))));
+    Assert.Null(ImportExportValidation.Validate(new(
+        SourceImportFormat.Csv,
+        Text: fiveHundred + "\nhttps://example.test/501,Feed 501")));
   }
 
   [Fact]
@@ -93,16 +91,14 @@ public sealed class ImportExportValidationTests
   }
 
   [Fact]
-  public void CsvValidationAppliesLimitToNonemptyParsedUrlValues()
+  public void CsvValidationAcceptsLargeInputWithEmptyParsedUrlValues()
   {
     var urls = Enumerable.Repeat("https://example.test/feed,Feed", 500);
     var emptyUrls = Enumerable.Repeat(",Empty", 501);
     var withinLimit = "url,title\n" + string.Join('\n', urls.Concat(emptyUrls));
 
     Assert.Null(ValidateCsv(withinLimit));
-    Assert.Equal(
-        "Import up to 500 sources at a time.",
-        ValidateCsv(withinLimit + "\nhttps://example.test/overflow,Overflow"));
+    Assert.Null(ValidateCsv(withinLimit + "\nhttps://example.test/overflow,Overflow"));
   }
 
   [Fact]

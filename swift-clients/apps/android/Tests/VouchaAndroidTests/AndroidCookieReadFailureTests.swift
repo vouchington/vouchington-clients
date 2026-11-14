@@ -1,0 +1,155 @@
+import Foundation
+#if !canImport(Darwin)
+    import FoundationNetworking
+#endif
+@testable import VouchaAndroid
+import VouchaCore
+import VouchaTestSupport
+import XCTest
+
+final class AndroidCookieReadFailureTests: XCTestCase {
+    @MainActor
+    func testReadFailurePreservesSnapshotAndExplicitRetryRestoresBeforeIdentityRequest() async throws {
+        let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
+        let host = "cookie-read-\(UUID().uuidString.lowercased()).voucha.ai"
+        let secrets = CookieReadFailureSecrets()
+        let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
+        let rawSnapshot = try CookieReadFailureTestFixture.cookieSnapshot(value: "original-session", domain: host)
+        secrets.seed(rawSnapshot, forKey: persistenceKey)
+        secrets.setReadFailure(true)
+
+        let storage = AndroidSessionCookieStorage(secrets: secrets)
+        let probe = CookieReadRetryRequestProbe()
+        probe.reset(storage: storage, identity: identity)
+        CookieReadRetryURLProtocol.registry.register(probe, forHost: host)
+        defer { CookieReadRetryURLProtocol.registry.unregister(forHost: host) }
+        let account = try AndroidAccount(
+            config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://\(host)"))),
+            cookieStorage: storage,
+            protocolClasses: [CookieReadRetryURLProtocol.self]
+        )
+
+        await account.restore()
+
+        XCTAssertTrue(account.isRestoring)
+        XCTAssertTrue(storage.requiresRestorationRetry)
+        XCTAssertFalse(storage.persistenceStatus.enabled)
+        XCTAssertTrue(account.cookiePersistenceNotice.canDiscardUnreadableSnapshot)
+        XCTAssertNotNil(account.cookiePersistenceNotice.errorMessage)
+        XCTAssertTrue(storage.cookies?.isEmpty ?? true)
+        XCTAssertTrue(probe.requestPaths().isEmpty)
+        XCTAssertEqual(secrets.snapshotValue(forKey: persistenceKey), rawSnapshot)
+        XCTAssertEqual(secrets.writeCount(), 0)
+
+        await account.retryCookiePersistenceOrRestoration()
+
+        assertRestorationBlocked(account, storage: storage)
+        XCTAssertTrue(probe.requestPaths().isEmpty)
+        XCTAssertEqual(secrets.snapshotValue(forKey: persistenceKey), rawSnapshot)
+        XCTAssertEqual(secrets.writeCount(), 0)
+
+        secrets.setReadFailure(false)
+        await account.retryCookiePersistenceOrRestoration()
+        await storage.flushPendingPersistence()
+
+        XCTAssertFalse(account.isRestoring)
+        XCTAssertFalse(storage.requiresRestorationRetry)
+        XCTAssertTrue(storage.persistenceStatus.enabled)
+        XCTAssertNil(account.cookiePersistenceNotice.errorMessage)
+        XCTAssertTrue(account.session.isSignedIn)
+        XCTAssertEqual(probe.requestPaths(), ["/api/v1/session", "/api/v1/my/identity"])
+        XCTAssertEqual(
+            probe.cookieValuesAtRequests().map { $0.sorted() },
+            try [["original-session"], androidRotatedCookieValues()]
+        )
+        try assertPersistedRotation(secrets, key: persistenceKey)
+    }
+
+    @MainActor
+    func testMalformedSnapshotBlocksBootstrapAndCannotBeOverwritten() async throws {
+        let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
+        let host = "cookie-read-\(UUID().uuidString.lowercased()).voucha.ai"
+        let secrets = CookieReadFailureSecrets()
+        let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
+        let malformed = "not a cookie snapshot"
+        secrets.seed(malformed, forKey: persistenceKey)
+        let storage = AndroidSessionCookieStorage(secrets: secrets)
+        let probe = CookieReadRetryRequestProbe()
+        probe.reset(storage: storage, identity: identity)
+        CookieReadRetryURLProtocol.registry.register(probe, forHost: host)
+        defer { CookieReadRetryURLProtocol.registry.unregister(forHost: host) }
+        let account = try AndroidAccount(
+            config: AppConfig(baseURL: XCTUnwrap(URL(string: "https://\(host)"))),
+            cookieStorage: storage,
+            protocolClasses: [CookieReadRetryURLProtocol.self]
+        )
+
+        await account.restore()
+        await account.retryCookiePersistenceOrRestoration()
+
+        assertRestorationBlocked(account, storage: storage)
+        XCTAssertTrue(probe.requestPaths().isEmpty)
+        XCTAssertEqual(secrets.snapshotValue(forKey: persistenceKey), malformed)
+        XCTAssertEqual(secrets.writeCount(), 0)
+    }
+
+    func testPermanentDisableCannotBeUndoneByRestoreRetry() async throws {
+        let secrets = CookieReadFailureSecrets()
+        let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
+        let rawSnapshot = try CookieReadFailureTestFixture.cookieSnapshot(value: "original-session")
+        secrets.seed(rawSnapshot, forKey: persistenceKey)
+        secrets.setReadFailure(true)
+        let storage = AndroidSessionCookieStorage(secrets: secrets)
+
+        storage.disablePersistenceWrites()
+
+        XCTAssertFalse(storage.retryRestoreCookies())
+        let discarded = await storage.discardUnreadableSnapshot()
+        XCTAssertFalse(discarded)
+        XCTAssertFalse(storage.persistenceStatus.enabled)
+        try storage.setCookie(CookieReadFailureTestFixture.sessionCookie(value: "late-response"))
+        XCTAssertEqual(secrets.snapshotValue(forKey: persistenceKey), rawSnapshot)
+        XCTAssertEqual(secrets.writeCount(), 0)
+    }
+
+}
+
+@MainActor
+private extension AndroidCookieReadFailureTests {
+    func assertPersistedRotation(_ secrets: CookieReadFailureSecrets, key: String) throws {
+        let persisted = try XCTUnwrap(secrets.snapshotValue(forKey: key))
+        let records = try JSONDecoder().decode(
+            [AndroidSessionCookieStorage.CookieRecord].self,
+            from: Data(persisted.utf8)
+        )
+        XCTAssertEqual(records.map(\.value).sorted(), try androidRotatedCookieValues())
+        // Only the changed renewal snapshot is written; identity leaves credentials unchanged.
+        XCTAssertEqual(secrets.writeCount(), 1)
+    }
+
+    func assertRestorationBlocked(_ account: AndroidAccount, storage: AndroidSessionCookieStorage) {
+        XCTAssertTrue(account.isRestoring)
+        XCTAssertTrue(storage.requiresRestorationRetry)
+        XCTAssertNotNil(account.cookiePersistenceNotice.errorMessage)
+    }
+}
+
+enum CookieReadFailureTestFixture {
+    static func cookieSnapshot(value: String, domain: String = "voucha.ai") throws -> String {
+        let record = try XCTUnwrap(
+            AndroidSessionCookieStorage.CookieRecord(cookie: sessionCookie(value: value, domain: domain))
+        )
+        let data = try JSONEncoder().encode([record])
+        return try XCTUnwrap(String(data: data, encoding: .utf8))
+    }
+
+    static func sessionCookie(value: String, domain: String = "voucha.ai") throws -> HTTPCookie {
+        try XCTUnwrap(HTTPCookie(properties: [
+            .name: "st", .value: value, .domain: domain, .path: "/", .secure: "TRUE"
+        ]))
+    }
+}

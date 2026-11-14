@@ -72,6 +72,9 @@ let nativeModerationCoverage: [RegisteredFixture] = [
     RegisteredFixture(id: "native.moderation.report-judgement.default") {
         try assertFixtureCoversDTO($0, as: ModerationReportJudgementResponse.self)
     },
+    RegisteredFixture(id: "native.moderation.report-judgement-run.pending") {
+        try assertFixtureCoversDTO($0, as: ModerationReportJudgementRunResponse.self)
+    },
     RegisteredFixture(id: "native.moderation.report-resolution.reviewed") {
         try assertFixtureCoversDTO($0, as: ModerationReportResolutionResponse.self)
     },
@@ -116,6 +119,9 @@ let nativeModerationCoverage: [RegisteredFixture] = [
                 "page_info.start_cursor"
             ]
         )
+    },
+    RegisteredFixture(id: "native.moderation.disputes.member.default") {
+        try assertFixtureCoversDTO($0, as: ModerationDisputeListResponse.self)
     },
     RegisteredFixture(id: "native.moderation.disputes.default") {
         try assertFixtureCoversDTO(

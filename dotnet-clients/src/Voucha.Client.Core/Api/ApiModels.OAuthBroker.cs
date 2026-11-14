@@ -10,6 +10,7 @@ public enum OAuthBrokerProvider
   Github,
   Linkedin,
   Microsoft,
+  Google,
 }
 
 public enum OAuthAuthorizationPurpose
@@ -49,6 +50,7 @@ public sealed record OAuthBrokerCapabilities(
     OAuthBrokerProvider.Github => Github,
     OAuthBrokerProvider.Linkedin => Linkedin ?? Disabled,
     OAuthBrokerProvider.Microsoft => Microsoft ?? Disabled,
+    OAuthBrokerProvider.Google => Google ?? Disabled,
     _ => throw new ArgumentOutOfRangeException(nameof(provider)),
   };
 }

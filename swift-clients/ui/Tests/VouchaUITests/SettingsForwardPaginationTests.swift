@@ -1,4 +1,8 @@
 import Foundation
+import Observation
+import ViewInspector
+import VouchaAPI
+import VouchaCore
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
@@ -62,6 +66,84 @@ final class SettingsForwardPaginationTests: NativeRouteSurfaceViewModelTestCase 
             "limit=25&after=sessions-cursor",
             "limit=25&after=sessions-cursor"
         ])
+    }
+
+    func testEmptyRawSessionPageKeepsRenderedPagerAndForwardsOpaqueCursor() async throws {
+        let path = "/api/v1/auth/sessions"
+        let cursor = "opaque+/=session-boundary"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (Data(
+                #"{"results":[],"page_info":{"has_next_page":true,"start_cursor":null,"end_cursor":"opaque+/=session-boundary"}}"#
+                    .utf8
+            ), 200, 0),
+            (sessionPage(ids: ["later-session"]), 200, 0)
+        ]
+        let client = try makeClient()
+        let viewModel = SettingsViewModel(client: client)
+        let firstPage: Page<AuthSession> = try await client.send(.authSessions())
+        viewModel.replaceSessionPage(firstPage)
+        let sut = SettingsSurface(viewModel: viewModel)
+
+        XCTAssertTrue(viewModel.sessions.isEmpty)
+        XCTAssertThrowsError(try sut.sessionsSection.inspect().find(text: "No active sessions"))
+        let revokeAll = try sut.sessionsSection.inspect().find(button: "Revoke All Sessions")
+        XCTAssertFalse(revokeAll.isDisabled())
+        try revokeAll.tap()
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.count, 1)
+
+        let appended = expectation(description: "later session appended")
+        observeSessionAppend(viewModel, completion: appended)
+        try sut.sessionsSection.inspect().find(button: "Load more").tap()
+        await fulfillment(of: [appended], timeout: 2)
+
+        XCTAssertEqual(viewModel.sessions.map(\.id), ["later-session"])
+        let requestedCursor = try XCTUnwrap(CannedFeedURLProtocol.capturedURLs.last)
+        XCTAssertEqual(
+            URLComponents(url: requestedCursor, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "after" })?.value,
+            cursor
+        )
+        XCTAssertNoThrow(try sut.sessionsSection.inspect().find(text: "Mac"))
+        XCTAssertThrowsError(try sut.sessionsSection.inspect().find(button: "Load more"))
+    }
+
+    func testTerminalEmptySessionPageKeepsRevokeAllAvailableAndSafe() async throws {
+        var signedOut = false
+        let viewModel = try SettingsViewModel(client: makeClient(), onLogoutRequired: { signedOut = true })
+        let sut = SettingsSurface(viewModel: viewModel)
+
+        XCTAssertNoThrow(try sut.sessionsSection.inspect().find(text: "No active sessions"))
+        XCTAssertThrowsError(try sut.sessionsSection.inspect().find(button: "Load more"))
+        let revokeAll = try sut.sessionsSection.inspect().find(button: "Revoke All Sessions")
+        XCTAssertFalse(revokeAll.isDisabled())
+        try revokeAll.tap()
+        XCTAssertTrue(CannedFeedURLProtocol.capturedURLs.isEmpty)
+
+        viewModel.state = .loading
+        XCTAssertTrue(try sut.sessionsSection.inspect().find(button: "Revoke All Sessions").isDisabled())
+
+        viewModel.state = .idle
+        CannedFeedURLProtocol.handlers["/api/v1/auth/sessions/revocations"] = (Data("{}".utf8), 200)
+        await viewModel.revokeAllSessions()
+
+        XCTAssertTrue(signedOut)
+        XCTAssertTrue(viewModel.sessions.isEmpty)
+        XCTAssertFalse(viewModel.sessionPagination.hasMore)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.map(\.path), ["/api/v1/auth/sessions/revocations"])
+    }
+
+    private func observeSessionAppend(_ viewModel: SettingsViewModel, completion: XCTestExpectation) {
+        if !viewModel.sessions.isEmpty {
+            completion.fulfill()
+            return
+        }
+        withObservationTracking {
+            _ = viewModel.sessions
+        } onChange: {
+            Task { @MainActor in
+                self.observeSessionAppend(viewModel, completion: completion)
+            }
+        }
     }
 
     private func failureThen(_ page: Data) -> [(Data, Int, TimeInterval)] {

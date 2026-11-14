@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Tests.Support;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
@@ -88,27 +89,10 @@ public sealed class MediaPlaybackPageSourceTests
     Assert.Contains("await Launcher.Default.OpenAsync(item.Link);", persistence, StringComparison.Ordinal);
   }
 
-  private static string ReadPage(string file) => File.ReadAllText(RepoPath(
+  private static string ReadPage(string file) => File.ReadAllText(RepositoryFilePath.Find(
       "dotnet-clients",
       "src",
       "Voucha.Client.App",
       "Pages",
       file));
-
-  private static string RepoPath(params string[] parts)
-  {
-    var directory = new DirectoryInfo(AppContext.BaseDirectory);
-    while (directory is not null)
-    {
-      var candidate = Path.Combine(new[] { directory.FullName }.Concat(parts).ToArray());
-      if (File.Exists(candidate))
-      {
-        return candidate;
-      }
-
-      directory = directory.Parent;
-    }
-
-    throw new DirectoryNotFoundException("Could not find repository root from test output directory.");
-  }
 }

@@ -30,6 +30,7 @@ public sealed class ModerationReportsRemediationTests
     var handler = new RecordingHandler([
       new RecordedResponse(reports),
       Fixture("native.moderation.report-judgement.default", HttpStatusCode.Accepted),
+      Fixture("native.moderation.report-judgement-run.pending"),
     ]);
     var viewModel = ViewModel(handler, "administrator");
     await LoadFlatAsync(viewModel);
@@ -42,7 +43,7 @@ public sealed class ModerationReportsRemediationTests
     Assert.False(await viewModel.ConfirmBanEvasionAsync("ban-evasion", token));
     Assert.False(await viewModel.DismissBanEvasionAsync("ban-evasion", token));
     Assert.True(await viewModel.RerunJudgementAsync("ordinary", token));
-    Assert.Equal(2, handler.Requests.Count);
+    Assert.Equal(3, handler.Requests.Count);
   }
 
   [Fact]
@@ -109,7 +110,7 @@ public sealed class ModerationReportsRemediationTests
     Assert.True(viewModel.IsSelected("00000000-0000-7000-8100-000000000102"));
     Assert.True(viewModel.IsSelected("00000000-0000-7000-8100-000000000103"));
     Assert.Contains("00000000-0000-7000-8100-000000000102", viewModel.RowErrors.Keys);
-    Assert.Equal("Only pending reports can be dismissed.", viewModel.RowErrors["00000000-0000-7000-8100-000000000103"]);
+    Assert.Equal("Only pending reports can be dismissed.", viewModel.RowErrors["00000000-0000-7000-8100-000000000103"].VerbatimValue);
     Assert.Null(viewModel.FindStaffReport("00000000-0000-7000-8100-000000000101"));
     var duplicate = Assert.Single(viewModel.DuplicateClusters);
     Assert.Equal(8, duplicate.ReportCount);
@@ -290,16 +291,15 @@ public sealed class ModerationReportsRemediationTests
           ModerationReportsMode.Flat,
           ModerationReportSort.Severity,
           TestContext.Current.CancellationToken);
-
   private static ModerationReportsViewModel ViewModel(RecordingHandler handler, params string[] roles) =>
       new(new ApiModerationService(new VouchaApiClient(
           new HttpClient(handler) { BaseAddress = new Uri("https://api.test") })),
-          new NavigationViewer(true, roles));
+          new NavigationViewer(true, roles), judgementRunReads: 1, judgementRunDelay: static _ => Task.CompletedTask);
 
   private static ModerationReportsViewModel ViewModel(HttpMessageHandler handler, params string[] roles) =>
       new(new ApiModerationService(new VouchaApiClient(
           new HttpClient(handler) { BaseAddress = new Uri("https://api.test") })),
-          new NavigationViewer(true, roles));
+          new NavigationViewer(true, roles), judgementRunReads: 1, judgementRunDelay: static _ => Task.CompletedTask);
 
   private static RecordedResponse Fixture(string id, HttpStatusCode status = HttpStatusCode.OK) =>
       new(FixtureBody(id), status);

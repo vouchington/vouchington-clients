@@ -11,9 +11,6 @@ importers:
       '@ast-grep/cli':
         specifier: 0.45.2
         version: 0.45.2
-      auto-harness-client:
-        specifier: 0.8.1
-        version: 0.8.1
       coverage-check:
         specifier: 0.17.0
         version: 0.17.0
@@ -27,8 +24,8 @@ importers:
         specifier: 6.32.3
         version: 6.32.3
       no-mistakes:
-        specifier: 0.53.2
-        version: 0.53.2
+        specifier: 0.94.0
+        version: 0.94.0
       oxfmt:
         specifier: 0.67.0
         version: 0.67.0
@@ -36,11 +33,11 @@ importers:
         specifier: 1.80.0
         version: 1.80.0
       pr-shepherd:
-        specifier: 0.56.5
-        version: 0.56.5(supports-color@7.2.0)
+        specifier: 1.0.0
+        version: 1.0.0(supports-color@7.2.0)
       vouchington-tooling:
-        specifier: 0.46.0
-        version: 0.46.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0)
+        specifier: 0.48.0
+        version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.94.0)(supports-color@7.2.0)(zod@4.5.4)
 
 packages:
 
@@ -1020,6 +1017,11 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  agent-blackboard@0.7.0:
+    resolution: {integrity: sha512-5bdwJ5Kpg9y1+8MK4ALk+PYP7Uwshk8EC0jVSOKJep13Nh7W2A1tNivp63easQaIF0c1GpcLu4wGKvY9+EA/XQ==}
+    engines: {node: '>=24.0.0'}
+    hasBin: true
+
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
 
@@ -1035,11 +1037,6 @@ packages:
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
-
-  auto-harness-client@0.8.1:
-    resolution: {integrity: sha512-XOvROoriZjI/55LoVilr1YbneQEY46aBu7n7w6VqRL/J1BCWTWrD3T1JH+R5dR6YiNn9gJ4SZml7jnGIs+5IaQ==}
-    engines: {node: '>=20'}
-    hasBin: true
 
   bail@2.0.2:
     resolution: {integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==}
@@ -1727,9 +1724,36 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  no-mistakes@0.53.2:
-    resolution: {integrity: sha512-3QLZnmzjRZpVmGuhVjjoN6U09oe/QqB65Fz1iKTi+eAO4x2PkNuhPLv3orR46B8fnFO4PQdnXM4l+8r/HQA0gA==}
+  no-mistakes-darwin-arm64@0.94.0:
+    resolution: {integrity: sha512-5Bfo8G+97Kr55TJaT0O5cWf5CSd2z2RbND0F8l3s52i/ehUOyt3NEF9sPPtw4qnjtIHOQy3f8Ky1ceKt2MsHDg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  no-mistakes-linux-arm64-gnu@0.94.0:
+    resolution: {integrity: sha512-At4aU8wYbijAJ8uofxT9lQE+HS+WythNigbMcs1N/BHQngJ+s6jDkRNN6KuCsf7mfYREspqdXTO8thw6W6EiwQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  no-mistakes-linux-x64-gnu@0.94.0:
+    resolution: {integrity: sha512-ZYsvxj2QM4vZ3bsaVqnH7zGEVIUnEI05Tt77foWjc2xwdvOWIVGd/i2dyJJ48+drkUKSM2DzeF9X0Aq3s4Jyog==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  no-mistakes-win32-x64-msvc@0.94.0:
+    resolution: {integrity: sha512-NxyXaug8UcHYjL83k7d3qwlIKsUW1mXyDy/jOfbsDRXbAy1om8jVSkHAdX219TUVmzW7izeiQ40tco43UalpjA==}
+    cpu: [x64]
+    os: [win32]
+
+  no-mistakes@0.94.0:
+    resolution: {integrity: sha512-KFUXAQfaDm74FN/kz2XW8RSLRBozpiIbDCxsW4VbwolSM5m1Ug5hVdg15DwovcsXngtj4sg9MtjDRYIFwCv3pQ==}
     hasBin: true
+    peerDependencies:
+      vitest: ^5.0.3
+    peerDependenciesMeta:
+      vitest:
+        optional: true
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -1821,9 +1845,9 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  pr-shepherd@0.56.5:
-    resolution: {integrity: sha512-d9C3qfgI4I76sd4kL5TwymtkhIr4UYKqzqUcHB3d1Jx9rjAgOwsM70Y+ixGV9sySNtU6+0p1PcNYFBvLG+zOug==}
-    engines: {node: '>=22.18.0'}
+  pr-shepherd@1.0.0:
+    resolution: {integrity: sha512-MOE+s43j7s6BtsfLT0tmeikVEYPyL/sxw0rzbkjaTqe/Ivw5GLTMnw224UUDvq3QNAxuVA3K1+kaSE4iLWlPjA==}
+    engines: {node: '>=22.19.0'}
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -2033,6 +2057,10 @@ packages:
     resolution: {integrity: sha512-b7zoBQvpWp0vuN5q2vK2RRBR2SvuruQAs50DApdDveBSn3eSYd84IaHodFqQIMlvY9K2VnyBUEXgwOBuGU9GBg==}
     engines: {node: '>=14'}
 
+  undici@8.12.2:
+    resolution: {integrity: sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg==}
+    engines: {node: '>=22.19.0'}
+
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
 
@@ -2065,19 +2093,16 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vouchington-tooling@0.46.0:
-    resolution: {integrity: sha512-6kuThKw9xevFOAXYm8GuJaWrS5pMj40415BuccqMHUhuTOGx6Mf4FqYkdBPjbox8CMlMNjAvVNJdQ9gztAzmKg==}
+  vouchington-tooling@0.48.0:
+    resolution: {integrity: sha512-y4ADM6pzF0w6tzUYZYTC/iYeO3u4H3m5JSnwbsPjGyuRKQnEqaps5b97Sy6JFBUmjb4/MORz2MipJMUMDp70AA==}
     engines: {node: '>=24.0.0'}
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.31.0
-      agent-blackboard: ^0.6.1
       no-mistakes: '*'
       vitest: '>=5'
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
-        optional: true
-      agent-blackboard:
         optional: true
       no-mistakes:
         optional: true
@@ -2913,6 +2938,14 @@ snapshots:
 
   acorn@8.18.0: {}
 
+  agent-blackboard@0.7.0(supports-color@7.2.0)(zod@4.5.4):
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
+      - zod
+
   ajv-formats@3.0.1:
     dependencies:
       ajv: 8.20.0
@@ -2936,8 +2969,6 @@ snapshots:
       color-convert: 2.0.1
 
   argparse@2.0.1: {}
-
-  auto-harness-client@0.8.1: {}
 
   bail@2.0.2: {}
 
@@ -3849,7 +3880,24 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  no-mistakes@0.53.2: {}
+  no-mistakes-darwin-arm64@0.94.0:
+    optional: true
+
+  no-mistakes-linux-arm64-gnu@0.94.0:
+    optional: true
+
+  no-mistakes-linux-x64-gnu@0.94.0:
+    optional: true
+
+  no-mistakes-win32-x64-msvc@0.94.0:
+    optional: true
+
+  no-mistakes@0.94.0:
+    optionalDependencies:
+      no-mistakes-darwin-arm64: 0.94.0
+      no-mistakes-linux-arm64-gnu: 0.94.0
+      no-mistakes-linux-x64-gnu: 0.94.0
+      no-mistakes-win32-x64-msvc: 0.94.0
 
   object-assign@4.1.1: {}
 
@@ -3988,10 +4036,11 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  pr-shepherd@0.56.5(supports-color@7.2.0):
+  pr-shepherd@1.0.0(supports-color@7.2.0):
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
       picomatch: 4.0.7
+      undici: 8.12.2
       yaml: 2.9.1
       zod: 4.5.4
     transitivePeerDependencies:
@@ -4234,6 +4283,8 @@ snapshots:
 
   unbash@4.0.10: {}
 
+  undici@8.12.2: {}
+
   unified@11.0.5:
     dependencies:
       '@types/unist': 3.0.3
@@ -4281,11 +4332,12 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@0.46.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.53.2)(supports-color@7.2.0):
+  vouchington-tooling@0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.94.0)(supports-color@7.2.0)(zod@4.5.4):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
       '@typescript-eslint/parser': 8.71.2(@typescript/typescript6@6.0.2)(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+      agent-blackboard: 0.7.0(supports-color@7.2.0)(zod@4.5.4)
       csv-parse: 7.0.3
       csv-stringify: 6.9.0
       dockerfile-ast: 0.7.1
@@ -4299,10 +4351,12 @@ snapshots:
       '@libpg-query/parser': 18.0.0
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
       '@typescript/typescript6': 6.0.2
-      no-mistakes: 0.53.2
+      no-mistakes: 0.94.0
     transitivePeerDependencies:
+      - '@cfworker/json-schema'
       - eslint
       - supports-color
+      - zod
 
   vscode-languageserver-textdocument@1.0.14: {}
 

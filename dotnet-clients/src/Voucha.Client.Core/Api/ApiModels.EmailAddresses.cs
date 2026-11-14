@@ -15,7 +15,9 @@ public sealed record EmailAddressRequestResponse(
     [property: JsonPropertyName("email_address")] string EmailAddress);
 
 public sealed record RequestEmailAddressVerificationBody(
-    [property: JsonPropertyName("email_address")] string EmailAddress);
+    [property: JsonPropertyName("email_address")] string EmailAddress,
+    [property: JsonPropertyName("re_auth_token")] string? ReAuthToken = null);
 
 public sealed record VerifyEmailAddressBody(
-    [property: JsonPropertyName("token")] string Token);
+    [property: JsonPropertyName("token")] string Token,
+    [property: JsonPropertyName("re_auth_token")] string? ReAuthToken = null);

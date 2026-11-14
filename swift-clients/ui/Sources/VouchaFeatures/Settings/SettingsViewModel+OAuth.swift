@@ -1,4 +1,5 @@
 import Foundation
+import VouchaAPI
 import VouchaAuth
 import VouchaCore
 import VouchaModels
@@ -15,13 +16,24 @@ public extension SettingsViewModel {
         openAuthorizationURL: @escaping @MainActor (URL) -> Void
     ) async {
         guard let coordinator = nativeOAuthAuthorizationCoordinator else { return }
+        if coordinator.capabilities == nil { await coordinator.loadCapabilities() }
+        guard coordinator.canStartAuthorization,
+              coordinator.supports(provider: provider, purpose: .connect) else { return }
         oauthProviderInFlight = provider
         oauthErrorMessage = nil
-        await coordinator.begin(
-            provider: provider,
-            purpose: .connect,
-            openAuthorizationURL: openAuthorizationURL
-        )
+        do {
+            guard let freshConfirmation else { throw AccountConfirmationError.unavailableMethod }
+            let proof = try await freshConfirmation.authorize()
+            await coordinator.begin(
+                provider: provider, purpose: .connect, reAuthToken: proof,
+                openAuthorizationURL: openAuthorizationURL
+            )
+        } catch is CancellationError {
+            oauthProviderInFlight = nil
+            return
+        } catch {
+            oauthErrorMessage = .message(.extractedAuthMfaStepUnableToVerifyPleaseTryAgainB7979b96)
+        }
         if let error = coordinator.errorMessage {
             oauthErrorMessage = .verbatim(error)
         }
@@ -43,7 +55,8 @@ public extension SettingsViewModel {
             }
         case .expired(_, .connect):
             oauthErrorMessage = .message(.nativeSwiftSettingsOauthExpired)
-        case .authenticated, .mfaRequired, .expired(_, .authenticate), nil:
+        case .authenticated, .mfaRequired, .confirmationReady, .expired(_, .authenticate), .expired(_, .reauthenticate),
+             nil:
             break
         }
     }
@@ -105,14 +118,21 @@ public extension SettingsViewModel {
         oauthProviderInFlight = provider
         oauthErrorMessage = nil
         do {
-            let _: EmptyResponse = try await client.send(.disconnectOAuthAccount(provider: provider))
+            guard let freshConfirmation else { throw AccountConfirmationError.unavailableMethod }
+            let proof = try await freshConfirmation.authorize()
+            let _: EmptyResponse = try await client.send(.disconnectOAuthAccount(
+                provider: provider,
+                reAuthToken: proof
+            ))
             let response: SettingsIdentityResponse = try await client.send(.myIdentity)
             guard account(for: provider, in: response.identity) == nil else {
                 throw NativeOAuthAuthorizationCoordinatorError.identityRefreshFailed
             }
             apply(identity: response.identity)
+        } catch is CancellationError {
+            oauthErrorMessage = nil
         } catch {
-            oauthErrorMessage = .verbatim(error.localizedDescription)
+            oauthErrorMessage = disconnectErrorMessage(for: error)
         }
         oauthProviderInFlight = nil
     }
@@ -132,6 +152,7 @@ public extension SettingsViewModel {
         case .github: identity.githubAccount
         case .linkedin: identity.linkedinAccount
         case .microsoft: identity.microsoftAccount
+        case .google: identity.googleAccount
         }
     }
 

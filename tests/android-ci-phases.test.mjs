@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -13,9 +22,25 @@ async function fixture() {
   const bin = join(root, '.build/artifacts/skip/skip/skip.artifactbundle/bin')
   await mkdir(tooling, { recursive: true })
   await mkdir(bin, { recursive: true })
-  for (const name of ['pre-push.sh', 'link-swift64-android-test-runner.sh']) {
+  for (const name of [
+    'pre-push.sh',
+    'link-swift64-android-test-runner.sh',
+    'build-native-product.sh',
+    'gradle-build-cache-dir.sh',
+    'kotlin-libraries-only.init.gradle',
+  ]) {
     await copyFile(new URL(name, sourceRoot), join(tooling, name))
   }
+  const module = join(
+    root,
+    '.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid',
+  )
+  await mkdir(join(module, 'src/main/swift'), { recursive: true })
+  await writeFile(join(module, 'src/main/swift/Package.swift'), '// generated fixture')
+  await copyFile(
+    new URL('fixtures/android-native-gradle-task.gradle.kts', import.meta.url),
+    join(module, 'build.gradle.kts'),
+  )
   const trace = join(root, 'trace')
   await writeFile(trace, '')
   await writeFile(join(bin, 'java'), '#!/bin/sh\nexit 0\n')
@@ -24,6 +49,17 @@ async function fixture() {
     `#!/bin/bash
 set -eu
 printf '%s\\n' "$*" >> "$PHASE_TRACE"
+if [[ "$1" == plugin ]]; then
+  if [[ "\${FAIL_PLUGIN:-0}" != 0 ]]; then exit "$FAIL_PLUGIN"; fi
+  while [[ "$1" != --plugin-ref ]]; do shift; done
+  plugin_ref="$2"
+  plugin_path="$PHASE_PACKAGE/.build/Android/skip-gradle"
+  generated="$PHASE_PACKAGE/.build/plugins/outputs/android/VouchaAndroid/destination/skipstone/VouchaAndroid/src/main/swift"
+  mkdir -p "$plugin_path" "$generated"
+  printf '%s' "$plugin_path" > "$plugin_ref"
+  printf '// generated fixture\\n' > "$generated/Package.swift"
+  exit 0
+fi
 if [[ "$2" == build ]]; then
   if [[ "\${FAIL_BUILD:-0}" != 0 ]]; then exit "$FAIL_BUILD"; fi
   products="$PHASE_PACKAGE/.build/out/Products/Debug-android-aarch64"
@@ -55,6 +91,12 @@ fi
         join(root, 'Android/gradlew'),
         `#!/bin/sh
 printf 'gradle %s\\n' "$*" >> "$PHASE_TRACE"
+if [ -n "\${PHASE_ENV_TRACE:-}" ]; then
+  printf '%s\\n' "$HOME" "$CFFIXED_USER_HOME" "$TMPDIR" "$GRADLE_USER_HOME" "\${GRADLE_BUILD_CACHE_DIR:-}" "$PATH" > "$PHASE_ENV_TRACE"
+fi
+if [ "\${NATIVE_REUSED:-0}" = 1 ]; then
+  printf '%s\\n' '> Task :skipstone:VouchaAndroid:buildAndroidSwiftPackageDebug UP-TO-DATE'
+fi
 exit "\${FAIL_APP:-0}"
 `,
       )
@@ -72,13 +114,52 @@ exit "\${FAIL_APP:-0}"
   }
 }
 
+test('direct Swift phases never probe Java or Homebrew', async () => {
+  const f = await fixture()
+  try {
+    const bin = join(f.root, '.build/artifacts/skip/skip/skip.artifactbundle/bin')
+    for (const command of ['java', 'brew']) {
+      await writeFile(
+        join(bin, command),
+        '#!/bin/sh\nprintf "unexpected Java probe\\n" >&2\nexit 99\n',
+      )
+      await chmod(join(bin, command), 0o755)
+    }
+    for (const phase of ['app-native-dependency', 'app-native-producer']) {
+      const result = f.run(['--phase', phase], { RUNNER_TEMP: f.root })
+      assert.equal(result.status, 0, result.stderr)
+      assert.doesNotMatch(result.stderr, /unexpected Java probe/u)
+    }
+  } finally {
+    await f.clean()
+  }
+})
+
 test('APK phase needs no Android test runner and never packages test libraries', async () => {
   const f = await fixture()
   try {
     await f.gradle()
     const result = f.run(['--phase', 'app'])
     assert.equal(result.status, 0, result.stderr)
-    assert.deepEqual(await f.lines(), ['gradle :app:assembleDebug'])
+    assert.deepEqual(await f.lines(), [
+      'gradle --profile :app:assembleDebug :app:assembleDebugAndroidTest',
+    ])
+  } finally {
+    await f.clean()
+  }
+})
+
+test('a missing profile summary cannot change the Gradle build result', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const summary = join(f.root, 'summary.md')
+    const success = f.run(['--phase', 'app'], { GITHUB_STEP_SUMMARY: summary })
+    assert.equal(success.status, 0, success.stderr)
+    assert.match(success.stderr, /unable to summarize Android Gradle profile/u)
+    assert.match(await readFile(summary, 'utf8'), /Android Gradle timing/u)
+    const failure = f.run(['--phase', 'app'], { GITHUB_STEP_SUMMARY: summary, FAIL_APP: '42' })
+    assert.equal(failure.status, 42)
   } finally {
     await f.clean()
   }
@@ -93,6 +174,86 @@ test('test-library phase succeeds in a fresh workspace with no Gradle project ou
     assert.equal(lines.length, 2)
     assert.match(lines[0], /^android build .* --arch aarch64 --build-tests$/u)
     assert.match(lines[1], /^android test .* --build-test-libs /u)
+  } finally {
+    await f.clean()
+  }
+})
+
+test('native producer builds its product directly and consumer requires verified state', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    assert.equal(f.run(['--phase', 'app-native-producer']).status, 0)
+    const lines = await f.lines()
+    assert.equal(lines.length, 1)
+    assert.match(lines[0], /android build .* --product VouchaAndroid /u)
+    assert.doesNotMatch(lines[0], /gradle/u)
+    assert.equal(f.run(['--phase', 'app-consumer']).status, 1)
+    const verified = { VOUCHA_ANDROID_STATE_VERIFIED: '1', RUNNER_TEMP: f.root }
+    assert.equal(f.run(['--phase', 'app-consumer'], verified).status, 0)
+    const reused = f.run(['--phase', 'app-consumer'], { ...verified, NATIVE_REUSED: '1' })
+    assert.equal(reused.status, 0)
+    assert.match(reused.stdout, /buildAndroidSwiftPackageDebug UP-TO-DATE/u)
+    assert.equal(f.run(['--phase', 'app-consumer'], { ...verified, FAIL_APP: '13' }).status, 13)
+  } finally {
+    await f.clean()
+  }
+})
+
+test('native producer retains Skip source hashes only after verified state restore', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const hashes = join(
+      f.root,
+      '.build/plugins/outputs/skip-fuse-ui/SkipSwiftUI/destination/skipstone',
+    )
+    const marker = join(hashes, '.SkipSwiftUI.sourcehash')
+    await mkdir(hashes, { recursive: true })
+    await writeFile(marker, 'restored dependency marker')
+    assert.equal(f.run(['--phase', 'app-native-producer']).status, 0)
+    await assert.rejects(readFile(marker, 'utf8'), { code: 'ENOENT' })
+
+    await writeFile(marker, 'restored dependency marker')
+    assert.equal(
+      f.run(['--phase', 'app-native-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: 'bogus' }).status,
+      0,
+    )
+    await assert.rejects(readFile(marker, 'utf8'), { code: 'ENOENT' })
+
+    await writeFile(marker, 'restored dependency marker')
+    assert.equal(
+      f.run(['--phase', 'app-native-producer'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status,
+      0,
+    )
+    assert.equal(await readFile(marker, 'utf8'), 'restored dependency marker')
+
+    assert.equal(f.run(['--phase', 'app'], { VOUCHA_ANDROID_STATE_VERIFIED: '1' }).status, 0)
+    await assert.rejects(readFile(marker, 'utf8'), { code: 'ENOENT' })
+  } finally {
+    await f.clean()
+  }
+})
+
+test('native dependency phase uses the pinned prebuild to generate the Gradle package', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const result = f.run(['--phase', 'app-native-dependency'], { RUNNER_TEMP: f.root })
+    assert.equal(result.status, 0, result.stderr)
+    const lines = await f.lines()
+    assert.equal(lines.length, 2)
+    assert.match(lines[0], /^plugin --prebuild --package-path .* --plugin-ref /u)
+    assert.match(
+      lines[1],
+      /android build .* --package-path .*\/src\/main\/swift --configuration debug --target SkipSwiftUI --scratch-path .*\/build\/swift --arch automatic /u,
+    )
+    assert.doesNotMatch(lines.join('\n'), /gradle /u)
+    assert.equal(
+      f.run(['--phase', 'app-native-dependency'], { RUNNER_TEMP: f.root, FAIL_PLUGIN: '37' })
+        .status,
+      37,
+    )
   } finally {
     await f.clean()
   }
@@ -133,29 +294,104 @@ test('invalid phase options fail before touching build state or launching comman
   }
 })
 
-test('stable Android fan-in rejects failed, cancelled or skipped phase and verify results', async () => {
+test('stable Android fan-in rejects every failed, cancelled or skipped phase', async () => {
   const workflow = await readFile(
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
   )
-  const matrixJob = workflow
-    .split('  build-swift-android:\n')[1]
-    .split('  test-swift-android:\n')[0]
-  assert.match(matrixJob, /fail-fast: false/u)
-  assert.match(matrixJob, /phase: \[app, test-libs\]/u)
-  const gate = workflow.split('  test-swift-android:\n')[1].split('  test-swift-ui:\n')[0]
+  for (const job of ['build-swift-android', 'test-swift-android-libs', 'test-swift-android-host']) {
+    const block = workflow.split(`  ${job}:\n`)[1].split(/^  [a-z][^\n]*:\n/mu)[0]
+    assert.match(block, /runs-on: macos-latest\n    timeout-minutes: (?:20|35)\n/u)
+  }
+  const gate = workflow
+    .split('  test-swift-android-cookie:\n')[1]
+    .split('  build-swift-ui-tests:\n')[0]
   assert.match(gate, /name: Swift Android Skip/u)
-  assert.match(gate, /needs: \[verify, build-swift-android\]/u)
-  assert.match(gate, /if: \$\{\{ always\(\) \}\}/u)
+  assert.match(
+    gate,
+    /needs: \[verify, build-swift-android, test-swift-android-libs, test-swift-android-host\]/u,
+  )
+  assert.match(gate, /if: \$\{\{ !cancelled\(\) \}\}/u)
   const run = gate.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/u)
   assert.ok(run)
   const script = run[1].replace(/^ {10}/gmu, '')
-  for (const verify of ['success', 'failure', 'cancelled', 'skipped']) {
-    for (const phases of ['success', 'failure', 'cancelled', 'skipped']) {
-      const result = spawnSync('bash', ['-e', '-c', script], {
-        env: { ...process.env, VERIFY_RESULT: verify, ANDROID_PHASES_RESULT: phases },
-      })
-      assert.equal(result.status === 0, verify === 'success' && phases === 'success')
+  const names = [
+    'VERIFY_RESULT',
+    'ANDROID_APP_RESULT',
+    'ANDROID_LIBS_RESULT',
+    'ANDROID_HOST_RESULT',
+  ]
+  for (const name of names) {
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const env = Object.fromEntries(names.map(key => [key, key === name ? outcome : 'success']))
+      const result = spawnSync('bash', ['-e', '-c', script], { env: { ...process.env, ...env } })
+      assert.notEqual(result.status, 0, `${name}=${outcome} was accepted`)
     }
+  }
+  const result = spawnSync('bash', ['-e', '-c', script], {
+    env: { ...process.env, ...Object.fromEntries(names.map(name => [name, 'success'])) },
+  })
+  assert.equal(result.status, 0)
+  assert.ok(
+    gate.indexOf('Require every Android validation phase') <
+      gate.indexOf('Download exact candidate Android APKs'),
+  )
+  assert.match(gate, /Reject invalid Android artifact and instrumentation results/u)
+  assert.match(gate, /Prove checked encrypted storage survives Android process restarts/u)
+  const tests = workflow.split('  tests:\n')[1]
+  assert.match(tests, /^      - test-swift-android-cookie$/mu)
+  assert.doesNotMatch(workflow, /^  test-swift-android:\n/mu)
+})
+
+test('Kotlin library phase requires verified state and never provisions native Swift SDK paths', async () => {
+  const f = await fixture()
+  try {
+    await f.gradle()
+    const marker = join(f.root, '.build/plugins/outputs/.kept.sourcehash')
+    await writeFile(marker, 'verified source marker')
+    assert.notEqual(f.run(['--phase', 'app-kotlin-libraries']).status, 0)
+    assert.deepEqual(await f.lines(), [])
+    const runner = join(f.root, 'runner')
+    const host = join(f.root, 'runner-home')
+    const home = join(runner, 'skip-swift-home')
+    await mkdir(runner)
+    await mkdir(host)
+    const tooling = join(f.root, 'tooling')
+    for (const name of [
+      'materialize-skip-sdk.sh',
+      'resolve-mise-swift-toolchain.sh',
+      'expose-job-scoped-swift-toolchain.sh',
+    ]) {
+      await writeFile(join(tooling, name), '#!/bin/sh\necho unexpected-native-setup >&2\nexit 99\n')
+    }
+    const bin = join(f.root, '.build/artifacts/skip/skip/skip.artifactbundle/bin')
+    await writeFile(join(bin, 'uname'), '#!/bin/sh\necho Darwin\n')
+    await chmod(join(bin, 'uname'), 0o755)
+    const environment = join(f.root, 'gradle.env')
+    const result = f.run(['--phase', 'app-kotlin-libraries'], {
+      HOME: host,
+      RUNNER_TEMP: runner,
+      VOUCHA_SKIP_SWIFT_HOME: home,
+      GITHUB_ACTIONS: 'true',
+      VOUCHA_ANDROID_STATE_VERIFIED: '1',
+      PHASE_ENV_TRACE: environment,
+    })
+    assert.equal(result.status, 0, result.stderr)
+    assert.doesNotMatch(result.stderr, /unexpected-native-setup/u)
+    assert.deepEqual(await f.lines(), [
+      `gradle --profile --init-script ${tooling}/kotlin-libraries-only.init.gradle :skipstone:SkipUI:compileDebugKotlin`,
+    ])
+    assert.equal(await readFile(marker, 'utf8'), 'verified source marker')
+    const observed = (await readFile(environment, 'utf8')).trim().split('\n')
+    assert.deepEqual(observed.slice(0, 5), [
+      home,
+      home,
+      join(runner, 'swift-tmp'),
+      join(host, '.cache/voucha/gradle'),
+      await realpath(join(host, '.cache/voucha/gradle-build-cache')),
+    ])
+    assert.ok(observed[5].startsWith(bin + ':'))
+  } finally {
+    await f.clean()
   }
 })

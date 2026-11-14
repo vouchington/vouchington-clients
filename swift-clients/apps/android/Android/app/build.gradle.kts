@@ -6,12 +6,34 @@ plugins {
     id("skip-build-plugin")
 }
 
+val configuredApiBaseUrl = providers.gradleProperty("VOUCHA_API_BASE_URL").orNull
+    ?: providers.environmentVariable("VOUCHA_API_BASE_URL").orNull
+    ?: "https://voucha.ai"
+val configuredTurnstileSiteKey = providers.gradleProperty("VOUCHA_TURNSTILE_SITE_KEY").orNull
+    ?: providers.environmentVariable("VOUCHA_TURNSTILE_SITE_KEY").orNull
+    ?: providers.gradleProperty("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY").orNull
+    ?: providers.environmentVariable("NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY").orNull
+    ?: ""
+val turnstileTestSiteKeys = file("../../../../tooling/turnstile-test-site-keys.txt")
+    .readLines()
+    .map { it.trim() }
+    .filter { it.isNotEmpty() }
+    .toSet()
+val alwaysPassTurnstileSiteKey = "1x00000000000000000000AA"
+require(alwaysPassTurnstileSiteKey in turnstileTestSiteKeys) {
+    "Cloudflare always-pass site key is missing from turnstile-test-site-keys.txt"
+}
+
 skip {
 }
 
 dependencies {
     implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    // Match the pinned SkipKeychain 0.3.2 encrypted preference format for checked cookie commits.
+    implementation("androidx.security:security-crypto:1.0.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
 }
 
 kotlin {
@@ -39,10 +61,19 @@ android {
     defaultConfig {
         minSdk = 28
         targetSdk = libs.versions.android.sdk.compile.get().toInt()
+        // Skip's Swift runtime is packaged for ARM64 only. Do not advertise an ABI
+        // supplied by a transitive JNI dependency without the Swift bridge.
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // skip.tools.skip-build-plugin will automatically use Skip.env properties for:
         // applicationId = ANDROID_APPLICATION_ID ?? PRODUCT_BUNDLE_IDENTIFIER
         // versionCode = CURRENT_PROJECT_VERSION
         // versionName = MARKETING_VERSION
+        manifestPlaceholders["VOUCHA_API_BASE_URL"] = configuredApiBaseUrl
+        manifestPlaceholders["VOUCHA_TURNSTILE_SITE_KEY"] =
+            configuredTurnstileSiteKey.trim().ifBlank { alwaysPassTurnstileSiteKey }
     }
 
     buildFeatures {
@@ -90,7 +121,13 @@ android {
 }
 
 gradle.taskGraph.whenReady {
-    if (allTasks.any { it.name.contains("Release", ignoreCase = true) } && !file("keystore.properties").isFile) {
-        error("keystore.properties is required for release builds")
+    if (allTasks.any { it.name.contains("Release", ignoreCase = true) }) {
+        val releaseSiteKey = configuredTurnstileSiteKey.trim()
+        if (releaseSiteKey.isEmpty() || releaseSiteKey in turnstileTestSiteKeys) {
+            error("Release builds require an explicit non-test VOUCHA_TURNSTILE_SITE_KEY.")
+        }
+        if (!file("keystore.properties").isFile) {
+            error("keystore.properties is required for release builds")
+        }
     }
 }

@@ -212,7 +212,7 @@ public sealed class CopyrightNoticesDetailPageTests
   private static CopyrightNoticesViewModel Model(CaseService service) => new(service, new NavigationViewer(true, []));
 
   private static T Fixture<T>(string id) => JsonSerializer.Deserialize<T>(
-      File.ReadAllText(FilamentsContractPaths.ApiFixture($"responses/{id}.json")), VouchaApiJson.Options)!;
+      File.ReadAllText(ContractPaths.ApiFixture($"responses/{id}.json")), VouchaApiJson.Options)!;
 
   private sealed class CaseService : ICopyrightNoticesService
   {

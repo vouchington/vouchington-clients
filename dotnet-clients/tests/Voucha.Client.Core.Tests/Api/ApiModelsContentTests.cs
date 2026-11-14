@@ -18,8 +18,8 @@ public sealed class ApiModelsContentTests
 
     Assert.Equal(
         ["ApprovedAt", "InReviewAt", "RejectedAt", "PostExplicitCategories", "PostHashtags",
-         "DeclaredLanguage", "LinguaRsDetectedLanguage", "Provenance", "StaffProvenance"],
-        parameterNames[^9..]);
+         "DeclaredLanguage", "LinguaRsDetectedLanguage", "Provenance", "StaffProvenance", "PlaceholderState"],
+        parameterNames[^10..]);
   }
 
   [Fact]

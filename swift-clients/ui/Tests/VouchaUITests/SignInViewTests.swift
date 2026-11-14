@@ -62,6 +62,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
 
         XCTAssertNoThrow(try sut.inspect().find(button: "Facebook"))
         XCTAssertNoThrow(try sut.inspect().find(button: "GitHub"))
+        XCTAssertNoThrow(try sut.inspect().find(button: "Google"))
         XCTAssertThrowsError(try sut.inspect().find(button: "X"))
 
         fixture.coordinator.isWorking = true
@@ -434,7 +435,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
             cookieStorage: storage,
             protocolClasses: [EmailOTPViewFailingURLProtocol.self]
         )
-        return SignInService(client: client, sessionManager: SessionManager(client: client, cookieStorage: storage))
+        return SignInService(client: client, sessionManager: SessionManager(client: client))
     }
 
     private func makeOAuthFixture() throws -> (
@@ -443,7 +444,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
     ) {
         let client = try makeClient()
         let storage = HTTPCookieStorage()
-        let sessionManager = SessionManager(client: client, cookieStorage: storage)
+        let sessionManager = SessionManager(client: client)
         return try (
             SignInService(client: client, sessionManager: sessionManager),
             NativeOAuthAuthorizationCoordinator(
@@ -462,7 +463,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
     private func oauthCapabilities() -> Data {
         Data("""
         {
-          "providers": ["facebook", "x", "github"],
+          "providers": ["facebook", "x", "github", "google"],
           "broker_capabilities": {
             "facebook": {
               "version": 1,
@@ -475,6 +476,11 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
               "purposes": ["authenticate", "connect"]
             },
             "github": {
+              "version": 1,
+              "modes": {"web": true, "native": true},
+              "purposes": ["authenticate", "connect"]
+            },
+            "google": {
               "version": 1,
               "modes": {"web": true, "native": true},
               "purposes": ["authenticate", "connect"]

@@ -5,17 +5,20 @@ namespace Voucha.Client.Core.Tests.Api;
 public sealed partial class ApiFixtureEndpointCoverageTests
 {
   private static readonly IReadOnlyDictionary<string, ApiRequest> Registry =
-      WithMembershipStoreEndpoints(
+      WithNativeContentEndpoints(WithMembershipStoreEndpoints(
       WithOAuthBrokerEndpoints(
           WithRewardsProgramStatusEndpoints(
               WithAiCostEndpoints(
                   StoryFixtureRequests.AddTo(new Dictionary<string, ApiRequest>(CreateCoreRegistry(), StringComparer.Ordinal))
                       .Concat(CreateModerationParityRegistry())
-                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests().WithPrimaryFixtureRequests();
+                      .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal))))).WithCurrentFixtureRequests().WithPrimaryFixtureRequests());
 
   private static IReadOnlyDictionary<string, ApiRequest> CreateCoreRegistry() =>
       new Dictionary<string, ApiRequest>(StringComparer.Ordinal)
       {
+        ["native.communities.membership-cap.join.conflict"] = VouchaApiEndpoints.JoinCommunity("test-community"),
+        ["native.communities.moderator-cap.promotion.conflict"] = VouchaApiEndpoints.UpdateCommunityMemberRole(
+            "test-community", "00000000-0000-7000-8000-000000000904", new UpdateCommunityMemberRoleRequest("moderator")),
         ["native.memberships.plans.default"] = VouchaApiEndpoints.MembershipPlans(),
         ["native.memberships.grant.default"] = VouchaApiEndpoints.GrantMembership(new GrantMembershipBody("00000000-0000-7000-8000-000000000003", MembershipGrantPlanSlug.Plus, "00000000-0000-7000-8000-000000000701", 30)),
         ["native.identity-verification-attempts.grant.default"] = VouchaApiEndpoints.GrantIdentityVerificationAttempt(
@@ -29,6 +32,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.import-export.topics.export.download"] = VouchaApiEndpoints.ExportTopicsDownload(),
         ["native.feature-flags.default"] = VouchaApiEndpoints.FeatureFlags(),
         ["native.captcha-config.default"] = VouchaApiEndpoints.CaptchaConfig(),
+        ["native.hacker-news-config.default"] = VouchaApiEndpoints.HackerNewsConfig(),
         ["native.dynamic-config.namespaces.developer"] = VouchaApiEndpoints.DynamicConfigNamespaces(),
         ["native.dynamic-config.namespace.typed"] = VouchaApiEndpoints.DynamicConfigNamespace("recaptcha-config"),
         ["native.dynamic-config.namespace.string"] = VouchaApiEndpoints.DynamicConfigNamespace("app-attestation-config"),
@@ -38,18 +42,21 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.dynamic-config.history.default"] = VouchaApiEndpoints.DynamicConfigHistory("feature-flags"),
         ["web.topics.search.default"] = VouchaApiEndpoints.SearchTopics("tech"),
         ["web.topics.show.default"] = VouchaApiEndpoints.Topic("test-topic"),
+        ["web.topics.show.viewer-lower-bound"] = VouchaApiEndpoints.Topic("test-topic"),
+        ["web.topics.show.viewer-review-data-lower-bound"] = VouchaApiEndpoints.Topic("test-topic"),
         ["web.topics.mutation.default"] = VouchaApiEndpoints.CreateTopic(new CreateTopicRequest("Tech", "tech", "topic")),
         ["web.rss-feed-items.feed.default"] = VouchaApiEndpoints.RssFeedItems(limit: 25, mediaType: "article"),
         ["native.rss-feed-item.detail.default"] =
             VouchaApiEndpoints.RssFeedItem("00000000-0000-7000-8000-000000007886"),
         ["native.topic-recommendation.detail.default"] =
-            VouchaApiEndpoints.TopicRecommendation("recommendation-1"),
+            VouchaApiEndpoints.Post("recommendation-1"),
         ["native.topic-recommendations.top-hashtags.default"] = VouchaApiEndpoints.TopHashtags(),
         ["web.topics.search.referral-programs.default"] = VouchaApiEndpoints.SearchTopics("test", "referral_program", 10),
         ["web.referral-links.feed.default"] = VouchaApiEndpoints.ReferralLinksFeed("follow_users"),
         ["native.referral-links.mine.default"] = VouchaApiEndpoints.ReferralLinks(),
+        ["native.referral-links.user.public"] = VouchaApiEndpoints.UserReferralLinks("user-2"),
         ["native.referral-clicks.mine.default"] = VouchaApiEndpoints.MyReferralClicks(),
-        ["web.trending-referral-programs.default"] = VouchaApiEndpoints.TrendingReferralPrograms(),
+        ["web.topics.link-count.default"] = VouchaApiEndpoints.ReferralProgramsByLinkCount(5),
         ["web.referral-links.prioritized.default"] = VouchaApiEndpoints.PrioritizedReferralLinks("referral-program-1", true),
         ["web.admin.article-syncs.trigger.default"] = VouchaApiEndpoints.TriggerArticleSync(),
         ["web.admin.article-syncs.status.active"] = VouchaApiEndpoints.FetchArticleSyncStatus("job-1"),
@@ -62,7 +69,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["web.admin.mq.queues.pause.default"] = VouchaApiEndpoints.PauseQueue("psql"),
         ["web.admin.mq.queues.resume.default"] = VouchaApiEndpoints.ResumeQueue("psql"),
         ["web.admin.mq.scheduled-jobs.default"] = VouchaApiEndpoints.FetchScheduledJobs(),
-        ["web.admin.mq.scheduled-jobs.trigger.default"] = VouchaApiEndpoints.TriggerScheduledJob("kagi-smallweb-sync"),
+        ["web.admin.mq.scheduled-jobs.trigger.default"] = VouchaApiEndpoints.TriggerScheduledJob("imports-recover-stalled"),
         ["web.admin.mq.backfills.default"] = VouchaApiEndpoints.FetchBackfills(),
         ["web.admin.mq.backfills.trigger.default"] = VouchaApiEndpoints.TriggerBackfill("openai-moderation-posts"),
         ["web.admin.psql.migrations.default"] = VouchaApiEndpoints.FetchPsqlMigrations(),
@@ -96,6 +103,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["web.communities.saved-reply.create.default"] = VouchaApiEndpoints.CreateCommunitySavedReply(
             "test-community",
             new CreateCommunitySavedReplyRequest("Greeting", "Thanks for writing in.")),
+        ["web.communities.application.default"] = VouchaApiEndpoints.CommunityApplication("test-community", "application-1"),
         ["web.communities.applications.default"] = VouchaApiEndpoints.CommunityApplications("test-community", limit: 25),
         ["web.communities.invites.default"] = VouchaApiEndpoints.CommunityInvites("test-community", limit: 25),
         ["web.communities.bans.default"] = VouchaApiEndpoints.CommunityBans("test-community"),
@@ -129,6 +137,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
             after: "eyJjbHVzdGVyIjp0cnVlLCJjcmVhdGVkX2F0IjoiMjAyNi0wNi0wMVQxMjowNTowMC4wMDAwMDBaIiwiZW50aXR5X3R5cGUiOiJwb3N0IiwiaWQiOiIwMDAwMDAwMC0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAxMDMiLCJzb3J0IjoiY3JlYXRlZF9hdF9kZXNjIiwic3RhdHVzIjoicGVuZGluZyIsInNjb3BlIjoie1wiYXVkaWVuY2VcIjpcInN0YWZmXCIsXCJvd25lcklkXCI6bnVsbH0ifQ",
             limit: 3),
         ["native.moderation.report-judgement.default"] = VouchaApiEndpoints.RerunModerationReportJudgement("019f6559-6b31-7171-b5b1-ccd9d702c45e"),
+        ["native.moderation.report-judgement-run.pending"] = VouchaApiEndpoints.ModerationReportJudgementRun("019f6559-6b31-7171-b5b1-ccd9d702c45e", "00000000-0000-7000-8000-000000000303"),
         ["native.moderation.report-resolution.reviewed"] = VouchaApiEndpoints.ResolveModerationReport("019f6559-6b31-7171-b5b1-ccd9d702c45e", ModerationReportResolution.Reviewed),
         ["native.moderation.admin-warning.report"] = VouchaApiEndpoints.IssueAdminWarning(
             new IssueAdminWarningRequest("user-2", "Repeated harassment", "Stop contacting this user.", "019f6559-6b31-7171-b5b1-ccd9d702c45e")),
@@ -260,26 +269,13 @@ public sealed partial class ApiFixtureEndpointCoverageTests
             VouchaApiEndpoints.UserCommunities("user-abc", "proxy-following"),
         ["native.lists-containing.default"] = VouchaApiEndpoints.ListsContaining("rss_feed_item", "item-1"),
         ["native.list-import.default"] = VouchaApiEndpoints.ImportCommunityList("list-1", ImportCommunityListFixtureBody()),
-        ["native.comments.post-detail.default"] = VouchaApiEndpoints.Post("comment-root"),
-        ["native.comments.descendants.default"] = VouchaApiEndpoints.PostDescendants(
-            "comment-root-post",
-            "fixture-root-and-subtree-scoped-cursor",
-            2),
-        ["native.comments.ancestors.permalink"] = VouchaApiEndpoints.PostAncestors("comment-b"),
-        ["native.comments.ancestors.bounded.shallow"] = VouchaApiEndpoints.PostAncestors("comment-b", limit: 5),
-        ["native.comments.ancestors.bounded.deep-initial"] =
-            VouchaApiEndpoints.PostAncestors("bounded-ancestor-comment-7", limit: 5),
-        ["native.comments.ancestors.bounded.deep-continuation"] = VouchaApiEndpoints.PostAncestors(
-            "bounded-ancestor-comment-7",
-            "fixture-ancestor-deep-initial-end",
-            5),
         ["native.lists.default"] = VouchaApiEndpoints.Lists(),
         ["native.list-items.default"] = VouchaApiEndpoints.ListItems("list-1"),
         ["native.landing-pages.default"] = VouchaApiEndpoints.MyLandingPages(),
         ["native.landing-page-detail.default"] = VouchaApiEndpoints.MyLandingPage("landing-page-1"),
         ["native.landing-page-analytics.default"] = VouchaApiEndpoints.MyLandingPageAnalytics("landing-page-1"),
         ["native.admin-user-landing-pages.default"] = VouchaApiEndpoints.AdminUserLandingPages("user-abc"),
-        ["native.admin-landing-page-analytics.default"] = VouchaApiEndpoints.AdminLandingPageAnalytics("landing-page-1"),
+        ["native.admin-landing-page-analytics.default"] = VouchaApiEndpoints.AdminLandingPageAnalytics("fixture-user", "links"),
         ["native.landing-page-candidates.default"] = VouchaApiEndpoints.MyLandingPageCandidates(),
         ["native.landing-page-items-mutation.default"] = ApiFixtureLandingPageItems.Request(),
         ["native.landing-page-mutation.default"] = VouchaApiEndpoints.UpdateMyLandingPage("landing-page-1", LandingPageUpdateBody()),
@@ -372,6 +368,7 @@ public sealed partial class ApiFixtureEndpointCoverageTests
         ["native.spending-category-topics.search.default"] = VouchaApiEndpoints.SpendingCategoryTopics("Groceries"),
         ["native.users.profile.default"] = VouchaApiEndpoints.User("alice", true),
         ["native.users.profile.restricted"] = VouchaApiEndpoints.User("restricted", true),
+        ["native.users.profile.private-counts.owner"] = VouchaApiEndpoints.User("alice", true),
         ["native.users.vouch-context.default"] = VouchaApiEndpoints.UserTrustContext("user-abc"),
         ["native.users.profile.topics-following.first-page"] = VouchaApiEndpoints.UserTopics("user-abc", "following"),
         ["native.users.profile.topics-following.next-page"] = VouchaApiEndpoints.UserTopics("user-abc", "following", "eyJ0aW1lc3RhbXAiOjE3ODI5MjE2MDAwMDAwMDAsImlkIjoiMDAwMDAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAxIn0"),

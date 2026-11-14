@@ -9,18 +9,22 @@ public sealed partial class SessionCookieJar : IDisposable
   private readonly CookieContainer cookieContainer;
   private readonly Uri apiBaseUrl;
   private readonly ISessionCookiePersistence persistence;
+  private readonly TimeProvider renewalTimeProvider;
   private readonly SemaphoreSlim sync = new(1, 1);
   private volatile bool isRestored;
   private string? lastSerializedCookies;
+  private bool? authenticatedSession;
 
   public SessionCookieJar(
       CookieContainer cookieContainer,
       Uri apiBaseUrl,
-      ISessionCookiePersistence persistence)
+      ISessionCookiePersistence persistence,
+      TimeProvider? timeProvider = null)
   {
     this.cookieContainer = cookieContainer ?? throw new ArgumentNullException(nameof(cookieContainer));
     this.apiBaseUrl = apiBaseUrl ?? throw new ArgumentNullException(nameof(apiBaseUrl));
     this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+    renewalTimeProvider = timeProvider ?? TimeProvider.System;
   }
 
   public CookieContainer CookieContainer => cookieContainer;
@@ -48,21 +52,22 @@ public sealed partial class SessionCookieJar : IDisposable
       }
       catch (JsonException)
       {
-        await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+        await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         return;
       }
 
-      if (state?.Cookies is null || !HasCompleteSession(state.Cookies))
+      if (state?.Cookies is null || !HasDeviceSession(state.Cookies))
       {
-        await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+        await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         return;
       }
 
       ClearMemoryUnlocked();
       foreach (var cookie in state.Cookies.Where(IsKnownCookie))
       {
-        SetCookie(cookie.Name, cookie.Value, cookie.ExpiresUtc);
+        SetCookie(cookie.Name, cookie.Value, cookie.ExpiresUtc, cookie.Secure);
       }
+      authenticatedSession = state.Authenticated;
       lastSerializedCookies = serializedCookies;
       isRestored = true;
     }
@@ -87,10 +92,12 @@ public sealed partial class SessionCookieJar : IDisposable
 
   public async Task ClearAsync(CancellationToken cancellationToken = default)
   {
+    var generation = BeginSessionTransition();
     await sync.WaitAsync(cancellationToken).ConfigureAwait(false);
     try
     {
-      await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+      if (generation != Generation) throw new OperationCanceledException("Session clear was superseded.");
+      await ClearUnlockedAsync(preserveAuthentication: false, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
     finally
     {
@@ -98,7 +105,7 @@ public sealed partial class SessionCookieJar : IDisposable
     }
   }
 
-  public void StoreSetCookieHeaders(Uri? requestUri, IEnumerable<string> setCookieHeaders)
+  private void StoreSetCookieHeaders(Uri? requestUri, IEnumerable<string> setCookieHeaders)
   {
     ArgumentNullException.ThrowIfNull(setCookieHeaders);
     if (requestUri is null || !IsSameOrigin(requestUri)) return;
@@ -118,9 +125,11 @@ public sealed partial class SessionCookieJar : IDisposable
 
   public void Dispose() => sync.Dispose();
 
-  private async Task ClearUnlockedAsync(CancellationToken cancellationToken)
+  private async Task ClearUnlockedAsync(bool preserveAuthentication, CancellationToken cancellationToken)
   {
     ClearMemoryUnlocked();
+    CommitCredentialChange(preserveAuthentication);
+    authenticatedSession = null;
     await persistence.ClearAsync(cancellationToken).ConfigureAwait(false);
     lastSerializedCookies = null;
     isRestored = true;
@@ -132,13 +141,13 @@ public sealed partial class SessionCookieJar : IDisposable
         .Select(ReadCookie)
         .OfType<SessionCookie>()
         .ToArray();
-    if (cookies.Length != SessionCookieNames.Length)
+    if (!HasDeviceSession(cookies))
     {
-      await ClearUnlockedAsync(cancellationToken).ConfigureAwait(false);
+      await ClearUnlockedAsync(preserveAuthentication: true, cancellationToken: cancellationToken).ConfigureAwait(false);
       return;
     }
 
-    var state = new SessionCookieState(cookies);
+    var state = new SessionCookieState(cookies, authenticatedSession);
     var serialized = JsonSerializer.Serialize(state);
     if (serialized == lastSerializedCookies)
     {
@@ -160,41 +169,5 @@ public sealed partial class SessionCookieJar : IDisposable
       ExpireCookie(name);
     }
   }
-
-  private SessionCookie? ReadCookie(string name)
-  {
-    var cookie = cookieContainer.GetCookies(apiBaseUrl)[name];
-    return cookie is null || string.IsNullOrEmpty(cookie.Value)
-        ? null
-        : new SessionCookie(
-            name,
-            cookie.Value,
-            cookie.Expires == DateTime.MinValue ? null : new DateTimeOffset(cookie.Expires.ToUniversalTime()));
-  }
-
-  private void SetCookie(string name, string value, DateTimeOffset? expiresUtc = null) =>
-      cookieContainer.Add(apiBaseUrl, new Cookie(name, value, "/")
-      {
-        HttpOnly = true,
-        Secure = apiBaseUrl.Scheme == Uri.UriSchemeHttps,
-        Expires = expiresUtc?.UtcDateTime ?? DateTime.MinValue,
-      });
-
-  private void ExpireCookie(string name) =>
-      cookieContainer.Add(apiBaseUrl, new Cookie(name, "", "/") { Expired = true });
-
-  private bool IsSameOrigin(Uri requestUri) =>
-      string.Equals(requestUri.Scheme, apiBaseUrl.Scheme, StringComparison.OrdinalIgnoreCase) &&
-      string.Equals(requestUri.Host, apiBaseUrl.Host, StringComparison.OrdinalIgnoreCase) &&
-      requestUri.Port == apiBaseUrl.Port;
-
-  private static bool IsKnownCookie(SessionCookie cookie) =>
-      SessionCookieNames.Contains(cookie.Name, StringComparer.Ordinal) &&
-      !string.IsNullOrEmpty(cookie.Value);
-
-  private static bool HasCompleteSession(IReadOnlyList<SessionCookie> cookies) =>
-      SessionCookieNames.All(name => cookies.Any(cookie =>
-          string.Equals(cookie.Name, name, StringComparison.Ordinal) &&
-          !string.IsNullOrEmpty(cookie.Value)));
 
 }

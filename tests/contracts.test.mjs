@@ -10,14 +10,16 @@ import { writeTree } from './fixture-files.mjs'
 const repositoryRoot = resolve(import.meta.dirname, '..')
 const paths = [
   'api-fixtures/v1',
+  'api-contracts/v1',
   'swift-clients/ui/Sources/VouchaLocalization/Generated',
   'dotnet-clients/src/Voucha.Client.Core/Localization/Generated',
 ]
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'voucha-filaments-'))
+  const root = await mkdtemp(join(tmpdir(), 'voucha-vouchington-'))
   await writeTree(root, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/Resources/en.lproj/Localizable.strings':
       '"example" = "Example";\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
@@ -27,13 +29,13 @@ async function fixture(t) {
     'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessages.resx': '<root />\n',
   })
   const configRoot = await mkdtemp(join(tmpdir(), 'voucha-contract-config-'))
-  const config = join(configRoot, 'filaments.json')
+  const config = join(configRoot, 'vouchington.json')
   await writeFile(
     config,
     JSON.stringify({
       schemaVersion: 1,
       repository: 'vouchington/vouchington',
-      ref: 'main',
+      commit: 'a'.repeat(40),
       paths,
     }),
   )
@@ -60,12 +62,13 @@ async function fixture(t) {
   return { config, generatedRoot, root, targets }
 }
 
-test('requires an explicit Filaments checkout root', async t => {
-  const previous = process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+test('requires an explicit Vouchington checkout root', async t => {
+  const previous = process.env.VOUCHA_CONTRACT_ROOT
   const ancestor = await mkdtemp(join(tmpdir(), 'voucha-contract-ancestor-'))
   t.after(() => rm(ancestor, { recursive: true, force: true }))
   await writeTree(ancestor, {
     'api-fixtures/v1/manifest.json': '{"fixtures":[]}\n',
+    'api-contracts/v1/request-contracts.json': '{"requests":[]}\n',
     'swift-clients/ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift':
       'public enum UiMessageKey {}\n',
     'dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs':
@@ -74,14 +77,14 @@ test('requires an explicit Filaments checkout root', async t => {
   const nested = join(ancestor, 'nested', 'client')
   await mkdir(nested, { recursive: true })
   const previousDirectory = process.cwd()
-  delete process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
+  delete process.env.VOUCHA_CONTRACT_ROOT
   try {
     process.chdir(nested)
-    await assert.rejects(verifyContract(), /VOUCHA_FILAMENTS_CONTRACT_ROOT is required/)
+    await assert.rejects(verifyContract(), /VOUCHA_CONTRACT_ROOT is required/)
   } finally {
     process.chdir(previousDirectory)
-    if (previous === undefined) delete process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT
-    else process.env.VOUCHA_FILAMENTS_CONTRACT_ROOT = previous
+    if (previous === undefined) delete process.env.VOUCHA_CONTRACT_ROOT
+    else process.env.VOUCHA_CONTRACT_ROOT = previous
   }
 })
 
@@ -92,7 +95,7 @@ test('validates the exact declared full-checkout paths', async t => {
   await rm(join(root, 'api-fixtures/v1'), { recursive: true, force: true })
   await assert.rejects(
     verifyContract({ config, root }),
-    /declared Filaments contract source api-fixtures\/v1/,
+    /declared Vouchington contract source api-fixtures\/v1/,
   )
 })
 
@@ -126,12 +129,12 @@ test('sync recovers an interrupted replacement without Git', async t => {
 test('sync rejects symlinked target ancestors before mutation', async t => {
   const { config, generatedRoot, root } = await fixture(t)
   const ancestor = join(generatedRoot, 'linked-source')
-  await symlink(join(root, paths[1]), ancestor)
+  await symlink(join(root, paths[2]), ancestor)
   await assert.rejects(
     syncContracts({
       config,
       root,
-      targets: [{ source: paths[1], destination: join(ancestor, 'replacement') }],
+      targets: [{ source: paths[2], destination: join(ancestor, 'replacement') }],
     }),
     /must not be a symbolic link/,
   )
@@ -153,8 +156,8 @@ test('checks a candidate client checkout without executing it', async t => {
   const dotnet = join(candidate, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
   await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
   await Promise.all([
-    cp(join(root, paths[1]), swift, { recursive: true }),
-    cp(join(root, paths[2]), dotnet, { recursive: true }),
+    cp(join(root, paths[2]), swift, { recursive: true }),
+    cp(join(root, paths[3]), dotnet, { recursive: true }),
   ])
   await checkContracts({ config, root, destinationRoot: candidate })
   await writeFile(join(swift, 'UiMessageKey.swift'), 'changed\n')
@@ -172,8 +175,8 @@ test('rejects symlinks within and above a candidate localization tree', async t 
   const dotnet = join(candidate, 'dotnet-clients/src/Voucha.Client.Core/Localization/Generated')
   await Promise.all([mkdir(swift, { recursive: true }), mkdir(dotnet, { recursive: true })])
   await Promise.all([
-    cp(join(root, paths[1]), swift, { recursive: true }),
-    cp(join(root, paths[2]), dotnet, { recursive: true }),
+    cp(join(root, paths[2]), swift, { recursive: true }),
+    cp(join(root, paths[3]), dotnet, { recursive: true }),
   ])
   const alias = join(swift, 'alias.swift')
   await symlink('UiMessageKey.swift', alias)
@@ -232,10 +235,35 @@ test('does not accept a copied source bundle in place of the checkout layout', a
   )
   await assert.rejects(
     verifyContract({ config, root: copied }),
-    /declared Filaments contract source api-fixtures\/v1/,
+    /declared Vouchington contract source api-fixtures\/v1/,
   )
   assert.equal(
     await readFile(join(root, 'api-fixtures/v1/manifest.json'), 'utf8'),
     '{"fixtures":[]}\n',
   )
+})
+
+test('sync creates absent generated trees and check names contracts:pull when they are missing', async t => {
+  const { config, generatedRoot, root, targets } = await fixture(t)
+  await Promise.all(targets.map(target => rm(target.destination, { recursive: true })))
+  const options = { config, destinationRoot: generatedRoot, root, targets }
+  await assert.rejects(checkContracts(options), /missing at .*run pnpm run contracts:pull/)
+  await syncContracts({ config, root, targets })
+  await checkContracts(options)
+})
+
+test('requires a pinned full-SHA contract configuration', async t => {
+  const { config, root } = await fixture(t)
+  const valid = JSON.parse(await readFile(config, 'utf8'))
+  for (const change of [
+    { commit: 'main' },
+    { commit: 'A'.repeat(40) },
+    { commit: 'a'.repeat(39) },
+    { repository: 'someone/else' },
+    { paths: paths.slice(1) },
+    { ref: 'main' },
+  ]) {
+    await writeFile(config, JSON.stringify({ ...valid, ...change }))
+    await assert.rejects(verifyContract({ config, root }), /contract configuration/)
+  }
 })

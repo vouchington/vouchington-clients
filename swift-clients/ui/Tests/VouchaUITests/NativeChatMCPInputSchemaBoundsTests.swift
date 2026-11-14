@@ -1,9 +1,33 @@
 import Foundation
+@testable import VouchaAPI
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
 
 final class NativeChatMCPInputSchemaBoundsTests: XCTestCase {
+    func testSchemaPropertyNamesMatchExactUnicodeSequences() throws {
+        let schema = try DecodedJSONValue(exactJSONData: Data(
+            #"{"type":"object","properties":{"é":{"type":"integer"}},"required":["é"],"additionalProperties":false}"#
+                .utf8
+        ))
+        let composed = try DecodedJSONValue(exactJSONData: Data(#"{"é":1}"#.utf8))
+        let decomposed = try DecodedJSONValue(exactJSONData: Data(#"{"e\u0301":1}"#.utf8))
+
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(composed, schema: schema))
+        XCTAssertFalse(try NativeChatMCPInputSchema.accepts(decomposed, schema: schema))
+        XCTAssertTrue(try NativeChatMCPInputSchema.acceptsOutput(composed, schema: schema, root: schema))
+        XCTAssertFalse(try NativeChatMCPInputSchema.acceptsOutput(decomposed, schema: schema, root: schema))
+
+        let contract = try NativeChatMCPOutputContract(fields: ["outputSchema": schema])
+        try contract.validate(
+            MemberMCPClient.ToolResult(content: [], structuredContent: composed, isError: false),
+            arguments: [:]
+        )
+        XCTAssertThrowsError(try contract.validate(
+            MemberMCPClient.ToolResult(content: [], structuredContent: decomposed, isError: false), arguments: [:]
+        ))
+    }
+
     func testSchemaNumericEqualityAppliesToConstEnumAndUniqueItems() throws {
         let constant: DecodedJSONValue = .object(["const": .integer(1)])
         let choices: DecodedJSONValue = .object(["enum": .array([.unsignedInteger(1)])])
@@ -34,7 +58,7 @@ final class NativeChatMCPInputSchemaBoundsTests: XCTestCase {
     }
 
     func testComposedReferenceValidationHasACumulativeWorkBound() throws {
-        var definitions: [String: DecodedJSONValue] = [
+        var definitions: DecodedJSONObject = [
             "leaf": .object(["type": .string("object")])
         ]
         for level in (0 ..< 7).reversed() {
