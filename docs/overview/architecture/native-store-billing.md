@@ -333,7 +333,7 @@ that source becomes effective. The client does not promote `is_effective: false`
 | Network or store outage before payment                         | Keep the purchase-intent idempotency key and retry the launch.                                                                                             |
 | Evidence not accepted                                          | Keep the secure outbox and retry the same verification idempotency key.                                                                                    |
 | App relaunch or new device                                     | Walk unfinished Apple transactions, current entitlements, Play purchases, and the Microsoft collection. Submit missing evidence. Refresh `memberships/me`. |
-| Backend delay                                                  | Show the verification `pending` state; keep the default backoff.                                                                                      |
+| Backend delay                                                  | Show the verification `pending` state; keep the default backoff.                                                                                           |
 | Refund, revocation, or renewal                                 | Submit the new observation. Render the next `memberships/me` source status.                                                                                |
 | Expired Microsoft keys                                         | Mint a new pair and submit a new verification.                                                                                                             |
 
