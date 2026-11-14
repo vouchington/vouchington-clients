@@ -60,7 +60,7 @@ public sealed class MemberAppealsSubmissionLifecycleTests
 
   private sealed class TokenProvider : ITurnstileTokenProvider
   {
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default) =>
+    public Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default) =>
         Task.FromResult("token");
   }
 

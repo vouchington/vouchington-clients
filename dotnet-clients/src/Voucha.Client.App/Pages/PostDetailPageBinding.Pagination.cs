@@ -39,4 +39,39 @@ public sealed partial class PostDetailPageBinding
     await loading.ConfigureAwait(true);
     RefreshRows();
   }
+
+  public async Task ToggleCollapseAsync(string postId, CancellationToken cancellationToken = default)
+  {
+    var viewer = CurrentUserId;
+    if (viewModel.SetViewer(viewer))
+    {
+      await LoadAsync(viewModel.FocusedCommentId, cancellationToken).ConfigureAwait(true);
+      return;
+    }
+    var mutation = viewModel.ToggleCollapseAsync(postId, cancellationToken);
+    RefreshRows();
+    await mutation.ConfigureAwait(true);
+    if (viewer != CurrentUserId) return;
+    if (viewModel.CollapseStateKey is { } key) collapseStore?.Save(key, viewModel.CollapsedCommentIds);
+    RefreshRows();
+  }
+
+  public async Task LoadMoreSubtreeAsync(string postId, CancellationToken cancellationToken = default)
+  {
+    if (viewModel.SetViewer(CurrentUserId))
+    {
+      await LoadAsync(viewModel.FocusedCommentId, cancellationToken).ConfigureAwait(true);
+      return;
+    }
+    var request = viewModel.LoadMoreSubtreeAsync(postId, cancellationToken);
+    RefreshRows();
+    await request.ConfigureAwait(true);
+    RefreshRows();
+  }
+
+  private void RestoreAnonymousCollapse()
+  {
+    if (collapseStore is not null && viewModel.CollapseStateKey is { } key)
+      viewModel.RestoreAnonymousCollapse(collapseStore.Load(key));
+  }
 }

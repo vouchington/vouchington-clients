@@ -23,23 +23,49 @@ extension CommunityDetailViewModel {
     }
 
     func loadApplicationRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {
+        let revision = communityLoadRevision
         let response: CommunityApplicationsResponse = try await client.send(
-            .communityApplications(idOrSlug: slug, after: after, limit: 10)
+            .communityApplications(idOrSlug: slug, after: after, limit: 10, status: "pending")
         )
-        let items = response.results.map { result in
-            CommunityForwardRow(
+        guard isCurrentCommunityLoad(revision, tab: .applications), canModerateCommunity else {
+            throw CancellationError()
+        }
+        if after == nil {
+            applicationSummaries = response.communityApplicationSummaries
+            applicationUsers = response.users
+        } else {
+            applicationSummaries.merge(response.communityApplicationSummaries) { _, new in new }
+            applicationUsers.merge(response.users) { _, new in new }
+        }
+        let items = response.results.compactMap { result -> CommunityForwardRow? in
+            guard let application = response.communityApplicationSummaries[result.id],
+                  application.status == "pending" else { return nil }
+            return CommunityForwardRow(
                 id: result.id,
                 row: .init(
+                    id: result.id,
                     icon: "doc.badge.clock",
                     title: .message(
                         .nativeSwiftCommunitiesApplicationValue,
-                        textParameters: ["id": .verbatim(result.id)]
+                        textParameters: ["id": applicationApplicantLabel(application)]
                     ),
                     detail: .message(.nativeSwiftCommunitiesAwaitingReview)
                 )
             )
         }
         return .init(items: items, endCursor: response.pageInfo.endCursor, hasMore: response.pageInfo.hasNextPage)
+    }
+
+    func canReviewApplication(_ applicationId: String) -> Bool {
+        canModerateCommunity && selectedTab == .applications && state != .loading
+            && applicationSummaries[applicationId]?.status == "pending"
+            && rowPagination.items.contains { $0.id == applicationId }
+    }
+
+    func applicationApplicantLabel(_ application: CommunityApplicationSummary) -> UiVerbatimText {
+        let user = applicationUsers[application.userId]
+        return [user?.name, user?.verifiedDisplayName, user?.username].compactMap { $0?.trimmedOrNil }.first
+            .map(UiVerbatimText.verbatim) ?? .message(.nativeSwiftDynamicConfigFeatureFlagsDeletedUser)
     }
 
     func loadInviteRows(client: APIClient, after: String?) async throws -> CommunityForwardPage {

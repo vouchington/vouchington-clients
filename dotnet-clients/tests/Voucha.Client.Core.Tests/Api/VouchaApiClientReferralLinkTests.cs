@@ -56,6 +56,23 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public async Task FetchUserReferralLinksAsyncDecodesPublicRowsFromSharedFixture()
+  {
+    var (client, handler) = CreateClient("native.referral-links.user.public");
+
+    var response = await client.FetchUserReferralLinksAsync(
+        "user-2",
+        cancellationToken: TestContext.Current.CancellationToken);
+
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/referral-links?limit=25&user_id=user-2");
+    Assert.Equal("referral-link-2", response.Results[0].Id);
+    Assert.Equal("user-2", response.Results[0].UserId);
+    Assert.Equal("test-card", response.Results[0].ReferralProgramSlug);
+    Assert.Null(response.Results[0].Label);
+    Assert.Null(response.Results[0].ActivatedAt);
+  }
+
+  [Fact]
   public async Task FetchMyReferralClicksAsyncUsesSharedFixture()
   {
     var (client, handler) = CreateClient("native.referral-clicks.mine.default");
@@ -66,11 +83,29 @@ public sealed partial class VouchaApiClientTests
 
     AssertRequest(handler, HttpMethod.Get, "/api/v1/my/referral-clicks?limit=25");
     Assert.Equal("referral-click-1", response.Results[0].Id);
-    Assert.Equal("https://voucha.ai/@alice", response.Clicks["referral-click-1"].LandingUrl);
+    Assert.Null(response.Clicks["referral-click-1"].LandingUrl);
+    Assert.Equal("https://voucha.ai/@alice/cards", response.Clicks["referral-click-2"].LandingUrl);
     Assert.NotNull(response.Clicks["referral-click-1"].SignedUpAt);
     Assert.Equal("newmember", response.Users["user-2"].Username);
     Assert.False(response.PageInfo.HasNextPage);
     Assert.Null(response.PageInfo.EndCursor);
+  }
+
+  [Fact]
+  public void ReferralClickResponseDecodesExplicitNullLandingUrl()
+  {
+    const string json = """
+        {"results":[{"id":"click-1"}],"clicks":{"click-1":{"id":"click-1","landing_url":null,"signed_up_at":null,"user_id":null,"created_at":"2026-03-01T11:55:00Z"}},"users":{},"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}
+        """;
+
+    var response = JsonSerializer.Deserialize<ReferralClickLogResponse>(json);
+
+    Assert.NotNull(response);
+    Assert.Equal("click-1", Assert.Single(response.Results).Id);
+    Assert.True(response.Clicks.ContainsKey("click-1"));
+    Assert.Null(response.Clicks["click-1"].LandingUrl);
+    Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ReferralClickLogResponse>(
+        json.Replace("\"landing_url\":null,", string.Empty, StringComparison.Ordinal)));
   }
 
   [Fact]
@@ -97,18 +132,17 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
-  public async Task FetchTrendingReferralProgramsAsyncUsesSharedFixture()
+  public async Task FetchReferralProgramsByLinkCountAsyncUsesSharedFixture()
   {
-    var (client, handler) = CreateClient("web.trending-referral-programs.default");
+    var (client, handler) = CreateClient("web.topics.link-count.default");
 
-    var response = await client.FetchTrendingReferralProgramsAsync(
-        new FetchTrendingReferralProgramsRequest(),
+    var response = await client.FetchReferralProgramsByLinkCountAsync(
+        new FetchReferralProgramsByLinkCountRequest(5),
         TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/trending-referral-programs?limit=10");
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?limit=5&sort=link_count");
     Assert.Equal("referral-program-1", response.Results[0].Id);
-    Assert.Equal(9, response.Results[0].TrendingScore);
-    Assert.Equal(2, response.Results[0].LinkCount);
+    Assert.Equal("Test Referral Program", response.Topics["referral-program-1"].Name);
   }
 
   [Fact]
@@ -136,5 +170,32 @@ public sealed partial class VouchaApiClientTests
     Assert.Equal(4.5, response.Links[0].ReviewAvgRating);
     Assert.Equal("user-1", response.Users["user-1"].Id);
     Assert.Equal("testuser", response.Users["user-1"].Username);
+  }
+
+  [Fact]
+  public async Task FetchReferralProgramsByLinkCountAsyncForwardsCursorAndLimit()
+  {
+    var (client, handler) = CreateClient("web.topics.link-count.default");
+
+    await client.FetchReferralProgramsByLinkCountAsync(
+        new FetchReferralProgramsByLinkCountRequest(Limit: 50, After: "cursor-2"),
+        TestContext.Current.CancellationToken);
+
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/topics?after=cursor-2&limit=50&sort=link_count");
+  }
+
+  [Theory]
+  [InlineData("\"referral_program_attributes\":{\"company_topic_id\":\"company-1\",\"enabled_at\":\"2026-01-02T03:04:05Z\",\"disabled_at\":null},", "company-1", true)]
+  [InlineData("\"referral_program_attributes\":null,", null, false)]
+  [InlineData("", null, false)]
+  public void TopicResponseDecodesReferralProgramAttributes(string field, string? companyTopicId, bool enabled)
+  {
+    var json = "{" + field + "\"topic\":{\"id\":\"t1\",\"name\":\"P\",\"slug\":\"p\",\"topic_type\":\"referral_program\"}}";
+
+    var response = JsonSerializer.Deserialize<TopicResponse>(json, VouchaApiJson.Options)!;
+
+    Assert.Equal(companyTopicId, response.ReferralProgramAttributes?.CompanyTopicId);
+    Assert.Equal(enabled, response.ReferralProgramAttributes?.EnabledAt is not null);
+    Assert.Null(response.ReferralProgramAttributes?.DisabledAt);
   }
 }

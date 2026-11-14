@@ -14,7 +14,7 @@ public sealed class NewsFeedsViewModelProvenanceLocaleTests
   {
     using var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
-    var handler = new RecordingHandler(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var handler = new RecordingHandler(File.ReadAllText(ContractPaths.ApiFixture(
         "responses/entity-provenance.rss-feeds.json")));
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     using var viewModel = new NewsFeedsViewModel(

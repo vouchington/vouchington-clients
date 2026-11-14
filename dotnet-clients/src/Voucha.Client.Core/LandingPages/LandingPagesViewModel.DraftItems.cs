@@ -34,7 +34,7 @@ public sealed partial class LandingPagesViewModel
   {
     ArgumentNullException.ThrowIfNull(label);
     ArgumentNullException.ThrowIfNull(url);
-    if (!IsContentEditable) return false;
+    if (!CanAddWithinLimit) return false;
     var trimmedLabel = label.Trim();
     var trimmedUrl = url.Trim();
     if (!IsValidLinkLabel(trimmedLabel) || trimmedUrl.Length > MaxLinkUrlLength) return false;
@@ -47,7 +47,7 @@ public sealed partial class LandingPagesViewModel
     ArgumentNullException.ThrowIfNull(label);
     ArgumentNullException.ThrowIfNull(url);
     var trimmedLabel = label.Trim();
-    if (!IsContentEditable || !IsValidLinkLabel(trimmedLabel) || !IsValidLinkUrl(url)) return false;
+    if (!CanAddWithinLimit || !IsValidLinkLabel(trimmedLabel) || !IsValidLinkUrl(url)) return false;
     DraftItems = DraftItems.Append(new LandingPageLinkItem($"draft-link-{Guid.NewGuid()}", trimmedLabel, url)).ToArray();
     return true;
   }

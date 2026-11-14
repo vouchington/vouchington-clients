@@ -13,7 +13,8 @@ final class NativeUserProfileScopeTests: XCTestCase {
             ("/user/alice/users/following", .usersFollowing),
             ("/user/alice/users/followers", .usersFollowers),
             ("/user/alice/rss-feeds/following", .sourcesFollowing(nil)),
-            ("/user/alice/communities/member", .communitiesMember)
+            ("/user/alice/communities/member", .communitiesMember),
+            ("/user/alice/referral-links", .referralLinks)
         ]
         for (path, scope) in expected {
             XCTAssertEqual(NativeUserProfileScope(match: match(path)), scope, path)

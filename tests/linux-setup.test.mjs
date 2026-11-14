@@ -26,7 +26,7 @@ test('Linux setup requires an explicit producer checkout and rejects a nonempty 
   writeFileSync(join(stage, 'existing'), 'preserve')
   const missingProducer = run('setup-linux', ['--stage-root', stage], {
     ...process.env,
-    VOUCHA_FILAMENTS_CONTRACT_ROOT: stage,
+    VOUCHA_CONTRACT_ROOT: stage,
   })
   assert.equal(missingProducer.status, 2)
   assert.match(missingProducer.stderr, /--producer-root/)
@@ -43,6 +43,7 @@ test('Linux setup accepts equivalent explicit Git root spellings', () => {
   const stage = join(directory, 'stage')
   const bin = join(directory, 'bin')
   mkdirSync(join(producer, 'api-fixtures/v1'), { recursive: true })
+  mkdirSync(join(producer, 'api-contracts/v1'), { recursive: true })
   mkdirSync(join(producer, 'dev'))
   mkdirSync(stage)
   mkdirSync(bin)
@@ -66,6 +67,7 @@ test('Linux setup rejects a stage beneath a symlinked source ancestor', () => {
   const producer = join(directory, 'producer')
   const link = join(directory, 'source-link')
   mkdirSync(join(producer, 'api-fixtures/v1'), { recursive: true })
+  mkdirSync(join(producer, 'api-contracts/v1'), { recursive: true })
   mkdirSync(join(producer, 'dev'))
   writeFileSync(join(producer, 'dev/native-localization.mts'), '')
   execFileSync('git', ['init', '-q', producer])
@@ -85,7 +87,7 @@ test('doctor and portable tests reject an implicit contract stage', () => {
   for (const script of ['linux-doctor', 'linux-portable-tests']) {
     const result = run(script, [], {
       ...process.env,
-      VOUCHA_FILAMENTS_CONTRACT_ROOT: '/untrusted/ambient/path',
+      VOUCHA_CONTRACT_ROOT: '/untrusted/ambient/path',
     })
     assert.equal(result.status, 2, script)
     assert.match(result.stderr, /--stage-root/, script)
@@ -258,5 +260,22 @@ test('Linux scripts parse as Bash', () => {
     'linux-quality',
   ]) {
     execFileSync('bash', ['-n', join(root, 'dev', script)])
+  }
+})
+
+test('Linux setup rejects a producer checkout missing request contracts', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'voucha-linux-missing-contract-'))
+  try {
+    const producer = join(directory, 'producer')
+    const stage = join(directory, 'stage')
+    mkdirSync(join(producer, 'api-fixtures/v1'), { recursive: true })
+    mkdirSync(join(producer, 'dev'))
+    writeFileSync(join(producer, 'dev/native-localization.mts'), '')
+    execFileSync('git', ['init', '-q', producer])
+    const result = run('setup-linux', ['--producer-root', producer, '--stage-root', stage])
+    assert.equal(result.status, 2, result.stdout + result.stderr)
+    assert.match(result.stderr, /complete Vouchington checkout/u)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
   }
 })

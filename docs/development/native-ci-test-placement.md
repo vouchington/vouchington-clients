@@ -4,6 +4,11 @@ Run each test on the cheapest GitHub-hosted runner that can execute the compiled
 Do not add a second operating system for confidence. Dual-OS is required only when the runtime or
 `#if` slice is actually different.
 
+Ten minutes per job is a soft performance target. Native app builds and launch checks may need
+longer bounded job and step timeouts so healthy work and cleanup can finish. Calibrate those caps
+from hosted timings and confirmed timeout cancellations; a larger cap does not establish that
+the performance target has been met.
+
 ## Default placement
 
 | Workload                                                                                             | Runner           | Why                                                                                |
@@ -16,6 +21,7 @@ Do not add a second operating system for confidence. Dual-OS is required only wh
 | iOS Simulator app launch smoke                                                                       | `macos-latest`   | Generated Xcode project, iOS Simulator SDK, and actual app launch                  |
 | Swift Android core compile                                                                           | `ubuntu-latest`  | Cross-compile in the pinned Swift container                                        |
 | .NET MAUI App tests and Mac Catalyst smoke                                                           | `macos-latest`   | MAUI workload and Mac Catalyst RID                                                 |
+| Mac Catalyst GUI preflight                                                                           | `macos-latest`   | One Debug Appium Mac2 session on the production notification shell                 |
 | .NET Windows local-image decoder                                                                     | `windows-latest` | `#if WINDOWS` WinRT `BitmapDecoder` and `BitmapEncoder` implementation             |
 | .NET Windows language-model surface                                                                  | `windows-latest` | Pinned Windows App SDK 1.8 WinMD admission and answer-headroom probe               |
 
@@ -24,9 +30,59 @@ shard compiles the complete coverage-enabled test product and transfers only its
 resource bundles, and SwiftPM test metadata. The test shard verifies the run, candidate, toolchain,
 architecture, package lock, and archive before `swift test --skip-build` executes the same suite
 and exports the existing UI LCOV artifact. Both shards are required by the aggregate `Tests` gate.
+The build job has a 13-minute cap and its compile step has a 10-minute cap, allowing headroom
+above observed successful hosted durations while retaining explicit deadlines.
+The UI Periphery scan has a 20-minute job cap for the same measured-headroom reason; the core
+scan retains its 15-minute cap.
+
+The iOS root-shell shard also executes the hosted UIKit mutation-challenge presentation tests.
+They keep an existing list editor modal open during challenge/replay, cover cancellation and
+full-screen presentation, and fence shared-broker ownership across windows. These platform tests
+use an inert provider boundary instead of loading the external Turnstile SDK. The existing iPhone
+test-products build includes their unit-test target; the shard requires all seven selected tests
+(root launch plus six presentation cases) to pass without skips.
+
+The Android host-test shard installs only the matching Swift 6.3.3 host compiler after verifying
+Xcode 26.6. Its archive preparation verifies and seeds the pinned Skip binary for SwiftPM; it
+never installs the Android SDK, NDK, or Swift 6.4 cross-compiler. Frozen package resolution uses
+that same verified host compiler and rejects a binary-artifact download after preparation.
+Host-only archive seeding has its own small helper; the full Android materializer and its cache
+inputs stay independent of host setup edits. Both helpers use the same explicit Skip pins, checked
+by a regression. This duplicates four pin declarations to preserve the actual dependency boundary;
+it does not guarantee cache availability or an under-ten-minute APK job.
+The test-library shard retains the Swift 6.4 Android SDK and its pinned NDK, builds the Android
+test runner, verifies its compatibility link, and builds the test libraries and harness. It does
+not build an APK or launch an emulator, so it needs no Java or Android platform/build-tools setup.
+
+The Android app job (`Swift Android app`) runs `pre-push.sh --phase app` in one macOS job. Skip
+prebuild, the Swift cross-compilation of the native product, the Kotlin libraries, and both APKs
+(`:app:assembleDebug :app:assembleDebugAndroidTest`) all come from a single Gradle invocation, with
+`org.gradle.parallel=true` so independent Kotlin library work does not serialize behind native
+Swift. The job verifies the native ABI and uploads the exact APKs consumed by the cookie restart
+job. Host Swift tests stay in their own job (`VOUCHA_SKIP_ANDROID_HOST_SWIFT_TEST=1`).
+
+This replaces a chain of three serial macOS jobs (native dependency, native producer, app
+consumer) plus a Kotlin library producer beside them, introduced to chase the soft ten-minute
+target. On run 43249213432 the chain was the critical path at about 28 minutes: the build step of
+each serial job took only 3.9, 2.4 and 4.4 minutes, and the rest was repeated checkout, contract
+preparation, Swift, archive and package-resolve setup plus pack, upload, download and restore of a
+roughly 1.9 GB exact-run state archive. One job pays that setup once and has no state handoff. The
+Gradle user-home and task-output caches restore and save as before (main pushes only). The job cap
+is 35 minutes, a safety bound rather than evidence for the ten-minute target. The state-archive
+and Kotlin cache CLIs and the producer and consumer `pre-push.sh` phases remain available but no
+workflow job uses them.
 
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
+
+The Mac Catalyst path has two required macOS jobs that start independently after contract
+verification. The rendered-page job verifies all twelve committed NuGet locks and runs the complete
+MAUI page test suite. The app job restores the locked graph and pinned SDK, workload, Xcode, and
+host RID, then runs the unchanged full Release app build, including managed compilation, trimming,
+AOT, native linking, and bundle creation. Each job checks out and restores its own exact candidate;
+no compiled state or source timestamps are transferred between them. The aggregate Tests gate
+requires both jobs to succeed. Hosted measurements must establish each job's duration and the full
+run's critical path.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
 root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
@@ -34,23 +90,73 @@ ad hoc, with no Team ID, using `VouchaLaunchSmoke.entitlements`: sandbox and out
 only. Associated domains, Sign in with Apple, and the team keychain group stay on the shipping
 entitlements because they make an ad-hoc signature invalid. A preflight refuses to
 continue when WindowServer is down or the runner user does not own the GUI console, and the job
-requires exactly one passed test with nothing skipped. That is launch evidence for the root shell
-only; sign-in and tab coverage stay on #80.
+requires exactly seven passed tests with nothing skipped: the root shell, one sidebar
+navigation that opens Videos, leaves for News, and returns to the canonical video row from the
+shared `--ui-testing-feed-flow` fixture, one sidebar navigation that opens Podcasts, leaves for
+News, and returns to the canonical episode from `swift.integration.rss-feed-items.audio`, one
+sidebar navigation that opens Posts, leaves for News, and returns to the canonical post from
+`swift.posts.feed.default`, one source-creation flow that opens a created source from every
+vertical, one email OTP sign-in that removes the signed-out control, and a Videos transport error followed
+by the real Retry action and the canonical video row. The recovery case uses a synchronized,
+one-shot local network failure; its successful response replays the unchanged canonical video
+fixture. #80 stays open for the News tab: the pin lacks a matching Swift article feed fixture.
+The web article fixture is not a substitute: its declared query and consumers differ, and its
+payload represents video content. See [macOS app-shell flows](macos-app-shell-flows.md).
 
 The iOS build jobs compile the arm64 test bundle for an available iPhone Simulator and the x86_64
-app slice in parallel on `macos-latest`. Xcode exports the arm64 tests as a portable
+app slice in parallel on `macos-latest`. The arm64 build has a 13-minute job cap and a
+10-minute compile step cap. Xcode exports the arm64 tests as a portable
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
-`test-without-building`; neither launch job recompiles. The iPhone job requires exactly two passed,
-non-skipped root-shell and real Videos-tab tests. The iPad job requires exactly one passed,
-non-skipped root-shell test on an available iPad Simulator. The native `Tests` fan-in requires
-both device-family launches and the x86_64 compile. The DEBUG fixture restores its account
-through `SessionManager.refresh`; it does not prove sign-in, cookie persistence, or CAPTCHA
-behavior. Both jobs receive the complete fixture checkout explicitly through the generated scheme
-and fail closed when a fixture or Simulator is unavailable.
-Both launch jobs are required by the native workflow `Tests` fan-in; skipped cases and test retries are not
-accepted as feed-flow evidence. This is partial coverage of #77. iPad feed flow, sign-in, and
-Catalyst remain outstanding.
+`test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs
+of one job id: the root shell, the Videos tab, and the email OTP sign-in. Each leg has a 12-minute
+job cap and a 7-minute launch step cap. Each leg boots the manifest's simulator before contract
+setup, then waits for `bootstatus` before unpacking, so the bundle extract does not compete with
+CoreSimulator.
+After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
+`simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
+That spawn gate stops after 150 seconds and still runs `xcodebuild`; every passing gate observed
+before the cap finished in under two minutes, and a longer gate pushed the sign-in leg past its
+former 9-minute job cap after the test had already passed. A launch that returns no process id
+still fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
+failure: the test's launch window ended before the app process existed.
+The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
+before job cleanup.
+Neither the iPhone legs nor the iPad job collect xcodebuild's verbose diagnostics. Each result
+summary is still required, and a failed launch still uploads that summary plus a short simulator
+log. Each iPhone leg requires exactly one passed, non-skipped test. The sign-in fixture accepts
+only the typed email, code, and verification token, then `SessionManager.refresh` reads the
+canonical identity fixture. That token stands in for the Turnstile widget the simulator cannot
+complete. The sign-in leg taps the hittable `signed-out-sign-in` control, the leading compact
+toolbar button rather than a grouped trailing action or another Sign In label, and still requires
+Continue with Email within the existing 20 second wait.
+The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
+Simulator. Its job cap is 12 minutes and its launch step cap is 9 minutes, raised with user
+approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
+artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
+The iPad launch then installs the same verified app, requires the same process id, and stops
+that process before `xcodebuild`, with the same 150-second gate.
+The x86_64 job stays one `xcodebuild` compile with a 12-minute job cap and a 9-minute compile
+step cap. That step builds the whole app slice, so splitting it would not remove a second phase.
+The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
+These launches do not prove cookie persistence, a live CAPTCHA, or sign-in on another platform.
+Each launch receives the complete fixture checkout explicitly through the generated scheme and fails
+closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted
+as feed-flow or sign-in evidence. This is partial coverage of #77. The video-feed lane and the
+iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst remain outstanding.
+
+The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute limit. It builds
+the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`
+argument, the canonical `swift.my.identity.default` fixture, and
+`native.my.email-preferences.default`. The session opens the production app shell, routes to
+`/my/notification-settings`, requires the moderation switch to be enabled and on, toggles the
+engagement switch, and requires the news-digest picker to be enabled. It counts only when all three
+control assertions pass and nothing was skipped. Named assertion evidence is checked against the
+verified native revision and producer pin; see [the evidence contract](native-shell-notification-evidence.md).
+The other five notification controls, route focus, and the
+one-announcement proof remain open. #60 stays open for those checks. The Debug fixture transport is
+compiled out of Release. The existing MAUI job still builds Release and runs linked page tests;
+those are not this session.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command
 and native test planners do not execute the Node contract assertions that check those selectors,

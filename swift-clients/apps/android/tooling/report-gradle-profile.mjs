@@ -39,6 +39,17 @@ export function profileFiles(root, sourceRoot = packageRoot) {
     : [])
 }
 
+export function selectProfilePath(files, exactPath) {
+  if (exactPath) {
+    if (!files.includes(exactPath) || !lstatSync(exactPath).isFile()) {
+      throw new Error('Current Gradle profile is outside the expected generated reports')
+    }
+    return exactPath
+  }
+  if (files.length !== 1) throw new Error(`Expected one Android Gradle profile; found ${files.length}`)
+  return files[0]
+}
+
 function boundedEntries(path, limit) {
   const entries = []
   const directory = opendirSync(path)
@@ -129,9 +140,10 @@ export function renderReport({ html, profilePath, paths, identity }) {
 }
 
 function main() {
-  const files = profileFiles(profileRoot).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
-  if (files.length !== 1) throw new Error(`Expected one Android Gradle profile; found ${files.length}`)
-  const profilePath = files[0]
+  const profilePath = selectProfilePath(
+    profileFiles(profileRoot),
+    process.env.ANDROID_GRADLE_PROFILE_PATH,
+  )
   if (statSync(profilePath).size > maxProfileBytes) throw new Error('Gradle profile exceeds 4 MiB')
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: packageRoot, encoding: 'utf8' }).trim()
   const gradle = readFileSync(join(packageRoot, 'Android/gradle/wrapper/gradle-wrapper.properties'), 'utf8')

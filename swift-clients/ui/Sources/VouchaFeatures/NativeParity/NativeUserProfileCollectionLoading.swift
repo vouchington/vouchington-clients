@@ -19,6 +19,8 @@ extension NativeRouteSurfaceViewModel {
             try await userSourcePage(userId: userId, filter: filter, after: after, client: client)
         case .communitiesMember:
             try await userCommunityPage(userId: userId, after: after, client: client)
+        case .referralLinks:
+            try await userReferralLinkPage(userId: userId, after: after, client: client)
         case .overview:
             .init(collection: .none, pageInfo: .init(hasNextPage: false, endCursor: nil))
         }
@@ -44,6 +46,7 @@ extension NativeRouteSurfaceViewModel {
                 endCursor: page.pageInfo.endCursor,
                 hasNextPage: page.pageInfo.hasNextPage
             ) else { return }
+            profileHackerNewsReferences.merge(page.hackerNewsReferences) { _, new in new }
             userProfile.collection = userProfile.collection.appending(page.collection)
         } catch let error as VouchaError {
             userProfile.pagination.fail(request, error: error)

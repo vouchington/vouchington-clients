@@ -52,10 +52,10 @@ public sealed partial class ModerationDisputesPage : ContentPage, IDisposable
     ConfigureStatusPicker();
     statusPicker.SelectedIndexChanged += StatusChangedAsync;
     disputesView.ItemTemplate = new DataTemplate(() =>
-        new ModerationDisputeCardView(viewModel, CurrentMutationToken));
+        new ModerationSummaryRow(viewModel, page => Navigation.PushModalAsync(page)));
     disputesView.SetBinding(
         ItemsView.ItemsSourceProperty,
-        nameof(ModerationDisputesViewModel.Disputes));
+        nameof(ModerationDisputesViewModel.Summaries));
     pagination.LoadNextPageRequested += LoadNextPageAsync;
     pagination.SetBinding(
         HybridPaginationControl.HasMoreProperty,

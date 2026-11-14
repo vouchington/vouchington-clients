@@ -121,7 +121,7 @@ public sealed class CommunityApiModelCoverageTests
     var metrics = new PostMetrics(
         "post_metrics",
         "post-1",
-        new PostMetricCounts(3, 2, 1),
+        new PostMetricCounts(3, 2),
         UpdatedAt: DateTimeOffset.Parse("2026-01-02T00:00:00Z"),
         Bookmarks: new Dictionary<string, int>
         {
@@ -182,6 +182,16 @@ public sealed class CommunityApiModelCoverageTests
     Assert.NotEmpty(aiAgents.CommunityAiAgents);
     Assert.NotEmpty(prompts.CommunityAgentPrompts);
     Assert.NotNull(simulation.Results);
+    Assert.NotNull(simulation.Simulation.FalsePositiveEstimate);
+    Assert.Equal(0, simulation.Simulation.FalsePositiveEstimate.SampledFlaggedCount);
+    Assert.Equal(0, simulation.Simulation.FalsePositiveEstimate.SampledApprovedCount);
+    Assert.Null(simulation.Simulation.FalsePositiveEstimate.Rate);
+    using var encodedEstimate = JsonDocument.Parse(JsonSerializer.Serialize(
+        simulation.Simulation.FalsePositiveEstimate, VouchaApiJson.Options));
+    Assert.Equal(0, encodedEstimate.RootElement.GetProperty("sampled_flagged_count").GetInt32());
+    Assert.Equal(0, encodedEstimate.RootElement.GetProperty("sampled_approved_count").GetInt32());
+    Assert.False(encodedEstimate.RootElement.TryGetProperty("historical_flagged_count", out _));
+    Assert.False(encodedEstimate.RootElement.TryGetProperty("historical_approved_count", out _));
     Assert.Equal("cursor-2", history.NextCursor);
     Assert.True(feedback.AppliedAction);
   }

@@ -5,29 +5,6 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.comments.post-detail.default") {
             Endpoint.post(idOrSlug: "comment-root")
         },
-        ManifestRegisteredEndpoint(id: "native.comments.descendants.default") {
-            Endpoint.postDescendants(
-                postId: "comment-root-post",
-                after: "fixture-root-and-subtree-scoped-cursor",
-                limit: 2
-            )
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.permalink") {
-            Endpoint.postAncestors(postId: "comment-b")
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.shallow") {
-            Endpoint.postAncestors(postId: "comment-b", limit: 5)
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.deep-initial") {
-            Endpoint.postAncestors(postId: "bounded-ancestor-comment-7", limit: 5)
-        },
-        ManifestRegisteredEndpoint(id: "native.comments.ancestors.bounded.deep-continuation") {
-            Endpoint.postAncestors(
-                postId: "bounded-ancestor-comment-7",
-                after: "fixture-ancestor-deep-initial-end",
-                limit: 5
-            )
-        },
         ManifestRegisteredEndpoint(id: "native.lists.default") {
             Endpoint.lists()
         },
@@ -53,7 +30,7 @@ extension EndpointManifestCoverage {
             Endpoint.adminUserLandingPages(userId: "user-abc")
         },
         ManifestRegisteredEndpoint(id: "native.admin-landing-page-analytics.default") {
-            Endpoint.adminLandingPageAnalytics(pageId: "landing-page-1")
+            Endpoint.adminLandingPageAnalytics(username: "fixture-user", slug: "links")
         },
         ManifestRegisteredEndpoint(id: "native.landing-page-candidates.default") {
             Endpoint.myLandingPageCandidates
@@ -73,23 +50,49 @@ extension EndpointManifestCoverage {
         ManifestRegisteredEndpoint(id: "native.users.profile.restricted") {
             Endpoint.user(idOrSlug: "restricted", includeBio: true)
         },
+        ManifestRegisteredEndpoint(id: "native.users.profile.private-counts.owner") {
+            Endpoint.user(idOrSlug: "alice", includeBio: true)
+        },
         ManifestRegisteredEndpoint(id: "native.users.vouch-context.default") {
             Endpoint.userTrustContext(userId: "user-abc")
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.all") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "review,discussion,comment")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "review,discussion,comment",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.all", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.reviews") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "review")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "review",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.reviews", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.discussions") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "discussion")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "discussion",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.discussions", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.comments") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "comment")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "comment",
+                timeRange: ApiFixtureLoader.optionalQueryValue("native.users.profile.posts.comments", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.posts.staff-provenance") {
-            Endpoint.userPosts(userId: "user-abc", postTypes: "discussion,review")
+            Endpoint.userPosts(
+                userId: "user-abc",
+                postTypes: "discussion,review",
+                timeRange: ApiFixtureLoader.optionalQueryValue(
+                    "native.users.profile.posts.staff-provenance",
+                    "time_range"
+                )
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.profile.topics-following.first-page") {
             Endpoint.userTopicsFollowing(userId: "user-abc")

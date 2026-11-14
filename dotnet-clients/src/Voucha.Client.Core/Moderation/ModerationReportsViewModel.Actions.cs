@@ -26,15 +26,6 @@ public sealed partial class ModerationReportsViewModel
         }).ConfigureAwait(true);
   }
 
-  public async Task<bool> RerunJudgementAsync(string reportId, CancellationToken cancellationToken = default)
-  {
-    if (!IsStaff || FindStaffReport(reportId) is null) return false;
-    return await RunActionAsync(
-        reportId,
-        async () => await service.RerunReportJudgementAsync(reportId, cancellationToken).ConfigureAwait(true))
-        .ConfigureAwait(true);
-  }
-
   public async Task<bool> IssueWarningAsync(
       string reportId,
       string reason,
@@ -138,7 +129,7 @@ public sealed partial class ModerationReportsViewModel
     }
     catch (Exception ex) when (ex is not OperationCanceledException)
     {
-      rowErrors[reportId] = ex.Message;
+      rowErrors[reportId] = RowError(ex);
       OnPropertyChanged(nameof(RowErrors));
       return false;
     }

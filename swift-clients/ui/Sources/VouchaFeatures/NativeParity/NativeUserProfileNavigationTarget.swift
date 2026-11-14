@@ -43,6 +43,12 @@ enum NativeUserProfileNavigationTarget {
         "/communities/\(community.slug)"
     }
 
+    static func referralLink(_ link: NativeReferralLink) -> String? {
+        link.referralProgramId.map {
+            NativeEntityDetailPath.topic(id: $0, slug: link.referralProgramSlug, topicType: "referral_program")
+        }
+    }
+
     static func routeSegment(_ entityType: String) -> String {
         entityType.replacingOccurrences(of: "_", with: "-")
     }

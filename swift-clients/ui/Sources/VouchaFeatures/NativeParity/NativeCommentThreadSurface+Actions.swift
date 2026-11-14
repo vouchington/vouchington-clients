@@ -9,7 +9,8 @@ extension NativeCommentThreadSurface {
             routeMatch?.path ?? "",
             routeMatch?.param("commentId") ?? "",
             currentUserId ?? "",
-            String(isStaffViewer)
+            String(isStaffViewer),
+            String(isSignedIn)
         ].joined(separator: "|")
     }
 
@@ -18,6 +19,14 @@ extension NativeCommentThreadSurface {
         case let .error(error): error.errorDescription
         default: nil
         }
+    }
+
+    func replaceCommentThreadModel(userId: String?, signedIn: Bool) {
+        viewModel.invalidateSession()
+        viewModel = NativeCommentThreadViewModel(
+            client: client, rootPostId: viewModel.rootPostId,
+            currentUserId: userId, isSignedIn: signedIn
+        )
     }
 
     func loadThread() async {

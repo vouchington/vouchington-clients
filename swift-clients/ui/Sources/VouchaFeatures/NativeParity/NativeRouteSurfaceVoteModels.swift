@@ -3,6 +3,7 @@ import VouchaModels
 
 struct NativeTopicDetailResponse: Decodable {
     let topic: NativeGenericEntity
+    let topicMetrics: TopicViewerMetrics?
     let topicElection: TopicElection?
     let electionVote: NativeViewerVote?
 }

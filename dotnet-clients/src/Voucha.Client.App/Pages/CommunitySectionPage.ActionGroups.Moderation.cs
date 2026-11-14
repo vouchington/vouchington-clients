@@ -1,4 +1,3 @@
-using System.Globalization;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Localization;
 
@@ -25,6 +24,15 @@ public abstract partial class CommunitySectionPage
   {
     var promptId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPromptId);
     var prompt = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPrompt);
+    prompt.AutomationId = "community-agent-prompt-draft";
+    var creationError = new Label { AutomationId = "community-agent-prompt-creation-error" };
+    creationError.SetBinding(Label.TextProperty, nameof(CommunityDetailViewModel.AgentPromptCreationError));
+    var refreshError = new Label { AutomationId = "community-agent-prompt-refresh-error" };
+    refreshError.SetBinding(Label.TextProperty, nameof(CommunityDetailViewModel.AgentPromptRefreshError));
+    var retry = ActionButton(UiMessageKey.NativeSwiftCommonTryAgain);
+    retry.AutomationId = "community-agent-prompt-refresh-retry";
+    retry.SetBinding(IsVisibleProperty, nameof(CommunityDetailViewModel.HasAgentPromptRefreshError));
+    retry.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.RetryAgentPromptRefreshAsync(ct)).ConfigureAwait(true);
     var modelName = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesModelName);
     var modelProvider = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesModelProvider);
     return new VerticalStackLayout
@@ -32,13 +40,16 @@ public abstract partial class CommunitySectionPage
       Spacing = 8,
       Children =
       {
+        creationError,
+        refreshError,
+        retry,
         new HorizontalStackLayout { Spacing = 8, Children = { promptId, prompt, modelName, modelProvider } },
         new HorizontalStackLayout
         {
           Spacing = 8,
           Children =
           {
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesCreate).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.CreateAgentPromptAsync(prompt.Text ?? string.Empty, OptionalText(modelName), OptionalText(modelProvider), ct)).ConfigureAwait(true)),
+            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesCreate).Also(button => { button.AutomationId = "community-agent-prompt-create"; button.Clicked += async (_, _) => await SubmitAgentPromptAsync(prompt, modelName, modelProvider).ConfigureAwait(true); }),
             ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesUpdate).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.UpdateAgentPromptAsync(promptId.Text ?? string.Empty, prompt.Text, ct)).ConfigureAwait(true)),
             ActionButton(UiMessageKey.NativeDotnetCsharpDelete).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.DeleteAgentPromptAsync(promptId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
             ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesAllocate).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.AllocateAgentPromptSlotAsync(promptId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
@@ -50,37 +61,13 @@ public abstract partial class CommunitySectionPage
     };
   }
 
-  private View BuildModerationActions()
-  {
-    var after = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesAfter);
-    var limit = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesLimit, UiText.Verbatim("25"));
-    var postId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesPostId);
-    var userId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesUserId);
-    var reason = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReason);
-    var reportId = TextField(UiMessageKey.NativeDotnetCsharpCommunitiesReportId);
-    var status = TextField(UiMessageKey.NativeDotnetResidualStatus, UiText.Verbatim("reviewed"));
-    return new VerticalStackLayout
-    {
-      Spacing = 8,
-      Children =
+  private Task SubmitAgentPromptAsync(Entry prompt, Entry modelName, Entry modelProvider) =>
+      InvokeAndRenderAsync(async ct =>
       {
-        new HorizontalStackLayout { Spacing = 8, Children = { after, limit, ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesRecentActions).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.LoadAutomodRecentActionsAsync(OptionalText(after), int.TryParse(limit.Text, out var parsedLimit) ? parsedLimit : 25, cancellationToken: ct)).ConfigureAwait(true)), ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesModerationResults).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(async ct => { await viewModel.LoadModerationResultsAsync(postId.Text ?? string.Empty, ct).ConfigureAwait(true); }).ConfigureAwait(true)) } },
-        new HorizontalStackLayout { Spacing = 8, Children = { postId, userId, reason, reportId, status } },
-        new HorizontalStackLayout
-        {
-          Spacing = 8,
-          Children =
-          {
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesWarn).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.IssueWarningAsync(userId.Text ?? string.Empty, reason.Text ?? string.Empty, reportId: OptionalText(reportId), cancellationToken: ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesReviewPost).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ReviewPostAsync(postId.Text ?? string.Empty, status.Text ?? "approved", OptionalText(reason), ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesResolveReport).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ResolveModerationReportAsync(reportId.Text ?? string.Empty, status.Text ?? "reviewed", ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesConfirmEvasion).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.ConfirmBanEvasionAsync(userId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
-            ActionButton(UiMessageKey.NativeDotnetCsharpCommunitiesDismissEvasion).Also(button => button.Clicked += async (_, _) => await InvokeAndRenderAsync(ct => viewModel.DismissBanEvasionAsync(userId.Text ?? string.Empty, ct)).ConfigureAwait(true)),
-          },
-        },
-      },
-    };
-  }
+        var submitted = prompt.Text ?? string.Empty;
+        var committed = await viewModel.CreateAgentPromptAsync(submitted, OptionalText(modelName), OptionalText(modelProvider), ct).ConfigureAwait(true);
+        if (committed && prompt.Text == submitted) prompt.Text = string.Empty;
+      });
 
   private View BuildModmailActions()
   {

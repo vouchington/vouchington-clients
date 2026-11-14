@@ -14,10 +14,16 @@ private struct CommunityPostTypeSettingsBody: Encodable {
 }
 
 public extension Endpoint {
-    static func communityModerationResults(idOrSlug: String, postId: String) -> Endpoint {
-        Endpoint(
-            .GET,
-            path: "/api/v1/communities/\(pathSegment(idOrSlug))/posts/\(pathSegment(postId))/moderation-results"
+    static func communityModerationResults(
+        idOrSlug: String,
+        postId: String,
+        after: String? = nil,
+        limit: Int? = nil
+    ) -> Endpoint {
+        pagedGet(
+            path: "/api/v1/communities/\(pathSegment(idOrSlug))/posts/\(pathSegment(postId))/moderation-results",
+            after: after,
+            limit: limit
         )
     }
 

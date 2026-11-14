@@ -28,6 +28,9 @@ struct ReviewDisputesSurface: View {
         _viewModel = State(initialValue: viewModel)
     }
 
+    @State
+    private var selectedSummary: ReviewDisputeSummary?
+
     var body: some View {
         if !viewModel.isSignedIn {
             EmptyStateView(
@@ -67,10 +70,10 @@ struct ReviewDisputesSurface: View {
                 }
             }
 
-            if viewModel.isLoading, viewModel.disputes.isEmpty {
+            if viewModel.isLoading, viewModel.summaryPagination.items.isEmpty {
                 ProgressView(UiMessages.string(.nativeSwiftReviewDisputesLoading, locale: nativeUiLocale))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.disputes.isEmpty {
+            } else if viewModel.summaryPagination.items.isEmpty {
                 EmptyStateView(
                     icon: "exclamationmark.bubble",
                     title: .message(viewModel.selectedStatus.disputeEmptyTitleKey),
@@ -86,21 +89,27 @@ struct ReviewDisputesSurface: View {
     private var disputeList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.md) {
-                ForEach(viewModel.disputes) { dispute in
-                    ReviewDisputeCard(viewModel: viewModel, dispute: dispute)
+                ForEach(viewModel.summaryPagination.items) { dispute in
+                    Button { selectedSummary = dispute } label: {
+                        StaffModerationSummaryRow(dispute: dispute)
+                    }
+                    .buttonStyle(.plain)
                 }
                 if let error = viewModel.loadMoreErrorMessage {
                     Text(UiMessages.string(error, locale: nativeUiLocale)).foregroundStyle(.red)
                 }
                 HybridPaginationControl(
-                    hasMore: viewModel.disputePagination.hasMore,
-                    isLoading: viewModel.disputePagination.isLoading,
-                    hasError: viewModel.disputePagination.lastError != nil
+                    hasMore: viewModel.summaryPagination.hasMore,
+                    isLoading: viewModel.summaryPagination.isLoading,
+                    hasError: viewModel.summaryPagination.lastError != nil
                 ) {
                     await viewModel.loadMore()
                 }
             }
         }
+        .sheet(item: $selectedSummary, content: { summary in
+            ReviewDisputeDetail(viewModel: viewModel, id: summary.id)
+        })
     }
 
     private var statusBinding: Binding<ReviewDisputeStatus> {

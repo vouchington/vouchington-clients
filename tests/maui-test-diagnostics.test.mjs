@@ -1,18 +1,10 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
+import { jobBlock as readJobBlock, stepBlock as readStepBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
-
-const stepBlock = (job, name) => {
-  const marker = `      - name: ${name}\n`
-  const start = job.indexOf(marker)
-  assert.notEqual(start, -1, `missing workflow step ${name}`)
-  const remainder = job.slice(start)
-  const nextStep = remainder.search(/\n      - name:/u)
-  return remainder.slice(0, nextStep === -1 ? remainder.length : nextStep)
-}
+const stepBlock = (job, name) => readStepBlock(job, name, `missing workflow step ${name}`)
 
 describe('MAUI App test diagnostics', () => {
   it('keeps the full Catalyst App suite and saves bounded hang diagnostics on failure', () => {
@@ -20,11 +12,11 @@ describe('MAUI App test diagnostics', () => {
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
     )
-    const maui = jobBlock(workflow, 'dotnet-maui')
+    const maui = jobBlock(workflow, 'dotnet-maui-tests')
     const test = stepBlock(maui, 'Test rendered MAUI pages')
     const upload = stepBlock(maui, 'Upload failed MAUI test diagnostics')
 
-    assert.match(maui, /timeout-minutes: 30/u)
+    assert.match(maui, /timeout-minutes: 10/u)
     assert.match(test, /timeout-minutes: 18/u)
     const testCommand = test.replace(/\\\n\s*/gu, ' ').replace(/\s+/gu, ' ')
     assert.match(
@@ -56,9 +48,6 @@ describe('MAUI App test diagnostics', () => {
       maui.indexOf('      - name: Test rendered MAUI pages') <
         maui.indexOf('      - name: Upload failed MAUI test diagnostics'),
     )
-    assert.ok(
-      maui.indexOf('      - name: Upload failed MAUI test diagnostics') <
-        maui.indexOf('      - name: Select compatible Xcode'),
-    )
+    assert.doesNotMatch(maui, /name: Select compatible Xcode|name: Build MAUI Mac Catalyst app/u)
   })
 })

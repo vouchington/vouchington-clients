@@ -6,8 +6,8 @@ import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
-describe('iOS Simulator launch and feed-flow fan-in', () => {
-  it('runs the unsigned app shell and canonical feed flow and requires both to pass', () => {
+describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-in', () => {
+  it('requires the unsigned shell, modal presentation, feed, sign-in, and News interaction shards', () => {
     const workflow = readFileSync(
       new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
       'utf8',
@@ -57,34 +57,94 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     )
     assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)
     assert.match(iosJob, /\.destination' "\$manifest"/u)
+    assert.match(iosJob, /-collect-test-diagnostics never/u)
+    assert.equal(iosJob.split('-collect-test-diagnostics never').length - 1, 1)
+    assert.match(ipadJob, /-collect-test-diagnostics never/u)
+    assert.equal(ipadJob.split('-collect-test-diagnostics never').length - 1, 1)
+    assert.match(iosJob, /fail-fast: false/u)
+    assert.equal(iosJob.split('expected_count: 1').length - 1, 3)
+    assert.match(buildJob, /-only-testing:VouchaPresentationTests/u)
+    assert.match(
+      iosJob,
+      /shard: root-shell\n\s+only_testing: '[^'\n]*-only-testing:VouchaPresentationTests'\n\s+expected_count: 7/u,
+    )
+    assert.match(iosJob, /skip-candidate-install: true/u)
+    assert.match(ipadJob, /skip-candidate-install: true/u)
+    assert.equal(iosJob.split('simctl shutdown').length - 1, 1)
+    assert.equal(ipadJob.split('simctl shutdown').length - 1, 1)
+    assert.doesNotMatch(buildJob, /skip-candidate-install: true/u)
     assert.match(iosJob, /test-without-building/u)
     assert.match(iosJob, /-testProductsPath "\$bundle"/u)
     assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
     assert.match(iosJob, /test ! -L "\$bundle"/u)
-    assert.ok(
-      iosJob.indexOf('- name: Start iPhone Simulator for launch smoke') <
-        iosJob.indexOf('- name: Wait for iPhone Simulator readiness'),
-    )
+    const prepareIndex = iosJob.indexOf('uses: ./.github/actions/prepare-native-contract')
+    const unpackIndex = iosJob.indexOf('- name: Verify and unpack iOS test products')
+    const startupIndex = iosJob.indexOf('- name: Start iPhone Simulator for launch smoke')
+    const waitIndex = iosJob.indexOf('- name: Wait for iPhone Simulator readiness')
+    assert.ok(prepareIndex >= 0)
+    assert.ok(unpackIndex >= 0)
+    assert.ok(startupIndex >= 0)
+    assert.ok(waitIndex >= 0)
+    assert.ok(startupIndex < prepareIndex)
+    assert.ok(prepareIndex < waitIndex)
+    assert.ok(waitIndex < unpackIndex)
     assert.ok(
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
     )
     assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
-    for (const job of [buildJob, x86Job, iosJob, ipadJob]) {
-      assert.match(job, /\n    timeout-minutes: 9\n/u)
+    assert.match(iosJob, /- name: Launch iOS app on Simulator\n\s+timeout-minutes: 7/u)
+    assert.match(ipadJob, /- name: Launch iPad root shell on Simulator\n\s+timeout-minutes: 9/u)
+    const spawnGate = readFileSync(
+      new URL('../scripts/ios-launch-spawn-gate.py', import.meta.url),
+      'utf8',
+    )
+    assert.match(spawnGate, /BUDGET_SECONDS = 150/u)
+    assert.match(spawnGate, /xcrun", "simctl", "install"/u)
+    assert.match(spawnGate, /xcrun", "simctl", "launch"/u)
+    assert.match(spawnGate, /xcrun", "simctl", "terminate"/u)
+    assert.match(spawnGate, /if not pid\.isdigit\(\)/u)
+    assert.match(spawnGate, /Installed app did not start a process/u)
+    assert.match(spawnGate, /Spawn gate exceeded 150s; continuing to xcodebuild/u)
+    for (const [job, launchName] of [
+      [iosJob, '- name: Launch iOS app on Simulator'],
+      [ipadJob, '- name: Launch iPad root shell on Simulator'],
+    ]) {
+      const launch = job.slice(job.indexOf(launchName))
+      const gateAt = launch.indexOf(
+        'python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"',
+      )
+      const testAt = launch.indexOf('xcodebuild -testProductsPath "$bundle"')
+      assert.ok(gateAt >= 0 && testAt > gateAt)
+      assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
     }
+    assert.match(iosJob, /\n    timeout-minutes: 12\n/u)
+    assert.match(buildJob, /\n    timeout-minutes: 13\n/u)
+    assert.match(x86Job, /\n    timeout-minutes: 12\n/u)
+    assert.match(ipadJob, /\n    timeout-minutes: 12\n/u)
+    const ipadPrepare = ipadJob.indexOf('uses: ./.github/actions/prepare-native-contract')
+    const ipadBoot = ipadJob.indexOf('- name: Start iPad Simulator for root-shell launch')
+    const ipadDownload = ipadJob.indexOf('- name: Download iOS test products')
+    const ipadWait = ipadJob.indexOf('- name: Wait for iPad Simulator readiness')
+    const ipadUnpack = ipadJob.indexOf('- name: Verify and unpack iOS test products')
+    const ipadLaunch = ipadJob.indexOf('- name: Launch iPad root shell on Simulator')
+    assert.ok(ipadPrepare >= 0 && ipadBoot > ipadPrepare)
+    assert.ok(ipadDownload > ipadBoot && ipadWait > ipadDownload)
+    assert.ok(ipadUnpack > ipadWait && ipadLaunch > ipadUnpack)
+    assert.equal(ipadJob.split('- name: Start iPad Simulator for root-shell launch').length - 1, 1)
+    assert.equal(ipadJob.split('- name: Wait for iPad Simulator readiness').length - 1, 1)
     assert.match(ipadJob, /needs: \[verify, build-ios-tests\]/u)
     assert.match(ipadJob, /actions\/download-artifact@[a-f0-9]{40}/u)
     assert.match(ipadJob, /verify-ios-test-tar\.py/u)
     assert.match(ipadJob, /test-without-building/u)
     assert.match(ipadJob, /-testProductsPath "\$bundle"/u)
     assert.match(ipadJob, /ipad-launch-smoke\.xcresult/u)
-    assert.match(ipadJob, /platform=iOS Simulator,name=\$ipad_name,OS=\$simulator_sdk,arch=arm64/u)
+    assert.match(ipadJob, /platform=iOS Simulator,id=\$simulator_id/u)
     assert.match(ipadJob, /test ! -L "\$bundle"/u)
     assert.match(
       ipadJob,
-      /\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+      /\.totalTestCount == \$\{\{ matrix\.expected_count \}\} and \.passedTests == \$\{\{ matrix\.expected_count \}\} and \.failedTests == 0 and \.skippedTests == 0/u,
     )
     assert.doesNotMatch(ipadJob, /-only-testing:VouchaLaunchSmokeTests\/FeedFlowTests/u)
     assert.match(
@@ -97,17 +157,18 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
     )
     assert.match(
       iosJob,
-      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 2 and \.passedTests == 2 and \.failedTests == 0 and \.skippedTests == 0/u,
+      /-only-testing:VouchaLaunchSmokeTests\/SignInFlowTests\/testEmailOTPSignInReplacesTheSignedOutControl/u,
     )
     assert.match(
       iosJob,
-      /test-without-building VOUCHA_FILAMENTS_CONTRACT_ROOT="\$VOUCHA_FILAMENTS_CONTRACT_ROOT"/u,
+      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == \$\{\{ matrix\.expected_count \}\} and \.passedTests == \$\{\{ matrix\.expected_count \}\} and \.failedTests == 0 and \.skippedTests == 0/u,
     )
+    assert.match(iosJob, /test-without-building VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
     const project = readFileSync(
       new URL('../swift-clients/apps/iOS/project.yml', import.meta.url),
       'utf8',
     )
-    assert.match(project, /VOUCHA_FILAMENTS_CONTRACT_ROOT: '\$\(VOUCHA_FILAMENTS_CONTRACT_ROOT\)'/u)
+    assert.match(project, /VOUCHA_CONTRACT_ROOT: '\$\(VOUCHA_CONTRACT_ROOT\)'/u)
     assert.match(buildJob, /CODE_SIGNING_ALLOWED=NO/u)
     assert.match(
       iosJob,
@@ -243,12 +304,13 @@ describe('iOS Simulator launch and feed-flow fan-in', () => {
         'periphery-swift-ui',
         'test-swift-core-linux',
         'test-swift-core',
-        'test-swift-android',
+        'test-swift-android-cookie',
         'test-swift-ui',
         'swift-patch-coverage',
         'build-android-core',
         'build-macos-app',
         'dotnet-maui',
+        'dotnet-catalyst-gui',
         'dotnet-windows-image-preview',
         'dotnet-windows-language-model-surface',
         'dotnet-windows-maui',

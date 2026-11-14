@@ -78,6 +78,7 @@ final class AndroidAccountReplacementTests: XCTestCase {
         let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: "/api/v1/my/identity")
         defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
         let replacement = try makeAccount(host: host)
+        try seedAndroidSessionCredentials(replacement.cookieStorage, origin: replacement.config.baseURL)
         let coordinator = AndroidAccountReplacementCoordinator()
         var operations = 0
         let first = Task {
@@ -94,13 +95,14 @@ final class AndroidAccountReplacementTests: XCTestCase {
         XCTAssertEqual(operations, 1)
         XCTAssertTrue(coordinator.isReplacing)
         let path = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [path])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(path, root: root))
+        let root = try ContractRoot.url(requiredPaths: [path])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
         let released = HeldAuthenticationURLProtocol.respond(host: host, statusCode: 200, body: identity)
         if !released { first.cancel() }
         await first.value
         XCTAssertTrue(released)
         XCTAssertTrue(replacement.session.isSignedIn)
+        XCTAssertEqual(replacement.cookieStorage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
         XCTAssertFalse(coordinator.isReplacing)
     }
 

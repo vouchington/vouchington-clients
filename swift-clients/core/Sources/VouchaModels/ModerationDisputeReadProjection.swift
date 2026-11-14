@@ -1,6 +1,7 @@
 import Foundation
 
 public struct PublicReviewDispute: Codable, Identifiable, Sendable {
+    public let postLabel: String
     public let id: String
     public let postId: String
     public let topicId: String
@@ -27,11 +28,13 @@ public struct PublicReviewDispute: Codable, Identifiable, Sendable {
 public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
     case member(PublicReviewDispute)
     case staff(ModerationDispute)
+    case summary(ReviewDisputeSummary)
 
     public var id: String {
         switch self {
         case let .member(dispute): dispute.id
         case let .staff(dispute): dispute.id
+        case let .summary(dispute): dispute.id
         }
     }
 
@@ -39,6 +42,7 @@ public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
         switch self {
         case let .member(dispute): dispute.postId
         case let .staff(dispute): dispute.postId
+        case let .summary(dispute): dispute.postId
         }
     }
 
@@ -46,11 +50,27 @@ public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
         switch self {
         case let .member(dispute): dispute.status
         case let .staff(dispute): dispute.status
+        case let .summary(dispute):
+            switch dispute.status {
+            case .pending: .pending
+            case .resolved: .resolved
+            case .dismissed: .dismissed
+            }
         }
     }
 
     public init(from decoder: any Decoder) throws {
         let staffFields = try decoder.container(keyedBy: ProtectedDisputeField.self)
+        if staffFields.contains(.hasDraft) {
+            guard !staffFields.allKeys.contains(where: \.requiresStaffDetail) else {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "A dispute queue summary cannot contain protected detail fields."
+                ))
+            }
+            self = try .summary(ReviewDisputeSummary(from: decoder))
+            return
+        }
         let containsStaffField = staffFields.allKeys.contains(where: \.requiresStaffProjection)
         if !containsStaffField {
             self = try .member(PublicReviewDispute(from: decoder))
@@ -66,6 +86,7 @@ public enum ModerationDisputeReadProjection: Codable, Identifiable, Sendable {
         switch self {
         case let .member(dispute): try dispute.encode(to: encoder)
         case let .staff(dispute): try dispute.encode(to: encoder)
+        case let .summary(dispute): try dispute.encode(to: encoder)
         }
     }
 }
@@ -75,14 +96,26 @@ public struct ModerationDisputeReadResponse: Codable, Sendable {
 }
 
 private enum ProtectedDisputeField: String, CodingKey {
+    case hasDraft
     case disputantUserId, claimText, recommendedAction
     case aiPublicResponse, aiInternalResponse, model, aiDraftedAt, aiDraftRunId, aiDraftRequestedRunId
     case internalNotes, draftedAt, editedAt, editedById, approvedById, resolvedById
     case latestLifecycleChangeId, staffContext
 
+    var requiresStaffDetail: Bool {
+        switch self {
+        case .hasDraft, .disputantUserId, .recommendedAction: false
+        case .claimText, .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt,
+             .aiDraftRunId, .aiDraftRequestedRunId, .internalNotes, .draftedAt,
+             .editedAt, .editedById, .approvedById, .resolvedById, .latestLifecycleChangeId, .staffContext:
+            true
+        }
+    }
+
     /// Explicit references keep protocol-driven keys visible to static analysis.
     var requiresStaffProjection: Bool {
         switch self {
+        case .hasDraft: false
         case .disputantUserId, .claimText, .recommendedAction,
              .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt, .aiDraftRunId, .aiDraftRequestedRunId,
              .internalNotes, .draftedAt, .editedAt, .editedById, .approvedById, .resolvedById,

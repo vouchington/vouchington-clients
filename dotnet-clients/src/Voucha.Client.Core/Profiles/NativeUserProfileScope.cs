@@ -10,6 +10,7 @@ public enum NativeUserProfileSection
   Friends,
   Sources,
   Communities,
+  ReferralLinks,
 }
 
 public enum NativeUserProfileCollectionKind
@@ -27,6 +28,7 @@ public enum NativeUserProfileCollectionKind
   SourcesPodcasts,
   SourcesVideos,
   CommunitiesMember,
+  ReferralLinks,
 }
 
 public sealed record NativeUserProfileScope(
@@ -61,6 +63,7 @@ public sealed record NativeUserProfileScope(
       "/USERS/FOLLOWING" => new(NativeUserProfileSection.Friends, NativeUserProfileCollectionKind.UsersFollowing),
       "/USERS/FOLLOWERS" => new(NativeUserProfileSection.Friends, NativeUserProfileCollectionKind.UsersFollowers),
       "/COMMUNITIES/MEMBER" => new(NativeUserProfileSection.Communities, NativeUserProfileCollectionKind.CommunitiesMember),
+      "/REFERRAL-LINKS" => new(NativeUserProfileSection.ReferralLinks, NativeUserProfileCollectionKind.ReferralLinks),
       "/RSS-FEEDS/FOLLOWING" => Sources(match.QueryValue("feed_type")),
       _ => null,
     };

@@ -149,8 +149,8 @@ public extension Endpoint {
         )
     }
 
-    static func liftCommunityBan(idOrSlug: String, userId: String) -> Endpoint {
-        Endpoint(.DELETE, path: "/api/v1/communities/\(pathSegment(idOrSlug))/bans/\(pathSegment(userId))")
+    static func liftCommunityBan(idOrSlug: String, banId: String) -> Endpoint {
+        Endpoint(.DELETE, path: "/api/v1/communities/\(pathSegment(idOrSlug))/bans/\(pathSegment(banId))")
     }
 
     static func activateCommunityRestrictions(

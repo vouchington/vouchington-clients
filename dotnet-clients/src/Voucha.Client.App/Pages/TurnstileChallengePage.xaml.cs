@@ -8,13 +8,16 @@ public partial class TurnstileChallengePage : ContentPage
   private const string CallbackScheme = "voucha-turnstile";
   private bool completed;
 
-  public TurnstileChallengePage(AppConfig appConfig)
+  public TurnstileChallengePage(AppConfig appConfig, string routeAction)
   {
+    var action = TurnstileAction.FromRouteAction(routeAction);
+    var webBaseUrl = appConfig.WebBaseUrl ?? new Uri(AppConfig.DefaultWebBaseUrl);
+    var origin = new UriBuilder(webBaseUrl.Scheme, webBaseUrl.Host, webBaseUrl.Port).Uri;
     InitializeComponent();
     TurnstileWebView.Source = new HtmlWebViewSource
     {
-      BaseUrl = (appConfig.WebBaseUrl ?? new Uri(AppConfig.DefaultWebBaseUrl)).ToString(),
-      Html = BuildHtml(appConfig.RequiredTurnstileSiteKey),
+      BaseUrl = origin.AbsoluteUri,
+      Html = BuildHtml(appConfig.RequiredTurnstileSiteKey, action),
     };
   }
 
@@ -22,8 +25,12 @@ public partial class TurnstileChallengePage : ContentPage
 
   public event EventHandler? CloseRequested;
 
-  private void OnCloseClicked(object? sender, EventArgs e) =>
-      CloseRequested?.Invoke(this, EventArgs.Empty);
+  private void OnCloseClicked(object? sender, EventArgs e)
+  {
+    if (completed) return;
+    completed = true;
+    CloseRequested?.Invoke(this, EventArgs.Empty);
+  }
 
   private void OnNavigating(object? sender, WebNavigatingEventArgs e)
   {
@@ -48,13 +55,15 @@ public partial class TurnstileChallengePage : ContentPage
 
     if (uri.Host is "close" or "error" or "expired")
     {
+      completed = true;
       CloseRequested?.Invoke(this, EventArgs.Empty);
     }
   }
 
-  private static string BuildHtml(string siteKey)
+  private static string BuildHtml(string siteKey, string action)
   {
     var jsonSiteKey = JsonSerializer.Serialize(siteKey);
+    var jsonAction = JsonSerializer.Serialize(action);
     return $$"""
             <!doctype html>
             <html>
@@ -100,6 +109,7 @@ public partial class TurnstileChallengePage : ContentPage
 
                     window.turnstile.render("#turnstile", {
                       sitekey: siteKey,
+                      action: {{jsonAction}},
                       callback: complete,
                       "expired-callback": () => fail("expired"),
                       "error-callback": () => fail("error"),

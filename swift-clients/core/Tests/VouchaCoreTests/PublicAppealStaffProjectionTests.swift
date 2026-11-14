@@ -6,10 +6,10 @@ import XCTest
 final class PublicAppealStaffProjectionTests: XCTestCase {
     func testCanonicalStaffReadRetainsRequestedAndSavedIdentity() throws {
         let response = try makeVouchaDecoder().decode(
-            MemberAppealListResponse.self,
-            from: ApiFixtureLoader.data("native.moderation.appeals.default")
+            MemberAppealReadResponse.self,
+            from: ApiFixtureLoader.data("native.moderation.appeals.detail.default")
         )
-        let projection = try XCTUnwrap(response.appeals.first)
+        let projection = response.appeal
         guard case let .staff(appeal) = projection else {
             return XCTFail("Staff data must not downgrade to the member projection")
         }
@@ -26,9 +26,9 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
     }
 
     func testMalformedStaffCannotLoseRequiredFieldsAndBecomeMember() throws {
-        let data = ApiFixtureLoader.data("native.moderation.appeals.default")
+        let data = ApiFixtureLoader.data("native.moderation.appeals.detail.default")
         let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let appeal = try XCTUnwrap((envelope["appeals"] as? [[String: Any]])?.first)
+        let appeal = try XCTUnwrap(envelope["appeal"] as? [String: Any])
         for key in [
             "ai_draft_requested_run_id", "ai_draft_run_id", "internal_notes", "drafted_at",
             "edited_at", "edited_by_id", "approved_by_id", "resolved_by_id", "latest_lifecycle_change_id"
@@ -47,4 +47,5 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
             from: JSONSerialization.data(withJSONObject: nullRequested)
         ))
     }
+
 }

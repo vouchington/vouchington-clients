@@ -33,7 +33,7 @@ export function shouldRunWindowsLanguageModelSurfaceProbe(paths) {
   return matchesAnyChangedPath(paths, windowsLanguageModelSurfacePaths)
 }
 
-function main() {
+if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   runChangedFileRoute({
     repositoryRoot: resolve(import.meta.dirname, '..'),
     select: shouldRunWindowsLanguageModelSurfaceProbe,
@@ -41,5 +41,3 @@ function main() {
     outputKey: 'windows-language-model-surface',
   })
 }
-
-if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) main()

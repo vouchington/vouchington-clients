@@ -19,8 +19,8 @@ public sealed partial class CommunityDetailViewModel
     var response = await service.FetchApplicationsPageAsync(communityIdOrSlug, null, 20, cancellationToken).ConfigureAwait(true);
     ApplicationRows = response.Results
         .Select(reference => reference.Id)
-        .Where(id => id is not null && response.CommunityApplications.ContainsKey(id))
-        .Select(id => CommunityApplicationRow.FromApplication(response.CommunityApplications[id!]))
+        .Where(id => id is not null && response.CommunityApplicationSummaries.ContainsKey(id))
+        .Select(id => CommunityApplicationRow.FromApplication(response.CommunityApplicationSummaries[id!], response.Users, localization))
         .ToArray();
     OnPropertyChanged(nameof(ApplicationRows));
     SetCommunityContinuation(response.PageInfo.EndCursor);
@@ -38,17 +38,8 @@ public sealed partial class CommunityDetailViewModel
     SetCommunityContinuation(response.PageInfo.EndCursor);
   }
 
-  public async Task LoadBansAsync(CancellationToken cancellationToken = default)
-  {
-    var response = await service.FetchBansPageAsync(communityIdOrSlug, null, 20, cancellationToken).ConfigureAwait(true);
-    BanRows = response.Results
-        .Select(reference => reference.Id)
-        .Where(id => id is not null && response.CommunityBans.ContainsKey(id))
-        .Select(id => CommunityBanRow.FromBan(response.CommunityBans[id!]))
-        .ToArray();
-    OnPropertyChanged(nameof(BanRows));
-    SetCommunityContinuation(response.PageInfo.EndCursor);
-  }
+  public Task LoadBansAsync(CancellationToken cancellationToken = default) =>
+      LoadBanHistoryAsync(cancellationToken);
 
   public async Task LoadRestrictionsAsync(CancellationToken cancellationToken = default)
   {
@@ -71,6 +62,7 @@ public sealed partial class CommunityDetailViewModel
         revision != Volatile.Read(ref communityContextRevision)) return;
     ModerationRows = response.Entries.Select(CommunityModerationRow.FromQueueEntry).ToArray();
     OnPropertyChanged(nameof(ModerationRows));
+    OnPropertyChanged(nameof(ModerationActionRows));
     SetCommunityContinuation(response.PageInfo.EndCursor);
   }
 
@@ -89,9 +81,4 @@ public sealed partial class CommunityDetailViewModel
     OnPropertyChanged(nameof(AiAgents));
   }
 
-  public async Task LoadAgentPromptsAsync(CancellationToken cancellationToken = default)
-  {
-    AgentPrompts = (await service.FetchAgentPromptsAsync(communityIdOrSlug, cancellationToken).ConfigureAwait(true)).CommunityAgentPrompts;
-    OnPropertyChanged(nameof(AgentPrompts));
-  }
 }

@@ -65,7 +65,7 @@ public sealed class CommunityActionInvitePageLifecycleTests
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application { Resources = { ["UiLocaleVersion"] = 0 } };
     var service = DispatchProxy.Create<ICommunitiesService, InviteSurfaceService>();
-    var fixture = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture(
+    var fixture = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture(
         "responses/web.communities.invites.default.json")))!;
     foreach (var entry in fixture["community_invites"]!.AsObject())
     {
@@ -227,7 +227,7 @@ public sealed class CommunityActionInvitePageLifecycleTests
 
   private sealed class TokenProvider : Voucha.Client.App.ITurnstileTokenProvider
   {
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default) => Task.FromResult("token");
+    public Task<string> GetTokenAsync(string routeAction, CancellationToken cancellationToken = default) => Task.FromResult("token");
   }
 
   private sealed class InviteHandler(bool deferResponse) : HttpMessageHandler

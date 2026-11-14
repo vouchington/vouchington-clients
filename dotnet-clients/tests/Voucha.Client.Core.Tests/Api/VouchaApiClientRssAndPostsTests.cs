@@ -218,7 +218,7 @@ public sealed partial class VouchaApiClientTests
         new FetchPostsFeedRequest(),
         TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/feeds/posts/any?limit=20&sort=hot");
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/feeds/posts/any?limit=20&sort=hot&time_range=1w");
     Assert.Equal("p1", response.Results[0].EntityId);
     Assert.Equal("discussion", response.Posts["p1"].PostType);
     Assert.True(response.Posts.ContainsKey("p1"));
@@ -226,33 +226,68 @@ public sealed partial class VouchaApiClientTests
   }
 
   [Fact]
+  public async Task FetchPostsFeedAsyncForwardsTheSelectedTimeRange()
+  {
+    var (client, handler) = CreateClient("swift.posts.feed.default");
+
+    await client.FetchPostsFeedAsync(
+        new FetchPostsFeedRequest(TimeRange: Voucha.Client.Core.Posts.PostTimeRanges.Last30Days),
+        TestContext.Current.CancellationToken);
+
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/feeds/posts/any?limit=20&sort=hot&time_range=1m");
+  }
+
+  [Fact]
+  public async Task FetchPostsAndPodcastRssRequestsForwardHackerNewsFilter()
+  {
+    var postHandler = new RecordingHandler("{}");
+    var postClient = new VouchaApiClient(new HttpClient(postHandler) { BaseAddress = new Uri("https://api.test") });
+    await postClient.FetchPostsAsync(
+        new FetchPostsRequest(HasHackerNewsReferences: true),
+        TestContext.Current.CancellationToken);
+    Assert.Equal(HttpMethod.Get, postHandler.Method);
+    ApiQueryAssertions.Equal("/api/v1/posts?sort=hot&limit=25&has_hacker_news_references=true&time_range=1m", postHandler.PathAndQuery);
+
+    var rssHandler = new RecordingHandler("{}");
+    var rssClient = new VouchaApiClient(new HttpClient(rssHandler) { BaseAddress = new Uri("https://api.test") });
+    await rssClient.FetchAllRssFeedItemsAsync(
+        mediaType: "audio",
+        cancellationToken: TestContext.Current.CancellationToken,
+        hasHackerNewsReferences: false);
+    Assert.Equal(HttpMethod.Get, rssHandler.Method);
+    ApiQueryAssertions.Equal("/api/v1/rss-feed-items?limit=20&media_type=audio&has_hacker_news_references=false", rssHandler.PathAndQuery);
+  }
+
+  [Fact]
   public async Task FetchPostThreadAsyncUsesSharedFixtures()
   {
+    const string rootId = "70000000-0000-7000-8000-000000005400";
+    const string commentA = "70000000-0000-7000-8000-000000005401";
+    const string commentB = "70000000-0000-7000-8000-000000005402";
+    const string commentC = "70000000-0000-7000-8000-000000005403";
     var (client, handler) = CreateClient(
         "native.comments.post-detail.default",
         "native.comments.descendants.default",
         "native.comments.ancestors.permalink");
 
     var detail = await client.FetchPostAsync("comment-root", TestContext.Current.CancellationToken);
-    var descendants = await client.FetchPostDescendantsAsync("comment-root-post", TestContext.Current.CancellationToken);
-    var ancestors = await client.FetchPostAncestorsAsync("comment-b", TestContext.Current.CancellationToken);
+    var descendants = await client.FetchPostDescendantsAsync(rootId, TestContext.Current.CancellationToken);
+    var ancestors = await client.FetchPostAncestorsAsync(commentB, TestContext.Current.CancellationToken);
 
     Assert.Equal(HttpMethod.Get, handler.Requests[2].Method);
-    Assert.Equal("/api/v1/posts/comment-b/ancestors", handler.Requests[2].PathAndQuery);
-    Assert.Equal("comment-root-post", detail.Post.Id);
+    Assert.Equal($"/api/v1/posts/{commentB}/ancestors", handler.Requests[2].PathAndQuery);
+    Assert.Equal(rootId, detail.Post.Id);
     Assert.Equal(2, detail.PostMetrics?.Count.Children);
     Assert.True(detail.Bookmarks?[detail.Post.Id]["save"]);
-    Assert.Equal(["comment-a", "comment-b", "comment-c", "comment-d"], descendants.Results.Select(x => x.Id));
-    Assert.True(descendants.Posts["comment-a"].CanEditContent);
-    Assert.Equal("commenter", descendants.Posts["comment-b"].CreatedBy?.Username);
-    Assert.True(descendants.Posts["comment-c"].IsAnonymous);
-    Assert.NotNull(descendants.Posts["comment-d"].DeletedAt);
-    Assert.Equal(2, descendants.PostsMetrics?["comment-b"].Count.Ancestors);
-    Assert.Equal(8, descendants.PostElections?["comment-a"].VotesScoreNet);
-    Assert.Equal(ElectionVoteChoice.Dislike, descendants.ElectionVotes?["comment-b"].Choice);
-    Assert.Equal("<p>Top-level native comment</p>", descendants.MarkdownToHtml?["comment-a"]);
-    Assert.True(descendants.Bookmarks?["comment-a"]["save"]);
-    Assert.Equal("comment-root-post", ancestors.Results[0].Id ?? ancestors.Results[0].EntityId);
+    Assert.Equal([commentA, commentB, commentC], descendants.Results.Select(x => x.Id));
+    Assert.True(descendants.Posts[commentA].CanEditContent);
+    Assert.Equal("commenter", descendants.Posts[commentB].CreatedBy?.Username);
+    Assert.True(descendants.Posts[commentC].IsAnonymous);
+    Assert.Equal(8, descendants.PostElections?[commentA].VotesScoreNet);
+    Assert.Equal(ElectionVoteChoice.Dislike, descendants.ElectionVotes?[commentB].Choice);
+    Assert.Equal("<p>Top-level native comment</p>", descendants.MarkdownToHtml?[commentA]);
+    Assert.True(descendants.Bookmarks?[commentA]["save"]);
+    Assert.Equal(rootId, ancestors.Results[0].Id ?? ancestors.Results[0].EntityId);
   }
 
   [Fact]
@@ -281,23 +316,6 @@ public sealed partial class VouchaApiClientTests
             "title": "Story title",
             "markdown": "",
             "created_by_id": "story-teller"
-          },
-          "story": {
-            "id": "story-1",
-            "title": "Story title",
-            "cluster_reason": "clustered",
-            "published_at": "2026-01-01T00:00:00Z",
-            "official_rss_feed_item_id": "item-1",
-            "official_locked_at": "2026-01-02T00:00:00Z",
-            "created_at": "2026-01-01T00:00:00Z",
-            "updated_at": "2026-01-03T00:00:00Z",
-            "deleted_at": null
-          },
-          "postStory": {
-            "post_id": "post-1",
-            "story_id": "story-1",
-            "initiated_by_id": "user-1",
-            "created_at": "2026-01-01T00:00:00Z"
           }
         }
         """);
@@ -306,14 +324,10 @@ public sealed partial class VouchaApiClientTests
     var response = await client.CreateStoryPostFromStoryAsync(
         "story 1", "00000000-0000-4000-8000-000000000021", TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Post, "/api/v1/stories/story%201/discussions");
+    AssertRequest(handler, HttpMethod.Post, "/api/v1/posts");
     Assert.Equal("00000000-0000-4000-8000-000000000021", handler.IdempotencyKey);
     Assert.Equal("post-1", response.Post.Id);
     Assert.Equal("story", response.Post.PostType);
-    Assert.Equal("story-1", response.Story.Id);
-    Assert.Equal(DateTimeOffset.Parse("2026-01-02T00:00:00Z"), response.Story.OfficialLockedAt);
-    Assert.Equal(DateTimeOffset.Parse("2026-01-03T00:00:00Z"), response.Story.UpdatedAt);
-    Assert.Equal("post-1", response.PostStory.PostId);
   }
 
   [Fact]
@@ -335,7 +349,7 @@ public sealed partial class VouchaApiClientTests
     var response = await client.CreateLinkPostFromRssFeedItemAsync(
         "item 1", "00000000-0000-4000-8000-000000000022", TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Post, "/api/v1/rss-feed-items/item%201/discussions");
+    AssertRequest(handler, HttpMethod.Post, "/api/v1/posts");
     Assert.Equal("00000000-0000-4000-8000-000000000022", handler.IdempotencyKey);
     Assert.Equal("post-1", response.Post.Id);
     Assert.Equal("link", response.Post.PostType);

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Xunit;
 
@@ -5,6 +7,20 @@ namespace Voucha.Client.Core.Tests.Api;
 
 public sealed class ApiModelsLandingPagesTests
 {
+  [Fact]
+  public void MutationFixtureRetainsRequiredItemLimit()
+  {
+    var json = ApiFixtureLoader.LoadResponse("native.landing-page-mutation.default");
+    var response = JsonSerializer.Deserialize<LandingPageResponse>(
+        json, VouchaApiJson.Options);
+
+    Assert.Equal(100, Assert.IsType<LandingPageResponse>(response).ItemLimit);
+    var withoutLimit = Assert.IsType<JsonObject>(JsonNode.Parse(json));
+    withoutLimit.Remove("item_limit");
+    Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<LandingPageResponse>(
+        withoutLimit.ToJsonString(), VouchaApiJson.Options));
+  }
+
   [Fact]
   public void LandingPageApiModelsExposeConstructedValues()
   {
@@ -60,10 +76,10 @@ public sealed class ApiModelsLandingPagesTests
         ]);
 
     var pagesResponse = new LandingPagesResponse([page], new PageInfo("cursor-1", true, "cursor-0"));
-    var detailResponse = new LandingPageDetailResponse(page);
-    var response = new LandingPageResponse(page);
+    var detailResponse = new LandingPageDetailResponse(page) { ItemLimit = 100 };
+    var response = new LandingPageResponse(page) { ItemLimit = 100 };
     var candidates = new LandingPageCandidates(true, [profileLink], [review], [referralLink]);
-    var candidatesResponse = new LandingPageCandidatesResponse(candidates);
+    var candidatesResponse = new LandingPageCandidatesResponse(candidates) { ItemLimit = 100, PageInfo = new(null, false, null) };
 
     Assert.Equal("landing-page-1", page.Id);
     Assert.Equal("user-abc", page.UserId);

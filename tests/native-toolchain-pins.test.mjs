@@ -15,7 +15,7 @@ test('mise, global.json, and MAUI CI select the Xcode-compatible .NET 10 SDK set
   assert.equal(global.sdk.workloadVersion, '10.0.401')
   assert.match(mise, /^dotnet = "10\.0\.401"$/mu)
   const workloadInstall = workflow.match(
-    /dotnet workload install maui-maccatalyst(?:\n[ \t]+[^\n]+)*/u,
+    /dotnet workload install maui-maccatalyst(?:\n {10}[^\n]+)*/u,
   )?.[0]
   assert.match(workloadInstall ?? '', /--configfile dotnet-clients\/NuGet\.config/u)
   assert.doesNotMatch(workloadInstall ?? '', /--version/u)
@@ -167,7 +167,7 @@ test('portable Swift uses mise while Apple UI package operations use selected Xc
     iosBuildJob,
     /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""/u,
   )
-  assert.match(iosAppJob, /^    timeout-minutes: 9$/mu)
+  assert.match(iosAppJob, /^    timeout-minutes: 12$/mu)
 })
 
 test('Periphery scans the index store produced by its selected Swift compiler', () => {

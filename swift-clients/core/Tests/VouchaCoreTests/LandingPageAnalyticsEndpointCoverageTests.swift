@@ -13,8 +13,8 @@ final class LandingPageAnalyticsEndpointCoverageTests: XCTestCase {
             path: "/api/v1/admin/users/user%201/landing-pages"
         )
         assertEndpoint(
-            Endpoint.adminLandingPageAnalytics(pageId: "page 1"),
-            path: "/api/v1/admin/landing-pages/page%201/analytics"
+            Endpoint.adminLandingPageAnalytics(username: "user 1", slug: "links 1"),
+            path: "/api/v1/admin/users/user%201/landing-pages/links%201/analytics"
         )
     }
 }

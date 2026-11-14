@@ -26,6 +26,14 @@ final class CommunityDetailViewModel {
         }
     }
 
+    var applicationDetail: CommunityApplication?
+    var isLoadingApplicationDetail = false
+    var applicationDetailFailed = false
+    var applicationDetailRevision = 0
+
+    var applicationSummaries: [String: CommunityApplicationSummary] = [:]
+    var applicationUsers: [String: PublicUser] = [:]
+
     var applicationMessage = ""
     var applicationAnswers: [String: DecodedJSONValue] = [:]
     var inviteRecipient = ""
@@ -58,6 +66,20 @@ final class CommunityDetailViewModel {
         }
     }
 
+    var automodSimulation: CommunityAutomodSimulation?
+    var banHistory: [CommunityBan] = []
+    var activeBans: [CommunityBan] = []
+    var banHistoryCursor: String?
+    var activeBansCursor: String?
+    var banDetail: CommunityBan?
+    var banError: UiMessage?
+    var activeBansUserId = ""
+    var pendingLiftAllUserId: String?
+    var isLoadingBans = false
+    var isLiftingBans = false
+    var banRequestRevision = 0
+    var banDetailRevision = 0
+
     var statusMessage: UiMessage?
     var summary = CommunityWorkspaceSummary()
     var rowPagination = CursorPaginationState<CommunityForwardRow>()
@@ -82,11 +104,16 @@ final class CommunityDetailViewModel {
     @ObservationIgnored
     var modmailPageRequestRevision = 0
     var applicationQuestions: [CommunityApplicationQuestion] = []
-    var communityDetail: CommunityResponse?
+    var communityDetail: CommunityResponse? {
+        didSet { discardApplicationReviewDataIfUnauthorized() }
+    }
+
     var listItemCounts: CommunityListItemCounts?
     var suppressCommunityDigestsWhileOnVacation = false
     var state: CommunitySurfaceState = .idle
 
+    let agentPromptWorkspace: CommunityAgentPromptWorkspace
+    let currentUserId: String?
     let client: APIClient?
     let isAdministrator: Bool
     let isSiteModerator: Bool
@@ -109,11 +136,14 @@ final class CommunityDetailViewModel {
         client: APIClient?,
         slug: String,
         initialTab: CommunitySurfaceTab = .posts,
+        currentUserId: String? = nil,
         isAdministrator: Bool = false,
         isSiteModerator: Bool = false,
         isApplicationFormRoute: Bool = false,
         modmailThreadId: String? = nil
     ) {
+        agentPromptWorkspace = CommunityAgentPromptWorkspace(client: client, slug: slug)
+        self.currentUserId = currentUserId
         self.client = client
         self.slug = slug
         self.isAdministrator = isAdministrator

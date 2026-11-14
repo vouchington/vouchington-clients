@@ -12,16 +12,22 @@ public sealed partial class LandingPagesViewModel
     try
     {
       var pagesTask = service.FetchPagesAsync(cancellationToken);
-      var candidatesTask = service.FetchCandidatesAsync(cancellationToken);
+      var candidatesTask = service.FetchCandidatesAsync(cancellationToken: cancellationToken);
       await Task.WhenAll(pagesTask, candidatesTask).ConfigureAwait(true);
       var stagedPages = (await pagesTask.ConfigureAwait(true)).Results;
-      var stagedCandidates = (await candidatesTask.ConfigureAwait(true)).Candidates;
+      var candidateResponse = await candidatesTask.ConfigureAwait(true);
+      var stagedCandidates = candidateResponse.Candidates;
+      var stagedItemLimit = candidateResponse.ItemLimit;
       var selectedId = SelectStagedPageId(stagedPages);
       LandingPage? stagedPage = null;
       if (selectedId is not null)
       {
-        stagedPage = (await service.FetchDetailAsync(selectedId, cancellationToken).ConfigureAwait(true)).LandingPage;
+        var detail = await service.FetchDetailAsync(selectedId, cancellationToken).ConfigureAwait(true);
+        stagedPage = detail.LandingPage;
+        stagedItemLimit = detail.ItemLimit;
       }
+      ItemLimit = stagedItemLimit;
+      CandidatePageInfo = candidateResponse.PageInfo;
       CommitLoad(stagedPages, stagedCandidates, stagedPage);
       CompleteLoad();
     }
@@ -40,7 +46,9 @@ public sealed partial class LandingPagesViewModel
     BeginLoad();
     try
     {
-      var page = (await service.FetchDetailAsync(pageId, cancellationToken).ConfigureAwait(true)).LandingPage;
+      var detail = await service.FetchDetailAsync(pageId, cancellationToken).ConfigureAwait(true);
+      ItemLimit = detail.ItemLimit;
+      var page = detail.LandingPage;
       ApplySelected(page);
       CompleteLoad();
     }
@@ -78,6 +86,7 @@ public sealed partial class LandingPagesViewModel
   private async Task LoadSelectedAsync(string pageId, CancellationToken cancellationToken)
   {
     var response = await service.FetchDetailAsync(pageId, cancellationToken).ConfigureAwait(true);
+    ItemLimit = response.ItemLimit;
     ApplySelected(response.LandingPage);
   }
 
@@ -85,6 +94,7 @@ public sealed partial class LandingPagesViewModel
   {
     State = LoadState.Loading;
     ErrorMessage = null;
+    IsItemLimitReached = false;
   }
 
   private void CompleteLoad() => State = LoadState.Loaded;

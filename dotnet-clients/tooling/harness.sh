@@ -300,12 +300,19 @@ print_failure_summary() {
 echo "dotnet-clients harness"
 echo "----------------------"
 
-if contains restore; then
+restore_succeeded=true
+if contains restore || contains fmt; then
   run_check "restore" pnpm exec vouchington with-host-lock --name host-package-manager --timeout-seconds 300 --command-timeout-seconds 0 -- "$VOUCHA_DOTNET_HOST" restore --locked-mode -p:Configuration=Release "$SOLUTION"
+  [[ "${CHECK_STATUSES[0]}" -eq 0 ]] || restore_succeeded=false
 fi
 
 if contains fmt; then
-  run_check "fmt" "$VOUCHA_DOTNET_HOST" format "$SOLUTION" --verify-no-changes --no-restore
+  if [[ "$restore_succeeded" == true ]]; then
+    run_check "fmt" "$VOUCHA_DOTNET_HOST" format "$SOLUTION" --verify-no-changes --no-restore
+  else
+    echo "  fmt          - (skipped: restore failed; resolve the restore diagnostics and rerun)"
+    SKIPPED=$((SKIPPED + 1))
+  fi
 fi
 
 if contains ast-grep; then
@@ -327,6 +334,10 @@ if contains resx-path; then
 fi
 
 if contains build; then
+  if [[ ! -f "$ROOT_DIR/dotnet-clients/src/Voucha.Client.Core/Localization/Generated/UiMessageKey.g.cs" ]]; then
+    echo "Error: generated native localization is missing. Run 'pnpm run contracts:pull' from the repository root." >&2
+    exit 1
+  fi
   run_check "build" "$SCRIPT_DIR/with-build-lock.sh" "$VOUCHA_DOTNET_HOST" build "$SOLUTION" --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 fi
 

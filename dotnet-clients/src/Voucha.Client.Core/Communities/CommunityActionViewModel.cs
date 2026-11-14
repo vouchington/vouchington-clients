@@ -35,6 +35,7 @@ public sealed partial class CommunityActionViewModel :
   private IReadOnlyDictionary<string, object> applicationAnswers = new Dictionary<string, object>();
   private LoadState state = LoadState.Idle;
   private string? errorMessage;
+  private UiMessageKey? capErrorKey;
   private readonly IDisposable? localeSubscription;
   private long submissionRevision;
 
@@ -138,13 +139,11 @@ public sealed partial class CommunityActionViewModel :
 
   public string? ErrorMessage
   {
-    get => errorMessage;
+    get => capErrorKey is { } key ? localization.Localize(key) : errorMessage;
     private set
     {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
+      capErrorKey = null;
+      SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
     }
   }
 

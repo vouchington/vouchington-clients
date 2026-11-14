@@ -71,6 +71,21 @@
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
+            <Button x:Name="AddSourceButton" Text="{DynamicResource native.swift.common.create}"
+                    Clicked="OnAddSourceClicked" IsVisible="{Binding CanImportExport}" />
+            <Button
+                Text="{Binding HackerNewsFilterLabel}"
+                Clicked="OnHackerNewsFilterClicked"
+                IsVisible="{Binding IsHackerNewsFilterVisible}"
+                BackgroundColor="#E5E7EB"
+                TextColor="#111827">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsHackerNewsFilterSelected}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#1D4ED8" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
             <Button
                 Text="{DynamicResource native.swift.importExport.title}"
                 Clicked="OnImportExportClicked"
@@ -174,8 +189,9 @@
                                 <Label Text="{Binding Source}" Style="{StaticResource Eyebrow}" />
                                 <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                                 <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
-                                <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
+                                <Label Text="{Binding Title}" AutomationId="{Binding Id, StringFormat='news-item-title-{0}'}" Style="{StaticResource Headline}" />
                                 <Label Text="{Binding Summary}" Style="{StaticResource Body}" />
+                                <controls:HackerNewsReferencesView Presentation="{Binding HackerNews}" />
                                 <VerticalStackLayout Spacing="4" IsVisible="{Binding EmbedPreview.HasPreview}">
                                     <Image HeightRequest="180" Aspect="AspectFit" Source="{Binding EmbedPreview.ThumbnailUrl}" />
                                     <Label Text="{Binding EmbedPreview.Provider}" Style="{StaticResource Eyebrow}" />

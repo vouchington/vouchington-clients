@@ -13,7 +13,10 @@ public sealed record ResolvedModerationReport(
     [property: JsonPropertyName("reason")] string Reason,
     [property: JsonPropertyName("note")] string? Note,
     [property: JsonPropertyName("status")] ModerationReportResolution Status,
-    [property: JsonPropertyName("resolved_by_id")] string ResolvedById);
+    [property: JsonPropertyName("resolved_by_id")] string ResolvedById,
+    [property: JsonPropertyName("reporter_display_name")] string? ReporterDisplayName = null,
+    [property: JsonPropertyName("resolver_username")] string? ResolverUsername = null,
+    [property: JsonPropertyName("resolver_display_name")] string? ResolverDisplayName = null);
 
 public sealed record ModerationReportResolutionResponse(
     [property: JsonPropertyName("report")] ResolvedModerationReport Report);
@@ -22,10 +25,6 @@ public sealed record ModerationReportJudgementResponse(
     [property: JsonPropertyName("queued")] bool Queued,
     [property: JsonPropertyName("rerun_by_id")] string RerunById,
     [property: JsonPropertyName("run_id"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string RunId);
-
-public sealed record ModerationReportJudgementRunResponse(
-    [property: JsonPropertyName("completed"), JsonRequired] bool Completed,
-    [property: JsonPropertyName("judgement_id"), JsonRequired, JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? JudgementId);
 
 public sealed record AdminUserWarning(
     [property: JsonPropertyName("id")] string Id,

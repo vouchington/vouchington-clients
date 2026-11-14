@@ -44,7 +44,7 @@ public sealed class TopicRecommendationDetailTests
 
     var response = await service.FetchAsync(RecommendationId, TestContext.Current.CancellationToken);
 
-    Assert.Equal("/api/v1/topic-recommendations/recommendation%201", handler.PathAndQuery);
+    Assert.Equal("/api/v1/posts/recommendation%201", handler.PathAndQuery);
     Assert.Equal("Native recommendation", response.Post.Title);
     Assert.Equal("<p>Recommendation body</p>", response.Html);
     Assert.Equal(1, response.PostElection?.VotesCountUp);

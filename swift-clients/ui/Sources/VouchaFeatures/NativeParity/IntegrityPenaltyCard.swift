@@ -18,13 +18,20 @@ struct IntegrityPenaltyCard: View {
                 Button(userText) { onNavigate("/user/\(penalty.userId)") }
                     .accessibilityLabel(openTarget(userText))
             }
-            LabeledContent(text(.nativeSwiftIntegrityPenaltyId), value: penalty.id)
-            if let sourceFlagId = penalty.sourceFlagId {
-                LabeledContent(text(.nativeSwiftIntegritySourceFlag), value: sourceFlagId)
+            if penalty.sourceFlagId != nil {
+                LabeledContent(
+                    text(.nativeSwiftIntegritySourceFlag),
+                    value: penalty.sourceFlagType ?? text(.nativeSwiftRouteSurfaceNotAvailable)
+                )
             }
-            if let creator = penalty.createdById {
-                LabeledContent(text(.nativeSwiftIntegrityCreatedBy), value: creator)
-            }
+            LabeledContent(
+                text(.nativeSwiftIntegrityCreatedBy),
+                value: moderationIdentityLabel(
+                    displayName: penalty.creatorDisplayName,
+                    username: penalty.creatorUsername,
+                    locale: nativeUiLocale
+                )
+            )
             LabeledContent(text(.nativeSwiftIntegrityCreated), value: date(penalty.createdAt))
             if let multiplier = penalty.multiplier {
                 LabeledContent(
@@ -35,8 +42,15 @@ struct IntegrityPenaltyCard: View {
             if let revokedAt = penalty.revokedAt {
                 LabeledContent(text(.nativeSwiftIntegrityRevokedAt), value: date(revokedAt))
             }
-            if let revokedBy = penalty.revokedById {
-                LabeledContent(text(.nativeSwiftIntegrityRevokedBy), value: revokedBy)
+            if penalty.revokedAt != nil {
+                LabeledContent(
+                    text(.nativeSwiftIntegrityRevokedBy),
+                    value: moderationIdentityLabel(
+                        displayName: penalty.revokerDisplayName,
+                        username: penalty.revokerUsername,
+                        locale: nativeUiLocale
+                    )
+                )
             }
             if let error = viewModel.mutationErrors[penalty.id] {
                 Text(text(error.messageKey)).foregroundStyle(.red)
@@ -67,7 +81,11 @@ struct IntegrityPenaltyCard: View {
     }
 
     private var userText: String {
-        text(.nativeSwiftIntegrityUserId, parameters: ["id": penalty.userId])
+        moderationIdentityLabel(
+            displayName: penalty.userDisplayName,
+            username: penalty.userUsername,
+            locale: nativeUiLocale
+        )
     }
 
     private func openTarget(_ target: String) -> String {

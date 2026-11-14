@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Search;
 
@@ -61,7 +62,7 @@ public sealed partial class OmnisearchViewModel
     try
     {
       await client.ReportAsync(
-          new ReportBody("url_hostname", target.HostnameId, reason, TrimmedOrNull(note), turnstileToken),
+          new ReportBody("url_hostname", target.HostnameId, reason, TrimmedText.NonEmpty(note), turnstileToken),
           cancellationToken).ConfigureAwait(true);
       if (IsCurrentReportOperation(operationGeneration, target))
       {
@@ -95,9 +96,6 @@ public sealed partial class OmnisearchViewModel
 
   private bool IsCurrentReportOperation(int operationGeneration, HostnameReportTarget target) =>
       reportOperationGeneration == operationGeneration && selectedReportTarget == target;
-
-  private static string? TrimmedOrNull(string? value) =>
-      string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   [SuppressMessage(
       "Design",

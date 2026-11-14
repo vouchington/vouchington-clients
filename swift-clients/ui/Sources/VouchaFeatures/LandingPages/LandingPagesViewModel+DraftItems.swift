@@ -3,7 +3,7 @@ import VouchaAPI
 
 public extension LandingPagesViewModel {
     var canAddItem: Bool {
-        guard selectedPage != nil, !isLoading else { return false }
+        guard selectedPage != nil, !isLoading, !wouldExceedItemLimit else { return false }
         switch addType {
         case .link:
             let label = linkLabel.trimmingCharacters(in: .whitespacesAndNewlines)

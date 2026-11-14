@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Tests.Api;
 using Voucha.Client.Core.ReferralLinks;
 using Voucha.Client.Core.Support;
 using Xunit;
@@ -108,25 +110,24 @@ public sealed partial class ReferralLinksViewModelTests
   }
 
   [Fact]
-  public async Task LoadTrendingProgramsAsyncUsesPublicReferralPrograms()
+  public async Task LoadProgramsAsyncUsesPublicReferralPrograms()
   {
     var service = new RecordingReferralLinksService
     {
-      TrendingResponse = new TrendingReferralProgramsResponse(
-          [new TrendingReferralProgram("program-1", LinkCount: 4)],
-          new PageInfo(null, false, null)),
+      ProgramsResponse = JsonSerializer.Deserialize<TopicSearchResponse>(
+          ApiFixtureLoader.LoadResponse("web.topics.link-count.default"), VouchaApiJson.Options),
     };
     var viewModel = new ReferralLinksViewModel(service);
 
-    await viewModel.LoadTrendingProgramsAsync(TestContext.Current.CancellationToken);
+    await viewModel.LoadProgramsAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal(LoadState.Loaded, viewModel.State);
     Assert.Collection(viewModel.Items, item =>
     {
-      Assert.Equal("program-1", item.Id);
-      Assert.Equal("program-1", item.Title);
+      Assert.Equal("referral-program-1", item.Id);
+      Assert.Equal("Test Referral Program", item.Title);
       Assert.Null(item.Url);
-      Assert.Equal("4 active links", item.Detail);
+      Assert.Equal("Trending referral program", item.Detail);
     });
   }
 
@@ -261,6 +262,8 @@ public sealed partial class ReferralLinksViewModelTests
 
     public ReferralLinkFeedResponse? FeedResponse { get; init; }
 
+    public Func<FetchReferralLinksFeedRequest, Task<ReferralLinkFeedResponse>>? FetchFeed { get; set; }
+
     public PrioritizedReferralLinksResponse? PrioritizedResponse { get; init; }
 
     public ReferralLinksResponse? MineResponse { get; init; }
@@ -275,7 +278,7 @@ public sealed partial class ReferralLinksViewModelTests
 
     public IReadOnlyList<ReferralClickLogResponse>? ClickResponses { get; init; }
 
-    public TrendingReferralProgramsResponse? TrendingResponse { get; init; }
+    public TopicSearchResponse? ProgramsResponse { get; init; }
 
     public TopicSearchResponse? TopicSearchResponse { get; init; }
 
@@ -310,7 +313,8 @@ public sealed partial class ReferralLinksViewModelTests
         CancellationToken cancellationToken = default)
     {
       LastFeedRequest = request;
-      return Task.FromResult(FeedResponse ?? throw new InvalidOperationException("Missing response."));
+      return FetchFeed?.Invoke(request) ??
+          Task.FromResult(FeedResponse ?? throw new InvalidOperationException("Missing response."));
     }
 
     public Task<ReferralLinksResponse> FetchMineAsync(
@@ -369,10 +373,10 @@ public sealed partial class ReferralLinksViewModelTests
       return Task.FromResult(PrioritizedResponse ?? throw new InvalidOperationException("Missing response."));
     }
 
-    public Task<TrendingReferralProgramsResponse> FetchTrendingProgramsAsync(
-        FetchTrendingReferralProgramsRequest request,
+    public Task<TopicSearchResponse> FetchProgramsByLinkCountAsync(
+        FetchReferralProgramsByLinkCountRequest request,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(TrendingResponse ?? throw new InvalidOperationException("Missing response."));
+        Task.FromResult(ProgramsResponse ?? throw new InvalidOperationException("Missing response."));
 
     public Task CreateAsync(CreateReferralLinkBody body, CancellationToken cancellationToken = default) =>
         RunMutation(() => CreatedBody = body);

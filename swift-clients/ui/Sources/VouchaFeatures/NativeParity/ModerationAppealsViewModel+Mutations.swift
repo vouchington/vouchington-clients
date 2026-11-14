@@ -56,7 +56,6 @@ extension ModerationAppealsViewModel {
 
     func rerunAI(for appeal: ModerationAppeal) async {
         guard canRerun(appeal), let client else { return }
-        let revision = loadRevision
         _ = await withMutation(appeal.id) {
             try Task.checkCancellation()
             guard let admission = admissionStore.admit(appeal, for: admissionOwner) else { return }
@@ -73,28 +72,10 @@ extension ModerationAppealsViewModel {
                 admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
                 throw AppealAIRerunError.notQueued
             }
-            for attempt in 0 ..< rerunPollAttempts {
-                guard !Task.isCancelled, revision == loadRevision,
-                      selectedStatus == .pending,
-                      appeals.contains(where: { $0.id == appeal.id }),
-                      admissionStore.admission(appeal.id, for: admissionOwner) == admission
-                else { return }
-                let refreshed: ModerationAppealEnvelope = try await client.send(.appeal(id: appeal.id))
-                guard !Task.isCancelled, revision == loadRevision, selectedStatus == .pending,
-                      refreshed.appeal.id == appeal.id,
-                      appeals.contains(where: { $0.id == appeal.id }),
-                      admissionStore.admission(appeal.id, for: admissionOwner) == admission
-                else { return }
-                if admission.baseline.isReconciled(in: refreshed.appeal) {
-                    admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
-                    replace(with: refreshed.appeal, preservingEditedDraft: true)
-                    return
-                }
-                if attempt + 1 < rerunPollAttempts {
-                    try await rerunPollDelay()
-                }
-            }
-            throw AppealAIRerunError.stillProcessing
+            guard let admitted = admissionStore.recordRun(
+                queued.runId, appealId: appeal.id, owner: admissionOwner, token: admission.token
+            ) else { throw AppealAIRerunError.stillProcessing }
+            try await reconcileAIRun(for: appeal, admission: admitted, client: client)
         }
     }
 
@@ -128,9 +109,11 @@ extension ModerationAppealsViewModel {
                 ambiguousDeliveryAppealIds.insert(appealId)
             }
             if let rerunError = error as? AppealAIRerunError {
-                errorMessage = .message(rerunError == .notQueued
-                    ? .nativeSwiftReviewDisputesRerunNotQueued
-                    : .nativeSwiftReviewDisputesRerunStillProcessing)
+                switch rerunError {
+                case .notQueued: errorMessage = .message(.nativeSwiftReviewDisputesRerunNotQueued)
+                case .stillProcessing: errorMessage = .message(.nativeSwiftReviewDisputesRerunStillProcessing)
+                case .ended: errorMessage = .message(.nativeSwiftModerationAppealsGenericError)
+                }
             } else {
                 errorMessage = message(for: error)
             }

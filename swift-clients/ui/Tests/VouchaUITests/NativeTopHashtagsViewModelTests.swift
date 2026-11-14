@@ -74,7 +74,7 @@ final class NativeTopHashtagsViewModelTests: NativeRouteSurfaceViewModelTestCase
         let firstPage = topHashtagsData(id: "alias-1", hasNextPage: true, endCursor: "cursor-1")
         let decoded = try JSONDecoder.vouchaFixtureDecoder.decode(TopHashtagsResponse.self, from: firstPage)
         XCTAssertEqual(decoded.results.map(\.id), ["alias-1"])
-        CannedFeedURLProtocol.queuedHandlers["/api/v1/topic-recommendations/top-hashtags"] = [
+        CannedFeedURLProtocol.queuedHandlers["/api/v1/topics/top-hashtags"] = [
             (firstPage, 200, 0),
             (topHashtagsData(id: "alias-2", hasNextPage: false, endCursor: nil), 200, 0)
         ]
@@ -98,7 +98,7 @@ final class NativeTopHashtagsViewModelTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testLoadMoreUsesTheQueryAndMappingThatProducedItsCursor() async throws {
-        let path = "/api/v1/topic-recommendations/top-hashtags"
+        let path = "/api/v1/topics/top-hashtags"
         CannedFeedURLProtocol.queuedHandlers[path] = [
             (topHashtagsData(id: "first", hasNextPage: true, endCursor: "next"), 200, 0),
             (topHashtagsData(id: "second"), 200, 0)
@@ -122,7 +122,7 @@ final class NativeTopHashtagsViewModelTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testNewerQueryAndMappingSupersedeAnInitialLoad() async throws {
-        let path = "/api/v1/topic-recommendations/top-hashtags"
+        let path = "/api/v1/topics/top-hashtags"
         CannedFeedURLProtocol.queuedHandlers[path] = [
             (topHashtagsData(id: "stale"), 200, 0),
             (topHashtagsData(id: "current"), 200, 0)
@@ -153,7 +153,7 @@ final class NativeTopHashtagsViewModelTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testNewerQueryAndMappingSupersedeLoadMore() async throws {
-        let path = "/api/v1/topic-recommendations/top-hashtags"
+        let path = "/api/v1/topics/top-hashtags"
         CannedFeedURLProtocol.queuedHandlers[path] = [
             (topHashtagsData(id: "initial", hasNextPage: true, endCursor: "next"), 200, 0),
             (topHashtagsData(id: "stale"), 200, 0),
@@ -185,7 +185,7 @@ final class NativeTopHashtagsViewModelTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testAdminMutationsLinkUnlinkAndCreateTopicFromAlias() async throws {
-        let path = "/api/v1/topic-recommendations/top-hashtags"
+        let path = "/api/v1/topics/top-hashtags"
         CannedFeedURLProtocol.queuedHandlers[path] = [
             (topHashtagsData(id: "alias-1", topicId: nil), 200, 0),
             (topHashtagsData(id: "alias-1", topicId: "topic-1"), 200, 0),
@@ -299,7 +299,7 @@ final class NativeTopHashtagsViewModelTests: NativeRouteSurfaceViewModelTestCase
     }
 
     func testReloadAndMutationSurfaceServerErrors() async throws {
-        let listPath = "/api/v1/topic-recommendations/top-hashtags"
+        let listPath = "/api/v1/topics/top-hashtags"
         CannedFeedURLProtocol.handlers[listPath] = (Data("{}".utf8), 500)
         let viewModel = try NativeTopHashtagsViewModel(client: makeClient())
 

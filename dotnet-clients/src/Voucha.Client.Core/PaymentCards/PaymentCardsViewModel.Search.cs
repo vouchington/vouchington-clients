@@ -14,7 +14,7 @@ public sealed partial class PaymentCardsViewModel
     set
     {
       value ??= string.Empty;
-      if (!Set(ref topicSearchQuery, value)) return;
+      if (!SetProperty(ref topicSearchQuery, value)) return;
       unchecked { topicSearchGeneration++; }
       TopicResults = [];
       ClearTopicSearchError();

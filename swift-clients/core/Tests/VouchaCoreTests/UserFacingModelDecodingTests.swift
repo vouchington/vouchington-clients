@@ -59,21 +59,6 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(fediverseSearch.buckets.first?.items.first?.title, "Swift video")
         XCTAssertEqual(fediverseSearch.buckets.first?.items.first?.id, "https://video.example.test/w/1")
 
-        let communitiesJSON = Data(
-            #"{"communities":[{"id":"community-1","trending_score":12.5,"member_count":8,"post_count":2,"virtual_subscription_count":3}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}"#
-                .utf8
-        )
-        let communities = try decoder.decode(TrendingCommunitiesResponse.self, from: communitiesJSON)
-        XCTAssertEqual(communities.communities.first?.memberCount, 8)
-        XCTAssertEqual(communities.communities.first?.trendingScore, 12.5)
-
-        let referralProgramsJSON = Data(
-            #"{"referral_programs":[{"id":"program-1","trending_score":9.0,"link_count":4}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null}}"#
-                .utf8
-        )
-        let referralPrograms = try decoder.decode(TrendingReferralProgramsResponse.self, from: referralProgramsJSON)
-        XCTAssertEqual(referralPrograms.referralPrograms.first?.linkCount, 4)
-
         let recommendedJSON = Data(
             #"{"results":[{"id":"topic-1","score":4.2,"reason":"from_viewed_posts"}],"page_info":{"has_next_page":false,"start_cursor":null,"end_cursor":null},"topics":{},"topics_metrics":{},"bookmarks":{}}"#
                 .utf8
@@ -135,13 +120,15 @@ final class UserFacingModelDecodingTests: XCTestCase {
         XCTAssertEqual(mine.results.first?.referralProgramName, "Test Card")
         XCTAssertNil(mine.results.first?.deactivatedAt)
 
-        let trending = try decoder.decode(
-            TrendingReferralProgramsResponse.self,
-            from: ApiFixtureLoader.data("web.trending-referral-programs.default")
+        let publicLinks = try decoder.decode(
+            Page<NativeReferralLink>.self,
+            from: ApiFixtureLoader.data("native.referral-links.user.public")
         )
-        XCTAssertEqual(trending.referralPrograms.first?.id, "referral-program-1")
-        XCTAssertEqual(trending.referralPrograms.first?.trendingScore, 9)
-        XCTAssertEqual(trending.referralPrograms.first?.linkCount, 2)
+        XCTAssertEqual(publicLinks.results.first?.id, "referral-link-2")
+        XCTAssertEqual(publicLinks.results.first?.userId, "user-2")
+        XCTAssertEqual(publicLinks.results.first?.referralProgramSlug, "test-card")
+        XCTAssertNil(publicLinks.results.first?.label)
+        XCTAssertNil(publicLinks.results.first?.activatedAt)
 
         let prioritized = try decoder.decode(
             PrioritizedReferralLinksResponse.self,
@@ -163,8 +150,40 @@ final class UserFacingModelDecodingTests: XCTestCase {
             from: ApiFixtureLoader.data("native.referral-clicks.mine.default")
         )
         XCTAssertEqual(clickLog.results.first?.id, "referral-click-1")
-        XCTAssertEqual(clickLog.clicks["referral-click-1"]?.landingUrl, "https://voucha.ai/@alice")
+        XCTAssertNil(clickLog.clicks["referral-click-1"]?.landingUrl)
+        XCTAssertEqual(clickLog.clicks["referral-click-2"]?.landingUrl, "https://voucha.ai/@alice/cards")
         XCTAssertEqual(clickLog.users["user-2"]?.username, "newmember")
+    }
+
+    func testDecodesRetainedReferralClickWithClearedLandingUrl() throws {
+        let json = Data(
+            """
+            {
+              "results": [{"id": "click-1"}],
+              "clicks": {"click-1": {
+                "id": "click-1",
+                "landing_url": null,
+                "signed_up_at": null,
+                "user_id": null,
+                "created_at": "2026-03-01T11:55:00Z"
+              }},
+              "users": {},
+              "page_info": {"has_next_page": false, "start_cursor": null, "end_cursor": null}
+            }
+            """.utf8
+        )
+
+        let response = try makeVouchaDecoder().decode(ReferralClickLogResponse.self, from: json)
+
+        XCTAssertEqual(response.results.map(\.id), ["click-1"])
+        XCTAssertNotNil(response.clicks["click-1"])
+        XCTAssertNil(response.clicks["click-1"]?.landingUrl)
+
+        let omittedUrl = Data(
+            String(decoding: json, as: UTF8.self)
+                .replacingOccurrences(of: "\"landing_url\": null,", with: "").utf8
+        )
+        XCTAssertThrowsError(try makeVouchaDecoder().decode(ReferralClickLogResponse.self, from: omittedUrl))
     }
 
     func testDecodesAppealsMessagingBookmarksAndMemberships() throws {
@@ -180,13 +199,11 @@ final class UserFacingModelDecodingTests: XCTestCase {
 
         let appealList = try decoder.decode(
             ModerationAppealListResponse.self,
-            from: Data(
-                "{\"appeals\":[{\(appealObject)}],\"page_info\":{\"has_next_page\":false,\"start_cursor\":null,\"end_cursor\":null}}"
-                    .utf8
-            )
+            from: ApiFixtureLoader.data("native.moderation.appeals.default")
         )
-        XCTAssertEqual(appealList.appeals.first?.id, "appeal-1")
-        XCTAssertEqual(appealList.pageInfo.hasNextPage, false)
+        XCTAssertEqual(appealList.appeals.first?.id, "00000000-0000-7000-8000-000000000102")
+        XCTAssertEqual(appealList.appeals.first?.hasAiDraft, true)
+        XCTAssertEqual(appealList.pageInfo.hasNextPage, true)
 
         let conversationsJSON = Data(
             #"{"results":[{"id":"conversation-1","title":"Chat","created_at":"2026-03-01T11:55:00Z","created_by_id":"user-1","updated_at":"2026-03-01T12:00:00Z","participant_usernames":["alice","bob"]}],"page_info":{"has_next_page":false,"start_cursor":"conversation-1","end_cursor":null}}"#

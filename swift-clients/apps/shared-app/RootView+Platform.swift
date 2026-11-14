@@ -72,6 +72,7 @@ extension RootView {
                     initialEmail: signInLinkEmail,
                     initialCode: signInLinkCode,
                     initialOAuthMFAAttemptId: currentNativeOAuthMFAAttemptId,
+                    initialTurnstileToken: SignInUITestingLaunch.turnstileToken,
                     onSuccess: {
                         completeSignIn()
                     }
@@ -121,6 +122,7 @@ extension RootView {
                                 showingSignIn = true
                             }
                             .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier(Self.signedOutSignInAccessibilityIdentifier)
                         }
                     }
                     .accessibilityIdentifier(Self.rootShellAccessibilityIdentifier)
@@ -187,6 +189,7 @@ extension RootView {
                     initialEmail: signInLinkEmail,
                     initialCode: signInLinkCode,
                     initialOAuthMFAAttemptId: currentNativeOAuthMFAAttemptId,
+                    initialTurnstileToken: SignInUITestingLaunch.turnstileToken,
                     onSuccess: {
                         completeSignIn()
                     }

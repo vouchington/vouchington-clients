@@ -58,7 +58,7 @@ public sealed partial class ChatConversationViewModel
       var existingIds = messages.Select(message => message.Id).ToHashSet(StringComparer.Ordinal);
       var olderMessages = response.Results.Select(MapMessage).Where(message => existingIds.Add(message.Id)).ToArray();
       messages.InsertRange(0, olderMessages);
-      HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+      HasMoreMessages = response.PageInfo.HasMorePages;
       nextMessageCursor = response.PageInfo.EndCursor;
       OnPropertyChanged(nameof(Messages));
     }

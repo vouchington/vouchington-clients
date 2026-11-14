@@ -26,8 +26,10 @@ mkdir -p "$HOME/.cache/voucha-native"
 Setup installs the checkout's mise-managed .NET and Swift toolchains, verifies host versions and
 Docker, runs `pnpm install --frozen-lockfile`, installs the remaining pinned mise tools, restores
 the portable .NET solution in locked mode, stages the
-producer's native exporter against this client checkout, and runs `contracts:check`. It never
-rewrites generated localization. If the exporter reports a missing package, install the producer
+producer's native exporter against this client checkout, and runs `contracts:pull` on that stage
+so the (gitignored) generated localization exists. Without a producer checkout, a plain
+`pnpm run contracts:pull` fetches the commit pinned in `contracts/vouchington.json` instead. If the
+exporter reports a missing package, install the producer
 checkout's frozen dependencies there explicitly and rerun setup with a new empty stage. The stage
 root must then be passed explicitly to each fixture
 check or test process:

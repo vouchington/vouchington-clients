@@ -255,14 +255,24 @@ public sealed class MemberAppealsViewModelTests
     Assert.Equal(new MemberAppealDraft(), store.Get("user-1", second));
   }
 
-  [Fact]
-  public async Task SubmissionIsExactlyOnceAndDuplicateBecomesTracked()
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task SubmissionIsExactlyOnceAndDuplicateBecomesTracked(bool responseWasSent)
   {
     var service = ServiceWithTargets();
     var pending = new TaskCompletionSource<ModerationAppealSubmissionResponse>(
         TaskCreationOptions.RunContinuationsAsynchronously);
     service.PendingSubmission = pending;
-    service.Submission = new(MemberAppealsFixtures.Appeal("duplicate", warningId: "warning-1"), true);
+    service.Submission = new(MemberAppealsFixtures.SubmissionAppeal("duplicate", warningId: "warning-1") with
+    {
+      PublicResponse = "Public response after delivery",
+      SentAt = responseWasSent ? DateTimeOffset.Parse("2026-07-01T01:00:00Z") : null,
+      AiPublicResponse = "Unsent AI draft",
+      InternalNotes = "Private staff notes",
+      RecommendedAction = ModerationAppealAction.Reduce,
+      AiDraftedAt = DateTimeOffset.Parse("2026-07-01T00:30:00Z"),
+    }, true);
     var viewModel = ViewModel(service, MemberAppealsRoute.Warnings);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
     var target = Assert.Single(viewModel.EligibleTargets);
@@ -278,7 +288,13 @@ public sealed class MemberAppealsViewModelTests
 
     Assert.Single(service.Calls, call => call.StartsWith("submit:", StringComparison.Ordinal));
     Assert.True(viewModel.LastSubmissionWasDuplicate);
-    Assert.Contains(viewModel.Appeals, appeal => appeal.Id == "duplicate");
+    var tracked = Assert.Single(viewModel.Appeals, appeal => appeal.Id == "duplicate");
+    Assert.Equal(responseWasSent ? "Public response after delivery" : null, tracked.PublicResponse);
+    Assert.Null(tracked.RecommendedAction);
+    Assert.Null(tracked.HasAiDraft);
+    Assert.Null(tracked.HasDraft);
+    Assert.Null(tracked.AppellantUserId);
+    Assert.Null(tracked.Appellant);
     Assert.Null(viewModel.ActiveTarget);
   }
 
@@ -362,7 +378,7 @@ public sealed class MemberAppealsViewModelTests
   {
     var service = ServiceWithTargets();
     service.Submission = new(
-        MemberAppealsFixtures.Appeal("duplicate", warningId: "warning-1"),
+        MemberAppealsFixtures.SubmissionAppeal("duplicate", warningId: "warning-1"),
         true);
     var viewModel = ViewModel(service, MemberAppealsRoute.Warnings);
     await viewModel.ReloadAsync(TestContext.Current.CancellationToken);

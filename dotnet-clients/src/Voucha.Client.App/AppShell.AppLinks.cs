@@ -44,7 +44,7 @@ public sealed partial class AppShell
         : Task.CompletedTask;
   }
 
-  private Task HandleAppLinkAsync(Uri url)
+  private Task HandleOrdinaryAppLinkAsync(Uri url)
   {
     if (url.Scheme.Equals("voucha", StringComparison.OrdinalIgnoreCase) &&
         url.Host.Equals("auth", StringComparison.OrdinalIgnoreCase) &&
@@ -130,6 +130,8 @@ public sealed partial class AppShell
     {
       return friendsRoute;
     }
+
+    if (TryOpenPublicLandingPageRouteAsync(resolution) is { } publicLandingRoute) return publicLandingRoute;
 
     if (intentId == LandingPagesRoute)
     {

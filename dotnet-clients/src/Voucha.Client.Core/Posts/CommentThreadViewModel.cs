@@ -10,7 +10,8 @@ public sealed partial class CommentThreadViewModel : ObservableObject
   private readonly ICommentThreadService postsService;
   private readonly IPostsService? mutationPostsService;
   private readonly string rootPostId;
-  private readonly string? currentUserId;
+  private string? currentUserId;
+  private int loadGeneration;
   private string sort = CommentThreadSorts.Best;
   private LoadState state = LoadState.Idle;
   private bool isLoadingAncestors;
@@ -57,7 +58,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
 
   public string? CurrentUserId => currentUserId;
 
-  public string CollapseStateKey => BuildCollapseStateKey(rootPostId, currentUserId);
+  public string? CollapseStateKey => BuildCollapseStateKey(rootPostId, currentUserId);
 
   public Post? RootPost => rootPostResponse?.Post;
 
@@ -105,14 +106,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
@@ -146,13 +140,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -165,11 +153,7 @@ public sealed partial class CommentThreadViewModel : ObservableObject
 
   public void ToggleCollapse(string postId)
   {
-    if (!collapsedCommentIds.Remove(postId))
-    {
-      collapsedCommentIds.Add(postId);
-    }
-
-    OnPropertyChanged(nameof(CollapsedCommentIds));
+    if (currentUserId is not null) throw new InvalidOperationException("Signed-in collapse requires ToggleCollapseAsync.");
+    SetCollapsed(postId, !collapsedCommentIds.Contains(postId));
   }
 }

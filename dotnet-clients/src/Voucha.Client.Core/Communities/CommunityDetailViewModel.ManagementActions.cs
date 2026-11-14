@@ -34,9 +34,6 @@ public sealed partial class CommunityDetailViewModel
   public Task<bool> BanAsync(string userId, string? reason = null, DateTimeOffset? expiresAt = null, CancellationToken cancellationToken = default) =>
       MutateAndReloadSectionAsync(() => service.BanAsync(communityIdOrSlug, new BanCommunityMemberRequest(userId, reason, expiresAt), cancellationToken), cancellationToken);
 
-  public Task<bool> LiftBanAsync(string userId, CancellationToken cancellationToken = default) =>
-      MutateAndReloadSectionAsync(() => service.LiftBanAsync(communityIdOrSlug, userId, cancellationToken), cancellationToken);
-
   public Task<bool> ActivateRestrictionsAsync(
       IReadOnlyList<string> restrictionTypes,
       DateTimeOffset? expiresAt = null,
@@ -76,7 +73,8 @@ public sealed partial class CommunityDetailViewModel
       CancellationToken cancellationToken,
       Func<CancellationToken, Task>? reload = null)
   {
-    if (IsLoading || string.IsNullOrWhiteSpace(communityIdOrSlug))
+    if (IsLoading || string.IsNullOrWhiteSpace(communityIdOrSlug) ||
+        (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && (isCreatingAgentPrompt || isWritingAgentPrompt || isLoadingAgentPrompts)))
     {
       return false;
     }

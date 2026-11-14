@@ -134,10 +134,21 @@ extension NativeRouteSurfaceViewModel {
     }
 
     private func loadAppealRows(client: APIClient, mine: Bool) async throws -> [NativeRouteDestinationRow] {
+        if mine {
+            let response: MemberAppealListResponse = try await client.send(.appeals(limit: 25, mine: true))
+            return response.appeals.map {
+                row("arrow.uturn.left.circle", appealSummaryTitle($0.targetContext), appText($0.status.titleKey))
+            }
+        }
         let response: ModerationAppealListResponse = try await client.send(.appeals(limit: 25, mine: mine))
         return response.appeals.map {
-            row("arrow.uturn.left.circle", rawText($0.caseId ?? $0.id), appText($0.status.titleKey))
+            row("arrow.uturn.left.circle", appealSummaryTitle($0.targetContext), appText($0.status.titleKey))
         }
+    }
+
+    func appealSummaryTitle(_ context: ModerationAppealTargetContext?) -> UiVerbatimText {
+        if case let .postRemoval(removal) = context { return rawText(removal.title) }
+        return appText(.nativeSwiftRouteMetadataMainModerationCasesAppealsTitle)
     }
 
     private func loadMyDisputeRows(client: APIClient) async throws -> [NativeRouteDestinationRow] {

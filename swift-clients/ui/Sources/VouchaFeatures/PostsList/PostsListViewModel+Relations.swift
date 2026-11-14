@@ -36,7 +36,7 @@ public extension PostsListViewModel {
             isActive: { self.hiddenPostIds.contains($0) },
             activate: {
                 self.hiddenPostIds.insert($0)
-                if !wasHidden {
+                if !wasHidden, self.items.first(where: { $0.id == postId })?.postType != .comment {
                     removedPost = self.removePost(id: $0)
                 }
             },

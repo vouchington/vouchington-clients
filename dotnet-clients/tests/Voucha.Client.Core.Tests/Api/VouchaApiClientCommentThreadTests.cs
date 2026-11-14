@@ -35,7 +35,7 @@ public sealed class VouchaApiClientCommentThreadTests
           "post_metrics": {
             "__entity_type": "post_metrics",
             "id": "root-1",
-            "count": { "descendants": 2, "ancestors": 0 }
+            "count": { "descendants": 2 }
           },
           "post_election": {
             "__entity_type": "post_election",
@@ -102,7 +102,7 @@ public sealed class VouchaApiClientCommentThreadTests
           "posts_metrics": {
             "comment-1": {
               "id": "comment-1",
-              "count": { "descendants": 1, "ancestors": 1 }
+              "count": { "descendants": 1 }
             }
           },
           "post_elections": {

@@ -469,6 +469,7 @@ final class NativeUserProfileViewModelTests: NativeRouteSurfaceViewModelTestCase
         case let .topics(items): items.first.map(NativeUserProfileNavigationTarget.topic)
         case let .sources(items): items.first.map(NativeUserProfileNavigationTarget.source)
         case let .communities(items): items.first.map(NativeUserProfileNavigationTarget.community)
+        case let .referralLinks(items): items.first.flatMap(NativeUserProfileNavigationTarget.referralLink)
         case .none: nil
         }
     }

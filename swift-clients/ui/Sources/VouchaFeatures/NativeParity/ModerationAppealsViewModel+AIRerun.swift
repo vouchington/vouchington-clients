@@ -3,21 +3,11 @@ import VouchaAPI
 import VouchaModels
 
 struct AppealAIRerunBaseline: Equatable {
-    let aiDraftedAt: Date?
-    let lifecycleChangeId: String?
-
-    init(appeal: ModerationAppeal) {
-        aiDraftedAt = appeal.aiDraftedAt
-        lifecycleChangeId = appeal.latestLifecycleChangeId
-    }
+    var runId: String?
 
     func isReconciled(in appeal: ModerationAppeal) -> Bool {
-        (appeal.aiDraftedAt != nil
-            && appeal.aiDraftedAt != aiDraftedAt
-            && appeal.latestLifecycleChangeId != lifecycleChangeId)
-            || appeal.approvedAt != nil
-            || appeal.sentAt != nil
-            || appeal.status != .pending
+        (runId != nil && appeal.aiDraftRunId == runId)
+            || appeal.approvedAt != nil || appeal.sentAt != nil || appeal.status != .pending
     }
 }
 
@@ -64,19 +54,8 @@ extension ModerationAppealsViewModel {
         guard canRefreshAIRerun(appeal), let client,
               let admission = admissionStore.admission(appeal.id, for: admissionOwner)
         else { return }
-        let revision = loadRevision
         _ = await withMutation(appeal.id) {
-            let response: ModerationAppealEnvelope = try await client.send(.appeal(id: appeal.id))
-            guard revision == loadRevision, selectedStatus == .pending,
-                  response.appeal.id == appeal.id,
-                  appeals.contains(where: { $0.id == appeal.id }),
-                  admissionStore.admission(appeal.id, for: admissionOwner) == admission
-            else { return }
-            guard admission.baseline.isReconciled(in: response.appeal) else {
-                throw AppealAIRerunError.stillProcessing
-            }
-            admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
-            replace(with: response.appeal, preservingEditedDraft: true)
+            try await reconcileAIRun(for: appeal, admission: admission, client: client)
         }
     }
 }
@@ -84,4 +63,5 @@ extension ModerationAppealsViewModel {
 enum AppealAIRerunError: Error, Equatable {
     case notQueued
     case stillProcessing
+    case ended
 }

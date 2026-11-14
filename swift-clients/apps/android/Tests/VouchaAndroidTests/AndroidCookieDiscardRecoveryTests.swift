@@ -38,8 +38,8 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
     @MainActor
     private func assertExplicitDeletionBeforeSignIn(readFailure: Bool) async throws {
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         let host = "cookie-discard-\(UUID().uuidString.lowercased()).voucha.ai"
         let secrets = CookieDiscardRecoverySecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
@@ -108,7 +108,8 @@ final class AndroidCookieDiscardRecoveryTests: XCTestCase {
         await freshAccount.restore()
 
         XCTAssertFalse(freshAccount.isRestoring)
-        XCTAssertEqual(probe.observations().paths, ["/api/v1/my/identity"])
+        XCTAssertEqual(probe.observations().paths, ["/api/v1/session"])
+        XCTAssertFalse(freshAccount.session.isSignedIn)
         XCTAssertEqual(probe.observations().snapshots, [nil])
     }
 

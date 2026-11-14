@@ -99,7 +99,7 @@ public sealed class UsersBrowsePage : ContentPage, IDisposable
   private void BindRow(BindableObject row, Label name, Label handle, Label accountType, Label email, Label status, View manage)
   {
     if (row.BindingContext is not UserSearchResult user) return;
-    name.Text = UserLabel(user);
+    name.Text = UsersBrowseViewModel.UserLabel(user);
     handle.Text = UiUserHandle.FromUsername(user.Username).Value;
     accountType.RemoveDynamicResource(Label.TextProperty);
     accountType.ClearValue(Label.TextProperty);
@@ -147,7 +147,4 @@ public sealed class UsersBrowsePage : ContentPage, IDisposable
         && !string.IsNullOrWhiteSpace(viewModel.Query);
     foreach (var bind in rebindRows) bind();
   }
-
-  private static string UserLabel(UserSearchResult user) =>
-      string.IsNullOrWhiteSpace(user.Username) ? user.Id : user.Username;
 }

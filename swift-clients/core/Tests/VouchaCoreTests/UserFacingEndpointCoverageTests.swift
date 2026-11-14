@@ -37,19 +37,14 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
     func testDiscoveryAndAccountEndpointsUseExpectedRoutes() {
         assertEndpoint(Endpoint.webSearch(query: "swift", limit: 11), path: "/api/v1/web-search")
 
-        let trendingCommunities = Endpoint.trendingCommunities(after: "cursor-1", limit: 8)
-        XCTAssertEqual(trendingCommunities.path, "/api/v1/trending-communities")
+        let trendingCommunities = Endpoint.communities(after: "cursor-1", limit: 8, sort: "trending")
+        XCTAssertEqual(trendingCommunities.path, "/api/v1/communities")
         XCTAssertEqual(trendingCommunities.queryItems, [
             URLQueryItem(name: "limit", value: "8"),
-            URLQueryItem(name: "after", value: "cursor-1")
+            URLQueryItem(name: "after", value: "cursor-1"),
+            URLQueryItem(name: "sort", value: "trending")
         ])
 
-        let trendingReferralPrograms = Endpoint.trendingReferralPrograms(after: "cursor-2", limit: 4)
-        XCTAssertEqual(trendingReferralPrograms.path, "/api/v1/trending-referral-programs")
-        XCTAssertEqual(trendingReferralPrograms.queryItems, [
-            URLQueryItem(name: "limit", value: "4"),
-            URLQueryItem(name: "after", value: "cursor-2")
-        ])
         assertEndpoint(
             Endpoint.referralLinksFeed(feedType: "mutual_follows", after: "cursor-2", limit: 4),
             path: "/api/v1/feeds/referral_links/mutual_follows"
@@ -72,13 +67,16 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
             URLQueryItem(name: "spending_category", value: "true"),
             URLQueryItem(name: "rss_feed", value: "false")
         ])
+        let topicRecommendations = Endpoint.topicRecommendations(after: "cursor-3", limit: 6)
+        assertEndpoint(topicRecommendations, path: "/api/v1/posts")
+        XCTAssertEqual(topicRecommendations.queryItems, [
+            URLQueryItem(name: "limit", value: "6"),
+            URLQueryItem(name: "after", value: "cursor-3"),
+            URLQueryItem(name: "post_types", value: "topic_recommendation")
+        ])
         assertEndpoint(
-            Endpoint.topicRecommendations(after: "cursor-3", limit: 6),
-            path: "/api/v1/topic-recommendations"
-        )
-        assertEndpoint(
-            Endpoint.topicRecommendation(id: "recommendation 1"),
-            path: "/api/v1/topic-recommendations/recommendation%201"
+            Endpoint.post(idOrSlug: "recommendation 1"),
+            path: "/api/v1/posts/recommendation%201"
         )
 
         assertEndpoint(Endpoint.myCommunities, path: "/api/v1/my/communities")
@@ -107,7 +105,8 @@ final class UserFacingEndpointCoverageTests: XCTestCase {
         XCTAssertEqual(postsEndpoint.queryItems, [
             URLQueryItem(name: "limit", value: "5"),
             URLQueryItem(name: "sort", value: "relevance"),
-            URLQueryItem(name: "q", value: "swift")
+            URLQueryItem(name: "q", value: "swift"),
+            URLQueryItem(name: "time_range", value: "1m")
         ])
         let urlsEndpoint = Endpoint.urls(query: "swift", limit: 5)
         assertEndpoint(urlsEndpoint, path: "/api/v1/urls")

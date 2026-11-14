@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "repository": "vouchington/vouchington",
+  "commit": "e3cf418c04e09d06ee133fd9fd91423bf6c7f409",
+  "paths": [
+    "api-fixtures/v1",
+    "api-contracts/v1",
+    "swift-clients/ui/Sources/VouchaLocalization/Generated",
+    "dotnet-clients/src/Voucha.Client.Core/Localization/Generated"
+  ]
+}

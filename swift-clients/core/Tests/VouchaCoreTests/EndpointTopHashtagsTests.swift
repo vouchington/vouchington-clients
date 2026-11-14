@@ -45,7 +45,7 @@ final class EndpointTopHashtagsTests: XCTestCase {
             limit: 6
         )
 
-        XCTAssertEqual(endpoint.path, "/api/v1/topic-recommendations/top-hashtags")
+        XCTAssertEqual(endpoint.path, "/api/v1/topics/top-hashtags")
         XCTAssertEqual(endpoint.queryItems, [
             URLQueryItem(name: "limit", value: "6"),
             URLQueryItem(name: "mapping", value: "unlinked"),

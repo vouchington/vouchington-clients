@@ -35,6 +35,7 @@ public sealed partial class ModerationDisputesViewModel
   public void SetPublicResponseDraft(ModerationDispute dispute, string value)
   {
     ArgumentNullException.ThrowIfNull(dispute);
+    if (dispute.AiDraftRequestedRunId is null) return;
     var draft = value ?? string.Empty;
     publicResponseDrafts[dispute.Id] = draft;
     if (string.Equals(draft, PublicResponseSeed(dispute), StringComparison.Ordinal))
@@ -47,6 +48,7 @@ public sealed partial class ModerationDisputesViewModel
   public void SetAnnotationDraft(ModerationDispute dispute, string value)
   {
     ArgumentNullException.ThrowIfNull(dispute);
+    if (dispute.AiDraftRequestedRunId is null) return;
     annotationDrafts[dispute.Id] = value ?? string.Empty;
     OnPropertyChanged(nameof(Disputes));
   }
@@ -94,20 +96,10 @@ public sealed partial class ModerationDisputesViewModel
   private bool CanMutate(ModerationDispute dispute)
   {
     ArgumentNullException.ThrowIfNull(dispute);
-    return CanAccess &&
+    return CanAccess && dispute.AiDraftRequestedRunId is not null &&
         dispute.Status == ModerationDisputeStatus.Pending &&
         !IsMutating &&
         !ambiguousMutationIds.Contains(dispute.Id);
-  }
-
-  private void SeedDrafts(IEnumerable<ModerationDispute> loaded)
-  {
-    foreach (var dispute in loaded)
-    {
-      if (!dirtyPublicResponseIds.Contains(dispute.Id))
-        publicResponseDrafts[dispute.Id] = PublicResponseSeed(dispute);
-      annotationDrafts.TryAdd(dispute.Id, string.Empty);
-    }
   }
 
   private void Replace(
@@ -131,15 +123,12 @@ public sealed partial class ModerationDisputesViewModel
     annotationDrafts.TryAdd(dispute.Id, string.Empty);
     var updated = Disputes.ToList();
     var index = updated.FindIndex(item => item.Id == dispute.Id);
-    if (dispute.Status != SelectedStatus)
-    {
-      if (index >= 0) updated.RemoveAt(index);
-    }
-    else if (index >= 0)
+    if (index >= 0)
       updated[index] = dispute;
     else
       updated.Insert(0, dispute);
     Disputes = updated;
+    UpdateSummary(dispute);
   }
 
   private static string PublicResponseSeed(ModerationDispute dispute) =>

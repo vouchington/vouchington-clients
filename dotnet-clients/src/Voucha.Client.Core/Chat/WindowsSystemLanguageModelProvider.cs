@@ -1,3 +1,4 @@
+using Voucha.Client.Core.Agent;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.Chat;
@@ -15,15 +16,24 @@ public interface IWindowsSystemLanguageModelRuntime
   Task<string?> GenerateAssistantContentAsync(string message, IReadOnlyList<LocalLLMResponseInput> history, CancellationToken cancellationToken = default);
 }
 
-public sealed class WindowsSystemLanguageModelProvider : ILocalChatProvider
+public interface IWindowsBuiltInToolRuntime
+{
+  Task<WindowsBuiltInPromptObservation> ObservePromptAsync(string prompt, CancellationToken cancellationToken = default);
+  Task<WindowsBuiltInModelTurn> GenerateBuiltInAsync(string prompt, CancellationToken cancellationToken = default);
+}
+
+public sealed partial class WindowsSystemLanguageModelProvider : ILocalChatProvider
 {
   private readonly IWindowsSystemLanguageModelRuntime runtime;
   private readonly IUiLocalization localization;
+  private readonly MemberMcpSession? mcpSession;
 
-  public WindowsSystemLanguageModelProvider(IWindowsSystemLanguageModelRuntime runtime, IUiLocalization? localization = null)
+  public WindowsSystemLanguageModelProvider(
+      IWindowsSystemLanguageModelRuntime runtime, IUiLocalization? localization = null, MemberMcpSession? mcpSession = null)
   {
     this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     this.localization = localization ?? UiLocalization.English;
+    this.mcpSession = mcpSession;
   }
 
   public string Id => LocalChatProviderIds.WindowsSystemLanguageModel;

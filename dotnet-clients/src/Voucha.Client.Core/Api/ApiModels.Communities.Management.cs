@@ -31,10 +31,14 @@ public sealed record CommunityApplication(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("__entity_type")] string? EntityType = null);
 
+public sealed record CommunityApplicationResponse(
+    [property: JsonPropertyName("community_application")] CommunityApplication CommunityApplication);
+
 public sealed record CommunityApplicationsResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo,
-    [property: JsonPropertyName("community_applications")] IReadOnlyDictionary<string, CommunityApplication> CommunityApplications);
+    [property: JsonPropertyName("community_application_summaries"), JsonRequired] IReadOnlyDictionary<string, CommunityApplicationSummary> CommunityApplicationSummaries,
+    [property: JsonPropertyName("users"), JsonRequired] IReadOnlyDictionary<string, PublicUser> Users);
 
 public sealed record CommunityApplicationQuestionsResponse(
     [property: JsonPropertyName("questions")] IReadOnlyList<CommunityApplicationQuestion> Questions);

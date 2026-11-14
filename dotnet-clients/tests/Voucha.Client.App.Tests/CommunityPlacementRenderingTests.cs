@@ -17,8 +17,10 @@ namespace Voucha.Client.App.Tests;
 [Collection(MauiPageTestCollection.Name)]
 public sealed class CommunityPlacementRenderingTests
 {
-  [Fact]
-  public async Task OverviewRendersOnlyRevisionBoundCommunityPlacements()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task OverviewRendersOnlyRevisionBoundCommunityPlacements(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
@@ -26,14 +28,14 @@ public sealed class CommunityPlacementRenderingTests
     using var model = new CommunityDetailViewModel(new ApiCommunitiesService(Client(
         detail, Fixture("web.communities.members.default"), Fixture("web.communities.posts.default"),
         Fixture("web.communities.list-items.counts.default"))));
-    var page = new CommunityOverviewPage(model, new AnonymousSessionStore(), Config());
+    var page = new CommunityOverviewPage(model, new AnonymousSessionStore(), Config(imageHost));
 
     await model.LoadAsync("test-community", TestContext.Current.CancellationToken);
 
     var images = VisualTreeElements.Descendants<Image>(page).ToDictionary(image => image.AutomationId);
-    Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000305/5/00000000-0000-7000-8000-000000000204?w=960"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/00000000-0000-7000-8000-000000000305/5/00000000-0000-7000-8000-000000000204?w=960"),
         Assert.IsType<UriImageSource>(images["community-banner-image"].Source).Uri);
-    Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000304/2/00000000-0000-7000-8000-000000000203?w=96"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/00000000-0000-7000-8000-000000000304/2/00000000-0000-7000-8000-000000000203?w=96"),
         Assert.IsType<UriImageSource>(images["community-profile-image"].Source).Uri);
     Assert.True(images["community-banner-image"].IsVisible);
     Assert.True(images["community-profile-image"].IsVisible);
@@ -65,14 +67,16 @@ public sealed class CommunityPlacementRenderingTests
     Assert.Contains(VisualTreeElements.Descendants<Label>(page), label => label.Text == "Test Community");
   }
 
-  [Fact]
-  public void BrowseCardsUsePlacementIdentityAndHideMissingAvatars()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public void BrowseCardsUsePlacementIdentityAndHideMissingAvatars(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
     var page = new CommunityBrowsePage(
         new CommunityBrowseViewModel(new ApiCommunitiesService(Client("{}"))),
-        new AnonymousSessionStore(), Config());
+        new AnonymousSessionStore(), Config(imageHost));
     var collection = Assert.Single(VisualTreeElements.Descendants<CollectionView>(page));
     var card = Assert.IsType<VerticalStackLayout>(collection.ItemTemplate.CreateContent());
     var avatar = Assert.Single(VisualTreeElements.Descendants<Image>(card), image => image.AutomationId == "community-profile-image");
@@ -81,7 +85,7 @@ public sealed class CommunityPlacementRenderingTests
 
     card.BindingContext = row;
 
-    Assert.Equal(new Uri("https://images.test/images/placements/profile-placement/7/avatar-1?w=96"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/profile-placement/7/avatar-1?w=96"),
         Assert.IsType<UriImageSource>(avatar.Source).Uri);
     Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
     Assert.Contains(VisualTreeElements.Descendants<Label>(card), label => label.Text == "Community");
@@ -90,8 +94,10 @@ public sealed class CommunityPlacementRenderingTests
     Assert.False(avatar.IsVisible);
   }
 
-  [Fact]
-  public async Task MemberRowsRenderOnlyThePublicUsersCanonicalPlacement()
+  [Theory]
+  [InlineData("https://images.test")]
+  [InlineData("https://replacement-images.test")]
+  public async Task MemberRowsRenderOnlyThePublicUsersCanonicalPlacement(string imageHost)
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
     _ = new Application();
@@ -107,7 +113,7 @@ public sealed class CommunityPlacementRenderingTests
       BaseAddress = new Uri("https://api.test"),
     });
     using var model = new CommunityDetailViewModel(new ApiCommunitiesService(apiClient));
-    var page = new CommunityMembersPage(model, new AnonymousSessionStore(), Config());
+    var page = new CommunityMembersPage(model, new AnonymousSessionStore(), Config(imageHost));
 
     await model.LoadSurfaceAsync("test-community", CommunityDetailSurfaceSection.Members,
         TestContext.Current.CancellationToken);
@@ -123,7 +129,7 @@ public sealed class CommunityPlacementRenderingTests
 
     Assert.Equal("Test User", member.Title);
     Assert.Equal("Owner", member.Subtitle);
-    Assert.Equal(new Uri("https://images.test/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
+    Assert.Equal(new Uri($"{imageHost}/images/placements/00000000-0000-7000-8000-000000000301/2/00000000-0000-7000-8000-000000000201?w=96"),
         Assert.IsType<UriImageSource>(avatarImage.Source).Uri);
     Assert.True(avatar.IsVisible);
     Assert.IsType<Microsoft.Maui.Controls.Shapes.Ellipse>(avatar.StrokeShape);
@@ -151,6 +157,32 @@ public sealed class CommunityPlacementRenderingTests
   }
 
   [Fact]
+  public async Task MemberRosterHidesPlacementForMissingWithheldDeletedAndAnonymousUsers()
+  {
+    const string legacyImageId = "00000000-0000-7000-8000-000000000201";
+    await AssertMemberFallback(MutateMember(user =>
+    {
+      user["profile_image_id"] = null;
+      user.Remove("profile_image_placement");
+    }), "Test User");
+
+    var withheld = MutateMember(user => user.Remove("profile_image_placement"));
+    Assert.Equal(legacyImageId, JsonNode.Parse(withheld)!["users"]!["user-1"]!["profile_image_id"]!.GetValue<string>());
+    await AssertMemberFallback(withheld, "Test User");
+
+    await AssertMemberFallback(MutateMember(_ => { }, removeUser: true), "user-1");
+
+    var anonymous = MutateMember(user =>
+    {
+      user.Remove("name");
+      user.Remove("username");
+      user.Remove("profile_image_placement");
+    });
+    Assert.Equal(legacyImageId, JsonNode.Parse(anonymous)!["users"]!["user-1"]!["profile_image_id"]!.GetValue<string>());
+    await AssertMemberFallback(anonymous, "user-1");
+  }
+
+  [Fact]
   public void NonMemberRowsDoNotConstructMemberAvatarControls()
   {
     DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
@@ -167,13 +199,71 @@ public sealed class CommunityPlacementRenderingTests
     Assert.DoesNotContain(VisualTreeElements.Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
   }
 
-  private static AppConfig Config() => new(new Uri("https://api.test"), ImageBaseUrl: new Uri("https://images.test"));
+  private static async Task AssertMemberFallback(string membersJson, string title)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    _ = new Application();
+    var responses = new Dictionary<string, string>
+    {
+      ["/api/v1/communities/test-community"] = Fixture("web.communities.show.default"),
+      ["/api/v1/communities/test-community/members"] = membersJson,
+      ["/api/v1/communities/test-community/posts"] = Fixture("web.communities.posts.default"),
+      ["/api/v1/communities/test-community/list-items/counts"] = Fixture("web.communities.list-items.counts.default"),
+    };
+    var apiClient = new VouchaApiClient(new HttpClient(new RouteResponseHandler(responses))
+    {
+      BaseAddress = new Uri("https://api.test"),
+    });
+    using var model = new CommunityDetailViewModel(new ApiCommunitiesService(apiClient));
+    var page = new CommunityMembersPage(model, new AnonymousSessionStore(), Config());
+    await model.LoadSurfaceAsync("test-community", CommunityDetailSurfaceSection.Members,
+        TestContext.Current.CancellationToken);
+
+    var collection = Assert.IsType<CollectionView>(typeof(CommunitySectionPage)
+        .GetField("rowsView", BindingFlags.Instance | BindingFlags.NonPublic)!
+        .GetValue(page));
+    var member = Assert.IsType<CommunitySummaryRow>(Assert.Single((IEnumerable<object>)collection.ItemsSource!));
+    var row = Assert.IsType<Grid>(collection.ItemTemplate!.CreateContent());
+    row.BindingContext = member;
+    var avatar = Assert.Single(VisualTreeElements.Descendants<Border>(row), border => border.AutomationId == "community-member-avatar");
+    var avatarImage = Assert.Single(VisualTreeElements.Descendants<Image>(avatar), image => image.AutomationId == "community-member-avatar-image");
+
+    Assert.Equal(title, member.Title);
+    Assert.Equal("Owner", member.Subtitle);
+    Assert.Null(avatarImage.Source);
+    Assert.False(avatar.IsVisible);
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatar));
+    Assert.False(AutomationProperties.GetIsInAccessibleTree(avatarImage));
+    Assert.Equal(new GridLength(0), row.ColumnDefinitions[0].Width);
+    var name = Assert.Single(VisualTreeElements.Descendants<Label>(row), label => label.Text == title);
+    Assert.Equal(title, name.Text);
+    Assert.Contains(VisualTreeElements.Descendants<Label>(row), label => label.Text == "Owner");
+  }
+
+  private static string MutateMember(Action<JsonObject> mutate, bool removeUser = false)
+  {
+    var root = JsonNode.Parse(Fixture("web.communities.members.default"))!.AsObject();
+    var users = root["users"]!.AsObject();
+    if (removeUser)
+    {
+      users.Remove("user-1");
+    }
+    else
+    {
+      mutate(users["user-1"]!.AsObject());
+    }
+
+    return root.ToJsonString();
+  }
+
+  private static AppConfig Config(string imageHost = "https://images.test") =>
+      new(new Uri("https://api.test"), ImageBaseUrl: new Uri(imageHost));
 
   private static string Fixture(string id)
   {
-    var manifest = JsonNode.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("manifest.json")))!;
+    var manifest = JsonNode.Parse(File.ReadAllText(ContractPaths.ApiFixture("manifest.json")))!;
     var path = manifest["fixtures"]!.AsArray().Single(entry => (string?)entry?["id"] == id)!["bodyFile"]!.GetValue<string>();
-    return File.ReadAllText(FilamentsContractPaths.ApiFixture(path));
+    return File.ReadAllText(ContractPaths.ApiFixture(path));
   }
 
   private static VouchaApiClient Client(params string[] bodies) =>

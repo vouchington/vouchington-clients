@@ -70,7 +70,15 @@ public sealed record IssueCommunityWarningRequest(
 public sealed record CommunityPlatformModeration(
     [property: JsonPropertyName("status")] AdminReviewQueueClearanceStatus Status);
 
+public sealed record CommunityAgentModerationSummary(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("post_id")] string PostId,
+    [property: JsonPropertyName("community_prompt_id")] string CommunityPromptId,
+    [property: JsonPropertyName("is_flagged")] bool IsFlagged,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+
 public sealed record CommunityModerationResultsResponse(
-    [property: JsonPropertyName("community_agent_moderations")] IReadOnlyList<JsonElement> CommunityAgentModerations,
+    [property: JsonPropertyName("results")] IReadOnlyList<CommunityAgentModerationSummary> Results,
+    [property: JsonPropertyName("page_info")] PageInfo PageInfo,
     [property: JsonPropertyName("platform_moderation")] CommunityPlatformModeration PlatformModeration);
 #pragma warning restore CA1054, CA1056, CA1720

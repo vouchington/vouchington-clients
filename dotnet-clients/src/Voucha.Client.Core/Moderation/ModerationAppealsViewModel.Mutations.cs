@@ -87,16 +87,35 @@ public sealed partial class ModerationAppealsViewModel
         throw new InvalidOperationException(localization.Localize(
             UiMessageKey.NativeSwiftReviewDisputesRerunNotQueued));
       }
+      if (!admissionStore.SetRunId(admissionOwner, appeal.Id, admission.Token, queued.RunId)) return;
+      if (!admissionStore.TryGet(admissionOwner, appeal.Id, out admission)) return;
       for (var attempt = 0; attempt < rerunPollAttempts; attempt++)
       {
         if (!IsCurrentAIRerunContext(appeal.Id, admission, revision, ownerRevision)) return;
-        var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken).ConfigureAwait(true)).Appeal;
-        if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, refreshed)) return;
-        if (admission.IsReconciled(refreshed))
+        var run = await service.FetchAIRerunAsync(appeal.Id, admission.RunId!, cancellationToken)
+            .ConfigureAwait(true);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsCurrentAIRerunContext(appeal.Id, admission, revision, ownerRevision)) return;
+        if (!string.Equals(run.RunId, admission.RunId, StringComparison.Ordinal))
+          throw new TimeoutException(localization.Localize(
+              UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
+        if (run.Status is ModerationRunStatus.Failed or ModerationRunStatus.Expired)
         {
           ClearPendingAIRerun(appeal.Id, admission.Token);
-          Replace(refreshed, preserveUnconfirmedDirtyDraft: true);
-          return;
+          throw new InvalidOperationException(localization.Localize(
+              UiMessageKey.NativeSwiftModerationReportsActionFailed));
+        }
+        if (run.Status == ModerationRunStatus.Succeeded)
+        {
+          var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken).ConfigureAwait(true)).Appeal;
+          cancellationToken.ThrowIfCancellationRequested();
+          if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, refreshed)) return;
+          if (admission.IsReconciled(refreshed))
+          {
+            ClearPendingAIRerun(appeal.Id, admission.Token);
+            Replace(refreshed, preserveUnconfirmedDirtyDraft: true);
+            return;
+          }
         }
         if (attempt + 1 < rerunPollAttempts) await rerunPollDelay(cancellationToken).ConfigureAwait(true);
       }

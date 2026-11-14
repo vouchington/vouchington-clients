@@ -13,7 +13,7 @@ public sealed partial class MemberMcpSessionTests
   [Fact]
   public async Task CanonicalFeedDeliveryProducesFactOnlyAfterBridgeValidation()
   {
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
         .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.posts");
     var factory = new FakeFactory { Catalog = ProducerCatalog() };
@@ -38,10 +38,59 @@ public sealed partial class MemberMcpSessionTests
   }
 
   [Fact]
+  public async Task CanonicalRssDeliveryProducesItsOwnFactAfterBridgeValidation()
+  {
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
+    var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.rss-items");
+    var factory = new FakeFactory { Catalog = ProducerCatalog() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    factory.Connections[0].ToolResult = new McpToolResult(
+        JsonSerializer.SerializeToElement(new[] { new { type = "text", text = "external result" } }),
+        row.GetProperty("structuredContent"), false);
+    var bridge = new MemberMcpToolBridge(snapshot.Catalog);
+    var validated = await bridge.ExecuteValidatedResultAsync("read_feed",
+        row.GetProperty("arguments").GetRawText(), session, snapshot, "call-1",
+        cancellationToken: TestContext.Current.CancellationToken);
+    Assert.Null(validated.FeedPostFact);
+    Assert.Equal("account-a", validated.RssItemFact?.AccountId);
+    Assert.Equal("call-1", validated.RssItemFact?.CallId);
+    Assert.Equal(["0198ffff-0000-7000-8000-000000000002"], validated.RssItemFact?.ItemIds);
+    Assert.Equal(1, factory.Connections[0].ToolCalls);
+  }
+
+  [Fact]
+  public async Task CanonicalReferralDeliveryProducesItsOwnFactAfterBridgeValidation()
+  {
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
+    var row = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Single(item => item.GetProperty("id").GetString() == "native.mcp.read-feed.referral-links");
+    var factory = new FakeFactory { Catalog = ProducerCatalog() };
+    using var session = new MemberMcpSession(new FakeSessionStore("account-a"), new FakeStore(), factory);
+    await session.ConnectAsync(TestContext.Current.CancellationToken);
+    var snapshot = Assert.IsType<MemberMcpConnectedSnapshot>(session.ConnectedSnapshot());
+    factory.Connections[0].ToolResult = new McpToolResult(
+        JsonSerializer.SerializeToElement(new[] { new { type = "text", text = "external result" } }),
+        row.GetProperty("structuredContent"), false);
+    var bridge = new MemberMcpToolBridge(snapshot.Catalog);
+    var validated = await bridge.ExecuteValidatedResultAsync("read_feed",
+        row.GetProperty("arguments").GetRawText(), session, snapshot, "call-1",
+        cancellationToken: TestContext.Current.CancellationToken);
+    Assert.Null(validated.FeedPostFact);
+    Assert.Null(validated.RssItemFact);
+    Assert.Equal("account-a", validated.ReferralLinkFact?.AccountId);
+    Assert.Equal("call-1", validated.ReferralLinkFact?.CallId);
+    Assert.Empty(validated.ReferralLinkFact!.Links);
+    Assert.Equal(1, factory.Connections[0].ToolCalls);
+  }
+
+  [Fact]
   public async Task InvalidMutationOutputStopsModelLoopWithoutRedispatch()
   {
     var catalog = ProducerCatalog();
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var fixture = fixtures.RootElement.GetProperty("cases").EnumerateArray()
         .Single(row => row.GetProperty("id").GetString() == "native.mcp.manage-bookmark.set");
     var rawArguments = fixture.GetProperty("arguments").GetRawText();
@@ -86,8 +135,9 @@ public sealed partial class MemberMcpSessionTests
           .Single(item => item.GetProperty("name").GetString() == descriptor.Name);
       Assert.Equal(tool.GetProperty("inputSchema").GetRawText(), descriptor.Parameters.GetRawText());
     }
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
-    var cases = fixtures.RootElement.GetProperty("cases").EnumerateArray().ToArray();
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
+    var cases = fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Where(row => bridge.Tools.Any(tool => tool.Name == row.GetProperty("tool").GetString())).ToArray();
     foreach (var row in cases)
     {
       factory.Connections[0].ToolResult = new McpToolResult(JsonSerializer.SerializeToElement(new[]
@@ -106,7 +156,7 @@ public sealed partial class MemberMcpSessionTests
 
   private static JsonElement ProducerCatalog()
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
     var tools = manifest.RootElement.GetProperty("servers").EnumerateArray()
         .Single(server => server.GetProperty("name").GetString() == "voucha-user-mcp")
         .GetProperty("tools").EnumerateArray().Select(row => row.GetProperty("tool")).ToArray();

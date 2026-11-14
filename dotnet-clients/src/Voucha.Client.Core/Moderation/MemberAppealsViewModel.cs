@@ -10,8 +10,8 @@ public sealed partial class MemberAppealsViewModel : ObservableObject
   private readonly IMemberAppealsService service;
   private readonly NavigationViewer viewer;
   private readonly MemberAppealDraftStore drafts;
-  private readonly Dictionary<ModerationAppealStatus, CursorState<ModerationAppeal>> appealStates =
-      Enum.GetValues<ModerationAppealStatus>().ToDictionary(status => status, _ => new CursorState<ModerationAppeal>());
+  private readonly Dictionary<ModerationAppealStatus, CursorState<ModerationAppealSummary>> appealStates =
+      Enum.GetValues<ModerationAppealStatus>().ToDictionary(status => status, _ => new CursorState<ModerationAppealSummary>());
   private readonly CursorState<MemberWarningNotice> warnings = new();
   private readonly CursorState<PersonalCommunityBan> bans = new();
   private readonly CursorState<PersonalRemovedPost> removals = new();
@@ -36,7 +36,7 @@ public sealed partial class MemberAppealsViewModel : ObservableObject
 
   public MemberAppealsRoute Route { get; }
   public bool IsSignedIn => viewer.IsAuthenticated && viewer.IdentityId is not null;
-  public IReadOnlyList<ModerationAppeal> Appeals =>
+  public IReadOnlyList<ModerationAppealSummary> Appeals =>
       appealStates.Values.SelectMany(state => state.Items).ToArray();
   public IReadOnlyList<MemberAppealTarget> WarningTargets =>
       warnings.Items.Where(item => item.RevokedAt is null).Select(item => MemberAppealTarget.Warning(

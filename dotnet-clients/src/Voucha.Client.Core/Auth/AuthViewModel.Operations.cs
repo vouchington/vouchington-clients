@@ -19,7 +19,7 @@ public sealed partial class AuthViewModel
     }
     catch (VouchaApiException ex)
     {
-      StatusMessage = ex.Message;
+      StatusMessage = ex.ApiMessage is { Length: > 0 } message ? message : ex.Message;
     }
     catch (HttpRequestException ex)
     {

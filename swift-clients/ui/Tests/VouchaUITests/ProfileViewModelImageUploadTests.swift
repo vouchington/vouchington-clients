@@ -49,6 +49,14 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertTrue(vm.avatarPreviewDecodeFailed)
         XCTAssertNil(vm.avatarUploadErrorMessage)
         XCTAssertTrue(vm.isUploadingAvatar)
+        vm.identity = try makeIdentity(profileImageId: nil)
+        let rendered = try ProfileView(viewModel: vm).inspect()
+        let fallback = try rendered.find(LocalImagePreview.self).actualView()
+        XCTAssertNil(fallback.data)
+        XCTAssertFalse(fallback.uploadComplete)
+        XCTAssertNoThrow(try rendered.find(text: "Preview unavailable."))
+        XCTAssertThrowsError(try rendered.find(text: "Image uploaded. Preview unavailable."))
+        XCTAssertTrue(rendered.findAll(Avatar.self).isEmpty)
 
         CannedFeedURLProtocol.releaseResponse(path: "/api/v1/images/upload-url")
         await upload.value
@@ -206,6 +214,12 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         CannedFeedURLProtocol.releaseResponse(path: uploadURL.path)
         await upload.value
         XCTAssertNil(vm.avatarPreviewData)
+        let completed = try ProfileView(viewModel: vm).inspect()
+        XCTAssertTrue(completed.findAll(LocalImagePreview.self).isEmpty)
+        XCTAssertEqual(
+            try completed.find(Avatar.self).actualView().imageURL,
+            "https://images.voucha.ai/images/placements/placement-selected-avatar/2/selected-avatar?w=144"
+        )
     }
 
     func testNavigationKeepsAvatarUploadBusyUntilIdentityPatchFinishes() async throws {
@@ -250,7 +264,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             await mutation.value
             throw error
         }
-        vm.clearAvatarPreviewForNavigation()
+        try ProfileView(viewModel: vm).inspect().group().callOnDisappear()
         guard vm.isUploadingAvatar else {
             CannedFeedURLProtocol.releaseResponse(path: identityPath)
             await mutation.value
@@ -336,6 +350,39 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
         XCTAssertNoThrow(try sut.inspect().find(ViewType.TextEditor.self))
     }
 
+    func testPlacementConflictPreservesIdentityAndPreviewAndAllowsRetry() async throws {
+        let vm = try makeViewModel()
+        vm.identity = try makeIdentity(profileImageId: "existing-avatar")
+        let file = try makeImageFile(name: "capacity-avatar", extension: "gif", data: Self.validImageData)
+        defer { try? FileManager.default.removeItem(at: file) }
+        try registerImageUploadFlow(
+            imageId: "capacity-avatar",
+            uploadURL: XCTUnwrap(URL(string: "https://upload.example.test/capacity-avatar")),
+            contentType: "image/gif",
+            stateBody: #"{"upload_state":{"id":"capacity-avatar","upload_status":"complete","upload_error":null,"ready":true,"blocked":false}}"#
+        )
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            ApiFixtureLoader.data("native.posts.images.placement-limit.conflict"), 409
+        )
+
+        await vm.uploadAvatar(from: file)
+
+        XCTAssertEqual(vm.identity?.profileImageId, "existing-avatar")
+        XCTAssertNotNil(vm.avatarPreviewData)
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertEqual(vm.avatarUploadErrorMessage, .app(UiMessage(.nativeCommonImagePlacementLimitReached)))
+        CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
+            ApiFixtureLoader.data("swift.my.identity.default"), 200
+        )
+
+        await vm.uploadAvatar(from: file)
+
+        XCTAssertNil(vm.avatarUploadErrorMessage)
+        XCTAssertNil(vm.avatarPreviewData)
+        XCTAssertFalse(vm.isUploadingAvatar)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "PATCH" }.count, 2)
+    }
+
     private func makeViewModel() throws -> ProfileViewModel {
         let config = AppConfig(baseURL: URL(string: "http://localhost:2999")!, turnstileSiteKey: "test-site-key")
         let cookieStorage = HTTPCookieStorage()
@@ -344,7 +391,7 @@ final class ProfileViewModelImageUploadTests: XCTestCase {
             cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let sessionManager = SessionManager(client: apiClient, cookieStorage: cookieStorage)
+        let sessionManager = SessionManager(client: apiClient)
         return ProfileViewModel(
             client: apiClient,
             config: config,

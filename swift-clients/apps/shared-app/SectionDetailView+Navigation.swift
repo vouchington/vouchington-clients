@@ -97,28 +97,6 @@ extension SectionDetailView {
         }
     }
 
-    #if !os(macOS)
-        @ToolbarContentBuilder
-        var verticalPickerToolbarItem: some ToolbarContent {
-            if section.isVertical, !section.subsections.isEmpty {
-                ToolbarItem(placement: .principal) {
-                    Picker(selection: Binding(
-                        get: { effectiveSubsection },
-                        set: { selectIOSSubsection($0) }
-                    )) {
-                        ForEach(section.subsections) { sub in
-                            Text(UiMessages.string(section.subsectionTitle(sub), locale: nativeUiLocale)).tag(sub)
-                        }
-                    } label: {
-                        EmptyView()
-                    }
-                    .pickerStyle(.segmented)
-                    .fixedSize()
-                }
-            }
-        }
-    #endif
-
     func selectIOSSubsection(_ subsection: VerticalSubsection) {
         didClearNativeRoute = true
         iOSSubsection = subsection
@@ -136,10 +114,11 @@ extension SectionDetailView {
     @ToolbarContentBuilder
     var signInToolbarItem: some ToolbarContent {
         if !factory.sessionManager.isSignedIn {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: signInToolbarPlacement) {
                 Button(factory.uiLocaleController.string(.nativeAuthSignIn)) {
                     showSignIn()
                 }
+                .accessibilityIdentifier(RootView.signedOutSignInAccessibilityIdentifier)
             }
         }
     }
@@ -181,7 +160,7 @@ extension SectionDetailView {
         return .feed(.all)
     }
 
-    private func normalizeSignedOutSubsection(_ subsection: VerticalSubsection) -> VerticalSubsection {
+    func normalizeSignedOutSubsection(_ subsection: VerticalSubsection) -> VerticalSubsection {
         guard !factory.sessionManager.isSignedIn else { return subsection }
         switch subsection {
         case .feed(.your): return .feed(.all)

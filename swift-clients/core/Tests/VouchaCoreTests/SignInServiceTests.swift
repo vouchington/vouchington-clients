@@ -122,7 +122,7 @@ final class SignInServiceTests: XCTestCase {
         )
         return SignInService(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: IsolatedHTTPCookieStorage.make()),
+            sessionManager: SessionManager(client: client),
             appAttestationService: attestationService
         )
     }

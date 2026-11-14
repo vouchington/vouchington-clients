@@ -145,7 +145,7 @@ internal sealed partial class ScriptedCommunitiesService : ICommunitiesService
 
   public Queue<CommunityAutomodActionsResponse> AutomodRecentActionsResponses { get; } = [];
 
-  public Func<string, string, CancellationToken, Task<CommunityModerationResultsResponse>>?
+  public Func<string, string, string?, CancellationToken, Task<CommunityModerationResultsResponse>>?
       ModerationResultsHandler
   { get; set; }
 
@@ -369,11 +369,14 @@ internal sealed partial class ScriptedCommunitiesService : ICommunitiesService
   public Task<CommunityModerationResultsResponse> FetchModerationResultsAsync(
       string idOrSlug,
       string postId,
+      string? after = null,
+      int? limit = null,
       CancellationToken cancellationToken = default) =>
-      ModerationResultsHandler?.Invoke(idOrSlug, postId, cancellationToken) ??
+      ModerationResultsHandler?.Invoke(idOrSlug, postId, after, cancellationToken) ??
       Task.FromResult(JsonSerializer.Deserialize<CommunityModerationResultsResponse>("""
           {
-            "community_agent_moderations": [],
+            "results": [],
+            "page_info": { "end_cursor": null, "has_next_page": false, "start_cursor": null },
             "platform_moderation": {
               "status": "in_review"
             }

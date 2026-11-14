@@ -19,19 +19,18 @@ final class NativeFeatureFlagOverridesSurfaceTests: XCTestCase {
         let viewModel = makeViewModel(state: state)
         await viewModel.load()
         let sut = NativeFeatureFlagOverridesSurface(viewModel: viewModel)
-        let pickers = try sut.inspect().findAll(ViewType.Picker.self)
-        let chat = pickers[0]
-        let fediverse = pickers[2]
+        let memberships = try overridePicker(in: sut, for: "memberships")
+        let fediverse = try overridePicker(in: sut, for: "fediverse")
 
         XCTAssertNoThrow(try fediverse.labelView().find(text: "Device override for fediverse"))
         try fediverse.select(value: NativeFeatureFlagOverrideChoice.enabled)
         XCTAssertEqual(state.effective["fediverse"], true)
         try fediverse.select(value: NativeFeatureFlagOverrideChoice.disabled)
         XCTAssertEqual(state.effective["fediverse"], false)
-        try chat.select(value: NativeFeatureFlagOverrideChoice.disabled)
+        try memberships.select(value: NativeFeatureFlagOverrideChoice.disabled)
         try fediverse.select(value: NativeFeatureFlagOverrideChoice.inherited)
         XCTAssertNil(state.localOverride(for: "fediverse"))
-        XCTAssertEqual(state.localOverride(for: "chat"), false)
+        XCTAssertEqual(state.localOverride(for: "memberships"), false)
         try sut.inspect().find(button: "Clear all device overrides").tap()
         XCTAssertTrue(state.localOverrides.isEmpty)
 
@@ -49,12 +48,12 @@ final class NativeFeatureFlagOverridesSurfaceTests: XCTestCase {
         try await ViewHosting.host(sut) {
             XCTAssertThrowsError(try sut.inspect().find(text: "Fediverse search"))
 
-            try sut.inspect().findAll(ViewType.Picker.self)[2]
+            try overridePicker(in: sut, for: "fediverse")
                 .select(value: NativeFeatureFlagOverrideChoice.enabled)
             await Task.yield()
             XCTAssertNoThrow(try sut.inspect().find(text: "Fediverse search"))
 
-            try sut.inspect().findAll(ViewType.Picker.self)[2]
+            try overridePicker(in: sut, for: "fediverse")
                 .select(value: NativeFeatureFlagOverrideChoice.disabled)
             await Task.yield()
             XCTAssertThrowsError(try sut.inspect().find(text: "Fediverse search"))
@@ -196,6 +195,15 @@ final class NativeFeatureFlagOverridesSurfaceTests: XCTestCase {
         )
         XCTAssertEqual(entry?.destinationIdentifier, .topicDetail)
         XCTAssertNotNil(match)
+    }
+
+    private func overridePicker(
+        in view: some View,
+        for key: String
+    ) throws -> InspectableView<ViewType.Picker> {
+        try XCTUnwrap(view.inspect().findAll(ViewType.Picker.self).first {
+            (try? $0.labelView().find(text: "Device override for \(key)")) != nil
+        })
     }
 
     private func makeViewModel(

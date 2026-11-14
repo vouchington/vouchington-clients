@@ -70,7 +70,7 @@ public sealed class BookmarkCollectionPaginationFooterTests
   }
 
   private static string Fixture(string file) =>
-      File.ReadAllText(FilamentsContractPaths.ApiFixture(Path.Combine("responses", file)));
+      File.ReadAllText(ContractPaths.ApiFixture(Path.Combine("responses", file)));
 
   private sealed class SessionStore : ISessionStore
   {

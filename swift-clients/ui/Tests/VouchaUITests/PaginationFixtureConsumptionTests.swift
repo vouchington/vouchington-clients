@@ -41,7 +41,7 @@ final class PaginationFixtureConsumptionTests: XCTestCase {
             PostThreadEnvelope.self,
             from: ApiFixtureLoader.data("native.comments.descendants.default")
         )
-        XCTAssertEqual(descendants.results.count, 4)
+        XCTAssertEqual(descendants.results.count, 3)
 
         let reports = try decoder.decode(
             CommunityPendingReportsResponse.self,

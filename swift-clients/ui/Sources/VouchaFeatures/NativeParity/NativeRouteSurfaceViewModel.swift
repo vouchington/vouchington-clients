@@ -21,6 +21,29 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var focusedRssFeedItemElection: RssFeedItemElection?
     public internal(set) var focusedRssFeedItemBookmarks: [String: Bool] = [:]
     public internal(set) var focusedRssFeedItemVote: ElectionVoteChoice?
+    var hackerNewsFilterRevision = 0
+    var hackerNewsFilterTask: Task<Void, Never>?
+    var selectedPostTimeRange: PostTimeRange?
+    var hasHackerNewsReferences = false {
+        didSet {
+            guard hasHackerNewsReferences != oldValue else { return }
+            if hasHackerNewsReferences, supportsHackerNewsFilter { selectedPostTimeRange = .lastYear }
+            if !hasHackerNewsReferences, oldValue, supportsHackerNewsFilter {
+                selectedPostTimeRange = selectedPostTimeRange ?? boundedHackerNewsTimeRange
+            }
+            hackerNewsFilterRevision += 1
+            state = .idle
+            hackerNewsFilterTask = Task { await load() }
+        }
+    }
+
+    /// The backend flag; the filter stays hidden until a request reports references visible.
+    public internal(set) var hackerNewsReferencesVisible = false
+    /// Bumped per config request; only the newest request may publish its result.
+    @ObservationIgnored var hackerNewsConfigGeneration = 0
+
+    var profileHackerNewsReferences: [String: HackerNewsReferences] = [:]
+    public internal(set) var focusedHackerNewsReferences: HackerNewsReferences?
     public internal(set) var focusedRssFeedItemEmbed: UrlEmbed?
     public internal(set) var bookmarkEmbedsByEntityId: [String: UrlEmbed] = [:]
     var bookmarkRows: [NativeBookmarkRow] = []
@@ -40,6 +63,7 @@ public final class NativeRouteSurfaceViewModel {
     public internal(set) var detailRelationEntityType: String?
     public internal(set) var detailRelationEntityId: String?
     public internal(set) var detailRelationBookmarks: [String: Bool] = [:]
+    public internal(set) var detailRelationErrorMessage: UiVerbatimText?
     public internal(set) var detailRelationIsSelfProfile = false
     var userProfile = NativeUserProfileState()
     public internal(set) var detailUserTags: [EntityRelation] = []
@@ -82,12 +106,19 @@ public final class NativeRouteSurfaceViewModel {
     var crawlHistorySuffix: [NativeRouteDestinationRow] = []
     var crawlHistoryEndpoint: NativeCrawlHistoryEndpoint?
 
+    var publicLandingPage: NativePublicLandingPage?
+    var productSignalsActive = true
+    var productSurfaceVisible = false
+    var productSignalTasks: [UUID: Task<Void, Never>] = [:]
+    var recordedProductSignalKeys: Set<String> = []
+    var productSignalTask: Task<Void, Never>?
     let client: APIClient?
     let destination: NativeRouteDestinationIdentifier?
     let routeMatch: NativeRouteMatch?
     let routeQuery: String?
     let isAdministrator: Bool
     let isStaffViewer: Bool
+    let isSignedIn: Bool
 
     public init(
         entry: NativeRouteCatalogEntry,
@@ -95,13 +126,18 @@ public final class NativeRouteSurfaceViewModel {
         routeMatch: NativeRouteMatch? = nil,
         routeQuery: String? = nil,
         isAdministrator: Bool = false,
-        isSiteModerator: Bool = false
+        isSiteModerator: Bool = false,
+        isSignedIn: Bool = false
     ) {
         self.client = client
         self.routeMatch = routeMatch
         self.routeQuery = routeQuery
+        hasHackerNewsReferences = nativeRouteQueryItems(fromEncodedQuery: routeQuery)[
+            "has_hacker_news_references"
+        ] == "true"
         self.isAdministrator = isAdministrator
         isStaffViewer = isAdministrator || isSiteModerator
+        self.isSignedIn = isSignedIn
         destination = entry.destinationIdentifier == .moderationReviewQueue ? nil : entry.destinationIdentifier
         fediverseProvider = FediverseProviderFilter(routeValue: routeMatch?.queryValue("provider"))
         rows = entry.destinationIdentifier?.nativeRows ?? []

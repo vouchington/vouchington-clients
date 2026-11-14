@@ -19,7 +19,7 @@ final class ProfileSignOutFeedbackTests: XCTestCase {
             config: config, cookieStorage: cookieStorage,
             protocolClasses: [CannedFeedURLProtocol.self]
         )
-        let session = SessionManager(client: client, cookieStorage: cookieStorage)
+        let session = SessionManager(client: client)
         let user = try JSONDecoder.vouchaFixtureDecoder.decode(
             PrivateUser.self, from: PrivateUserTestFixture.userData(id: "member-a")
         )

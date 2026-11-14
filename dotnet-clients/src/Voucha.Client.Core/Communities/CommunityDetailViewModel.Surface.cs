@@ -69,6 +69,8 @@ public sealed partial class CommunityDetailViewModel
     get => selectedSection;
     private set
     {
+      if (selectedSection != value && selectedSection == CommunityDetailSurfaceSection.AgentPrompts)
+        ReleaseAgentPromptMutationState();
       if (SetProperty(ref selectedSection, value))
       {
         Interlocked.Increment(ref communityContextRevision);
@@ -164,7 +166,7 @@ public sealed partial class CommunityDetailViewModel
           Applications = ApplicationRows
               .Select(row => Summary(
                   row.Id,
-                  UiText.Verbatim(row.UserId),
+                  row.ApplicantText,
                   UiText.Verbatim(row.Status),
                   Verbatim(row.Message)))
               .ToArray();

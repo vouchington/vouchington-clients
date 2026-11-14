@@ -136,7 +136,7 @@ extension NativeRouteSurfaceViewModel {
         return response.results.compactMap { result in
             guard let item = response.rssFeedItems[result.entityId ?? result.id] else { return nil }
             let title = item.title ?? item.data?.title ?? item.rssFeed?.title
-                ?? URL(string: item.link ?? item.data?.link ?? item.rssFeed?.rssFeedUrl.url ?? "")?.host
+                ?? URL(string: item.link ?? item.data?.link ?? item.rssFeed?.rssFeedUrl?.url ?? "")?.host
             return row(
                 itemIcon(for: item.mediaType),
                 title.map(rawText) ?? appText(.nativeSwiftRouteSurfaceRssItem),

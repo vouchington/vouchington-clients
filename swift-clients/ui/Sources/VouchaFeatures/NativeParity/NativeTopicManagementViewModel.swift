@@ -1,6 +1,8 @@
+import Foundation
 import Observation
 import VouchaAPI
 import VouchaCore
+import VouchaLocalization
 import VouchaModels
 
 enum NativeTopicManagementSection: String {
@@ -38,13 +40,20 @@ final class NativeTopicManagementViewModel {
     var aliasesPagination = CursorPaginationState<TopicAlias>()
     var aliasDraft = ""
     var destinationIdOrSlug = ""
+    var mergeOperation: TopicMergeOperation?
+    var mergeMessage: UiMessageKey?
+    var isCheckingMerge = false
+    var mergeAccountId: String?
+    var mergeGeneration = UUID()
+    var isSubmittingMerge = false
     var state: LoadState = .idle
     var sourceDetail: RssFeedDetail?
 
     let client: APIClient?
     let routeMatch: NativeRouteMatch?
 
-    init(client: APIClient?, routeMatch: NativeRouteMatch?) {
+    init(client: APIClient?, routeMatch: NativeRouteMatch?, accountId: String? = nil) {
+        mergeAccountId = accountId
         self.client = client
         self.routeMatch = routeMatch
     }
@@ -177,16 +186,4 @@ final class NativeTopicManagementViewModel {
         }
     }
 
-}
-
-extension NativeTopicManagementViewModel {
-    func toggleSourceEnabled() async {
-        guard let feed = sourceDetail else { return }
-        await updateSource(enabled: !feed.isEnabled)
-    }
-
-    func toggleSourceDiscoverable() async {
-        guard let feed = sourceDetail else { return }
-        await updateSource(discoverable: !feed.isDiscoverable)
-    }
 }

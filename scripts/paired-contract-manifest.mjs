@@ -1,13 +1,13 @@
-import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { declaredFilamentsContractPaths } from './contracts.mjs'
-import { pairedRepositories, assertCheckoutMatchesSnapshot } from './paired-contract-policy.mjs'
+import { declaredContractPaths } from './contracts.mjs'
+import {
+  fail,
+  pairedRepositories,
+  assertCheckoutMatchesSnapshot,
+} from './paired-contract-policy.mjs'
 import { validatePairManifest } from './paired-contract-manifest-validation.mjs'
-
-function fail(message) {
-  throw new Error(`Paired contract attestation failed: ${message}`)
-}
+import { sha256 } from './sha256.mjs'
 
 async function realDirectory(path, label) {
   let stat
@@ -48,7 +48,7 @@ async function listFiles(root, declaredPaths) {
         const bytes = await readFile(path)
         files.push({
           path: relativePath,
-          sha256: createHash('sha256').update(bytes).digest('hex'),
+          sha256: sha256(bytes),
           sizeBytes: bytes.length,
         })
       } else fail(`unsupported staged contract entry ${relativePath}`)
@@ -75,11 +75,11 @@ export async function createPairManifest({
   if (
     contractConfig?.schemaVersion !== 1 ||
     contractConfig?.repository !== pairedRepositories.producer ||
-    contractConfig?.ref !== 'main' ||
+    !/^[0-9a-f]{40}$/u.test(contractConfig?.commit) ||
     !Array.isArray(paths) ||
     JSON.stringify(Object.keys(contractConfig).sort()) !==
-      JSON.stringify(['paths', 'ref', 'repository', 'schemaVersion']) ||
-    JSON.stringify(paths) !== JSON.stringify(declaredFilamentsContractPaths)
+      JSON.stringify(['commit', 'paths', 'repository', 'schemaVersion']) ||
+    JSON.stringify(paths) !== JSON.stringify(declaredContractPaths)
   )
     fail('trusted contract configuration is invalid')
   const files = await listFiles(stageRoot, paths)
@@ -98,7 +98,7 @@ export async function createPairManifest({
     contract: {
       outputOrigin: 'untrusted-candidate-exporter',
       repository: contractConfig.repository,
-      ref: contractConfig.ref,
+      trustedPinnedCommit: contractConfig.commit,
       declaredPaths: [...paths],
       files,
     },

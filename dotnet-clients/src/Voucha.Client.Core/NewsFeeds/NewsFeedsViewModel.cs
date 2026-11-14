@@ -1,14 +1,13 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Voucha.Client.Core.Bookmarks;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Support;
 using Voucha.Client.Core.Localization;
 
 namespace Voucha.Client.Core.NewsFeeds;
 
-public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class NewsFeedsViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly INewsFeedService newsFeedService;
   private readonly IBookmarkService bookmarkService;
@@ -26,6 +25,8 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   private readonly HashSet<string> startingStoryDiscussionStoryIds = new(StringComparer.Ordinal);
   private readonly IUiLocalization localization;
   private readonly IDisposable? localeSubscription;
+  private bool? hasHackerNewsReferences;
+  private readonly HackerNewsReferenceGate? hackerNewsReferences;
 
   public EmailVerificationGatedMutation EmailVerificationGate { get; } = new();
 
@@ -53,18 +54,19 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
       NewsFeedScope? initialScope,
       IBookmarkService? bookmarkService = null,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      HackerNewsReferenceGate? hackerNewsReferences = null)
   {
     this.newsFeedService = newsFeedService;
     this.bookmarkService = bookmarkService ?? NullBookmarkService.Instance;
     this.localization = localization ?? UiLocalization.English;
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
+    this.hackerNewsReferences = hackerNewsReferences;
+    hackerNewsSubscription = hackerNewsReferences?.Subscribe(this);
     this.feedKind = feedKind;
     selectedSourceFeedType = feedKind.GetDefaultSourceFeedType();
     selectedScope = initialScope ?? feedKind.GetAuthenticatedScope();
   }
-
-  public event PropertyChangedEventHandler? PropertyChanged;
 
   public NewsFeedScope SelectedScope
   {
@@ -79,6 +81,7 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
       OnPropertyChanged(nameof(IsYourSourcesSelected));
       OnPropertyChanged(nameof(IsAllSourcesSelected));
       OnPropertyChanged(nameof(IsSourceScopeSelected));
+      OnPropertyChanged(nameof(IsHackerNewsFilterVisible));
     }
   }
 
@@ -100,6 +103,8 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
   public string SourcesScopeLabel => feedKind.GetSourcesScopeLabel(localization);
 
   public string AllSourcesScopeLabel => feedKind.GetAllSourcesScopeLabel(localization);
+
+  public string HackerNewsFilterLabel => localization.Localize(UiMessageKey.SharedHackerNewsFilterLabel);
 
   public IReadOnlyList<NewsFeedItem> Items
   {
@@ -146,12 +151,20 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
       "CA1031:Do not catch general exception types",
       Justification = "LoadAsync converts service load failures into state before callers such as MAUI async event handlers observe them.")]
   public async Task LoadAsync(CancellationToken cancellationToken = default)
-      => await LoadFeedPageAsync(replace: true, cancellationToken).ConfigureAwait(true);
+      => await LoadFeedPageAsync(
+          replace: true,
+          cancellationToken,
+          RefreshHackerNewsReferencesAsync(cancellationToken)).ConfigureAwait(true);
 
-  public void Dispose() => localeSubscription?.Dispose();
+  public void Dispose()
+  {
+    hackerNewsSubscription?.Dispose();
+    localeSubscription?.Dispose();
+  }
 
   public void OnUiLocaleChanged()
   {
+    OnPropertyChanged(nameof(HackerNewsFilterLabel));
     foreach (var related in Items.Select(item => item.StoryArticles).OfType<StoryRelatedArticles>()) related.Notify();
     SetItems(Items.Select(Localized).ToArray(), synchronizeFeedPages: feedPages.HasLoadedPage || !feedPages.IsLoading);
   }
@@ -165,8 +178,4 @@ public sealed partial class NewsFeedsViewModel : INotifyPropertyChanged, IDispos
     OnPropertyChanged(nameof(HasItems));
   }
 
-  private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-  {
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-  }
 }

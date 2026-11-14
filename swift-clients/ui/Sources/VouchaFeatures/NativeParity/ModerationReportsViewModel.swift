@@ -68,10 +68,31 @@ public final class ModerationReportsViewModel {
     var activeReportPageRequest: CursorPageRequest?
     var groupedLoadedPageCount = 0
     private var evictedReportIds: Set<String> = []
+    let judgementAdmissions: ReportJudgementAdmissionStore
+    let judgementOwner: AppealAIRerunOwner?
+    let judgementRunReads: Int
+    let judgementRunDelay: @Sendable () async throws -> Void
 
-    public init(client: APIClient?, viewerTier: ModerationReportsViewerTier) {
+    public init(
+        client: APIClient?,
+        viewerTier: ModerationReportsViewerTier,
+        currentUserId: String? = nil,
+        judgementAdmissions: ReportJudgementAdmissionStore? = nil,
+        judgementRunReads: Int = 20,
+        judgementRunDelay: @escaping @Sendable () async throws -> Void = {
+            try await Task.sleep(for: .seconds(3))
+        }
+    ) {
+        self.judgementAdmissions = judgementAdmissions ?? (currentUserId == nil
+            ? ReportJudgementAdmissionStore() : .session)
+        judgementOwner = AppealAIRerunOwner(
+            userId: currentUserId ?? (judgementAdmissions == nil ? UUID().uuidString : nil),
+            baseURL: client?.baseURL
+        )
         self.client = client
         self.viewerTier = viewerTier
+        self.judgementRunReads = judgementRunReads
+        self.judgementRunDelay = judgementRunDelay
         mode = viewerTier.isStaff ? .grouped : .flat
         sort = viewerTier.isStaff ? .severity : .createdAtDesc
     }
@@ -95,16 +116,6 @@ public final class ModerationReportsViewModel {
         } else {
             selectedReportIds.insert(reportId)
         }
-    }
-
-    public func replaceSelectionWithActiveRemovableReports(
-        in duplicateCluster: StaffModerationReportDuplicateCluster
-    ) {
-        guard viewerTier.canRemove, !isQueueActionInProgress else { return }
-        let reports = duplicateCluster.clusters.flatMap(\.reports).filter {
-            isActive($0) && actionIsAllowed(.removeTarget, for: $0)
-        }
-        selectedReportIds = Set(reports.map(\.id))
     }
 
     func report(id: String) -> StaffModerationReport? {
@@ -138,18 +149,6 @@ public final class ModerationReportsViewModel {
         duplicateCluster.clusters.contains { !activeReports(in: $0).isEmpty }
     }
 
-    public func presentationCounts(
-        for duplicateCluster: StaffModerationReportDuplicateCluster
-    ) -> (posts: Int, reports: Int) {
-        let loaded = duplicateCluster.clusters.flatMap(\.reports)
-        let activeClusters = duplicateCluster.clusters.filter { !activeReports(in: $0).isEmpty }
-        let activeCount = activeClusters.reduce(0) { $0 + activeReports(in: $1).count }
-        if loaded.count == activeCount {
-            return (duplicateCluster.postCount, duplicateCluster.reportCount)
-        }
-        return (activeClusters.count, activeCount)
-    }
-
     func beginQueueMutation() -> Bool {
         guard !isQueueActionInProgress else { return false }
         isMutatingQueue = true
@@ -177,7 +176,7 @@ public final class ModerationReportsViewModel {
         activeReportPageRequest = nil
     }
 
-    private func isActive(_ report: StaffModerationReport) -> Bool {
+    func isActive(_ report: StaffModerationReport) -> Bool {
         !evictedReportIds.contains(report.id)
     }
 
@@ -185,6 +184,8 @@ public final class ModerationReportsViewModel {
         switch error {
         case let error as VouchaError:
             .verbatim(String(describing: error))
+        case let ended as ReportJudgementRunEnded:
+            .message(ended.messageKey)
         case AdminWarningValidationError.reasonTooLong:
             .message(.nativeSwiftModerationReportsWarningReasonTooLong)
         case AdminWarningValidationError.publicMessageTooLong:

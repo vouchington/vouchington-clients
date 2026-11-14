@@ -117,8 +117,8 @@ public struct ModerationAppealEnvelope: Codable, Sendable {
 }
 
 public struct ModerationAppealListResponse: Codable, Sendable {
-    public let appeals: [ModerationAppeal]
-    public let pageInfo: Page<ModerationAppeal>.PageInfo
+    public let appeals: [ModerationAppealSummary]
+    public let pageInfo: Page<ModerationAppealSummary>.PageInfo
 }
 
 public struct ModerationAppealSubmissionResponse: Codable, Sendable {
@@ -137,6 +137,7 @@ public enum ModerationDisputeStatus: String, Codable, Sendable {
 }
 
 public struct ModerationDispute: Codable, Identifiable, Sendable {
+    public let postLabel: String
     public let aiDraftRequestedRunId: String
     @RequiredNullable
     public var aiDraftRunId: String?

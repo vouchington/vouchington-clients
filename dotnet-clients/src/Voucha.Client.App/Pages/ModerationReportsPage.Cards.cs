@@ -101,7 +101,7 @@ public sealed partial class ModerationReportsPage
             : null,
         UiText.Localized(
             UiMessageKey.NativeSwiftModerationReportsReporter,
-            ("reporter", report.ReporterUsername ?? report.ReporterUserId)),
+            ("reporter", ModerationLabels.Person(report.ReporterDisplayName, report.ReporterUsername, UiCopy.CurrentLocalization))),
         string.IsNullOrWhiteSpace(report.Note)
             ? null
             : UiText.Localized(UiMessageKey.NativeSwiftModerationReportsNote, ("note", report.Note)),
@@ -109,7 +109,7 @@ public sealed partial class ModerationReportsPage
             ? null
             : UiText.Localized(
                 UiMessageKey.NativeDotnetModerationRebasedResolvedBy,
-                ("actor", report.ResolvedById)));
+                ("actor", ModerationLabels.Person(report.ResolverDisplayName, report.ResolverUsername, UiCopy.CurrentLocalization))));
     AddTargetLink(content, report.TargetPath ?? report.AdminActionPath);
     AddAuthoredContent(content, report.TargetContent);
     AddJudgement(content, report.Judgement);
@@ -120,7 +120,7 @@ public sealed partial class ModerationReportsPage
           ("context", context.GetRawText())));
     content.Children.Add(ReportActions(report));
     if (viewModel.RowErrors.TryGetValue(report.Id, out var error))
-      content.Children.Add(new Label { Text = error, TextColor = Colors.IndianRed });
+      content.Children.Add(new Label { Text = UiCopy.Resolve(error), TextColor = Colors.IndianRed });
     return CardBorder(content);
   }
 

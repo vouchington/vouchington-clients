@@ -1,5 +1,4 @@
 import SwiftUI
-import VouchaCore
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -34,6 +33,10 @@ struct NativeDetailSurface: View {
                 topicVoteControls
                 hostnameVoteControls
                 relationControls
+                if let message = viewModel.detailRelationErrorMessage {
+                    Text(UiMessages.string(message, locale: nativeUiLocale))
+                        .foregroundStyle(.secondary)
+                }
                 reportingControls
                 userTagControls
                 destinationRows
@@ -71,11 +74,7 @@ struct NativeDetailSurface: View {
             Text(reportSuccessMessage)
         }
         .sheet(isPresented: reportTurnstileBinding) {
-            NativeTurnstileChallengeView(
-                siteKey: turnstileSiteKey ?? AppConfig.shared.requiredTurnstileSiteKey
-            ) { token in
-                handleReportTurnstileToken(token)
-            }
+            turnstileChallenge
         }
         .sheet(isPresented: $showingReportNoteDialog, onDismiss: presentReportTurnstileAfterNoteDismiss) {
             reportNoteSheet
@@ -107,8 +106,11 @@ struct NativeDetailSurface: View {
         .padding()
     }
 
+}
+
+private extension NativeDetailSurface {
     @ViewBuilder
-    private var relationControls: some View {
+    var relationControls: some View {
         if let entityType = viewModel.detailRelationEntityType,
            let entityId = viewModel.detailRelationEntityId {
             let isUserProfile = entityType == "user"

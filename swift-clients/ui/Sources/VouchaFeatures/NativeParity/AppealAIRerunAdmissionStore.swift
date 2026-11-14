@@ -41,7 +41,7 @@ final class AppealAIRerunAdmissionStore {
 
     struct Admission: Equatable {
         let token: UUID
-        let baseline: AppealAIRerunBaseline
+        var baseline: AppealAIRerunBaseline
     }
 
     private var pendingByOwner: [AppealAIRerunOwner: [String: Admission]] = [:]
@@ -53,8 +53,16 @@ final class AppealAIRerunAdmissionStore {
 
     func admit(_ appeal: ModerationAppeal, for owner: AppealAIRerunOwner?) -> Admission? {
         guard let owner, pendingByOwner[owner]?[appeal.id] == nil else { return nil }
-        let admission = Admission(token: UUID(), baseline: AppealAIRerunBaseline(appeal: appeal))
+        let admission = Admission(token: UUID(), baseline: AppealAIRerunBaseline())
         pendingByOwner[owner, default: [:]][appeal.id] = admission
+        return admission
+    }
+
+    func recordRun(_ runId: String, appealId: String, owner: AppealAIRerunOwner?, token: UUID) -> Admission? {
+        guard !runId.isEmpty, let owner, var admission = pendingByOwner[owner]?[appealId],
+              admission.token == token else { return nil }
+        admission.baseline.runId = runId
+        pendingByOwner[owner]?[appealId] = admission
         return admission
     }
 

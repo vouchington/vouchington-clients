@@ -115,11 +115,10 @@ final class CookieDiscardURLProtocol: URLProtocol {
     override func startLoading() {
         guard let host = request.url?.host,
               let probe = Self.registry.probe(forHost: host),
-              request.url?.path == "/api/v1/my/identity",
               let url = request.url,
               let response = HTTPURLResponse(
                   url: url,
-                  statusCode: 200,
+                  statusCode: request.url?.path == "/api/v1/session" ? 401 : 200,
                   httpVersion: "HTTP/1.1",
                   headerFields: ["Content-Type": "application/json"]
               )
@@ -127,7 +126,8 @@ final class CookieDiscardURLProtocol: URLProtocol {
             deliver { $0.urlProtocol(self, didFailWithError: URLError(.unsupportedURL)) }
             return
         }
-        let data = probe.record(request)
+        let identity = probe.record(request)
+        let data = request.url?.path == "/api/v1/session" ? Data(#"{"code":"AUTH_REQUIRED"}"#.utf8) : identity
         deliver { $0.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
         deliver { $0.urlProtocol(self, didLoad: data) }
         deliver { $0.urlProtocolDidFinishLoading(self) }

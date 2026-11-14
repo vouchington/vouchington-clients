@@ -435,7 +435,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
             cookieStorage: storage,
             protocolClasses: [EmailOTPViewFailingURLProtocol.self]
         )
-        return SignInService(client: client, sessionManager: SessionManager(client: client, cookieStorage: storage))
+        return SignInService(client: client, sessionManager: SessionManager(client: client))
     }
 
     private func makeOAuthFixture() throws -> (
@@ -444,7 +444,7 @@ final class SignInViewTests: NativeRouteSurfaceViewModelTestCase {
     ) {
         let client = try makeClient()
         let storage = HTTPCookieStorage()
-        let sessionManager = SessionManager(client: client, cookieStorage: storage)
+        let sessionManager = SessionManager(client: client)
         return try (
             SignInService(client: client, sessionManager: sessionManager),
             NativeOAuthAuthorizationCoordinator(

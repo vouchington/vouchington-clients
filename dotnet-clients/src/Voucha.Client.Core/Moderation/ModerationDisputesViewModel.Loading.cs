@@ -24,6 +24,7 @@ public sealed partial class ModerationDisputesViewModel
     _ = Interlocked.Increment(ref loadRevision);
     SelectedStatus = status;
     Disputes = [];
+    Summaries = [];
     endCursor = null;
     HasMore = false;
     State = LoadState.Idle;
@@ -36,13 +37,14 @@ public sealed partial class ModerationDisputesViewModel
       CancellationToken cancellationToken = default)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(disputeId);
-    if (!CanAccess || IsMutating || !ambiguousMutationIds.Contains(disputeId)) return;
+    if (!CanAccess || IsMutating || !Disputes.Any(row => row.Id == disputeId) ||
+        !ambiguousMutationIds.Contains(disputeId)) return;
     _ = await MutateAsync(disputeId, async () =>
     {
       var response = await service.FetchDisputeAsync(
           disputeId,
           cancellationToken).ConfigureAwait(true);
-      if (!HasRerunReconciled(response.Dispute)) return;
+      if (response.Dispute.Id != disputeId || !HasRerunReconciled(response.Dispute)) return;
       UnlockRerun(disputeId);
       Replace(response.Dispute, preserveUnconfirmedDirtyDraft: true);
     }, cancellationToken).ConfigureAwait(true);
@@ -63,30 +65,29 @@ public sealed partial class ModerationDisputesViewModel
           cursor,
           cancellationToken: cancellationToken).ConfigureAwait(true);
       if (!IsCurrent(revision, expectedMutationOutcomeRevision, expectedStatus)) return;
-      Disputes = replace
+      Summaries = replace
           ? Deduplicate(response.Disputes)
-          : Merge(Disputes, response.Disputes);
-      SeedDrafts(response.Disputes);
+          : Merge(Summaries, response.Disputes);
       endCursor = response.PageInfo.EndCursor;
-      HasMore = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+      HasMore = response.PageInfo.HasMorePages;
       State = LoadState.Loaded;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
       if (IsCurrent(revision, expectedMutationOutcomeRevision, expectedStatus))
-        State = Disputes.Count == 0 ? LoadState.Idle : LoadState.Loaded;
+        State = Summaries.Count == 0 ? LoadState.Idle : LoadState.Loaded;
     }
     catch (Exception exception) when (exception is not OperationCanceledException)
     {
       if (!IsCurrent(revision, expectedMutationOutcomeRevision, expectedStatus)) return;
       SetError(UiMessageKey.NativeSwiftModerationReportsActionFailed);
-      State = Disputes.Count == 0 ? LoadState.Error : LoadState.Loaded;
+      State = Summaries.Count == 0 ? LoadState.Error : LoadState.Loaded;
     }
     catch (OperationCanceledException)
     {
       if (!IsCurrent(revision, expectedMutationOutcomeRevision, expectedStatus)) return;
       SetError(UiMessageKey.NativeSwiftModerationReportsActionFailed);
-      State = Disputes.Count == 0 ? LoadState.Error : LoadState.Loaded;
+      State = Summaries.Count == 0 ? LoadState.Error : LoadState.Loaded;
     }
   }
 
@@ -98,13 +99,13 @@ public sealed partial class ModerationDisputesViewModel
       expectedMutationOutcomeRevision == Volatile.Read(ref mutationOutcomeRevision) &&
       status == SelectedStatus;
 
-  private static ModerationDispute[] Deduplicate(
-      IEnumerable<ModerationDispute> source) =>
+  private static ModerationDisputeSummary[] Deduplicate(
+      IEnumerable<ModerationDisputeSummary> source) =>
       source.DistinctBy(dispute => dispute.Id, StringComparer.Ordinal).ToArray();
 
-  private static ModerationDispute[] Merge(
-      IEnumerable<ModerationDispute> existing,
-      IEnumerable<ModerationDispute> additions) =>
+  private static ModerationDisputeSummary[] Merge(
+      IEnumerable<ModerationDisputeSummary> existing,
+      IEnumerable<ModerationDisputeSummary> additions) =>
       existing.Concat(additions)
           .DistinctBy(dispute => dispute.Id, StringComparer.Ordinal)
           .ToArray();

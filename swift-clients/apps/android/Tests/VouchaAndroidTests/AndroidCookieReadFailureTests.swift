@@ -11,8 +11,8 @@ final class AndroidCookieReadFailureTests: XCTestCase {
     @MainActor
     func testReadFailurePreservesSnapshotAndExplicitRetryRestoresBeforeIdentityRequest() async throws {
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         let host = "cookie-read-\(UUID().uuidString.lowercased()).voucha.ai"
         let secrets = CookieReadFailureSecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
@@ -59,22 +59,19 @@ final class AndroidCookieReadFailureTests: XCTestCase {
         XCTAssertTrue(storage.persistenceStatus.enabled)
         XCTAssertNil(account.cookiePersistenceNotice.errorMessage)
         XCTAssertTrue(account.session.isSignedIn)
-        XCTAssertEqual(probe.requestPaths(), ["/api/v1/my/identity"])
-        XCTAssertEqual(probe.cookieValuesAtRequests(), [["original-session"]])
-        let persisted = try XCTUnwrap(secrets.snapshotValue(forKey: persistenceKey))
+        XCTAssertEqual(probe.requestPaths(), ["/api/v1/session", "/api/v1/my/identity"])
         XCTAssertEqual(
-            try JSONSerialization.jsonObject(with: Data(persisted.utf8)) as? NSArray,
-            try JSONSerialization.jsonObject(with: Data(rawSnapshot.utf8)) as? NSArray
+            probe.cookieValuesAtRequests().map { $0.sorted() },
+            try [["original-session"], androidRotatedCookieValues()]
         )
-        // APIClient persists the restored jar after the successful identity response.
-        XCTAssertEqual(secrets.writeCount(), 1)
+        try assertPersistedRotation(secrets, key: persistenceKey)
     }
 
     @MainActor
     func testMalformedSnapshotBlocksBootstrapAndCannotBeOverwritten() async throws {
         let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        let root = try ContractRoot.url(requiredPaths: [fixture])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
         let host = "cookie-read-\(UUID().uuidString.lowercased()).voucha.ai"
         let secrets = CookieReadFailureSecrets()
         let persistenceKey = try XCTUnwrap(AndroidSessionCookieNamespace.key(for: AppConfig.shared.baseURL))
@@ -123,9 +120,36 @@ final class AndroidCookieReadFailureTests: XCTestCase {
 
 @MainActor
 private extension AndroidCookieReadFailureTests {
+    func assertPersistedRotation(_ secrets: CookieReadFailureSecrets, key: String) throws {
+        let persisted = try XCTUnwrap(secrets.snapshotValue(forKey: key))
+        let records = try JSONDecoder().decode(
+            [AndroidSessionCookieStorage.CookieRecord].self,
+            from: Data(persisted.utf8)
+        )
+        XCTAssertEqual(records.map(\.value).sorted(), try androidRotatedCookieValues())
+        // Only the changed renewal snapshot is written; identity leaves credentials unchanged.
+        XCTAssertEqual(secrets.writeCount(), 1)
+    }
+
     func assertRestorationBlocked(_ account: AndroidAccount, storage: AndroidSessionCookieStorage) {
         XCTAssertTrue(account.isRestoring)
         XCTAssertTrue(storage.requiresRestorationRetry)
         XCTAssertNotNil(account.cookiePersistenceNotice.errorMessage)
+    }
+}
+
+enum CookieReadFailureTestFixture {
+    static func cookieSnapshot(value: String, domain: String = "voucha.ai") throws -> String {
+        let record = try XCTUnwrap(
+            AndroidSessionCookieStorage.CookieRecord(cookie: sessionCookie(value: value, domain: domain))
+        )
+        let data = try JSONEncoder().encode([record])
+        return try XCTUnwrap(String(data: data, encoding: .utf8))
+    }
+
+    static func sessionCookie(value: String, domain: String = "voucha.ai") throws -> HTTPCookie {
+        try XCTUnwrap(HTTPCookie(properties: [
+            .name: "st", .value: value, .domain: domain, .path: "/", .secure: "TRUE"
+        ]))
     }
 }

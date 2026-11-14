@@ -75,7 +75,10 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
             XCTAssertTrue(try actual.isEqual(to: XCTUnwrap(published["inputSchema"] as? [String: Any])))
         }
         let fixtures = try fixtureObject("mcp-results.json")
-        for row in try XCTUnwrap(fixtures["cases"] as? [[String: Any]]) {
+        let memberRows = try XCTUnwrap(fixtures["cases"] as? [[String: Any]]).filter { row in
+            bridge.tools.contains { $0.name == row["tool"] as? String }
+        }
+        for row in memberRows {
             let name = try XCTUnwrap(row["tool"] as? String)
             let tool = try XCTUnwrap(tools.first { $0["name"] as? String == name })
             let fields = try object(value(tool))
@@ -414,8 +417,8 @@ final class NativeChatMCPOutputContractTests: NativeRouteSurfaceViewModelTestCas
     }
 
     private func fixtureObject(_ file: String) throws -> [String: Any] {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/\(file)"])
-        let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/\(file)", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/\(file)"])
+        let url = try ContractRoot.requiredURL("api-fixtures/v1/\(file)", root: root)
         return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
     }
 

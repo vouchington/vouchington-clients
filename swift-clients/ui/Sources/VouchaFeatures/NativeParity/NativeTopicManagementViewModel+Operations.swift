@@ -27,14 +27,23 @@ extension NativeTopicManagementViewModel {
         guard let client else { return }
         state = .loading
         do {
-            let response: TopicEnvelope = try await client.send(.createTopic(body: createBody))
-            apply(topic: response.topic)
-            if let followUpBody = createFollowUpBody {
+            let followUpBody = createFollowUpBody
+            let createdTopic: Topic
+            if let topic {
+                createdTopic = topic
+            } else {
+                let response: TopicEnvelope = try await client.send(.createTopic(body: createBody))
+                createdTopic = response.topic
+                topic = createdTopic
+            }
+            if let followUpBody {
                 let updated: TopicEnvelope = try await client.send(.updateTopic(
-                    id: response.topic.id,
+                    id: createdTopic.id,
                     body: followUpBody
                 ))
                 apply(topic: updated.topic)
+            } else {
+                apply(topic: createdTopic)
             }
             state = .loaded
         } catch let error as VouchaError {
@@ -51,25 +60,6 @@ extension NativeTopicManagementViewModel {
             let response: TopicEnvelope = try await client.send(.updateTopic(id: topicIdentifier, body: updateBody))
             apply(topic: response.topic)
             try await loadSectionData()
-            state = .loaded
-        } catch let error as VouchaError {
-            state = .error(error)
-        } catch {
-            state = .error(.api(statusCode: 0, preconditionCode: nil))
-        }
-    }
-
-    func mergeTopic() async {
-        guard let client, let topicIdentifier else { return }
-        let destination = destinationIdOrSlug.trimmed
-        guard !destination.isEmpty else { return }
-        state = .loading
-        do {
-            let response: TopicEnvelope = try await client.send(.mergeTopicAliases(
-                sourceTopicId: topicIdentifier,
-                destinationIdOrSlug: destination
-            ))
-            apply(topic: response.topic)
             state = .loaded
         } catch let error as VouchaError {
             state = .error(error)
@@ -180,5 +170,17 @@ extension NativeTopicManagementViewModel {
         heroImagePlacement = topic.heroImagePlacement
         noindex = topic.noindex ?? false
         allowReviews = topic.allowReviews ?? false
+    }
+}
+
+extension NativeTopicManagementViewModel {
+    func toggleSourceEnabled() async {
+        guard let feed = sourceDetail else { return }
+        await updateSource(enabled: !feed.isEnabled)
+    }
+
+    func toggleSourceDiscoverable() async {
+        guard let feed = sourceDetail else { return }
+        await updateSource(discoverable: !feed.isDiscoverable)
     }
 }

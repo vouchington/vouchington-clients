@@ -9,7 +9,8 @@ extension CommunityDetailViewModel {
         guard !userId.isEmpty else { return }
         await perform(
             .updateCommunityMemberRole(idOrSlug: slug, userId: userId, role: role),
-            success: UiMessage(.nativeSwiftCommunityStatusUpdatedMember)
+            success: UiMessage(.nativeSwiftCommunityStatusUpdatedMember),
+            limit: .moderator
         )
     }
 
@@ -27,7 +28,8 @@ extension CommunityDetailViewModel {
         guard !userId.isEmpty else { return }
         await perform(
             .transferCommunityOwnership(idOrSlug: slug, userId: userId),
-            success: UiMessage(.nativeSwiftCommunityStatusTransferredOwnership)
+            success: UiMessage(.nativeSwiftCommunityStatusTransferredOwnership),
+            limit: .moderator
         )
     }
 
@@ -60,16 +62,17 @@ extension CommunityDetailViewModel {
 
     func approveApplication(applicationId: String) async {
         let applicationId = applicationId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !applicationId.isEmpty else { return }
+        guard canReviewApplication(applicationId) else { return }
         await perform(
             .approveCommunityApplication(idOrSlug: slug, applicationId: applicationId),
-            success: UiMessage(.nativeSwiftCommunityStatusApprovedApplication)
+            success: UiMessage(.nativeSwiftCommunityStatusApprovedApplication),
+            limit: .membership
         )
     }
 
     func rejectApplication(applicationId: String, reason: String) async {
         let applicationId = applicationId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !applicationId.isEmpty else { return }
+        guard canReviewApplication(applicationId) else { return }
         await perform(
             .rejectCommunityApplication(
                 idOrSlug: slug,

@@ -31,8 +31,36 @@ public sealed partial class ModerationAppealsViewModel
     var ownerRevision = Volatile.Read(ref accountRevision);
     return AwaitMutationAsync(appeal.Id, async () =>
     {
+      if (admission.RunId is null)
+      {
+        var current = (await service.FetchAppealAsync(appeal.Id, cancellationToken)
+            .ConfigureAwait(true)).Appeal;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, current)) return;
+        if (!admission.IsReconciled(current)) throw new TimeoutException(localization.Localize(
+            UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
+        ClearPendingAIRerun(appeal.Id, admission.Token);
+        Replace(current, preserveUnconfirmedDirtyDraft: true);
+        return;
+      }
+      var run = await service.FetchAIRerunAsync(appeal.Id, admission.RunId, cancellationToken)
+          .ConfigureAwait(true);
+      cancellationToken.ThrowIfCancellationRequested();
+      if (!IsCurrentAIRerunContext(appeal.Id, admission, revision, ownerRevision)) return;
+      if (!string.Equals(run.RunId, admission.RunId, StringComparison.Ordinal))
+        throw new TimeoutException(localization.Localize(
+            UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
+      if (run.Status is ModerationRunStatus.Failed or ModerationRunStatus.Expired)
+      {
+        ClearPendingAIRerun(appeal.Id, admission.Token);
+        ErrorMessage = localization.Localize(UiMessageKey.NativeSwiftModerationReportsActionFailed);
+        return;
+      }
+      if (run.Status != ModerationRunStatus.Succeeded) throw new TimeoutException(localization.Localize(
+          UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
       var refreshed = (await service.FetchAppealAsync(appeal.Id, cancellationToken)
           .ConfigureAwait(true)).Appeal;
+      cancellationToken.ThrowIfCancellationRequested();
       if (!IsCurrentAIRerun(appeal.Id, admission, revision, ownerRevision, refreshed)) return;
       if (!admission.IsReconciled(refreshed))
         throw new TimeoutException(localization.Localize(
@@ -135,6 +163,7 @@ public sealed partial class ModerationAppealsViewModel
     dirtyDraftIds.Clear();
     ambiguousDeliveryIds.Clear();
     Appeals = [];
+    Summaries = [];
     State = LoadState.Idle;
     ErrorMessage = null;
     OnPropertyChanged(nameof(Appeals));

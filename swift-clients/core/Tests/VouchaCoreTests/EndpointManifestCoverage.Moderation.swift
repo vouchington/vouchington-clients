@@ -25,6 +25,54 @@ extension EndpointManifestCoverage {
                 runId: "00000000-0000-7000-8000-000000000303"
             )
         },
+        ManifestRegisteredEndpoint(id: "native.moderation.report-judgement-run.succeeded") {
+            Endpoint.moderationReportJudgementRun(
+                reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e",
+                runId: "00000000-0000-7000-8000-000000000303"
+            )
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.report-judgement-run.failed") {
+            Endpoint.moderationReportJudgementRun(
+                reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e",
+                runId: "00000000-0000-7000-8000-000000000303"
+            )
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.report-judgement-run.expired") {
+            Endpoint.moderationReportJudgementRun(
+                reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e",
+                runId: "00000000-0000-7000-8000-000000000303"
+            )
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.report-detail.pending") {
+            Endpoint.moderationReport(reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e")
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.report-detail.saved") {
+            Endpoint.moderationReport(reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e")
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.appeals.resolution-draft-run.active") {
+            Endpoint.appealResolutionDraftRun(
+                id: pendingAppealId,
+                runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+            )
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.appeals.resolution-draft-run.succeeded") {
+            Endpoint.appealResolutionDraftRun(
+                id: pendingAppealId,
+                runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+            )
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.appeals.resolution-draft-run.failed") {
+            Endpoint.appealResolutionDraftRun(
+                id: pendingAppealId,
+                runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+            )
+        },
+        ManifestRegisteredEndpoint(id: "native.moderation.appeals.resolution-draft-run.expired") {
+            Endpoint.appealResolutionDraftRun(
+                id: pendingAppealId,
+                runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+            )
+        },
         ManifestRegisteredEndpoint(id: "native.moderation.report-judgement.default") {
             Endpoint.rerunModerationReportJudgement(reportId: "019f6559-6b31-7171-b5b1-ccd9d702c45e")
         },

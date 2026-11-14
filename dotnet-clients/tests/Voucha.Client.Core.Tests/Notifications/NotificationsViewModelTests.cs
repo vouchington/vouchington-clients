@@ -9,6 +9,16 @@ namespace Voucha.Client.Core.Tests.Notifications;
 public sealed class NotificationsViewModelTests
 {
   [Fact]
+  public async Task HouseholdInvitationOpensReceivedListWithoutRedirect()
+  {
+    var service = new RecordingNotificationsService();
+    var model = new NotificationsViewModel(service);
+    var row = new NotificationRow("invitation", UiText.UserContent("Invitation"), "", null,
+        "/my/household", "household_invitation", true);
+    Assert.Equal("/my/household-invitations", await model.ActivateAsync(row, TestContext.Current.CancellationToken));
+  }
+
+  [Fact]
   public async Task LoadAsyncBuildsRowsInResultOrder()
   {
     var service = new RecordingNotificationsService(Page(["n2", "n1"], false));

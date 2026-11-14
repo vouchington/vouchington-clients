@@ -121,15 +121,6 @@ extension CommunityDetailViewModel {
         )
     }
 
-    func liftBan(userId: String) async {
-        let userId = userId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !userId.isEmpty else { return }
-        await perform(
-            .liftCommunityBan(idOrSlug: slug, userId: userId),
-            success: UiMessage(.nativeSwiftCommunityStatusLiftedBan)
-        )
-    }
-
     func activateRestrictions(
         restrictionTypes: [CommunityRestrictionType],
         expiresAt: Date? = nil,

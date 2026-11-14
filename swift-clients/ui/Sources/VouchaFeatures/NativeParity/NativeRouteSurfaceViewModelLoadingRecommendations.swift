@@ -20,7 +20,7 @@ extension NativeRouteSurfaceViewModel {
         }
         if let recommendationId = routeMatch?.param("id") {
             let response: NativeTopicRecommendationDetailResponse = try await client.send(
-                .topicRecommendation(id: recommendationId)
+                .post(idOrSlug: recommendationId)
             )
             let post = response.post
             return [

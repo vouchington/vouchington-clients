@@ -28,7 +28,7 @@ public sealed partial class EmailAddressManagerViewModel
           request,
           response.Results,
           pageInfo.EndCursor,
-          pageInfo.HasNextPage || pageInfo.HasMore == true)) EmailAddresses = emailPages.Items;
+          pageInfo.HasMorePages)) EmailAddresses = emailPages.Items;
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
@@ -51,7 +51,7 @@ public sealed partial class EmailAddressManagerViewModel
     emailPages.Reset(response.Results);
     emailPages.RestoreContinuation(
         pageInfo.EndCursor,
-        pageInfo.HasNextPage || pageInfo.HasMore == true);
+        pageInfo.HasMorePages);
     EmailAddresses = emailPages.Items;
     NotifyEmailPagination();
   }

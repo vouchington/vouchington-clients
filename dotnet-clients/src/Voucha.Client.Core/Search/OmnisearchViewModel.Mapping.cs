@@ -2,6 +2,7 @@ using System.Globalization;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Content;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Search;
 
@@ -100,9 +101,9 @@ public sealed partial class OmnisearchViewModel
               EmptyIfNull(response.Posts)
                   .Select(post => new OmnisearchResultRow(
                       L(localization, UiMessageKey.NativeDotnetResidualPost),
-                      Normalize(post.AuthoredTitle) ?? post.Title,
+                      TrimmedText.NonEmpty(post.AuthoredTitle) ?? post.Title,
                       HumanizedPostType(post.PostType, localization),
-                      HasAuthoredTitle: Normalize(post.AuthoredTitle) is not null,
+                      HasAuthoredTitle: TrimmedText.NonEmpty(post.AuthoredTitle) is not null,
                       DeclaredLanguage: post.DeclaredLanguage,
                       DetectedLanguage: post.LinguaRsDetectedLanguage))
                   .ToArray());
@@ -161,8 +162,6 @@ public sealed partial class OmnisearchViewModel
       };
 
   private static IReadOnlyList<T> EmptyIfNull<T>(IReadOnlyList<T>? values) => values ?? [];
-
-  private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
   private static string FediverseResultDetail(FediverseSearchResult item, IUiLocalization localization) =>
       string.IsNullOrWhiteSpace(item.AuthorName)

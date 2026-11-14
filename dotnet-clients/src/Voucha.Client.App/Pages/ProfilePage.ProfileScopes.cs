@@ -57,4 +57,10 @@ public partial class ProfilePage
     if (sender is Button { CommandParameter: CommunityBrowseRow row } && Shell.Current is AppShell shell)
       await RunProfileActionAsync(() => shell.OpenNativePathAsync(ProfileNavigationTargets.Community(row)));
   }
+
+  private async void OnProfileReferralLinkClicked(object? sender, EventArgs e)
+  {
+    if (sender is Button { CommandParameter: ProfileReferralLinkRow row } && Shell.Current is AppShell shell)
+      await RunProfileActionAsync(() => shell.OpenNativePathAsync(ProfileNavigationTargets.ReferralLink(row)));
+  }
 }

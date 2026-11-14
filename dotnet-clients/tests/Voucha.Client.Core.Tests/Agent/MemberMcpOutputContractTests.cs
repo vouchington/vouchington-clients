@@ -21,14 +21,15 @@ public sealed class MemberMcpOutputContractTests
   [Fact]
   public void RealProducerResultFixturesValidateAgainstTheirOwnOutputSchemas()
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
     var tools = manifest.RootElement.GetProperty("servers").EnumerateArray()
         .Single(server => server.GetProperty("name").GetString() == "voucha-user-mcp")
         .GetProperty("tools").EnumerateArray().Select(entry => entry.GetProperty("tool")).ToArray();
     using var catalog = JsonDocument.Parse(JsonSerializer.Serialize(new { tools }));
     Assert.Equal(tools.Length, new MemberMcpToolBridge(catalog.RootElement).Tools.Count);
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
-    foreach (var fixture in fixtures.RootElement.GetProperty("cases").EnumerateArray())
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
+    foreach (var fixture in fixtures.RootElement.GetProperty("cases").EnumerateArray()
+        .Where(row => tools.Any(item => item.GetProperty("name").GetString() == row.GetProperty("tool").GetString())))
     {
       var tool = tools.Single(item => item.GetProperty("name").GetString() == fixture.GetProperty("tool").GetString());
       var contract = new MemberMcpOutputContract(tool);
@@ -44,8 +45,8 @@ public sealed class MemberMcpOutputContractTests
   [InlineData("native.mcp.read-feed.posts", "boolean")]
   public void RealProducerResultsRejectMalformedFacts(string id, string mutation)
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
-    using var fixtures = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-results.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
+    using var fixtures = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-results.json")));
     var fixture = fixtures.RootElement.GetProperty("cases").EnumerateArray().Single(row => row.GetProperty("id").GetString() == id);
     var tool = manifest.RootElement.GetProperty("servers").EnumerateArray()
         .Single(server => server.GetProperty("name").GetString() == "voucha-user-mcp")
@@ -71,7 +72,7 @@ public sealed class MemberMcpOutputContractTests
   [InlineData("output")]
   public void RealCanonicalOptionToolRequiresMappingAndOutputSchema(string removed)
   {
-    using var manifest = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
     var original = manifest.RootElement.GetProperty("servers").EnumerateArray()
         .Single(server => server.GetProperty("name").GetString() == "voucha-user-mcp")
         .GetProperty("tools").EnumerateArray().Select(row => row.GetProperty("tool"))
@@ -249,7 +250,7 @@ public sealed class MemberMcpOutputContractTests
   [Fact]
   public void OutputDateTimeMatchesProducerLeapSecondPlacementFixture()
   {
-    using var fixture = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp-date-time.json")));
+    using var fixture = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp-date-time.json")));
     Assert.Equal(1, fixture.RootElement.GetProperty("version").GetInt32());
     var schema = fixture.RootElement.GetProperty("schema");
     foreach (var item in fixture.RootElement.GetProperty("cases").EnumerateArray())

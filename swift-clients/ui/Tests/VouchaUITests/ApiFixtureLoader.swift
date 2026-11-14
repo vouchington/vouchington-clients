@@ -62,8 +62,8 @@ enum ApiFixtureLoader {
     }
 
     static func fixtureURL(_ bodyFile: String) throws -> URL {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
-        return try FilamentsContractRoot.fixtureURL(bodyFile, root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/manifest.json"])
+        return try ContractRoot.fixtureURL(bodyFile, root: root)
     }
 }
 
@@ -75,4 +75,12 @@ private struct ApiFixtureManifestEntry: Decodable {
     let id: String
     let bodyFile: String?
     let consumers: [String]
+}
+
+/// Ids of the shared producer comment-thread fixtures (`native.comments.*`).
+enum CommentFixture {
+    static let root = "70000000-0000-7000-8000-000000005400"
+    static let a = "70000000-0000-7000-8000-000000005401"
+    static let b = "70000000-0000-7000-8000-000000005402"
+    static let c = "70000000-0000-7000-8000-000000005403"
 }

@@ -177,14 +177,6 @@ final class CommunityModerationResultsRaceTests: NativeRouteSurfaceViewModelTest
     }
 
     private func response(status: String, agentCount: Int = 0) -> Data {
-        let agents = Array(repeating: "{}", count: agentCount).joined(separator: ",")
-        return Data(
-            """
-            {
-              "community_agent_moderations": [\(agents)],
-              "platform_moderation": { "status": "\(status)" }
-            }
-            """.utf8
-        )
+        ModerationResultsFixtures.page(status: status, ids: (0 ..< agentCount).map { "result-\($0)" })
     }
 }

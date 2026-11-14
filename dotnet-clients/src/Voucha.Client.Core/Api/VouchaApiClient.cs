@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Content;
+using Voucha.Client.Core.Auth;
 
 namespace Voucha.Client.Core.Api;
 
@@ -6,8 +7,17 @@ public sealed partial class VouchaApiClient
 {
   private readonly HttpClient httpClient;
 
-  public VouchaApiClient(HttpClient httpClient) =>
-      this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+  private readonly BotChallengeReplay? botChallengeReplay;
+
+  public VouchaApiClient(
+      HttpClient httpClient,
+      BotChallengeReplay? botChallengeReplay = null,
+      IAccountChangeConfirmation? accountChangeConfirmation = null)
+  {
+    this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    this.botChallengeReplay = botChallengeReplay;
+    this.accountChangeConfirmation = accountChangeConfirmation ?? new UnavailableAccountChangeConfirmation();
+  }
 
   public Task<CommunitySearchResponse> SearchCommunitiesAsync(
       SearchCommunitiesRequest request,
@@ -105,13 +115,13 @@ public sealed partial class VouchaApiClient
         cancellationToken);
   }
 
-  public Task<TrendingReferralProgramsResponse> FetchTrendingReferralProgramsAsync(
-      FetchTrendingReferralProgramsRequest request,
+  public Task<TopicSearchResponse> FetchReferralProgramsByLinkCountAsync(
+      FetchReferralProgramsByLinkCountRequest request,
       CancellationToken cancellationToken = default)
   {
     var requiredRequest = Require(request);
-    return SendAsync<TrendingReferralProgramsResponse>(
-        VouchaApiEndpoints.TrendingReferralPrograms(requiredRequest.After, requiredRequest.Limit),
+    return SendAsync<TopicSearchResponse>(
+        VouchaApiEndpoints.ReferralProgramsByLinkCount(requiredRequest.Limit, requiredRequest.After),
         cancellationToken);
   }
 
@@ -130,7 +140,8 @@ public sealed partial class VouchaApiClient
               Require(request).Feed,
               request.After,
               request.Limit,
-              request.PostTypes),
+              request.PostTypes,
+              request.TimeRange),
           cancellationToken);
 
   public Task<NotificationsResponse> FetchNotificationsAsync(CancellationToken cancellationToken = default) =>

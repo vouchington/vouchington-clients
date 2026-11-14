@@ -82,7 +82,7 @@ public sealed record PasskeyAssertionAuthenticatorResponse(
     [property: JsonPropertyName("authenticatorData")] string AuthenticatorData,
     [property: JsonPropertyName("clientDataJSON")] string ClientDataJSON,
     [property: JsonPropertyName("signature")] string Signature,
-    [property: JsonPropertyName("userHandle")] string UserHandle);
+    [property: JsonPropertyName("userHandle")] string? UserHandle);
 
 public interface IPasskeyAssertionProvider
 {

@@ -73,6 +73,19 @@
                 </BindableLayout.ItemTemplate>
             </FlexLayout>
 
+            <VerticalStackLayout x:Name="PrivateMetrics" Spacing="6"
+                                 IsVisible="{Binding HasPrivateMetrics}"
+                                 BindableLayout.ItemsSource="{Binding PrivateMetricRows}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="profiles:ProfilePrivateMetricRow">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label Text="{Binding Label}" Style="{StaticResource Body}" />
+                            <Label Grid.Column="1" Text="{Binding CountLabel}" Style="{StaticResource Body}" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
             <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOverviewScope}">
                 <Label Text="{DynamicResource native.swift.profile.bio}" Style="{StaticResource Headline}" />
                 <controls:NativeHtmlContentView
@@ -204,6 +217,7 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="8" IsVisible="{Binding IsPostsScope}">
+                <controls:PostTimeRangePicker Selection="{Binding TimeRange}" RangeSelected="OnTimeRangeSelected" />
                 <Label Text="{DynamicResource native.dotnet.profile.history}" Style="{StaticResource Headline}" />
                 <FlexLayout BindableLayout.ItemsSource="{Binding HistoryTabs}" Direction="Row" Wrap="Wrap" IsVisible="{Binding IsOverviewScope}">
                     <BindableLayout.ItemTemplate>
@@ -246,6 +260,7 @@
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
                                     <Label Text="{Binding Subtitle}" Style="{StaticResource Metadata}" />
+                                    <controls:HackerNewsReferencesView Presentation="{Binding HackerNews}" />
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
@@ -366,6 +381,17 @@
                             <Button Text="{Binding Name}" CommandParameter="{Binding .}" Clicked="OnProfileCommunityClicked" />
                             <Label Text="{Binding LocalizedProvenanceLabel}" IsVisible="{Binding HasProvenance}" Style="{StaticResource Metadata}" />
                             <Label Text="{Binding StaffChannelLabel}" IsVisible="{Binding HasStaffChannel}" Style="{StaticResource Metadata}" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView><Label Text="{DynamicResource native.swift.profile.emptySectionMessage}" Style="{StaticResource Metadata}" /></CollectionView.EmptyView>
+            </CollectionView>
+
+            <CollectionView ItemsSource="{Binding ReferralLinkItems}" SelectionMode="None" IsVisible="{Binding IsReferralLinksScope}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="profiles:ProfileReferralLinkRow">
+                        <VerticalStackLayout>
+                            <Button Text="{Binding Title}" CommandParameter="{Binding .}" Clicked="OnProfileReferralLinkClicked" AutomationId="public-profile-referral-link-row" />
                         </VerticalStackLayout>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

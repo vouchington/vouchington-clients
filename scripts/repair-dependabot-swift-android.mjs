@@ -2,7 +2,9 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseUniqueSwiftBinaryTargetChecksum } from 'vouchington-tooling/swift-source-offset'
-import { assertion, fetchBytes, sha256 } from './repair-dependabot-swift-android-helpers.mjs'
+import { fetchBytes } from './repair-dependabot-swift-android-helpers.mjs'
+import { sha256 } from './sha256.mjs'
+import { assertion } from './swift-repair-common.mjs'
 import {
   SWIFT_ANDROID_MATERIALIZER_PATH,
   SWIFT_ANDROID_MANIFEST_PATH,
@@ -146,15 +148,11 @@ export async function prepareSwiftAndroidRepair({
     archiveUrl: release.archiveUrl,
     archiveSha256: archive.archiveSha256,
     archiveChecksum: release.checksum,
-    manifestSha256: sha256(new TextEncoder().encode(candidateManifest)),
+    manifestSha256: sha256(candidateManifest),
     resolvedSha256: sha256(
-      new TextEncoder().encode(
-        typeof candidateResolved === 'string'
-          ? candidateResolved
-          : JSON.stringify(candidateResolved),
-      ),
+      typeof candidateResolved === 'string' ? candidateResolved : JSON.stringify(candidateResolved),
     ),
-    materializerSha256: sha256(new TextEncoder().encode(materializer)),
+    materializerSha256: sha256(materializer),
   })
   return { materializer, provenance, validation, upstreamManifest: release.source }
 }

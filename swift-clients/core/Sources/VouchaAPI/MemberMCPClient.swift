@@ -118,18 +118,7 @@ public actor MemberMCPClient {
         let responseLines = try await transport.start(request: request, configuration: configuration)
         let response = responseLines.response
         guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
-        if http.statusCode == 401 { throw Failure.unauthorized }
-        if http.statusCode == 404, let requestSession {
-            if sessionId == requestSession {
-                initialized = false
-                protocolVersion = nil
-                sessionId = nil
-            }
-            throw Failure.sessionExpired
-        }
-        if http.statusCode == 429 {
-            throw rateLimitFailure(http)
-        }
+        try throwIfTransportRejected(http, session: requestSession)
         guard http.statusCode == 200 else { throw Failure.httpStatus(http.statusCode) }
         let responseSession = try sessionForReply(to: method, response: http, previous: requestSession)
         return try await MCPResponseReader.read(

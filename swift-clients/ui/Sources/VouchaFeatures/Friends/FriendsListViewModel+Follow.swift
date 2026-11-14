@@ -7,6 +7,7 @@ extension FriendsListViewModel {
         inFlightFollows.insert(userId)
         defer { inFlightFollows.remove(userId) }
 
+        statusMessage = nil
         let wasFollowing = followingIds.contains(userId)
         let removedUser = wasFollowing ? following.first(where: { $0.id == userId }) : nil
 
@@ -27,6 +28,7 @@ extension FriendsListViewModel {
                 let _: EmptyResponse = try await client.send(.followUser(userId: userId))
             }
         } catch {
+            statusMessage = .message(.nativeCommonSomethingWentWrong)
             rollbackFollowToggle(userId: userId, wasFollowing: wasFollowing, removedUser: removedUser)
         }
     }

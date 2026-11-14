@@ -28,9 +28,20 @@ references are the
 [API fixture contract](https://github.com/vouchington/vouchington/blob/main/backend/test-helpers/api-fixtures/README.md)
 and
 [native localization exporter](https://github.com/vouchington/vouchington/blob/main/dev/native-localization.mts).
-Stage those producer outputs with `scripts/stage-native-contract.mjs`, then point
-`VOUCHA_FILAMENTS_CONTRACT_ROOT` at the isolated stage before running `contracts:sync` or
-`contracts:check`. Native quality and test planning never read product source from Vouchington.
+Run `pnpm run contracts:pull` to fetch the commit pinned in `contracts/vouchington.json`, run the
+exporter against this checkout, and write the (gitignored) generated localization; export the root
+it prints as `VOUCHA_CONTRACT_ROOT` for fixture tests. Native quality and test planning never read
+product source from Vouchington.
+
+Rerun `contracts:pull` after changing product localization references, even when generated
+resources have not changed: the producer exporter checks unknown keys and unused consumer claims
+against this checkout. `contracts:check` reruns that staging without writing, so it validates the
+final product references too.
+
+Collect local .NET patch coverage with the portable CI filter
+`FullyQualifiedName!~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto`, then run
+`pnpm run coverage:dotnet-core`. The separately run DTO round-trip advisory intentionally does not
+contribute to the coverage gate.
 
 CI placement is a quality rule: portable .NET tests run once on Linux; Swift core tests run on
 Linux and macOS only because those jobs compile different networking and Security slices. See

@@ -136,23 +136,7 @@ public sealed partial class MemberMcpClient : IDisposable, IAsyncDisposable
     if (requestSession is not null) request.Headers.TryAddWithoutValidation("Mcp-Session-Id", requestSession);
     using var response = await client.SendAsync(
         request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-    if (response.StatusCode == HttpStatusCode.Unauthorized) throw new McpUnauthorizedException();
-    if (response.StatusCode == HttpStatusCode.NotFound && requestSession is not null)
-    {
-      lock (sessionGate)
-      {
-        if (sessionId == requestSession)
-        {
-          initialized = false;
-          protocolVersion = null;
-          sessionId = null;
-          sessionAccessToken = null;
-        }
-      }
-      throw new McpSessionExpiredException();
-    }
-    if (response.StatusCode == HttpStatusCode.TooManyRequests)
-      throw retryCooldown.FromResponse(response);
+    ThrowIfTransportRejected(response, requestSession);
     if (response.StatusCode != HttpStatusCode.OK)
       throw new HttpRequestException("MCP request failed.", null, response.StatusCode);
 

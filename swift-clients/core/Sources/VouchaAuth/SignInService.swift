@@ -1,3 +1,4 @@
+import Foundation
 import VouchaAPI
 import VouchaCore
 import VouchaModels
@@ -29,6 +30,10 @@ public struct SignInService: Sendable {
         self.appAttestationService = appAttestationService ?? AppAttestationService.makeDefault(client: client)
     }
 
+    public var baseURL: URL {
+        client.baseURL
+    }
+
     // MARK: - Email OTP
 
     /// Whether App Attest can stand in for a Turnstile token on `requestEmailOTP`. UI layers use
@@ -45,7 +50,7 @@ public struct SignInService: Sendable {
            let headers = try? await appAttestationService.assertionHeaders(actionTag: .authEmailAddressTokens) {
             do {
                 let _: EmptyResponse = try await client.send(
-                    .requestEmailOTP(email: email, uiLocale: uiLocale).withHeaders(headers)
+                    .requestNativeEmailOTP(email: email, uiLocale: uiLocale).withHeaders(headers)
                 )
                 return
             } catch let error as VouchaError where error.isRecoverableByTurnstileFallback {
@@ -60,7 +65,7 @@ public struct SignInService: Sendable {
             throw VouchaError.api(statusCode: 0, preconditionCode: VouchaError.turnstileTokenRequired)
         }
         let _: EmptyResponse = try await client.send(
-            .requestEmailOTP(email: email, turnstileToken: turnstileToken, uiLocale: uiLocale)
+            .requestNativeEmailOTP(email: email, turnstileToken: turnstileToken, uiLocale: uiLocale)
         )
     }
 
@@ -70,7 +75,7 @@ public struct SignInService: Sendable {
     /// Returns an `MFAChallenge` when the account requires TOTP verification.
     @MainActor
     public func verifyEmailOTP(email: String, code: String) async throws -> MFAChallenge? {
-        let response: AuthResponse = try await client.send(.verifyEmailOTP(email: email, code: code))
+        let response: AuthResponse = try await client.send(.verifyNativeEmailOTP(email: email, code: code))
         return try await handleAuthResponse(response)
     }
 

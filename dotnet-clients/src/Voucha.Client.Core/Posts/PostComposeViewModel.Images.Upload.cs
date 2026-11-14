@@ -65,7 +65,7 @@ public sealed partial class PostComposeViewModel
         if (!TryAddImageDraft(new PostComposeImageDraft(
                 uploadedImageId,
                 Images.Count,
-                EmptyToNull(caption),
+                TrimmedText.NonEmpty(caption),
                 true,
                 0d,
                 LocalPreviewBytes: localPreviewBytes,

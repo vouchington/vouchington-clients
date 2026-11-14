@@ -418,6 +418,9 @@ public sealed class EngineeringViewModelTests
       return Task.FromResult(PartitionsResponse);
     }
 
+    public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(PsqlJobBody body, CancellationToken cancellationToken = default) =>
+        EnqueuePsqlJobAsync(body.Type, cancellationToken);
+
     public Task<EngineeringSuccessResponse> EnqueuePsqlJobAsync(string type, CancellationToken cancellationToken = default)
     {
       EnqueuePsqlJobCalls++;

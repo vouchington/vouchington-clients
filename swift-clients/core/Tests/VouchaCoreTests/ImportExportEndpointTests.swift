@@ -1,5 +1,6 @@
 import Foundation
 @testable import VouchaAPI
+import VouchaCore
 import VouchaModels
 import XCTest
 
@@ -54,6 +55,20 @@ final class ImportExportEndpointTests: XCTestCase {
         let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
         XCTAssertEqual(url.path, "/api/v1/my/import/rss-feeds/batch")
         XCTAssertEqual(query, [.init(name: "after", value: "opaque+/=?&")])
+    }
+
+    func testRelationLimit409PreservesPublicErrorCode() async throws {
+        struct EmptyResponse: Decodable {}
+        CapturingURLProtocol.responseStatusCode = 409
+        CapturingURLProtocol.responseData = Data(#"{"code":"RELATION_LIMIT_REACHED"}"#.utf8)
+        let client = APIClient(protocolClasses: [CapturingURLProtocol.self], bootstrapSession: false)
+        do {
+            let _: EmptyResponse = try await client.send(.followUser(userId: "other"))
+            XCTFail("Expected relation refusal")
+        } catch let VouchaError.api(statusCode, code) {
+            XCTAssertEqual(statusCode, 409)
+            XCTAssertEqual(code, "RELATION_LIMIT_REACHED")
+        }
     }
 
     func testSourceStatusAndExportEndpoints() {
@@ -183,7 +198,8 @@ final class ImportExportEndpointTests: XCTestCase {
         let values: [(String, RssFeedImportErrorCode)] = [
             ("INVALID_URL", .invalidURL), ("INVALID_FEED_CONTENT", .invalidFeedContent),
             ("FEED_FETCH_TIMEOUT", .feedFetchTimeout),
-            ("CONTRIBUTION_LIMIT_EXCEEDED", .contributionLimitExceeded), ("IMPORT_FAILED", .importFailed)
+            ("CONTRIBUTION_LIMIT_EXCEEDED", .contributionLimitExceeded), ("IMPORT_FAILED", .importFailed),
+            ("RELATION_LIMIT_REACHED", .relationLimitReached), ("ACCOUNT_SUSPENDED", .accountSuspended)
         ]
         for (wire, expected) in values {
             let data = Data("\"\(wire)\"".utf8)

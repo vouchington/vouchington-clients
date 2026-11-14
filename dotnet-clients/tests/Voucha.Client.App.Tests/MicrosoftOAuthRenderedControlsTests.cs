@@ -17,6 +17,25 @@ namespace Voucha.Client.App.Tests;
 public sealed class MicrosoftOAuthRenderedControlsTests
 {
   [Fact]
+  public void RootSessionSurfaceExposesVisibleHeadingEmailInputAndSignInAction()
+  {
+    PrepareMaui();
+    using var coordinator = Coordinator(new OAuthHandler(nativeEnabled: false), new OAuthSessionStore());
+    var page = new AuthPage(coordinator);
+    var heading = Assert.Single(Descendants<Label>(page), view => view.AutomationId == "auth-session-heading");
+    var email = Assert.Single(Descendants<Entry>(page), view => view.AutomationId == "auth-email-address");
+    var action = Assert.Single(Descendants<Button>(page), view => view.AutomationId == "auth-send-email-code");
+
+    Assert.True(heading.IsVisible);
+    Assert.Equal("Session", heading.Text);
+    Assert.True(email.IsVisible);
+    Assert.Equal(Keyboard.Email, email.Keyboard);
+    Assert.True(action.IsVisible);
+    Assert.True(action.IsEnabled);
+    Assert.Equal("Send email code", action.Text);
+  }
+
+  [Fact]
   public async Task GoogleControlsAreCapabilityGatedAndConnectTheGoogleProvider()
   {
     PrepareMaui();
@@ -191,7 +210,7 @@ public sealed class MicrosoftOAuthRenderedControlsTests
   {
     var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example.test") };
     return new NativeOAuthAuthorizationCoordinator(
-        new VouchaApiClient(httpClient),
+        new VouchaApiClient(httpClient, new TestAccountChangeConfirmation()),
         persistence ?? new OAuthPersistence(),
         new OAuthBrowser(),
         store,
@@ -299,19 +318,5 @@ public sealed class MicrosoftOAuthRenderedControlsTests
   {
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
         throw new NotSupportedException(targetMethod?.Name);
-  }
-
-  private sealed class ImmediateDispatcherProvider : IDispatcherProvider
-  {
-    public IDispatcher GetForCurrentThread() => ImmediateDispatcher.Instance;
-  }
-
-  private sealed class ImmediateDispatcher : IDispatcher
-  {
-    public static ImmediateDispatcher Instance { get; } = new();
-    public bool IsDispatchRequired => false;
-    public bool Dispatch(Action action) { action(); return true; }
-    public bool DispatchDelayed(TimeSpan delay, Action action) { action(); return true; }
-    public IDispatcherTimer CreateTimer() => throw new NotSupportedException();
   }
 }

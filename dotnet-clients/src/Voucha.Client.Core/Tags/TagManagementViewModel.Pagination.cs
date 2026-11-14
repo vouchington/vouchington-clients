@@ -37,7 +37,7 @@ public sealed partial class TagManagementViewModel
           request,
           MapRelations(response),
           response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true))
+          response.PageInfo.HasMorePages))
       {
         Relations = relationPages.Items;
         ErrorMessage = null;
@@ -63,7 +63,7 @@ public sealed partial class TagManagementViewModel
     relationPages.Reset(MapRelations(response));
     relationPages.RestoreContinuation(
         response.PageInfo.EndCursor,
-        response.PageInfo.HasNextPage || response.PageInfo.HasMore == true);
+        response.PageInfo.HasMorePages);
     Relations = relationPages.Items;
     NotifyRelationPagination();
   }

@@ -28,8 +28,8 @@ public interface IReferralLinksService
       FetchPrioritizedReferralLinksRequest request,
       CancellationToken cancellationToken = default);
 
-  Task<TrendingReferralProgramsResponse> FetchTrendingProgramsAsync(
-      FetchTrendingReferralProgramsRequest request,
+  Task<TopicSearchResponse> FetchProgramsByLinkCountAsync(
+      FetchReferralProgramsByLinkCountRequest request,
       CancellationToken cancellationToken = default);
 
   Task CreateAsync(CreateReferralLinkBody body, CancellationToken cancellationToken = default);

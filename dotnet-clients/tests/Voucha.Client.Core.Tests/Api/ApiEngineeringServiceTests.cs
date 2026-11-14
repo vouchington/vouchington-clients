@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Engineering;
 using Xunit;
@@ -131,6 +133,25 @@ public sealed class ApiEngineeringServiceTests
         request => AssertRequest(request, HttpMethod.Post, "/api/v1/valkey/bloom-filters/rebuild", "{\"filter\":\"entity-cache\"}"),
         request => AssertRequest(request, HttpMethod.Post, "/api/v1/valkey/caches/clear", "{\"group\":\"posts\"}"),
         request => AssertRequest(request, HttpMethod.Post, "/api/v1/valkey/flush", "{\"concern\":\"blooms\"}"));
+  }
+
+  [Fact]
+  public async Task TypedPartitionRangeConsumesTheLandedClassifierFixture()
+  {
+    const string fixtureId = "web.admin.psql.jobs.classifier-range";
+    var fixture = ApiFixtureLoader.ManifestFixtures.Single(item => item.Id == fixtureId);
+    var body = fixture.RequestBody!.Value.Deserialize<PsqlJobBody>(VouchaApiJson.Options)!;
+    var (service, handler) = CreateService(fixtureId);
+
+    var response = await service.EnqueuePsqlJobAsync(body, TestContext.Current.CancellationToken);
+
+    Assert.True(response.Success);
+    var request = Assert.Single(handler.Requests);
+    Assert.Equal(HttpMethod.Post, request.Method);
+    Assert.Equal("/api/v1/psql/jobs", request.PathAndQuery);
+    Assert.True(JsonNode.DeepEquals(JsonNode.Parse(fixture.RequestBody.Value.GetRawText()), JsonNode.Parse(request.Body!)));
+    Assert.Equal(100, body.ClassifierRange!.MaxDefaultRows);
+    Assert.Null(body.RequestRange);
   }
 
   private static (ApiEngineeringService Service, RecordingHandler Handler) CreateService(params string[] fixtureIds)

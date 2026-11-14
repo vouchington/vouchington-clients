@@ -40,6 +40,10 @@ let currentContractFixtureEndpoints: [String: Endpoint] = [
         after: "fixture-owner-scoped-oauth-grant-cursor", limit: 1
     ),
     "native.my.oauth-grants.revoke": .revokeMyOAuthGrant(id: "00000000-0000-7000-8000-000000000711"),
+    "native.posts.images.placement-limit.conflict": .setPostImages(
+        postId: "00000000-0000-7000-8000-000000000801",
+        images: [.init(imageId: "00000000-0000-7000-8000-000000000802", orderIndex: 0, caption: "")]
+    ),
     "native.posts.images.placement.default": .postImages(idOrSlug: "00000000-0000-7000-8000-000000000801"),
     "shared.scopes.catalog": .scopeCatalog,
     "web.communities.automod-settings.update.default": .updateCommunityAutomodSettings(

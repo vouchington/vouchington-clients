@@ -8,19 +8,29 @@ options:
 settings:
   base:
     SWIFT_VERSION: '5.9'
+    CURRENT_PROJECT_VERSION: '1'
     MACOSX_DEPLOYMENT_TARGET: '14.4'
     CODE_SIGN_STYLE: Automatic
     VOUCHA_API_BASE_URL: 'https://voucha.ai'
     VOUCHA_IMAGE_BASE_URL: 'https://images.voucha.ai'
     VOUCHA_TURNSTILE_SITE_KEY: ''
+    VOUCHA_SENTRY_DSN: ''
+    VOUCHA_SENTRY_RELEASE: ''
+    VOUCHA_SENTRY_ENVIRONMENT: ''
     ENABLE_HARDENED_RUNTIME: YES
     ENABLE_APP_SANDBOX: YES
+  configs:
+    Debug:
+      VOUCHA_TURNSTILE_SITE_KEY: '1x00000000000000000000AA'
 
 packages:
   VouchaCore:
     path: ../../core
   VouchaUI:
     path: ../../ui
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.31.0
 
 targets:
   Voucha:
@@ -32,13 +42,20 @@ targets:
       - path: ../shared-app
       - path: Resources
         buildPhase: resources
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
     info:
       path: Info.plist
       properties:
+        CFBundleVersion: '$(CURRENT_PROJECT_VERSION)'
         CFBundleDisplayName: Voucha
+        ITSAppUsesNonExemptEncryption: false
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
         VOUCHA_IMAGE_BASE_URL: '$(VOUCHA_IMAGE_BASE_URL)'
         VOUCHA_TURNSTILE_SITE_KEY: '$(VOUCHA_TURNSTILE_SITE_KEY)'
+        VOUCHA_SENTRY_DSN: '$(VOUCHA_SENTRY_DSN)'
+        VOUCHA_SENTRY_RELEASE: '$(VOUCHA_SENTRY_RELEASE)'
+        VOUCHA_SENTRY_ENVIRONMENT: '$(VOUCHA_SENTRY_ENVIRONMENT)'
         CFBundleURLTypes:
           - CFBundleURLName: ai.voucha.macos
             CFBundleURLSchemes:
@@ -83,6 +100,13 @@ targets:
         PRODUCT_NAME: Voucha
         INFOPLIST_FILE: Info.plist
         CODE_SIGN_ENTITLEMENTS: Voucha.entitlements
+    preBuildScripts:
+      - name: Require explicit non-test Turnstile site key
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "${CONFIGURATION}" = "Release" ]; then
+            "${SRCROOT}/../../tooling/turnstile-release-site-key.sh" "${VOUCHA_TURNSTILE_SITE_KEY}"
+          fi
     dependencies:
       - package: VouchaCore
         product: VouchaCore
@@ -100,11 +124,64 @@ targets:
         product: VouchaFeatures
       - package: VouchaUI
         product: VouchaLocalization
+      - package: Sentry
+        product: Sentry
     scheme:
+      gatherCoverageData: true
+      coverageTargets:
+        - Voucha
       testTargets:
         - VouchaLaunchSmokeTests
+        - VouchaSentryBoundaryTests
+        - VouchaFeedTransportTests
+        - VouchaLaunchTransportTests
       environmentVariables:
         VOUCHA_API_BASE_URL: '$(VOUCHA_API_BASE_URL)'
+        VOUCHA_CONTRACT_ROOT: '$(VOUCHA_CONTRACT_ROOT)'
+
+  VouchaSentryBoundaryTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: SentrySdkBoundaryTests.swift
+      - path: ../shared-app/SentryEventProjection.swift
+    dependencies:
+      - package: Sentry
+        product: Sentry
+      - package: VouchaCore
+        product: VouchaCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.sentry-boundary-tests
+        PRODUCT_NAME: VouchaSentryBoundaryTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO
+
+  VouchaFeedTransportTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
+      - path: ../shared-app-tests/FeedFlowUITestingURLProtocolTests.swift
+      - path: ../shared-tests/LaunchSmokeFixtures.swift
+      - path: ../shared-tests/VideoFeedLaunchFixture.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.feed-transport-tests
+        PRODUCT_NAME: VouchaFeedTransportTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO
 
   VouchaLaunchSmokeTests:
     type: bundle.ui-testing
@@ -119,3 +196,30 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.launch-smoke-tests
         PRODUCT_NAME: VouchaLaunchSmokeTests
+
+  VouchaLaunchTransportTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: '14.4'
+    sources:
+      - path: LaunchTransportTests.swift
+      - path: ../shared-app/SignInUITestingURLProtocol.swift
+      - path: ../shared-app/FeedFlowUITestingURLProtocol.swift
+      - path: ../shared-app/SourceCreationUITestingResponses.swift
+    dependencies:
+      - package: VouchaCore
+        product: VouchaCore
+      - package: VouchaCore
+        product: VouchaAPI
+      - package: VouchaCore
+        product: VouchaAuth
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: ai.voucha.macos.launch-transport-tests
+        PRODUCT_NAME: VouchaLaunchTransportTests
+        TEST_HOST: ''
+        BUNDLE_LOADER: ''
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_ALLOWED: NO

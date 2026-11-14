@@ -13,6 +13,11 @@ if [[ ! -f "$PROJECT_YAML" ]]; then
     exit 1
 fi
 
+if [[ ! -f ui/Sources/VouchaLocalization/Generated/UiMessageKey.swift ]]; then
+    echo "Error: generated native localization is missing. Run 'pnpm run contracts:pull' from the repository root." >&2
+    exit 1
+fi
+
 LOCAL_XCCONFIG="apps/Voucha.local.xcconfig"
 
 # Preserve a developer's ignored worktree-local backend URL here. Clean clones
@@ -30,5 +35,28 @@ xcodegen generate --spec "$PROJECT_YAML" --project "apps/${PLATFORM}"
 LOCK_DIR="apps/${PLATFORM}/Voucha.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"
 mkdir -p "$LOCK_DIR"
 cp "ui/Package.resolved" "$LOCK_DIR/Package.resolved"
+python3 - "$LOCK_DIR/Package.resolved" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+if '"identity" : "sentry-cocoa"' in text:
+    raise SystemExit(0)
+needle = '  ],\n  "version" : 2\n'
+previous = "    }\n" + needle
+if previous not in text:
+    raise SystemExit("Package.resolved pin list is not closed as expected")
+pin = """    {
+      "identity" : "sentry-cocoa",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/getsentry/sentry-cocoa",
+      "state" : {
+        "revision" : "2f64c77f77514acd01780d1aac86ae75b7fccd04",
+        "version" : "9.31.0"
+      }
+    }"""
+path.write_text(text.replace(previous, "    },\n" + pin + "\n" + needle, 1))
+PY
 echo "Generated apps/${PLATFORM}/Voucha.xcodeproj"
 echo "Open with: open apps/${PLATFORM}/Voucha.xcodeproj"

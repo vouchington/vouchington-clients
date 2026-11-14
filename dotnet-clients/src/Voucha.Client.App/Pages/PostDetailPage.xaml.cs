@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
-using Voucha.Client.Core.HnDiscussions;
 using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Posts;
 using Voucha.Client.Core.Localization;
@@ -17,7 +16,7 @@ public partial class PostDetailPage : ContentPage
   private readonly EmailVerificationRecoveryCoordinator emailRecovery;
   private readonly string focusedCommentId;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public PostDetailPage(
       ICommentThreadService commentThreadService,
@@ -37,19 +36,10 @@ public partial class PostDetailPage : ContentPage
         sessionStore,
         serviceProvider.GetRequiredService<IUiLocalization>(),
         serviceProvider.GetRequiredService<IUiLocaleController>(),
-        serviceProvider.GetRequiredService<IHnDiscussionsSettings>(),
-        serviceProvider.GetRequiredService<HnDiscussionsClient>());
+        new AnonymousCommentCollapseStore());
     sessionChangedHandler = (_, _) => MainThread.BeginInvokeOnMainThread(() => _ =
         binding.RefreshAfterSessionChangedAsync(focusedCommentId: this.focusedCommentId));
     BindingContext = binding;
-  }
-
-  private async void OnHnDiscussionClicked(object? sender, EventArgs args)
-  {
-    if (sender is Button { CommandParameter: HnDiscussionRow row })
-    {
-      await Browser.Default.OpenAsync(row.ItemUrl).ConfigureAwait(true);
-    }
   }
 
   private async void OnFollowerSendClicked(object? sender, EventArgs args)

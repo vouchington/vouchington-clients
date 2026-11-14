@@ -11,8 +11,8 @@ import XCTest
 final class AndroidSessionRestoreRetryTests: XCTestCase {
     func testTransientRestoreRetainsRetryUntilSuccessOrUnauthorized() async throws {
         let path = "api-fixtures/v1/responses/swift.my.identity.default.json"
-        let root = try FilamentsContractRoot.url(requiredPaths: [path])
-        let identity = try Data(contentsOf: FilamentsContractRoot.requiredURL(path, root: root))
+        let root = try ContractRoot.url(requiredPaths: [path])
+        let identity = try Data(contentsOf: ContractRoot.requiredURL(path, root: root))
         for finalStatus in [200, 401] {
             let host = "restore-\(UUID().uuidString.lowercased()).example.com"
             defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
@@ -32,14 +32,14 @@ final class AndroidSessionRestoreRetryTests: XCTestCase {
             XCTAssertTrue(account.isRestoring)
             XCTAssertNotNil(account.sessionRestoreError)
             XCTAssertFalse(account.session.isSignedIn)
-            XCTAssertEqual(storage.cookies?.map(\.value), ["saved-session"])
+            XCTAssertEqual(storage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
             await finishIdentityRequest(host: host, status: finalStatus, body: identity) {
                 await account.retryCookiePersistenceOrRestoration()
             }
             XCTAssertFalse(account.isRestoring)
             XCTAssertNil(account.sessionRestoreError)
             XCTAssertEqual(account.session.isSignedIn, finalStatus == 200)
-            XCTAssertEqual(storage.cookies?.map(\.value), ["saved-session"])
+            XCTAssertEqual(storage.cookies?.map(\.value).sorted(), try androidRotatedCookieValues())
         }
     }
 

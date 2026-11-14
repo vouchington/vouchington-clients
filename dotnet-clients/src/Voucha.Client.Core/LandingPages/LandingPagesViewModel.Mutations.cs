@@ -1,4 +1,5 @@
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Localization;
 using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.LandingPages;
@@ -18,6 +19,7 @@ public sealed partial class LandingPagesViewModel
       var response = await service
           .CreateAsync(new CreateLandingPageBody(pageTitle, NullableString(pageSubtitle), pageSlug), cancellationToken)
           .ConfigureAwait(true);
+      ItemLimit = response.ItemLimit;
       ApplySelected(response.LandingPage);
       if (!string.IsNullOrWhiteSpace(initialSlug))
       {
@@ -48,6 +50,7 @@ public sealed partial class LandingPagesViewModel
           .UpdateAsync(SelectedPage.Id, new UpdateLandingPageBody(Title, NullableString(Subtitle), Slug), cancellationToken)
           .ConfigureAwait(true);
       var pagesResponse = await service.FetchPagesAsync(cancellationToken).ConfigureAwait(true);
+      ItemLimit = response.ItemLimit;
       ApplySelectedMetadata(response.LandingPage);
       Pages = pagesResponse.Results.Select(LandingPageRow.FromPage).ToArray();
       if (!string.IsNullOrWhiteSpace(initialSlug))
@@ -75,6 +78,7 @@ public sealed partial class LandingPagesViewModel
     try
     {
       var response = await service.SetDefaultAsync(SelectedPage.Id, cancellationToken).ConfigureAwait(true);
+      ItemLimit = response.ItemLimit;
       ApplySelectedDefault(response.LandingPage);
       Pages = Pages.Select(page => page with { IsDefault = page.Id == response.LandingPage.Id }).ToArray();
       CompleteLoad();
@@ -139,6 +143,7 @@ public sealed partial class LandingPagesViewModel
     {
       var body = new ReplaceLandingPageItemsBody(DraftItems.Select(item => item.ToInput()).ToArray());
       var response = await service.ReplaceItemsAsync(SelectedPage.Id, body, cancellationToken).ConfigureAwait(true);
+      ItemLimit = response.ItemLimit;
       ApplySelectedContent(response.LandingPage);
       CompleteLoad();
       return true;
@@ -161,7 +166,10 @@ public sealed partial class LandingPagesViewModel
       return false;
     }
 
-    ErrorMessage = ex.Message;
+    IsItemLimitReached = ex is VouchaApiException { ErrorCode: "LANDING_PAGE_ITEM_LIMIT_REACHED" };
+    ErrorMessage = IsItemLimitReached && ex is VouchaApiException api
+        ? localization.Resolve(UiText.Verbatim(api.ApiMessage ?? ex.Message))
+        : ex.Message;
     State = LoadState.Error;
     return true;
   }

@@ -1,9 +1,9 @@
 import { cp, lstat, mkdir, readdir, readFile } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isAbsolute, join, resolve, sep } from 'node:path'
+import { prefixedFailure } from './prefixed-failure.mjs'
+import { within } from './path-within.mjs'
 
-function fail(message) {
-  throw new Error(`Native contract staging failed: ${message}`)
-}
+const fail = prefixedFailure('Native contract staging failed')
 
 export function contractPathComponents(path) {
   return path.split('/')
@@ -18,7 +18,7 @@ export function absoluteDirectoryPath(value, label) {
   return path
 }
 
-async function info(path, label) {
+export async function info(path, label) {
   try {
     const result = await lstat(path)
     if (result.isSymbolicLink()) fail(`symbolic link found at ${label}`)
@@ -72,11 +72,6 @@ export async function declaredPaths(configurationPath, expectedPaths) {
   return configuration.paths
 }
 
-function within(root, path) {
-  const child = relative(root, path)
-  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
-}
-
 export async function emptyOutputRoot(root) {
   await realDirectory(root, 'stage output root')
   if ((await readdir(root)).length !== 0) fail('stage output root must be empty')
@@ -85,7 +80,7 @@ export async function emptyOutputRoot(root) {
 export async function copyDirectory(sourceRoot, destinationRoot, path) {
   const source = join(sourceRoot, ...contractPathComponents(path))
   const destination = join(destinationRoot, ...contractPathComponents(path))
-  await tree(source, `Filaments contract ${path}`)
+  await tree(source, `Vouchington contract ${path}`)
   await mkdir(resolve(destination, '..'), { recursive: true })
   await cp(source, destination, { recursive: true, dereference: false, errorOnExist: true })
   await tree(destination, `staged contract ${path}`)

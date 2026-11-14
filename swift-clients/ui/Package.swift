@@ -1,5 +1,14 @@
 // swift-tools-version: 5.9
+import Foundation
 import PackageDescription
+
+/// Generated localization is pulled from the pinned Vouchington contract and never committed.
+let pulledLocalizationKey = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent()
+    .appendingPathComponent("Sources/VouchaLocalization/Generated/UiMessageKey.swift")
+guard FileManager.default.fileExists(atPath: pulledLocalizationKey.path) else {
+    fatalError("Generated native localization is missing. Run `pnpm run contracts:pull` from the repository root.")
+}
 
 let package = Package(
     name: "VouchaUI",
@@ -43,7 +52,8 @@ let package = Package(
                 .product(name: "VouchaAPI", package: "VouchaCore"),
                 .product(name: "VouchaAuth", package: "VouchaCore"),
                 .product(name: "VouchaPersistence", package: "VouchaCore")
-            ]
+            ],
+            resources: [.copy("PrivacyInfo.xcprivacy")]
         ),
         .testTarget(
             name: "VouchaUITests",

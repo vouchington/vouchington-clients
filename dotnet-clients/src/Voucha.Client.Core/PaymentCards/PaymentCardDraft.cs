@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.PaymentCards;
 
-public sealed class PaymentCardDraft : INotifyPropertyChanged
+public sealed class PaymentCardDraft : ObservableObject
 {
   private DateOnly? openedOn;
   private DateOnly? closedOn;
@@ -42,7 +41,6 @@ public sealed class PaymentCardDraft : INotifyPropertyChanged
     note = card.Note ?? string.Empty;
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public PaymentCard Original { get; }
   public DateOnly? OpenedOn { get => openedOn; set => SetDate(ref openedOn, ref rememberedOpenedOn, value, nameof(HasOpenedOn), nameof(OpenedOnDate)); }
   public DateOnly? ClosedOn { get => closedOn; set => SetDate(ref closedOn, ref rememberedClosedOn, value, nameof(HasClosedOn), nameof(ClosedOnDate)); }
@@ -59,13 +57,13 @@ public sealed class PaymentCardDraft : INotifyPropertyChanged
     set
     {
       creditLimitEdited = true;
-      Set(ref creditLimit, value ?? string.Empty);
+      SetProperty(ref creditLimit, value ?? string.Empty);
     }
   }
-  public bool IsAuthorizedUser { get => isAuthorizedUser; set { if (Set(ref isAuthorizedUser, value) && !value) AuthorizedUserOfId = null; } }
-  public string? AuthorizedUserOfId { get => authorizedUserOfId; set => Set(ref authorizedUserOfId, value); }
-  public string Note { get => note; set => Set(ref note, value ?? string.Empty); }
-  public string CreditLimitCurrency { get => creditLimitCurrency; set => Set(ref creditLimitCurrency, value ?? string.Empty); }
+  public bool IsAuthorizedUser { get => isAuthorizedUser; set { if (SetProperty(ref isAuthorizedUser, value) && !value) AuthorizedUserOfId = null; } }
+  public string? AuthorizedUserOfId { get => authorizedUserOfId; set => SetProperty(ref authorizedUserOfId, value); }
+  public string Note { get => note; set => SetProperty(ref note, value ?? string.Empty); }
+  public string CreditLimitCurrency { get => creditLimitCurrency; set => SetProperty(ref creditLimitCurrency, value ?? string.Empty); }
   public IReadOnlyList<string> SupportedCurrencies => supportedCurrencies;
 
   internal void ApplyCulture(CultureInfo culture)
@@ -113,15 +111,4 @@ public sealed class PaymentCardDraft : INotifyPropertyChanged
     OnPropertyChanged(hasName);
     OnPropertyChanged(dateName);
   }
-
-  private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
-  {
-    if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-    field = value;
-    OnPropertyChanged(name);
-    return true;
-  }
-
-  private void OnPropertyChanged([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

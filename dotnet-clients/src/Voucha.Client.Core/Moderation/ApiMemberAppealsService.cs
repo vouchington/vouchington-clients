@@ -9,7 +9,7 @@ public sealed class ApiMemberAppealsService(VouchaApiClient client) : IMemberApp
       string? after = null,
       int limit = 25,
       CancellationToken cancellationToken = default) =>
-      client.FetchAppealsAsync(status, limit, after, mine: true, cancellationToken);
+      client.FetchMemberAppealsAsync(status, limit, after, cancellationToken);
 
   public Task<MemberWarningNoticesResponse> FetchWarningsAsync(
       string? after = null,

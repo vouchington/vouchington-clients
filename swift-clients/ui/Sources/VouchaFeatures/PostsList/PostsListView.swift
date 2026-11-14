@@ -8,6 +8,7 @@ public struct PostsListView: View {
     var nativeUiLocale
     @Bindable
     public var viewModel: PostsListViewModel
+    public let timeRangeOptions: [PostTimeRange]
     public let isSignedIn: Bool
     public let canVote: Bool
     public let currentUserId: String?
@@ -18,6 +19,7 @@ public struct PostsListView: View {
 
     public init(
         viewModel: PostsListViewModel,
+        timeRangeOptions: [PostTimeRange] = PostTimeRange.listOptions,
         isSignedIn: Bool = true,
         canVote: Bool? = nil,
         currentUserId: String? = nil,
@@ -27,6 +29,7 @@ public struct PostsListView: View {
         onNavigate: ((String) -> Void)? = nil
     ) {
         self.viewModel = viewModel
+        self.timeRangeOptions = timeRangeOptions
         self.isSignedIn = isSignedIn
         self.canVote = canVote ?? isSignedIn
         self.currentUserId = currentUserId
@@ -44,9 +47,18 @@ public struct PostsListView: View {
                 loadedListView
             }
         }
+        .toolbar {
+            if viewModel.isHackerNewsFilterVisible {
+                Toggle(
+                    UiMessages.string(.sharedHackerNewsFilterLabel, locale: nativeUiLocale),
+                    isOn: $viewModel.hasHackerNewsReferences
+                )
+            }
+        }
         .navigationTitle(UiMessages.string(.nativeSwiftPostsListPosts, locale: nativeUiLocale))
+        .task { await viewModel.refreshHackerNewsReferencesVisibility() }
         .task(id: isStaffViewer) { await viewModel.reload() }
-        .refreshable { await viewModel.reload() }
+        .refreshable { await viewModel.refresh() }
         .emailVerificationRecovery(
             client: viewModel.client,
             gate: viewModel.emailVerificationGate
@@ -60,11 +72,11 @@ public struct PostsListView: View {
             LoadingView()
         case let .error(error):
             ErrorStateView(error: error) {
-                await viewModel.reload()
+                await viewModel.refresh()
             }
         default:
             VStack {
-                filterPicker
+                postFilters
                 EmptyStateView(
                     icon: "bubble.left.and.bubble.right",
                     title: .message(.nativeSwiftEmptyStateNoPosts),
@@ -76,7 +88,7 @@ public struct PostsListView: View {
 
     private var loadedListView: some View {
         List {
-            filterPicker
+            postFilters
                 .listRowSeparator(.hidden)
             ForEach(viewModel.items) { post in
                 PostCard(
@@ -101,6 +113,7 @@ public struct PostsListView: View {
                     isStaffViewer: isStaffViewer,
                     onViewAppeals: onNavigate.map { navigate in { navigate("/my/appeals") } }
                 )
+                HackerNewsReferencesView(references: viewModel.hackerNewsReferencesByPostId[post.id])
                 if post.canShowAuthoredMedia(isStaffViewer: isStaffViewer),
                    let embed = viewModel.postEmbedsByPostId[post.id] {
                     ProviderEmbedPreview(embed: embed)
@@ -126,16 +139,6 @@ public struct PostsListView: View {
             .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
-    }
-
-    private var filterPicker: some View {
-        Picker(UiMessages.string(.nativeSwiftListsFilter, locale: nativeUiLocale), selection: $viewModel.filter) {
-            ForEach(PostFilter.allCases) { filter in
-                Text(UiMessages.string(filter.titleKey, locale: nativeUiLocale)).tag(filter)
-            }
-        }
-        .pickerStyle(.segmented)
-        .padding(.horizontal, Spacing.md)
     }
 
     private func canDistribute(_ post: Post) -> Bool {

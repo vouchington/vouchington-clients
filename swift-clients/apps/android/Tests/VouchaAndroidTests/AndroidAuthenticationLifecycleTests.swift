@@ -10,7 +10,10 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
     @MainActor
     func testHeldOTPRequestLocksEmailAndRejectsStaleTurnstileCallback() async throws {
         let host = "auth-\(UUID().uuidString.lowercased()).example.com"
-        let started = HeldAuthenticationURLProtocol.expectRequest(host: host, path: "/api/v1/auth/email-address/tokens")
+        let started = HeldAuthenticationURLProtocol.expectRequest(
+            host: host,
+            path: "/api/v1/auth/native/email-address/tokens"
+        )
         defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
 
         let account = try makeAccount(host: host)
@@ -50,13 +53,13 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
         let host = "auth-\(UUID().uuidString.lowercased()).example.com"
         let started = HeldAuthenticationURLProtocol.expectRequest(
             host: host,
-            path: "/api/v1/auth/email-address/login"
+            path: "/api/v1/auth/native/email-address/login"
         )
         defer { HeldAuthenticationURLProtocol.removeRequest(host: host) }
 
         let account = try makeAccount(host: host)
         account.email = "first@example.com"
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         account.otpRequested = true
         let verification = Task { await account.verifyOTP() }
 
@@ -85,7 +88,7 @@ final class AndroidAuthenticationLifecycleTests: XCTestCase {
         let account = AndroidAccount(cookieStorage: AndroidSessionCookieStorage(secrets: AuthenticationMemorySecrets()))
         account.email = "person@example.com"
         account.otpRequested = true
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         account.totp = "654321"
         account.loginAttemptID = "mfa-attempt"
         account.turnstileToken = "old-token"

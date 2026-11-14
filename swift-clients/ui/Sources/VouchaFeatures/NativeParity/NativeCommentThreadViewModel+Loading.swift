@@ -4,6 +4,7 @@ import VouchaModels
 
 public extension NativeCommentThreadViewModel {
     func loadThread() async {
+        guard sessionIsActive else { return }
         guard let client else {
             setMissingClientError(includePermalinkStates: false)
             return
@@ -35,6 +36,7 @@ public extension NativeCommentThreadViewModel {
     }
 
     func loadPermalink(targetCommentId: String) async {
+        guard sessionIsActive else { return }
         guard let client else {
             setMissingClientError(includePermalinkStates: true)
             return

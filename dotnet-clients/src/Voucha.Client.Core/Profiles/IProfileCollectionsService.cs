@@ -19,4 +19,6 @@ public interface IProfileCollectionsService
       CancellationToken cancellationToken = default);
 
   Task<ProfileCollectionPage<Community>> FetchCommunitiesAsync(string userId, string? after, CancellationToken cancellationToken = default);
+
+  Task<ProfileCollectionPage<ReferralLink>> FetchReferralLinksAsync(string userId, string? after, CancellationToken cancellationToken = default);
 }

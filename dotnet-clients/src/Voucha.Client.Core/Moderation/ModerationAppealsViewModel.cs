@@ -45,7 +45,7 @@ public sealed partial class ModerationAppealsViewModel :
   public bool IsMutating => MutatingAppealId is not null;
   public bool IsLoading => State == LoadState.Loading;
   public bool HasError => State == LoadState.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
-  public bool HasAppeals => Appeals.Count > 0;
+  public bool HasAppeals => Summaries.Count > 0;
   public bool IsEmpty => State == LoadState.Loaded && !HasAppeals;
 
   public IReadOnlyList<ModerationAppeal> Appeals
@@ -70,24 +70,16 @@ public sealed partial class ModerationAppealsViewModel :
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-        OnPropertyChanged(nameof(IsEmpty));
-      }
-    }
+    private set => SetPropertyAndNotify(
+        ref state,
+        value,
+        [nameof(IsLoading), nameof(HasError), nameof(IsEmpty)]);
   }
 
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value)) OnPropertyChanged(nameof(HasError));
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public bool HasMore
@@ -99,10 +91,7 @@ public sealed partial class ModerationAppealsViewModel :
   public string? MutatingAppealId
   {
     get => mutatingAppealId;
-    private set
-    {
-      if (SetProperty(ref mutatingAppealId, value)) OnPropertyChanged(nameof(IsMutating));
-    }
+    private set => SetPropertyAndNotify(ref mutatingAppealId, value, nameof(IsMutating));
   }
 
   public string DraftFor(ModerationAppeal appeal)
@@ -114,6 +103,7 @@ public sealed partial class ModerationAppealsViewModel :
   public void SetDraft(ModerationAppeal appeal, string value)
   {
     ArgumentNullException.ThrowIfNull(appeal);
+    if (appeal.AiDraftRequestedRunId is null) return;
     var draft = value ?? string.Empty;
     drafts[appeal.Id] = draft;
     if (string.Equals(draft, ServerDraftFor(appeal), StringComparison.Ordinal))
@@ -152,12 +142,16 @@ public sealed partial class ModerationAppealsViewModel :
         (action != ModerationAppealAction.Accept || IsAdministrator || appeal.UserSuspensionId is null);
   }
 
-  private bool CanMutate(ModerationAppeal appeal) => CanAccess && appeal.Status == ModerationAppealStatus.Pending && !IsMutating;
+  private bool CanMutate(ModerationAppeal appeal) => CanAccess && appeal.AiDraftRequestedRunId is not null && appeal.Status == ModerationAppealStatus.Pending && !IsMutating;
 
   private static string ServerDraftFor(ModerationAppeal appeal) =>
       appeal.PublicResponse ?? appeal.AiPublicResponse ?? string.Empty;
 
-  public void OnUiLocaleChanged() => OnPropertyChanged(nameof(Appeals));
+  public void OnUiLocaleChanged()
+  {
+    OnPropertyChanged(nameof(Appeals));
+    OnPropertyChanged(nameof(Summaries));
+  }
 
   public void Dispose()
   {

@@ -1,11 +1,10 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.PointValuations;
 
-public sealed partial class PointValuationsViewModel : INotifyPropertyChanged, IDisposable, IUiLocaleChangeListener
+public sealed partial class PointValuationsViewModel : ObservableObject, IDisposable, IUiLocaleChangeListener
 {
   private readonly IPointValuationsService service;
   private readonly IUiLocalization localization;
@@ -43,9 +42,8 @@ public sealed partial class PointValuationsViewModel : INotifyPropertyChanged, I
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public PointValuationDraft CreateDraft { get; private set; }
-  public PointValuationDraft? EditDraft { get => editDraft; private set => Set(ref editDraft, value); }
+  public PointValuationDraft? EditDraft { get => editDraft; private set => SetProperty(ref editDraft, value); }
   public IReadOnlyList<PointValuation> Valuations => valuations;
   public IReadOnlyList<PointValuationRow> Rows => rows;
   public IReadOnlyList<RewardsProgramRow> SearchRows => searchRows;
@@ -55,7 +53,7 @@ public sealed partial class PointValuationsViewModel : INotifyPropertyChanged, I
     set
     {
       value ??= string.Empty;
-      if (!Set(ref searchQuery, value)) return;
+      if (!SetProperty(ref searchQuery, value)) return;
       unchecked { searchGeneration++; }
       SetSearchResults([]);
       SetSearchError(null);
@@ -69,10 +67,10 @@ public sealed partial class PointValuationsViewModel : INotifyPropertyChanged, I
   public bool HasValuations => valuations.Length > 0;
   public bool ShowsEmptyState => hasLoaded && !HasValuations && !HasError;
   public bool HasNextPage => pageInfo.HasNextPage;
-  public bool HasContinuationError { get => hasContinuationError; private set => Set(ref hasContinuationError, value); }
-  public bool IsLoading { get => isLoading; private set => Set(ref isLoading, value); }
-  public bool IsLoadingMore { get => isLoadingMore; private set => Set(ref isLoadingMore, value); }
-  public bool IsCreating { get => isCreating; private set => Set(ref isCreating, value); }
+  public bool HasContinuationError { get => hasContinuationError; private set => SetProperty(ref hasContinuationError, value); }
+  public bool IsLoading { get => isLoading; private set => SetProperty(ref isLoading, value); }
+  public bool IsLoadingMore { get => isLoadingMore; private set => SetProperty(ref isLoadingMore, value); }
+  public bool IsCreating { get => isCreating; private set => SetProperty(ref isCreating, value); }
   public bool HasEditDraft => EditDraft is not null;
   public bool IsMutating(string id) => mutatingIds.Contains(id);
 
@@ -132,13 +130,4 @@ public sealed partial class PointValuationsViewModel : INotifyPropertyChanged, I
 
   private void FailSearch(Exception error) => SetSearchError(string.IsNullOrEmpty(error.Message)
       ? UiText.Localized(UiMessageKey.NativeCommonRetry) : UiText.Verbatim(error.Message));
-
-  private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
-  {
-    if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-    field = value; OnPropertyChanged(name); return true;
-  }
-
-  private void OnPropertyChanged([CallerMemberName] string? name = null) =>
-      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

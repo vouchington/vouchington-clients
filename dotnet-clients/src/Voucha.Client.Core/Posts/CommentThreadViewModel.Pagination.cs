@@ -28,11 +28,12 @@ public sealed partial class CommentThreadViewModel
           request,
           response.Results,
           response.PageInfo.EndCursor,
-          response.PageInfo.HasNextPage || response.PageInfo.HasMore == true)) return;
-      descendantsResponse = MergeDescendantsEnvelope(
+          response.PageInfo.HasMorePages)) return;
+      descendantsResponse = MergeThreadPage(
           descendantsResponse ?? response,
           response,
-          descendantPages.Items);
+          UniqueReferences(descendantsResponse?.Results, response.Results));
+      ApplyServerCollapse(response.Bookmarks);
       FocusedComment = ResolveFocusedComment();
       RebuildComments();
     }
@@ -55,14 +56,14 @@ public sealed partial class CommentThreadViewModel
     descendantPages.Reset(response.Results);
     descendantPages.RestoreContinuation(
         response.PageInfo.EndCursor,
-        response.PageInfo.HasNextPage || response.PageInfo.HasMore == true);
+        response.PageInfo.HasMorePages);
     descendantsResponse = descendantPages.Items.Count == response.Results.Count
         ? response
         : response with { Results = descendantPages.Items };
     NotifyDescendantPagination();
   }
 
-  private static PostThreadResponse MergeDescendantsEnvelope(
+  private static PostThreadResponse MergeThreadPage(
       PostThreadResponse previous,
       PostThreadResponse next,
       IReadOnlyList<EntityReference> results) =>
@@ -97,7 +98,7 @@ public sealed partial class CommentThreadViewModel
     descendantPages.Remove(reference => EntityId(reference) == postId);
     descendantsResponse = descendantsResponse with
     {
-      Results = descendantPages.Items,
+      Results = descendantsResponse.Results.Where(reference => EntityId(reference) != postId).ToArray(),
       Posts = WithoutKey(descendantsResponse.Posts, postId),
       PostsMetrics = WithoutNullableKey(descendantsResponse.PostsMetrics, postId),
       PostElections = WithoutNullableKey(descendantsResponse.PostElections, postId),

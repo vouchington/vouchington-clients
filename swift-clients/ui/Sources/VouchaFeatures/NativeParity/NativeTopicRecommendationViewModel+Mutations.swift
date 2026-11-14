@@ -8,9 +8,9 @@ extension NativeTopicRecommendationViewModel {
         guard let recommendationId, let client, case .idle = state else { return }
         state = .loading
         do {
-            let response: NativeTopicRecommendationPostEnvelope = try await client.send(.topicRecommendation(
-                id: recommendationId
-            ))
+            let response: NativeTopicRecommendationPostEnvelope = try await client.send(
+                .post(idOrSlug: recommendationId)
+            )
             apply(response)
             state = .loaded
         } catch let error as VouchaError {
@@ -90,7 +90,7 @@ extension NativeTopicRecommendationViewModel {
     private func attestedEndpoint(idempotencyKey: String) async -> Endpoint? {
         guard let appAttestationService, appAttestationService.isSupported else { return nil }
         guard let headers = try? await appAttestationService.assertionHeaders(
-            actionTag: .topicRecommendationsCreate
+            actionTag: .postsCreate
         ) else {
             return nil
         }
@@ -139,17 +139,13 @@ extension NativeTopicRecommendationViewModel {
         if let recommendationId {
             Endpoint.updateTopicRecommendation(id: recommendationId, body: body)
         } else {
-            Endpoint(
-                .POST,
-                path: "/api/v1/topic-recommendations",
-                headers: idempotencyKey.map { ["Idempotency-Key": $0] } ?? [:],
-                body: body
-            )
+            Endpoint.createTopicRecommendation(body: body, idempotencyKey: idempotencyKey)
         }
     }
 
     var body: NativeTopicRecommendationMutationBody {
         .init(
+            postType: isEdit ? nil : PostType.topicRecommendation.rawValue,
             title: title.trimmedOrNil,
             markdown: bodyText.trimmed,
             topicTitle: topicTitle.trimmed,
@@ -172,6 +168,7 @@ extension NativeTopicRecommendationMutationBody {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         encoder.outputFormatting = [.sortedKeys]
         let challengeIndependentBody = NativeTopicRecommendationMutationBody(
+            postType: postType,
             title: title,
             markdown: markdown,
             topicTitle: topicTitle,

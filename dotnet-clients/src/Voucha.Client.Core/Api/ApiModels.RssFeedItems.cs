@@ -11,6 +11,7 @@ public sealed record RssFeedItemResponse(
     [property: JsonPropertyName("rss_feed_item_thumbnail_url")] IReadOnlyDictionary<string, string>? RssFeedItemThumbnailUrl = null,
     [property: JsonPropertyName("rss_feed_item_embeds")] IReadOnlyDictionary<string, UrlEmbed>? RssFeedItemEmbeds = null,
     [property: JsonPropertyName("election_vote")] ElectionVote? ElectionVote = null,
-    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null);
+    [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null,
+    [property: JsonPropertyName("rss_feed_item_hacker_news_references")] IReadOnlyDictionary<string, HackerNewsReferences>? RssFeedItemHackerNewsReferences = null);
 
 #pragma warning restore CA1054, CA1056, CA1720

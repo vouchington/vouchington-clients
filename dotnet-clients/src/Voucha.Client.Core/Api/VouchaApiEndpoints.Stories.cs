@@ -6,10 +6,10 @@ public static partial class VouchaApiEndpoints
       Get($"/api/v1/stories/{Path(storyId)}", Query(("limit", limit), ("after", after), ("exclude_item_id", excludeItemId)));
 
   public static ApiRequest CreateStoryPostFromStory(string storyId, string idempotencyKey) =>
-      new(HttpMethod.Post, $"/api/v1/stories/{Path(storyId)}/discussions")
-      { Body = new { }, Headers = IdempotencyHeader(idempotencyKey) };
+      new(HttpMethod.Post, "/api/v1/posts")
+      { Body = new CreateStoryPostBody(storyId), Headers = IdempotencyHeader(idempotencyKey) };
 
   public static ApiRequest CreateLinkPostFromRssFeedItem(string id, string idempotencyKey) =>
-      new(HttpMethod.Post, $"/api/v1/rss-feed-items/{Path(id)}/discussions")
-      { Body = new { }, Headers = IdempotencyHeader(idempotencyKey) };
+      new(HttpMethod.Post, "/api/v1/posts")
+      { Body = new CreateRssFeedItemPostBody(id), Headers = IdempotencyHeader(idempotencyKey) };
 }

@@ -2,6 +2,6 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/*.mjs", "tests/*.test.mjs"],
   "project": ["scripts/**/*.mjs", "tests/**/*.mjs"],
-  "ignoreBinaries": ["mise", "jq"],
+  "ignoreBinaries": ["mise", "jq", "swift"],
   "ignoreExportsUsedInFile": true
 }

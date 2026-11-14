@@ -26,11 +26,11 @@ public sealed class AuthCoverageTests
     var service = new AuthenticationService(client, store, passkeyProvider);
 
     await service.RequestEmailOtpAsync("a@example.com", "turnstile", TestContext.Current.CancellationToken);
-    Assert.Equal("/api/v1/auth/email-address/tokens", handler.Requests[0].PathAndQuery);
+    Assert.Equal("/api/v1/auth/native/email-address/tokens", handler.Requests[0].PathAndQuery);
 
     var challenge = await service.VerifyEmailOtpAsync(
         "a@example.com",
-        "123456",
+        "ABCDEFGH23",
         TestContext.Current.CancellationToken);
     Assert.Equal("attempt-1", challenge?.LoginAttemptId);
 
@@ -91,10 +91,10 @@ public sealed class AuthCoverageTests
     var service = new AuthenticationService(client, store, new RecordingPasskeyProvider());
 
     await Assert.ThrowsAsync<InvalidOperationException>(
-        () => service.VerifyEmailOtpAsync("a@example.com", "123456", TestContext.Current.CancellationToken));
+        () => service.VerifyEmailOtpAsync("a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken));
 
     await Assert.ThrowsAsync<UnauthorizedAccessException>(
-        () => service.VerifyEmailOtpAsync("a@example.com", "123456", TestContext.Current.CancellationToken));
+        () => service.VerifyEmailOtpAsync("a@example.com", "ABCDEFGH23", TestContext.Current.CancellationToken));
   }
 
   [Fact]
@@ -129,6 +129,7 @@ public sealed class AuthCoverageTests
     var store = NewStore(
         CreateClient(new QueueHandler(
             ("""{"error":"unauthorized"}""", HttpStatusCode.Unauthorized),
+            (RenewalJson, HttpStatusCode.OK),
             (IdentityJson("dev"), HttpStatusCode.OK))),
         cookieContainer);
     var events = 0;
@@ -141,8 +142,8 @@ public sealed class AuthCoverageTests
     await ((ISessionStore)store).RefreshAsync(TestContext.Current.CancellationToken);
     Assert.True(store.Current.IsAuthenticated);
     var cookieHeader = cookieContainer.GetCookieHeader(new Uri("https://api.test"));
-    Assert.Contains("dt=device", cookieHeader, StringComparison.Ordinal);
-    Assert.Contains("st=session", cookieHeader, StringComparison.Ordinal);
+    Assert.Contains("dt=new-device", cookieHeader, StringComparison.Ordinal);
+    Assert.Contains("st=new-session", cookieHeader, StringComparison.Ordinal);
     Assert.Equal(1, events);
   }
 
@@ -172,7 +173,7 @@ public sealed class AuthCoverageTests
   }
 
   [Fact]
-  public async Task CookieSessionStoreForceRefreshIgnoresStaleStartupRefresh()
+  public async Task CookieSessionStoreForceRefreshReplacesAlreadyStartedStartupIdentity()
   {
     var handler = new DelayedIdentityHandler();
     var store = NewStore(CreateClient(handler), new CookieContainer());
@@ -180,14 +181,13 @@ public sealed class AuthCoverageTests
     var staleRefresh = ((ISessionStore)store).RefreshAsync(TestContext.Current.CancellationToken);
     await handler.FirstRequestStarted.WaitAsync(TestContext.Current.CancellationToken);
 
-    await ((IForcedSessionRefreshStore)store)
+    var forcedRefresh = ((IForcedSessionRefreshStore)store)
         .RefreshAsync(force: true, TestContext.Current.CancellationToken);
-
-    Assert.True(store.Current.IsAuthenticated);
-    handler.CompleteFirstRequestAsUnauthorized();
+    await forcedRefresh;
+    Assert.Equal("fresh", store.Current.Identity!.Username);
+    handler.CompleteFirstRequestAsIdentity();
     await staleRefresh;
-
-    Assert.True(store.Current.IsAuthenticated);
+    Assert.Equal("fresh", store.Current.Identity!.Username);
     Assert.Equal(2, handler.RequestCount);
   }
 
@@ -223,7 +223,7 @@ public sealed class AuthCoverageTests
     {
       Email = "a@example.com",
       TurnstileToken = "turnstile",
-      Code = "123456",
+      Code = "ABCDEFGH23",
       TotpCode = "654321",
     };
 
@@ -267,15 +267,15 @@ public sealed class AuthCoverageTests
     {
       Email = "a@example.com",
       TurnstileToken = "turnstile",
-      Code = "12345678",
+      Code = "ABCDEFGH23",
     };
 
     Assert.False(viewModel.HasRequestedEmailOtp);
     Assert.False(viewModel.CanResendEmailOtp);
-    viewModel.ApplyEmailOtpPrefill("a@example.com", "12345678");
+    viewModel.ApplyEmailOtpPrefill("a@example.com", "ABCDEFGH23");
 
     Assert.Equal("a@example.com", viewModel.Email);
-    Assert.Equal("12345678", viewModel.Code);
+    Assert.Equal("ABCDEFGH23", viewModel.Code);
 
     await viewModel.RequestEmailOtpAsync(TestContext.Current.CancellationToken);
 
@@ -344,6 +344,8 @@ public sealed class AuthCoverageTests
       Secure = true,
     });
   }
+
+  private const string RenewalJson = """{"session":{"dt":"new-device","st":"new-session","dte":120,"ste":60,"uid":"user-1","session":{"uid":"user-1"}}}""";
 
   private static string IdentityJson(string username) =>
       $$"""
@@ -423,6 +425,8 @@ public sealed class AuthCoverageTests
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+      if (request.RequestUri!.AbsolutePath == "/api/v1/session")
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(RenewalJson) });
       if (!responded)
       {
         responded = true;

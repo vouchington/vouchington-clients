@@ -6,18 +6,18 @@ import XCTest
 @MainActor
 final class LifecycleScenarioContractTests: NativeRouteSurfaceViewModelTestCase {
     func testContractRootRequiresExplicitEnvironment() {
-        XCTAssertThrowsError(try FilamentsContractRoot.url(environment: [:])) { error in
+        XCTAssertThrowsError(try ContractRoot.url(environment: [:])) { error in
             XCTAssertEqual(
                 String(describing: error),
-                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
+                "Missing required VOUCHA_CONTRACT_ROOT. Fetch Vouchington contracts before running native contract tests."
             )
         }
     }
 
     func testContractRootRejectsInvalidExplicitDirectory() {
         XCTAssertThrowsError(
-            try FilamentsContractRoot.url(environment: [
-                FilamentsContractRoot.environmentKey: "/definitely-not-a-filaments-contract-root"
+            try ContractRoot.url(environment: [
+                ContractRoot.environmentKey: "/definitely-not-a-vouchington-contract-root"
             ])
         ) { error in
             XCTAssertTrue(String(describing: error).contains("must name an existing directory"))

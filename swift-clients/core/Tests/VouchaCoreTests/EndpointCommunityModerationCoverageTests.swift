@@ -34,7 +34,7 @@ final class EndpointCommunityModerationCoverageTests: XCTestCase {
             body: ["user_id": "user 1", "reason": "spam"]
         )
         assertEndpoint(
-            Endpoint.liftCommunityBan(idOrSlug: "test community", userId: "user 1"),
+            Endpoint.liftCommunityBan(idOrSlug: "test community", banId: "user 1"),
             method: .DELETE,
             path: "/api/v1/communities/test%20community/bans/user%201"
         )

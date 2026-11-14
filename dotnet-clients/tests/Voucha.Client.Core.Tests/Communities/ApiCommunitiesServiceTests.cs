@@ -67,7 +67,7 @@ public sealed class ApiCommunitiesServiceTests
     Assert.Collection(
         handler.Requests,
         request => Assert.Equal("/api/v1/communities/test-community/ai-agents", request.PathAndQuery),
-        request => Assert.Equal("/api/v1/communities/test-community/agent-prompts", request.PathAndQuery),
+        request => Assert.Equal("/api/v1/communities/test-community/agent-prompts?limit=25", request.PathAndQuery),
         request => Assert.Equal("/api/v1/communities/test-community/agent-prompts/history", request.PathAndQuery),
         request => Assert.Equal("/api/v1/communities/test-community/automod/simulate", request.PathAndQuery),
         request => Assert.Equal("/api/v1/communities/test-community/automod/recent-actions/source-key/feedback", request.PathAndQuery),
@@ -105,7 +105,7 @@ public sealed class ApiCommunitiesServiceTests
         "agent_moderation:post-1",
         new CommunityAutomodFeedbackRequest("true_positive", "keep_removed", "correct", "Matches the community rules."),
         TestContext.Current.CancellationToken);
-    var moderationResults = await service.FetchModerationResultsAsync("test-community", "post-1", TestContext.Current.CancellationToken);
+    var moderationResults = await service.FetchModerationResultsAsync("test-community", "post-1", cancellationToken: TestContext.Current.CancellationToken);
     var warning = await service.IssueWarningAsync(
         "test-community",
         new IssueCommunityWarningRequest("user-1", "Spam in community", "Please read the community rules.", ResolveReport: false),
@@ -153,13 +153,13 @@ public sealed class ApiCommunitiesServiceTests
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-1","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Welcome","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Created","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-2","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Created","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}}
             """),
         new RecordedResponse("""
-            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}}
+            {"community_agent_prompt":{"id":"prompt-3","community_id":"community-1","created_by_id":"user-1","agent_id":"agent-1","prompt":"Updated","model_name":"gpt-5.4-nano","model_provider":"openai","is_slot_allocated":true,"activated_at":null,"deactivated_at":null,"deleted_at":null,"deleted_by_id":null,"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-02T00:00:00Z"}}
             """),
         new RecordedResponse("{}"),
         new RecordedResponse("{}"),

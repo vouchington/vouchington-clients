@@ -9,7 +9,7 @@ using Voucha.Client.Core.Auth;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Communities;
 using Voucha.Client.Core.Growth;
-using Voucha.Client.Core.HnDiscussions;
+using Voucha.Client.Core.HackerNews;
 using Voucha.Client.Core.Images;
 using Voucha.Client.Core.ImportExport;
 using Voucha.Client.Core.LandingPages;
@@ -50,9 +50,6 @@ public static partial class MauiProgram
     builder.Services.AddSingleton(AppConfig.FromAssembly(typeof(MauiProgram).Assembly));
     AddAuthSessionServices(builder.Services);
     AddLocalizationServices(builder.Services);
-    builder.Services.AddSingleton<IHnDiscussionsSettings>(sp =>
-        new SessionHnDiscussionsSettings(sp.GetRequiredService<ISessionStore>()));
-    builder.Services.AddSingleton(_ => new HnDiscussionsClient(new HttpClient()));
     builder.Services.AddSingleton<BottomTabPreferenceStore>();
     builder.Services.AddSingleton<OmnisearchWebSearchRouteContextStore>();
     builder.Services.AddSingleton<FriendsRouteContextStore>();
@@ -65,7 +62,11 @@ public static partial class MauiProgram
         sp.GetRequiredService<NativeOAuthAuthorizationCoordinator>());
     builder.Services.AddSingleton<ReferralLinksRouteContextStore>();
     AddAuthFeatureServices(builder.Services);
-    builder.Services.AddSingleton<ITurnstileTokenProvider, MauiTurnstileTokenProvider>();
+    builder.Services.AddSingleton<ITurnstileTokenProvider>(sp =>
+#if DEBUG
+        CatalystAuthNewsLaunch.IsRequested ? new CatalystAuthNewsTurnstile(CatalystAuthNewsLaunch.IsRequested) :
+#endif
+        new MauiTurnstileTokenProvider(sp.GetRequiredService<AppConfig>()));
     builder.Services.AddSingleton(CreateNavigationViewerProvider);
     builder.Services.AddSingleton<INavigationViewerProvider>(
         sp => sp.GetRequiredService<MutableNavigationViewerProvider>());
@@ -129,7 +130,10 @@ public static partial class MauiProgram
             : NewsFeedScope.AllNews,
         sp.GetRequiredService<IBookmarkService>(),
         sp.GetRequiredService<IUiLocalization>(),
-        sp.GetRequiredService<IUiLocaleController>()));
+        sp.GetRequiredService<IUiLocaleController>(),
+        sp.GetRequiredService<HackerNewsReferenceGate>()));
+    builder.Services.AddSingleton(sp =>
+        new HackerNewsReferenceGate(sp.GetRequiredService<VouchaApiClient>().FetchHackerNewsConfigAsync));
     builder.Services.AddTransient<PostsListViewModel>();
     builder.Services.AddTransient<PostComposeViewModel>();
     builder.Services.AddTransient<BookmarkCollectionViewModel>();
@@ -148,10 +152,13 @@ public static partial class MauiProgram
     builder.Services.AddTransient<MembershipGrantViewModel>();
     builder.Services.AddTransient<CommunityBrowseViewModel>();
     builder.Services.AddTransient<ModerationViewModel>();
+    builder.Services.AddSingleton<ReportJudgementAdmissionStore>();
     builder.Services.AddTransient(sp => new ModerationReportsViewModel(
         sp.GetRequiredService<IModerationService>(),
         sp.GetRequiredService<INavigationViewerProvider>().CurrentViewer,
-        sp.GetRequiredService<IUiLocaleController>()));
+        sp.GetRequiredService<IUiLocaleController>(),
+        judgementAdmissions: sp.GetRequiredService<ReportJudgementAdmissionStore>(),
+        apiBaseUrl: sp.GetRequiredService<AppConfig>().ApiBaseUrl));
     builder.Services.AddTransient(sp => new ReviewQueueViewModel(
         sp.GetRequiredService<IModerationService>(),
         sp.GetRequiredService<IModerationExposureService>(),
@@ -186,6 +193,6 @@ public static partial class MauiProgram
     builder.Logging.AddDebug();
 #endif
 
-    return builder.Build();
+    return FinishSentry(builder);
   }
 }

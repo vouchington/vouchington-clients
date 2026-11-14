@@ -1,3 +1,5 @@
+import Foundation
+
 public struct LandingPageMetadataBody: Encodable, Sendable {
     public let title: String?
     public let subtitle: NullableStringPatchField?
@@ -41,7 +43,14 @@ public extension Endpoint {
     }
 
     static var myLandingPageCandidates: Endpoint {
-        Endpoint(.GET, path: "/api/v1/my/landing-pages/candidates")
+        myLandingPageCandidates()
+    }
+
+    static func myLandingPageCandidates(limit: Int? = nil, after: String? = nil) -> Endpoint {
+        var items: [URLQueryItem] = []
+        if let limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let after { items.append(URLQueryItem(name: "after", value: after)) }
+        return Endpoint(.GET, path: "/api/v1/my/landing-pages/candidates", queryItems: items)
     }
 
     static func myLandingPage(id: String) -> Endpoint {
@@ -56,8 +65,11 @@ public extension Endpoint {
         Endpoint(.GET, path: "/api/v1/admin/users/\(pathSegment(userId))/landing-pages")
     }
 
-    static func adminLandingPageAnalytics(pageId: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/admin/landing-pages/\(pathSegment(pageId))/analytics")
+    static func adminLandingPageAnalytics(username: String, slug: String) -> Endpoint {
+        Endpoint(
+            .GET,
+            path: "/api/v1/admin/users/\(pathSegment(username))/landing-pages/\(pathSegment(slug))/analytics"
+        )
     }
 
     static func createMyLandingPage(title: String, subtitle: NullableStringPatchField?, slug: String) -> Endpoint {

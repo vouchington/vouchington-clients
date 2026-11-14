@@ -11,7 +11,8 @@ extension NativeRouteSurfaceViewModel {
         let response: UserProfilePostFeedResponse = try await client.send(.userPosts(
             userId: userId,
             postTypes: filter.queryValue,
-            after: after
+            after: after,
+            timeRange: postTimeRangeQueryValue
         ))
         let hydratedPosts = response.posts.mapValues { post in
             post.hydrated(
@@ -28,7 +29,8 @@ extension NativeRouteSurfaceViewModel {
                     post: $0,
                     posts: hydratedPosts
                 ) }
-            })
+            }),
+            hackerNewsReferences: response.postHackerNewsReferences ?? [:]
         )
     }
 
@@ -72,13 +74,21 @@ extension NativeRouteSurfaceViewModel {
         return collectionPage(response.pageInfo, collection: .communities(response.results))
     }
 
+    func userReferralLinkPage(userId: String, after: String?, client: APIClient) async throws
+        -> NativeUserProfileCollectionPage {
+        let response: Page<NativeReferralLink> = try await client.send(.userReferralLinks(userId: userId, after: after))
+        return collectionPage(response.pageInfo, collection: .referralLinks(response.results))
+    }
+
     private func collectionPage(
         _ pageInfo: Page<some Decodable & Sendable>.PageInfo,
-        collection: NativeUserProfileCollection
+        collection: NativeUserProfileCollection,
+        hackerNewsReferences: [String: HackerNewsReferences] = [:]
     ) -> NativeUserProfileCollectionPage {
         .init(
             collection: collection,
-            pageInfo: .init(hasNextPage: pageInfo.hasNextPage, endCursor: pageInfo.endCursor)
+            pageInfo: .init(hasNextPage: pageInfo.hasNextPage, endCursor: pageInfo.endCursor),
+            hackerNewsReferences: hackerNewsReferences
         )
     }
 }

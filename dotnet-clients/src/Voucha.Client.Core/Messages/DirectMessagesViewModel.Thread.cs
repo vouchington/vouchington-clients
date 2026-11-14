@@ -184,7 +184,7 @@ public sealed partial class DirectMessagesViewModel
       Messages = [.. rows.Where(row => seenIds.Add(row.Id)), .. Messages];
     }
     messageCursor = response.PageInfo.EndCursor;
-    HasMoreMessages = response.PageInfo.HasNextPage || response.PageInfo.HasMore == true;
+    HasMoreMessages = response.PageInfo.HasMorePages;
   }
 
 }

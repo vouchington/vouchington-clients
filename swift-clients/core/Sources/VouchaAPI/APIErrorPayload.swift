@@ -3,6 +3,7 @@ import VouchaCore
 
 struct APIErrorPayload: Decodable {
     let code: String?
+    let cap: Int?
     let userErrorText: String?
     let message: String?
     let error: String?
@@ -36,6 +37,7 @@ struct APIErrorPayload: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case code
+        case cap
         case userErrorText
         case message
         case error
@@ -46,6 +48,7 @@ struct APIErrorPayload: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let nestedError = try? container.decode(APIErrorPayload.self, forKey: .error)
+        cap = try? container.decodeIfPresent(Int.self, forKey: .cap)
         code = container.decodeStringIfPresent(forKey: .code) ?? nestedError?.code
         userErrorText = container.decodeStringIfPresent(forKey: .userErrorText)
         message = container.decodeStringIfPresent(forKey: .message)

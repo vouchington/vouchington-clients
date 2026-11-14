@@ -13,7 +13,7 @@ Bug reports and questions are welcome as issues.
 
 ## Setup
 
-Start with the [README](README.md) for repository layout, the Filaments contract boundary, and the
+Start with the [README](README.md) for repository layout, the Vouchington contract boundary, and the
 `pnpm clean` / `./dev/reset-worktree` tooling. Project principles and directory-scoped rules are in
 [AGENTS.md](AGENTS.md). The Node tooling runs on any pnpm 12 release, which is deliberately
 unpinned; see [pnpm](docs/development/ci-runners.md#pnpm).
@@ -30,7 +30,7 @@ install skips this local hook setup.
 
 Swift/.NET quality rules, changed-file test planning, and native test authoring guidance live in
 [`docs/development/native-quality.md`](docs/development/native-quality.md), including the explicit
-Filaments producer boundaries.
+Vouchington producer boundaries.
 
 `pnpm run lint:portable` is the portable gate; `pnpm run lint` also runs gitleaks and the native
 harnesses under `swift-clients/tooling/` and `dotnet-clients/tooling/`. CI uses GitHub-hosted

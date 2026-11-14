@@ -1,8 +1,8 @@
-import { lstat, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
-import { declaredFilamentsContractPaths } from './contracts.mjs'
+import { contractDataPaths, declaredContractPaths, localizationPaths } from './contracts.mjs'
 import {
   absoluteDirectoryPath,
   assertOnlyDeclaredPaths,
@@ -11,82 +11,74 @@ import {
   declaredPaths as loadDeclaredPaths,
   descendantInfo,
   emptyOutputRoot,
+  info,
   pathsOverlap,
   realDirectory,
   tree,
 } from './stage-native-contract-files.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const configurationPath = join(repositoryRoot, 'contracts/filaments.json')
-const filamentsExporterRelativePath = 'dev/native-localization.mts'
-function fail(message) {
-  throw new Error(`Native contract staging failed: ${message}`)
-}
-async function info(path, label) {
-  try {
-    const result = await lstat(path)
-    if (result.isSymbolicLink()) fail(`symbolic link found at ${label}`)
-    return result
-  } catch (error) {
-    if (error.code === 'ENOENT') return undefined
-    throw error
-  }
-}
-async function runFilamentsExporter({ filamentsRoot, consumerRoot, outputRoot }) {
-  const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath))
+const configurationPath = join(repositoryRoot, 'contracts/vouchington.json')
+const vouchingtonExporterRelativePath = 'dev/native-localization.mts'
+const fail = prefixedFailure('Native contract staging failed')
+async function runVouchingtonExporter({ vouchingtonRoot, consumerRoot, outputRoot }) {
+  const script = join(vouchingtonRoot, ...contractPathComponents(vouchingtonExporterRelativePath))
   await new Promise((resolvePromise, reject) => {
     const child = spawn(
       process.execPath,
       [script, '--output-root', outputRoot, '--consumer-root', consumerRoot],
-      { cwd: filamentsRoot, stdio: 'inherit' },
+      { cwd: vouchingtonRoot, stdio: 'inherit' },
     )
     child.once('error', reject)
     child.once('exit', (code, signal) => {
       if (code === 0) resolvePromise()
       else
         reject(
-          new Error(`Filaments exporter failed (${signal ? `signal ${signal}` : `exit ${code}`})`),
+          new Error(
+            `Vouchington exporter failed (${signal ? `signal ${signal}` : `exit ${code}`})`,
+          ),
         )
     })
   })
 }
-async function hasFilamentsExporter(filamentsRoot) {
-  const script = join(filamentsRoot, ...contractPathComponents(filamentsExporterRelativePath))
-  if (!(await info(script, `Filaments exporter ${filamentsExporterRelativePath}`))?.isFile())
+async function hasVouchingtonExporter(vouchingtonRoot) {
+  const script = join(vouchingtonRoot, ...contractPathComponents(vouchingtonExporterRelativePath))
+  if (!(await info(script, `Vouchington exporter ${vouchingtonExporterRelativePath}`))?.isFile())
     return false
   const source = await readFile(script, 'utf8')
   return source.includes('--output-root') && source.includes('--consumer-root')
 }
 export async function stageNativeContract(options = {}) {
-  const filamentsRoot = absoluteDirectoryPath(options.filamentsRoot, 'Filaments root')
+  const vouchingtonRoot = absoluteDirectoryPath(options.vouchingtonRoot, 'Vouchington root')
   const consumerRoot = absoluteDirectoryPath(options.consumerRoot, 'candidate client root')
   const outputRoot = absoluteDirectoryPath(options.outputRoot, 'stage output root')
   const exporterOutputRoot = options.exporterOutputRoot
     ? absoluteDirectoryPath(options.exporterOutputRoot, 'exporter output root')
     : undefined
   if (
-    outputRoot === filamentsRoot ||
+    outputRoot === vouchingtonRoot ||
     outputRoot === consumerRoot ||
-    pathsOverlap(filamentsRoot, outputRoot) ||
+    pathsOverlap(vouchingtonRoot, outputRoot) ||
     pathsOverlap(consumerRoot, outputRoot)
   )
     fail('stage output root must be isolated from source and candidate roots')
   if (
     exporterOutputRoot &&
-    [filamentsRoot, consumerRoot, outputRoot].some(root => pathsOverlap(root, exporterOutputRoot))
+    [vouchingtonRoot, consumerRoot, outputRoot].some(root => pathsOverlap(root, exporterOutputRoot))
   )
     fail('exporter output root must be isolated from source and stage roots')
   await Promise.all([
-    realDirectory(filamentsRoot, 'Filaments root'),
+    realDirectory(vouchingtonRoot, 'Vouchington root'),
     realDirectory(consumerRoot, 'candidate client root'),
     emptyOutputRoot(outputRoot),
   ])
-  const paths = await loadDeclaredPaths(configurationPath, declaredFilamentsContractPaths)
-  const [fixturePath, ...localizationPaths] = paths
-  if (!(await descendantInfo(filamentsRoot, fixturePath, 'Filaments contract')))
-    fail(`missing directory at Filaments contract/${fixturePath}`)
+  const paths = await loadDeclaredPaths(configurationPath, declaredContractPaths)
+  for (const path of contractDataPaths)
+    if (!(await descendantInfo(vouchingtonRoot, path, 'Vouchington contract')))
+      fail(`missing directory at Vouchington contract/${path}`)
   const legacyState = await Promise.all(
-    localizationPaths.map(path => descendantInfo(filamentsRoot, path, 'Filaments contract')),
+    localizationPaths.map(path => descendantInfo(vouchingtonRoot, path, 'Vouchington contract')),
   )
   if (exporterOutputRoot) {
     await realDirectory(exporterOutputRoot, 'exporter output root')
@@ -99,47 +91,47 @@ export async function stageNativeContract(options = {}) {
         `isolated exporter output ${path}`,
       )
     }
-    await copyDirectory(filamentsRoot, outputRoot, fixturePath)
+    for (const path of contractDataPaths) await copyDirectory(vouchingtonRoot, outputRoot, path)
     for (const path of localizationPaths) await copyDirectory(exporterOutputRoot, outputRoot, path)
     await assertOnlyDeclaredPaths(outputRoot, paths)
     return 'isolated-exporter-data'
   }
-  const runExporter = options.runExporter ?? runFilamentsExporter
-  if (options.runExporter || (await hasFilamentsExporter(filamentsRoot))) {
+  const runExporter = options.runExporter ?? runVouchingtonExporter
+  if (options.runExporter || (await hasVouchingtonExporter(vouchingtonRoot))) {
     try {
-      await runExporter({ consumerRoot, filamentsRoot, outputRoot })
+      await runExporter({ consumerRoot, vouchingtonRoot, outputRoot })
     } catch (error) {
-      fail(`Filaments exporter failed: ${error.message}`)
+      fail(`Vouchington exporter failed: ${error.message}`)
     }
     // Validate the exporter's complete output before creating or copying through
     // any exporter-controlled destination ancestor.
-    await assertOnlyDeclaredPaths(outputRoot, paths)
+    await assertOnlyDeclaredPaths(outputRoot, localizationPaths)
     for (const path of localizationPaths) {
       if (!(await descendantInfo(outputRoot, path, 'staged contract')))
         fail(`missing directory at staged contract/${path}`)
       await tree(join(outputRoot, ...contractPathComponents(path)), `staged contract ${path}`)
     }
-    await copyDirectory(filamentsRoot, outputRoot, fixturePath)
+    for (const path of contractDataPaths) await copyDirectory(vouchingtonRoot, outputRoot, path)
     await assertOnlyDeclaredPaths(outputRoot, paths)
     return 'exporter'
   }
   if (legacyState.some(Boolean) && !legacyState.every(Boolean))
-    fail('partial legacy localization directories in Filaments checkout')
+    fail('partial legacy localization directories in Vouchington checkout')
   if (legacyState.every(Boolean)) {
-    for (const path of paths) await copyDirectory(filamentsRoot, outputRoot, path)
+    for (const path of paths) await copyDirectory(vouchingtonRoot, outputRoot, path)
     await assertOnlyDeclaredPaths(outputRoot, paths)
     return 'legacy'
   }
-  fail(`missing Filaments exporter at ${filamentsExporterRelativePath}`)
+  fail(`missing Vouchington exporter at ${vouchingtonExporterRelativePath}`)
 }
 
 function parseArguments(argv) {
   if (argv.length !== 6 && argv.length !== 8)
     fail(
-      'usage: node scripts/stage-native-contract.mjs --filaments-root <absolute-root> --output-root <absolute-root> --consumer-root <absolute-root> [--exporter-output-root <absolute-root>]',
+      'usage: node scripts/stage-native-contract.mjs --vouchington-root <absolute-root> --output-root <absolute-root> --consumer-root <absolute-root> [--exporter-output-root <absolute-root>]',
     )
   if (
-    argv[0] !== '--filaments-root' ||
+    argv[0] !== '--vouchington-root' ||
     argv[2] !== '--output-root' ||
     argv[4] !== '--consumer-root'
   )
@@ -147,7 +139,7 @@ function parseArguments(argv) {
   if (argv.length === 8 && argv[6] !== '--exporter-output-root')
     fail('invalid isolated exporter output argument')
   return {
-    filamentsRoot: argv[1],
+    vouchingtonRoot: argv[1],
     outputRoot: argv[3],
     consumerRoot: argv[5],
     ...(argv.length === 8 ? { exporterOutputRoot: argv[7] } : {}),

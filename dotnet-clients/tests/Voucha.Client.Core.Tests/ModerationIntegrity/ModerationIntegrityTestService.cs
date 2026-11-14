@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Tests.Api;
 using Voucha.Client.Core.ModerationIntegrity;
 
 namespace Voucha.Client.Core.Tests.ModerationIntegrity;
@@ -133,10 +134,17 @@ internal sealed class ModerationIntegrityTestService : IModerationIntegrityServi
       string? hostnameId = null,
       DateTimeOffset? resolvedAt = null,
       string? resolvedById = null) =>
-      new(
-          id, postId, userId, hostnameId, null, "mass_report_suspected", 5, 0.6,
-          Details("""{"reporter_user_ids":["reporter-1"],"window_minutes":30}"""),
-          resolvedAt, resolvedById, resolution, DateTimeOffset.Parse("2026-06-01T12:00:00Z"));
+      JsonSerializer.Deserialize<ReportIntegrityFlagsResponse>(
+          ApiFixtureLoader.LoadResponse("native.moderation.report-integrity.default"), VouchaApiJson.Options)!.Results[0] with
+      {
+        Id = id,
+        PostId = postId,
+        ReportedUserId = userId,
+        HostnameId = hostnameId,
+        ResolvedAt = resolvedAt,
+        ResolvedById = resolvedById,
+        Resolution = resolution,
+      };
 
   public static VoteIntegrityFlag VoteFlag(
       string id,
@@ -146,10 +154,17 @@ internal sealed class ModerationIntegrityTestService : IModerationIntegrityServi
       string? hostnameId = null,
       DateTimeOffset? resolvedAt = null,
       string? resolvedById = null) =>
-      new(
-          id, postId, topicId, hostnameId, null, null, null, "velocity_spike",
-          Details("""{"vote_count":20}"""), resolvedAt, resolvedById, resolution,
-          DateTimeOffset.Parse("2026-06-01T12:00:00Z"));
+      JsonSerializer.Deserialize<VoteIntegrityFlagsResponse>(
+          ApiFixtureLoader.LoadResponse("native.moderation.vote-integrity.default"), VouchaApiJson.Options)!.Results[0] with
+      {
+        Id = id,
+        PostId = postId,
+        TopicId = topicId,
+        HostnameId = hostnameId,
+        ResolvedAt = resolvedAt,
+        ResolvedById = resolvedById,
+        Resolution = resolution,
+      };
 
   public static ReportIntegrityFlagsResponse ReportPage(
       IReadOnlyList<ReportIntegrityFlag> flags,
@@ -163,7 +178,4 @@ internal sealed class ModerationIntegrityTestService : IModerationIntegrityServi
       bool hasMore = false) =>
       new(flags, new PageInfo(cursor, hasMore, flags.FirstOrDefault()?.Id));
 
-  private static IReadOnlyDictionary<string, JsonElement> Details(string json) =>
-      JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ??
-          throw new InvalidOperationException("Test details did not decode.");
 }

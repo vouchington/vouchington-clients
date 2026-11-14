@@ -62,7 +62,7 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -97,7 +97,7 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-2"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-2"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -172,7 +172,7 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -338,7 +338,7 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
               ],
               "page_info": {
                 "has_next_page": \(hasNextPage),
-                "end_cursor": \(jsonString(endCursor)),
+                "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
                 "start_cursor": null
               }
             }
@@ -361,7 +361,7 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
                 "created_by_id": "user-1",
                 "updated_at": "2026-01-01T00:00:00Z",
                 "participant_usernames": ["alice", "bob"],
-                "participant_add_policy": \(jsonString(participantAddPolicy?.rawValue))
+                "participant_add_policy": \(DirectMessagesTestJSON.string(participantAddPolicy?.rawValue))
               }
             }
             """.utf8
@@ -389,33 +389,7 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
               ],
               "page_info": {
                 "has_next_page": \(hasNextPage),
-                "end_cursor": \(jsonString(endCursor)),
-                "start_cursor": null
-              }
-            }
-            """.utf8
-        )
-    }
-
-    private func participantsPage(conversationId: String, ownerUserId: String) -> Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "\(conversationId)",
-                  "user_id": "\(ownerUserId)",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
+                "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
                 "start_cursor": null
               }
             }
@@ -458,17 +432,6 @@ final class DirectMessagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             profileImageId: nil,
             profileImagePlacement: nil
         )
-    }
-
-    private func isoDate(_ value: String) -> Date {
-        ISO8601DateFormatter().date(from: value)!
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
     }
 
     private func isErrorState(_ state: LoadState) -> Bool {

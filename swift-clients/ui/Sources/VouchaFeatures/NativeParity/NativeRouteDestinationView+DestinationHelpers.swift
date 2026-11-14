@@ -15,6 +15,7 @@ extension NativeRouteDestinationSurface {
             client: viewModel.client,
             routeMatch: viewModel.routeMatch,
             isSignedIn: isSignedIn,
+            currentUserId: currentUserId,
             isAdministrator: isAdministrator,
             isSiteModerator: isSiteModerator,
             turnstileSiteKey: resolvedTurnstileSiteKey,

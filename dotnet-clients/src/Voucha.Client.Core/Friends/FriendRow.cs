@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Friends;
 
@@ -16,7 +17,7 @@ public sealed record FriendRow(
 {
   public bool CanToggleFollow => !IsSelf;
 
-  public string PrimaryLabel => NormalizeLabel(DisplayName) ?? NormalizeLabel(Title) ?? NormalizeLabel(Username) ?? NormalizeLabel(Id) ?? string.Empty;
+  public string PrimaryLabel => TrimmedText.NonEmpty(DisplayName) ?? TrimmedText.NonEmpty(Title) ?? TrimmedText.NonEmpty(Username) ?? TrimmedText.NonEmpty(Id) ?? string.Empty;
 
   public string SecondaryLabel => UiUserHandle.FromUsername(Username).Value;
 
@@ -24,6 +25,4 @@ public sealed record FriendRow(
 
   public string FollowActionLabel => (Localization ?? UiLocalization.English).Localize(
       IsFollowing ? UiMessageKey.NativeDotnetDynamicUnfollow : UiMessageKey.NativeDotnetDynamicFollow);
-
-  private static string? NormalizeLabel(string? label) => string.IsNullOrWhiteSpace(label) ? null : label.Trim();
 }

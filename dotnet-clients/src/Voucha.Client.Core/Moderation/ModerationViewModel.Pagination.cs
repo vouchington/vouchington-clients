@@ -72,12 +72,12 @@ public sealed partial class ModerationViewModel
               request,
               page.Rows,
               page.PageInfo.EndCursor,
-              page.PageInfo.HasNextPage || page.PageInfo.HasMore == true)
+              page.PageInfo.HasMorePages)
           : pages.Complete(
               request,
               page.Rows,
               page.PageInfo.EndCursor,
-              page.PageInfo.HasNextPage || page.PageInfo.HasMore == true);
+              page.PageInfo.HasMorePages);
       if (!completed) return;
       if (page.TransparencyBuckets is not null)
       {

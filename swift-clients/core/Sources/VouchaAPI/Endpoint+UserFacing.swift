@@ -25,6 +25,10 @@ public extension Endpoint {
         Endpoint(.GET, path: "/api/v1/captcha-config")
     }
 
+    static var hackerNewsConfig: Endpoint {
+        Endpoint(.GET, path: "/api/v1/hacker-news-config")
+    }
+
     static func user(idOrSlug: String, includeBio: Bool? = nil) -> Endpoint {
         var items: [URLQueryItem] = []
         if let includeBio {
@@ -64,14 +68,6 @@ public extension Endpoint {
         return Endpoint(.GET, path: "/api/v1/fediverse/search", queryItems: items)
     }
 
-    static func trendingCommunities(after: String? = nil, limit: Int = 10) -> Endpoint {
-        pagedGet(path: "/api/v1/trending-communities", after: after, limit: limit)
-    }
-
-    static func trendingReferralPrograms(after: String? = nil, limit: Int = 10) -> Endpoint {
-        pagedGet(path: "/api/v1/trending-referral-programs", after: after, limit: limit)
-    }
-
     static func referralLinksFeed(feedType: String, after: String? = nil, limit: Int = 25) -> Endpoint {
         pagedGet(path: "/api/v1/feeds/referral_links/\(feedType)", after: after, limit: limit)
     }
@@ -106,11 +102,12 @@ public extension Endpoint {
     }
 
     static func topicRecommendations(after: String? = nil, limit: Int = 25) -> Endpoint {
-        pagedGet(path: "/api/v1/topic-recommendations", after: after, limit: limit)
-    }
-
-    static func topicRecommendation(id: String) -> Endpoint {
-        Endpoint(.GET, path: "/api/v1/topic-recommendations/\(pathSegment(id))")
+        pagedGet(
+            path: "/api/v1/posts",
+            after: after,
+            limit: limit,
+            queryItems: [.init(name: "post_types", value: PostType.topicRecommendation.rawValue)]
+        )
     }
 
     static func topHashtags(
@@ -129,11 +126,11 @@ public extension Endpoint {
         if let after {
             items.append(.init(name: "after", value: after))
         }
-        return Endpoint(.GET, path: "/api/v1/topic-recommendations/top-hashtags", queryItems: items)
+        return Endpoint(.GET, path: "/api/v1/topics/top-hashtags", queryItems: items)
     }
 
     static func updateTopicRecommendation(id: String, body: some Encodable & Sendable) -> Endpoint {
-        Endpoint(.PATCH, path: "/api/v1/topic-recommendations/\(pathSegment(id))", body: body)
+        Endpoint(.PATCH, path: "/api/v1/posts/\(pathSegment(id))", body: body)
     }
 
     static var myCommunities: Endpoint {

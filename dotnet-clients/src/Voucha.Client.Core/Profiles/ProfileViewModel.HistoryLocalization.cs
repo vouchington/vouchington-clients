@@ -9,6 +9,7 @@ public sealed partial class ProfileViewModel
 
   public void OnUiLocaleChanged()
   {
+    TimeRange.RefreshLabels();
     OnPropertyChanged(nameof(MuteUserButtonText));
     OnPropertyChanged(nameof(BlockUserButtonText));
     OnPropertyChanged(nameof(DisplayName));
@@ -16,11 +17,13 @@ public sealed partial class ProfileViewModel
     OnPropertyChanged(nameof(LocalizedPositiveSignalsFromFollowing));
     OnPropertyChanged(nameof(LocalizedNegativeSignalsFromFollowing));
     HistoryTabs = BuildTabs(userMetrics, SelectedHistoryTab);
+    NotifyPrivateMetrics();
     BuildScopeTabs();
-    HistoryItems = HistoryItems.ToArray();
+    HistoryItems = HistoryItems.Select(row => row with { }).ToArray();
     TopicItems = TopicItems.Select(row => row.WithLocalization(localization)).ToArray();
     SourceItems = SourceItems.Select(row => row with { Localization = localization }).ToArray();
     CommunityItems = CommunityItems.Select(row => row with { Localization = localization }).ToArray();
+    ReferralLinkItems = ReferralLinkItems.Select(row => row with { Localization = localization }).ToArray();
   }
 
   private IReadOnlyList<ProfileHistoryTabRow> BuildTabs(
@@ -31,6 +34,9 @@ public sealed partial class ProfileViewModel
     var reviews = count.Reviews;
     var discussions = count.Discussions;
     var comments = count.Comments;
+    var reviewsCapped = metrics?.ViewerCount?.Reviews is null && metrics?.CountCapped?.Reviews == true;
+    var discussionsCapped = metrics?.ViewerCount?.Discussions is null && metrics?.CountCapped?.Discussions == true;
+    var commentsCapped = metrics?.ViewerCount?.Comments is null && metrics?.CountCapped?.Comments == true;
     var uiLocalization = localization;
     return
     [
@@ -38,24 +44,28 @@ public sealed partial class ProfileViewModel
           ProfileHistoryTab.All,
           UiMessageKey.NativeDotnetGrowthAll,
           reviews + discussions + comments,
+          reviewsCapped || discussionsCapped || commentsCapped,
           selected,
           uiLocalization),
       Row(
           ProfileHistoryTab.Reviews,
           UiMessageKey.NativeDotnetGrowthReviews,
           reviews,
+          reviewsCapped,
           selected,
           uiLocalization),
       Row(
           ProfileHistoryTab.Discussions,
           UiMessageKey.NativeDotnetResidualDiscussion,
           discussions,
+          discussionsCapped,
           selected,
           uiLocalization),
       Row(
           ProfileHistoryTab.Comments,
           UiMessageKey.NativeDotnetGrowthComments,
           comments,
+          commentsCapped,
           selected,
           uiLocalization),
     ];
@@ -65,6 +75,7 @@ public sealed partial class ProfileViewModel
       ProfileHistoryTab tab,
       UiMessageKey labelKey,
       int count,
+      bool capped,
       ProfileHistoryTab selected,
       IUiLocalization localization) =>
       new(
@@ -72,7 +83,7 @@ public sealed partial class ProfileViewModel
           localization.Format(
               UiMessageKey.NativeDotnetProfileProfileTabCount,
               ("label", localization.Localize(labelKey)),
-              ("count", count)),
+              ("count", ProfileMetricCount.Format(count, capped, localization))),
           count,
           tab == selected);
 

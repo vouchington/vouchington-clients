@@ -21,7 +21,7 @@ public sealed class LandingPagesInfrastructureAnalyticsTests
 
     await service.FetchMyLandingPageAnalyticsAsync("page-1", TestContext.Current.CancellationToken);
     await service.FetchAdminUserLandingPagesAsync("user-1", TestContext.Current.CancellationToken);
-    await service.FetchAdminLandingPageAnalyticsAsync("page-1", TestContext.Current.CancellationToken);
+    await service.FetchAdminLandingPageAnalyticsAsync("alice", "my-links", TestContext.Current.CancellationToken);
 
     Assert.Collection(
         handler.Requests,
@@ -38,7 +38,7 @@ public sealed class LandingPagesInfrastructureAnalyticsTests
         request =>
         {
           Assert.Equal(HttpMethod.Get, request.Method);
-          Assert.Equal("/api/v1/admin/landing-pages/page-1/analytics", request.PathAndQuery);
+          Assert.Equal("/api/v1/admin/users/alice/landing-pages/my-links/analytics", request.PathAndQuery);
         });
   }
 

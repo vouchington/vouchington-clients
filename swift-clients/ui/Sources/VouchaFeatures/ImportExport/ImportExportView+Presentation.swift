@@ -14,11 +14,12 @@ extension ImportExportView {
                     ?? .message(.nativeSwiftImportExportUnknownError)]
             )
         }
-        if result.status == .error {
+        if result.status == .error || result.status == .skipped {
             return .message(
                 .nativeSwiftImportExportFailed,
                 textParameters: [
-                    "error": result.error.map(UiVerbatimText.verbatim)
+                    "error": (result.errorCode == .relationLimitReached ? nil : result.error)
+                        .map(UiVerbatimText.verbatim)
                         ?? .message(.nativeSwiftImportExportUnknownError)
                 ]
             )
@@ -66,7 +67,7 @@ extension ImportResultStatus {
         case .sourceCreated: .nativeSwiftImportExportSourceCreated
         case .recommendationCreated: .nativeSwiftImportExportRecommendationCreated
         case .alreadyFollowing: .nativeSwiftImportExportAlreadyFollowing
-        case .error: .nativeSwiftImportExportFailed
+        case .error, .skipped: .nativeSwiftImportExportFailed
         }
     }
 }

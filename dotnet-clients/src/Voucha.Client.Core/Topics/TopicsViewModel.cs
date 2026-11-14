@@ -59,14 +59,7 @@ public sealed partial class TopicsViewModel : ObservableObject, IDisposable, IUi
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value))
-      {
-        OnPropertyChanged(nameof(IsLoading));
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref state, value, [nameof(IsLoading), nameof(HasError)]);
   }
 
   public bool IsLoading => State == LoadState.Loading;
@@ -76,13 +69,7 @@ public sealed partial class TopicsViewModel : ObservableObject, IDisposable, IUi
   public string? ErrorMessage
   {
     get => errorMessage;
-    private set
-    {
-      if (SetProperty(ref errorMessage, value))
-      {
-        OnPropertyChanged(nameof(HasError));
-      }
-    }
+    private set => SetPropertyAndNotify(ref errorMessage, value, nameof(HasError));
   }
 
   public Task LoadAsync(CancellationToken cancellationToken = default) =>
@@ -93,40 +80,27 @@ public sealed partial class TopicsViewModel : ObservableObject, IDisposable, IUi
       CancellationToken cancellationToken = default)
   {
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await topicsService
-          .SearchAsync(query, cancellationToken)
-          .ConfigureAwait(true);
-      CompleteLoad(
-          currentRequest,
-          response.Results
-              .Select(result => response.Topics.TryGetValue(result.EntityId ?? result.Id ?? "", out var topic)
-                  ? RowFrom(
-                      topic,
-                      ElectionSidecars.TopicElectionFor(response.TopicElections, topic.Id),
-                      ElectionSidecars.ElectionVoteFor(response.ElectionVotes, topic.Id))
-                  : null)
-              .Where(topic => topic is not null)
-              .Select(topic => topic!)
-              .ToArray());
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await topicsService
+              .SearchAsync(query, cancellationToken)
+              .ConfigureAwait(true);
+          CompleteLoad(
+              currentRequest,
+              response.Results
+                  .Select(result => response.Topics.TryGetValue(result.EntityId ?? result.Id ?? "", out var topic)
+                      ? RowFrom(
+                          topic,
+                          ElectionSidecars.TopicElectionFor(response.TopicElections, topic.Id),
+                          ElectionSidecars.ElectionVoteFor(response.ElectionVotes, topic.Id))
+                      : null)
+                  .Where(topic => topic is not null)
+                  .Select(topic => topic!)
+                  .ToArray());
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
   public async Task LoadTopicAsync(
@@ -134,31 +108,18 @@ public sealed partial class TopicsViewModel : ObservableObject, IDisposable, IUi
       CancellationToken cancellationToken = default)
   {
     var currentRequest = BeginLoad();
-    try
-    {
-      var response = await topicsService
-          .FetchTopicAsync(topicIdOrSlug, cancellationToken)
-          .ConfigureAwait(true);
-      var row = RowFrom(response.Topic, response.TopicElection, response.ElectionVote);
-      SelectedTopic = row;
-      CompleteLoad(currentRequest, [row]);
-    }
-    catch (OperationCanceledException)
-    {
-      CompleteCanceled(currentRequest);
-    }
-    catch (VouchaApiException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (HttpRequestException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-      CompleteError(currentRequest, ex.Message);
-    }
+    await ClientLoadAttempt.RunAsync(
+        async () =>
+        {
+          var response = await topicsService
+              .FetchTopicAsync(topicIdOrSlug, cancellationToken)
+              .ConfigureAwait(true);
+          var row = RowFrom(response.Topic, response.TopicElection, response.ElectionVote);
+          SelectedTopic = row;
+          CompleteLoad(currentRequest, [row]);
+        },
+        () => CompleteCanceled(currentRequest),
+        message => CompleteError(currentRequest, message)).ConfigureAwait(true);
   }
 
   private int BeginLoad()

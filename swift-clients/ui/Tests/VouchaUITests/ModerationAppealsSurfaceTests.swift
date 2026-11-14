@@ -1,11 +1,31 @@
 import SwiftUI
 import ViewInspector
+@testable import VouchaAPI
 @testable import VouchaFeatures
 import VouchaModels
 import XCTest
 
 @MainActor
 final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
+    func testStaffListRendersSummaryWithoutDraftEditorsOrActions() throws {
+        let response = try JSONDecoder.vouchaFixtureDecoder.decode(
+            ModerationAppealListResponse.self,
+            from: ApiFixtureLoader.data("native.moderation.appeals.default")
+        )
+        let viewModel = ModerationAppealsViewModel(
+            client: nil, isSignedIn: true, isAdministrator: true, isSiteModerator: false
+        )
+        viewModel.summaryPagination.reset(items: response.appeals)
+        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+
+        XCTAssertNoThrow(try inspection.find(text: "appealing-reviewer"))
+        XCTAssertNoThrow(try inspection.find(text: "Pending"))
+        XCTAssertThrowsError(try inspection.find(text: "Please reconsider."))
+        XCTAssertThrowsError(try inspection.find(button: "Approve"))
+        XCTAssertTrue(inspection.findAll(ViewType.TextEditor.self).isEmpty)
+        XCTAssertTrue(viewModel.appeals.isEmpty)
+    }
+
     func testStaffSurfaceRendersFiltersAppealContextDraftAndActions() throws {
         let appeal = try fixtureAppeal(suspensionId: "suspension-1")
         let viewModel = ModerationAppealsViewModel(
@@ -13,7 +33,7 @@ final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         viewModel.appeals = [appeal]
         viewModel.seedDrafts(from: [appeal])
-        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+        let inspection = try ModerationAppealCard(viewModel: viewModel, appeal: appeal).inspect()
 
         XCTAssertNoThrow(try inspection.find(text: "Pending"))
         XCTAssertNoThrow(try inspection.find(text: "Suspension appeal"))
@@ -40,7 +60,7 @@ final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         viewModel.appeals = [appeal]
         XCTAssertNotNil(store.admit(appeal, for: viewModel.admissionOwner))
 
-        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+        let inspection = try ModerationAppealCard(viewModel: viewModel, appeal: appeal).inspect()
 
         XCTAssertTrue(try inspection.find(button: "Re-run AI").isDisabled())
         XCTAssertFalse(try inspection.find(button: "Refresh status").isDisabled())
@@ -59,14 +79,14 @@ final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
 
         viewModel.appeals = [unsent]
         viewModel.seedDrafts(from: [unsent])
-        let unsentInspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+        let unsentInspection = try ModerationAppealCard(viewModel: viewModel, appeal: unsent).inspect()
         XCTAssertTrue(try unsentInspection.find(button: "Accept").isDisabled())
         XCTAssertTrue(try unsentInspection.find(button: "Reduce").isDisabled())
         XCTAssertTrue(try unsentInspection.find(button: "Deny").isDisabled())
 
         viewModel.appeals = [sent]
         viewModel.seedDrafts(from: [sent])
-        let sentInspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+        let sentInspection = try ModerationAppealCard(viewModel: viewModel, appeal: sent).inspect()
         XCTAssertFalse(try sentInspection.find(button: "Accept").isDisabled())
         XCTAssertFalse(try sentInspection.find(button: "Reduce").isDisabled())
         XCTAssertFalse(try sentInspection.find(button: "Deny").isDisabled())
@@ -103,7 +123,7 @@ final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         viewModel.appeals = [appeal]
         viewModel.seedDrafts(from: [appeal])
-        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+        let inspection = try ModerationAppealCard(viewModel: viewModel, appeal: appeal).inspect()
 
         XCTAssertNoThrow(try inspection.find(text: "Drafted"))
         XCTAssertNoThrow(try inspection.find(text: "Edited"))
@@ -129,7 +149,7 @@ final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         viewModel.appeals = [appeal]
         viewModel.seedDrafts(from: [appeal])
-        let inspection = try ModerationAppealsSurface(viewModel: viewModel).inspect()
+        let inspection = try ModerationAppealCard(viewModel: viewModel, appeal: appeal).inspect()
 
         for label in [
             "Public response for appeal appeal-1",
@@ -152,7 +172,7 @@ final class ModerationAppealsSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
         viewModel.appeals = [appeal]
         viewModel.seedDrafts(from: [appeal])
-        let editor = try ModerationAppealsSurface(viewModel: viewModel)
+        let editor = try ModerationAppealCard(viewModel: viewModel, appeal: appeal)
             .inspect()
             .find(ViewType.TextEditor.self)
 

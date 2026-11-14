@@ -43,7 +43,13 @@ public sealed partial class UsersBrowseViewModel : ObservableObject, IDisposable
   public static NativeRoutePath AdminTarget(UserSearchResult user)
   {
     ArgumentNullException.ThrowIfNull(user);
-    return NativeRoutePath.Segments("user", string.IsNullOrWhiteSpace(user.Username) ? user.Id : user.Username, "admin");
+    return NativeRoutePath.Segments("user", UserLabel(user), "admin");
+  }
+
+  public static string UserLabel(UserSearchResult user)
+  {
+    ArgumentNullException.ThrowIfNull(user);
+    return string.IsNullOrWhiteSpace(user.Username) ? user.Id : user.Username;
   }
 
   public void Dispose() => viewerProvider.ViewerChanged -= OnViewerChanged;

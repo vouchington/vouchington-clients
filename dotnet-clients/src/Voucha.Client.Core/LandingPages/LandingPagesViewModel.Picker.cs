@@ -83,19 +83,13 @@ public sealed partial class LandingPagesViewModel
   public string LinkLabel
   {
     get => linkLabel;
-    set
-    {
-      if (SetProperty(ref linkLabel, value)) OnPropertyChanged(nameof(CanAddItem));
-    }
+    set => SetPropertyAndNotify(ref linkLabel, value, nameof(CanAddItem));
   }
 
   public string LinkAddressText
   {
     get => linkAddressText;
-    set
-    {
-      if (SetProperty(ref linkAddressText, value)) OnPropertyChanged(nameof(CanAddItem));
-    }
+    set => SetPropertyAndNotify(ref linkAddressText, value, nameof(CanAddItem));
   }
 
   public bool IsLinkType => addType == LandingPageAddType.Link;
@@ -111,7 +105,7 @@ public sealed partial class LandingPagesViewModel
   {
     get
     {
-      if (!IsContentEditable) return false;
+      if (!CanAddWithinLimit) return false;
       return addType switch
       {
         LandingPageAddType.Link => CanAddLinkInput(LinkLabel, LinkAddressText),
@@ -119,6 +113,8 @@ public sealed partial class LandingPagesViewModel
             CandidateOptions.Any(option => option.Id == selectedCandidateId),
         LandingPageAddType.TopicGroup =>
             TopicOptions.Any(option => option.Id == selectedTopicId)
+            && DraftItemCount + 1 + GroupReviewOptions.Count(option => option.IsSelected)
+                + GroupReferralLinkOptions.Count(option => option.IsSelected) <= ItemLimit
             && (GroupReviewOptions.Any(option => option.IsSelected)
                 || GroupReferralLinkOptions.Any(option => option.IsSelected)),
         _ => false,

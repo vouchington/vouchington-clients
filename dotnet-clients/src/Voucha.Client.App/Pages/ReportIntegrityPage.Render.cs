@@ -5,45 +5,17 @@ namespace Voucha.Client.App.Pages;
 
 public sealed partial class ReportIntegrityPage
 {
-  private void Render()
+  private void Render() => RenderQueue(viewModel.Items.Count, () =>
   {
-    errorLabel.Text = viewModel.ErrorMessage;
-    retryButton.IsVisible = viewModel.State == Voucha.Client.Core.Support.LoadState.Error;
-    statusPicker.IsEnabled = !viewModel.IsLoading;
-    loadMoreButton.IsVisible = viewModel.HasMore;
-    loadMoreButton.IsEnabled = viewModel.CanLoadMore;
-    applyingStatus = true;
-    statusPicker.ItemsSource = viewModel.AvailableStatuses.Select(StatusLabel).ToArray();
-    statusPicker.SelectedIndex = Array.IndexOf(
-        viewModel.AvailableStatuses.ToArray(),
-        viewModel.Status);
-    applyingStatus = false;
-    queue.Children.Clear();
-    if (viewModel.IsLoading && viewModel.Items.Count == 0)
-    {
-      queue.Children.Add(new ActivityIndicator
-      {
-        IsRunning = true,
-        AutomationId = "report-integrity-loading",
-      });
-      return;
-    }
-    if (viewModel.IsEmpty)
-    {
-      queue.Children.Add(UiCopy.Bind(
-          new Label { AutomationId = "report-integrity-empty" }, Label.TextProperty,
-          UiMessageKey.NativeSwiftIntegrityNoFlagsMessage));
-      return;
-    }
     foreach (var row in viewModel.Items) queue.Children.Add(FlagCard(row));
-  }
+  });
 
   private View FlagCard(ReportIntegrityRow row)
   {
     var flag = row.Flag;
     var content = IntegrityPageViews.CardLines(
         IntegrityPageViews.FlagType(flag.FlagType),
-        UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityFlagId), flag.Id,
+
         UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityCreated),
         UiCopy.FormatDateTime(flag.CreatedAt),
         UiCopy.Resolve(row.ReporterCountText),
@@ -52,7 +24,14 @@ public sealed partial class ReportIntegrityPage
         string.IsNullOrWhiteSpace(row.Evidence) ? string.Empty :
             UiCopy.Localize(UiMessageKey.NativeSwiftIntegrityEvidence),
         row.Evidence);
-    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedById);
+    var open = UiCopy.Bind(new Button { AutomationId = $"report-integrity-open-{flag.Id}" },
+        Button.TextProperty, UiMessageKey.NativeSwiftIntegrityEvidence);
+    open.Clicked += async (_, _) => await Navigation.PushModalAsync(
+        new ModerationDetailPage<ReportIntegrityRow>(
+            token => viewModel.FetchDetailAsync(flag.Id, token),
+            detail => IntegrityPageViews.CardLines(viewModel.PresentDetail(detail.Flag).Evidence), viewModel)).ConfigureAwait(true);
+    content.Children.Add(open);
+    IntegrityPageViews.AddResolution(content, flag.Resolution, flag.ResolvedAt, flag.ResolvedAt is null ? null : Voucha.Client.Core.Moderation.ModerationLabels.Person(flag.ResolverDisplayName, flag.ResolverUsername, UiCopy.CurrentLocalization));
     content.Children.Insert(1, IntegrityPageViews.Entity(row.Entity));
     if (flag.Resolution is null && flag.ResolvedAt is null)
     {
@@ -106,8 +85,11 @@ public sealed partial class ReportIntegrityPage
       content.Children.Add(actions);
     }
     if (viewModel.PenalizedUserCount(flag.Id) is { } count)
-      content.Children.Add(new Label { Text = UiCopy.Format(
-          UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", count)) });
+      content.Children.Add(new Label
+      {
+        Text = UiCopy.Format(
+          UiMessageKey.NativeSwiftIntegrityPenalizedReporters, ("count", count))
+      });
     if (viewModel.ActionError(flag.Id) is { } error)
       content.Children.Add(new Label { Text = error, TextColor = Colors.IndianRed });
     if (viewModel.NeedsReconciliation(flag.Id))

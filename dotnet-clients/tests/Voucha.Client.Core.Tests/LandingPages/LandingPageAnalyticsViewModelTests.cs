@@ -33,9 +33,10 @@ public sealed class LandingPageAnalyticsViewModelTests
     };
     var viewModel = new Voucha.Client.Core.LandingPages.LandingPageAnalyticsViewModel(service);
 
-    await viewModel.LoadAsync("page-1", TestContext.Current.CancellationToken);
+    await viewModel.LoadAsync("alice", "my-links", TestContext.Current.CancellationToken);
 
-    Assert.Equal("page-1", service.LastAdminLandingPageAnalyticsPageId);
+    Assert.Equal("alice", service.LastAdminLandingPageAnalyticsUsername);
+    Assert.Equal("my-links", service.LastAdminLandingPageAnalyticsPageId);
     Assert.Equal("Landing Page", viewModel.PageTitle);
     Assert.Equal("landing-page", viewModel.PageSlug);
     Assert.True(viewModel.HasAnalytics);

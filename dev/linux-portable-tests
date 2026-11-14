@@ -18,7 +18,7 @@ bash swift-clients/tooling/with-build-lock.sh docker run --rm \
   --volume "$stage_root:/contract:ro" \
   --tmpfs /tmp:rw,exec,mode=1777 \
   --workdir /workspace --env HOME=/tmp --env TMPDIR=/tmp \
-  --env VOUCHA_FILAMENTS_CONTRACT_ROOT=/contract \
+  --env VOUCHA_CONTRACT_ROOT=/contract \
   "$SWIFT_LINUX_IMAGE" /bin/bash -c '
     set -euo pipefail
     swift test --package-path swift-clients/test-support --force-resolved-versions \
@@ -27,7 +27,7 @@ bash swift-clients/tooling/with-build-lock.sh docker run --rm \
       --build-path /tmp/voucha-core-build --no-parallel \
       --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"
   '
-VOUCHA_FILAMENTS_CONTRACT_ROOT="$stage_root" \
+VOUCHA_CONTRACT_ROOT="$stage_root" \
   mise exec -- bash dotnet-clients/tooling/with-build-lock.sh \
   bash dotnet-clients/tooling/harness.sh --exec dotnet test Voucha.DotNet.sln \
     --no-restore -p:UseSharedCompilation=false

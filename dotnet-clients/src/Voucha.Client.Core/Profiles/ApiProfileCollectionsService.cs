@@ -59,4 +59,14 @@ public sealed class ApiProfileCollectionsService : IProfileCollectionsService
         userId, "member", after, cancellationToken: cancellationToken).ConfigureAwait(false);
     return new(response.Results, response.PageInfo);
   }
+
+  public async Task<ProfileCollectionPage<ReferralLink>> FetchReferralLinksAsync(
+      string userId,
+      string? after,
+      CancellationToken cancellationToken = default)
+  {
+    var response = await client.FetchUserReferralLinksAsync(
+        userId, after, cancellationToken: cancellationToken).ConfigureAwait(false);
+    return new(response.Results, response.PageInfo);
+  }
 }

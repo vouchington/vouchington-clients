@@ -9,6 +9,7 @@ import {
   profileFiles,
   profileRows,
   renderReport,
+  selectProfilePath,
 } from '../swift-clients/apps/android/tooling/report-gradle-profile.mjs'
 
 const fixture = new URL('./fixtures/gradle-9.4.1-profile.html', import.meta.url)
@@ -52,6 +53,17 @@ test('reports exact identity, bounded generated sizes, and longest tasks', async
   assert.deepEqual(profileFiles(join(root, '.build/Android'), root), [
     join(profileDirectory, 'profile-pinned.html'),
   ])
+  const producerProfile = join(profileDirectory, 'profile-pinned.html')
+  const consumerProfile = join(profileDirectory, 'profile-consumer.html')
+  await writeFile(consumerProfile, 'consumer')
+  const bothProfiles = profileFiles(join(root, '.build/Android'), root)
+  assert.equal(selectProfilePath(bothProfiles, consumerProfile), consumerProfile)
+  assert.equal(selectProfilePath(bothProfiles, producerProfile), producerProfile)
+  assert.throws(() => selectProfilePath(bothProfiles), /Expected one Android Gradle profile/u)
+  assert.throws(
+    () => selectProfilePath(bothProfiles, join(root, 'outside-profile.html')),
+    /outside the expected generated reports/u,
+  )
   assert.deepEqual(measuredSize(join(root, 'missing')), {
     bytes: 0,
     entries: 0,

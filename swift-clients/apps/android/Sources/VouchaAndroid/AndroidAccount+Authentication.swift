@@ -1,4 +1,5 @@
 import Foundation
+import VouchaCore
 import VouchaLocalization
 
 extension AndroidAccount {
@@ -40,7 +41,8 @@ extension AndroidAccount {
     }
 
     func verifyOTP() async {
-        guard !isAuthenticating else { return }
+        guard !isAuthenticating, let normalized = EmailVerificationCode.normalized(otp) else { return }
+        otp = normalized
         isAuthenticating = true
         authError = nil
         defer { isAuthenticating = false }

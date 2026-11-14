@@ -79,5 +79,29 @@ struct NativeTopicManagementMergeFields: View {
             text: $viewModel.destinationIdOrSlug
         )
         .textFieldStyle(.roundedBorder)
+        if let message = viewModel.mergeMessage {
+            Text(UiMessages.string(message, locale: nativeUiLocale))
+                .accessibilityIdentifier("topic-merge-status")
+        }
+        if let operation = viewModel.mergeOperation {
+            Text(verbatim: UiMessages.string(.protocolValue(operation.status), locale: nativeUiLocale))
+                .accessibilityIdentifier("topic-merge-producer-status")
+            Text(verbatim: UiMessages.string(.protocolValue(operation.stage), locale: nativeUiLocale))
+                .accessibilityIdentifier("topic-merge-stage")
+            if let completedAt = operation.completedAt {
+                Text(completedAt, style: .date)
+                    .accessibilityIdentifier("topic-merge-completed-at")
+            }
+            if let errorCode = operation.errorCode {
+                Text(verbatim: UiMessages.string(.protocolValue(errorCode), locale: nativeUiLocale))
+                    .accessibilityIdentifier("topic-merge-error-code")
+            }
+        }
+        if viewModel.canCheckMergeStatus {
+            Button(UiMessages.string(.settingsTopicsMergeCheckStatus, locale: nativeUiLocale)) {
+                Task { await viewModel.checkMergeStatus() }
+            }
+            .disabled(viewModel.isCheckingMerge)
+        }
     }
 }

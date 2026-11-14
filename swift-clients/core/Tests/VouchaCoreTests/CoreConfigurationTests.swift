@@ -52,29 +52,29 @@ final class AppConfigTests: XCTestCase {
 
 final class ApiFixtureLoaderTests: XCTestCase {
     func testContractRootRequiresExplicitEnvironment() {
-        XCTAssertThrowsError(try FilamentsContractRoot.url(environment: [:])) { error in
+        XCTAssertThrowsError(try ContractRoot.url(environment: [:])) { error in
             XCTAssertEqual(
                 String(describing: error),
-                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
+                "Missing required VOUCHA_CONTRACT_ROOT. Fetch Vouchington contracts before running native contract tests."
             )
         }
     }
 
     func testContractRootRejectsInvalidExplicitDirectory() {
         XCTAssertThrowsError(
-            try FilamentsContractRoot.url(environment: [
-                FilamentsContractRoot.environmentKey: "/definitely-not-a-filaments-contract-root"
+            try ContractRoot.url(environment: [
+                ContractRoot.environmentKey: "/definitely-not-a-vouchington-contract-root"
             ])
         ) { error in
             XCTAssertTrue(String(describing: error).contains("must name an existing directory"))
         }
     }
 
-    func testContractRootNeverDiscoversFilamentsLookingAncestorOrSiblingWithoutEnvironment() throws {
+    func testContractRootNeverDiscoversVouchingtonLookingAncestorOrSiblingWithoutEnvironment() throws {
         let temporaryRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filaments-contract-root-\(UUID().uuidString)", isDirectory: true)
-        let ancestor = temporaryRoot.appendingPathComponent("filaments", isDirectory: true)
-        let sibling = temporaryRoot.appendingPathComponent("filaments-sibling", isDirectory: true)
+            .appendingPathComponent("vouchington-contract-root-\(UUID().uuidString)", isDirectory: true)
+        let ancestor = temporaryRoot.appendingPathComponent("vouchington", isDirectory: true)
+        let sibling = temporaryRoot.appendingPathComponent("vouchington-sibling", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: temporaryRoot) }
 
         for root in [ancestor, sibling] {
@@ -83,10 +83,10 @@ final class ApiFixtureLoaderTests: XCTestCase {
             try Data("{\"fixtures\":[]}".utf8).write(to: fixtures.appendingPathComponent("manifest.json"))
         }
 
-        XCTAssertThrowsError(try FilamentsContractRoot.url(environment: [:])) { error in
+        XCTAssertThrowsError(try ContractRoot.url(environment: [:])) { error in
             XCTAssertEqual(
                 String(describing: error),
-                "Missing required VOUCHA_FILAMENTS_CONTRACT_ROOT. Fetch Filaments contracts before running native contract tests."
+                "Missing required VOUCHA_CONTRACT_ROOT. Fetch Vouchington contracts before running native contract tests."
             )
         }
     }
@@ -100,8 +100,8 @@ final class ApiFixtureLoaderTests: XCTestCase {
         try FileManager.default.createSymbolicLink(at: manifest, withDestinationURL: movedManifest)
 
         XCTAssertThrowsError(
-            try FilamentsContractRoot.url(
-                environment: [FilamentsContractRoot.environmentKey: root.path],
+            try ContractRoot.url(
+                environment: [ContractRoot.environmentKey: root.path],
                 requiredPaths: ["api-fixtures/v1/manifest.json"]
             )
         ) { error in
@@ -166,7 +166,7 @@ final class ApiFixtureLoaderTests: XCTestCase {
 
     private func makeFixtureRoot() throws -> URL {
         let temporaryRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filaments-contract-root-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("vouchington-contract-root-\(UUID().uuidString)", isDirectory: true)
         let fixtureRoot = temporaryRoot.appendingPathComponent("api-fixtures/v1", isDirectory: true)
         try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
         try Data("{\"fixtures\":[]}".utf8).write(to: fixtureRoot.appendingPathComponent("manifest.json"))

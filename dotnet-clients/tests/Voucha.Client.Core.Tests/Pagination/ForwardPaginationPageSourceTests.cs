@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using Voucha.Client.Core.Tests.Support;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Pagination;
@@ -53,18 +53,10 @@ public sealed class ForwardPaginationPageSourceTests
     Assert.Contains("TryLoadAutomatically", source, StringComparison.Ordinal);
   }
 
-  private static string PageSource(string file) =>
-      File.ReadAllText(Path.Combine(ClientRepositoryRoot(), "dotnet-clients", "src", "Voucha.Client.App", "Pages", file));
-
-  private static string ClientRepositoryRoot([CallerFilePath] string sourcePath = "")
-  {
-    DirectoryInfo? directory = new(Path.GetDirectoryName(sourcePath)!);
-    while (directory is not null)
-    {
-      if (File.Exists(Path.Combine(directory.FullName, "dotnet-clients", "Voucha.DotNet.sln")))
-        return directory.FullName;
-      directory = directory.Parent;
-    }
-    throw new DirectoryNotFoundException("Could not find client repository root from source path.");
-  }
+  private static string PageSource(string file) => File.ReadAllText(RepositoryFilePath.Find(
+      "dotnet-clients",
+      "src",
+      "Voucha.Client.App",
+      "Pages",
+      file));
 }

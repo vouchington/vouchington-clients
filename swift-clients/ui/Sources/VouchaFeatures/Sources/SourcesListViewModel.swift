@@ -85,6 +85,15 @@ public final class SourcesListViewModel {
         await loadCurrentScope()
     }
 
+    func reloadAfterCreation(shouldApply: () -> Bool) async {
+        guard shouldApply() else { return }
+        yourLoaded = false
+        allLoaded = false
+        yourSources = []
+        allSources = []
+        await loadCurrentScope(shouldApply: shouldApply)
+    }
+
     public func reload() async {
         switch scope {
         case .your:
@@ -97,13 +106,13 @@ public final class SourcesListViewModel {
         await loadCurrentScope()
     }
 
-    private func loadCurrentScope() async {
+    private func loadCurrentScope(shouldApply: () -> Bool = { true }) async {
         statusMessage = nil
         let requestedScope = scope
         guard loadEmptyYourSourcesIfNeeded(requestedScope: requestedScope) else { return }
         guard shouldFetch(requestedScope) else { return }
 
-        await fetchAndStore(requestedScope: requestedScope)
+        await fetchAndStore(requestedScope: requestedScope, shouldApply: shouldApply)
     }
 
     public func vote(topicId: String, choice: ElectionVoteChoice?) async {

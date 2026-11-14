@@ -118,7 +118,7 @@ public partial interface ICommunitiesService
 
   Task BanAsync(string idOrSlug, BanCommunityMemberRequest request, CancellationToken cancellationToken = default);
 
-  Task LiftBanAsync(string idOrSlug, string userId, CancellationToken cancellationToken = default);
+  Task<CommunityBanLiftResponse> LiftBanAsync(string idOrSlug, string banId, CancellationToken cancellationToken = default);
 
   Task ActivateRestrictionsAsync(string idOrSlug, ActivateCommunityRestrictionsRequest request, CancellationToken cancellationToken = default);
 

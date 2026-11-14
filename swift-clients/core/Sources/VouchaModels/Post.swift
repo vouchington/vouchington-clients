@@ -1,26 +1,10 @@
 import Foundation
 
-public enum DataPointVertical: String, Codable, Hashable, Sendable {
-    case creditCard = "credit_card"
-    case bankAccount = "bank_account"
-}
-
-public enum BroadcastScope: String, Codable, Sendable {
-    case everyone, users, followers, mutualFollowers = "mutual_followers"
-}
-
-public enum PostPrivacy: String, Codable, Sendable {
-    case `public`, `private`
-}
-
-public enum ClearanceStatus: String, Codable, Sendable {
-    case pending, approved, rejected, inReview = "in_review"
-}
-
 public struct Post: Codable, Identifiable, Sendable {
     public let entityType: String?
     public let id: String
     public let slug: String?
+    public let placeholderState: String?
     public let postType: PostType
     public let title: String?
     public let declaredLanguage: String?
@@ -88,7 +72,7 @@ public struct Post: Codable, Identifiable, Sendable {
     /** compatibility initializer is in Post+Compatibility.swift */
     private enum TransportCodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
+        case id, slug, placeholderState, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
         case parentId = "parentPostId", rootId = "rootPostId"
         case createdById, createdAt, broadcast, privacy, isAnonymous, communityId, provenance, staffProvenance
         case clearanceStatus, approvedAt, inReviewAt, rejectedAt
@@ -133,7 +117,8 @@ extension Post {
         canDelete: Bool? = nil,
         canLock: Bool? = nil,
         postExplicitCategories: [PostExplicitCategory]? = nil,
-        postHashtags: [PostHashtag]? = nil
+        postHashtags: [PostHashtag]? = nil,
+        placeholderState: String? = nil
     ) {
         entityType = nil
         self.id = id
@@ -181,11 +166,12 @@ extension Post {
         updatedById = nil
         self.postExplicitCategories = postExplicitCategories
         self.postHashtags = postHashtags
+        self.placeholderState = placeholderState
     }
 
     private enum CodingKeys: String, CodingKey {
         case entityType = "__entityType"
-        case id, slug, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
+        case id, slug, placeholderState, postType, title, declaredLanguage, linguaRsDetectedLanguage, markdown, html
         case parentId = "parentPostId", rootId = "rootPostId"
         case createdById, createdAt, broadcast, privacy, isAnonymous, communityId
         case provenance, staffProvenance

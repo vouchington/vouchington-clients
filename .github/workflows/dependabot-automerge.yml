@@ -98,7 +98,7 @@ jobs:
           node-version-file: .nvmrc
       - name: Set up pnpm
         if: steps.live.outputs.eligible == 'true'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: latest-12
       - name: Install trusted repair dependencies
@@ -210,7 +210,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Set up pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: latest-12
       - name: Install trusted repair dependencies
@@ -314,7 +314,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Enable eligible Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@cc01e935bfaa340e217ce38ab612d8f3915a3db3 # v0.43.0
+        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@102b3d948645b8f6ad9fc361d8681bfc55081551 # v0.85.1
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
           expected_base_sha: ${{ needs.prepare.outputs.base-sha }}
@@ -331,7 +331,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Disable stale Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@cc01e935bfaa340e217ce38ab612d8f3915a3db3 # v0.43.0
+        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@102b3d948645b8f6ad9fc361d8681bfc55081551 # v0.85.1
         with:
           automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
 

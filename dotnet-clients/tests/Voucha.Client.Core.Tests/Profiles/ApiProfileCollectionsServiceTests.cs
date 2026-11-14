@@ -18,7 +18,7 @@ public sealed class ApiProfileCollectionsServiceTests
   {
     const string emptyPage =
         """{"results":[],"page_info":{"end_cursor":"next","has_next_page":true,"start_cursor":"first"}}""";
-    var handler = new RecordingHandler(Enumerable.Repeat(new RecordedResponse(emptyPage), 5));
+    var handler = new RecordingHandler(Enumerable.Repeat(new RecordedResponse(emptyPage), 6));
     var client = new VouchaApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
     var service = new ApiProfileCollectionsService(client);
     var cancellationToken = TestContext.Current.CancellationToken;
@@ -28,9 +28,10 @@ public sealed class ApiProfileCollectionsServiceTests
     var followers = await service.FetchFollowersAsync("user 1", "cursor 1", cancellationToken);
     var sources = await service.FetchSourcesAsync("user 1", "podcast", "cursor 1", cancellationToken);
     var communities = await service.FetchCommunitiesAsync("user 1", "cursor 1", cancellationToken);
+    var referralLinks = await service.FetchReferralLinksAsync("user 1", "cursor 1", cancellationToken);
 
     Assert.All(
-        new[] { topics.PageInfo, following.PageInfo, followers.PageInfo, sources.PageInfo, communities.PageInfo },
+        new[] { topics.PageInfo, following.PageInfo, followers.PageInfo, sources.PageInfo, communities.PageInfo, referralLinks.PageInfo },
         pageInfo =>
         {
           Assert.Equal("next", pageInfo.EndCursor);
@@ -43,6 +44,7 @@ public sealed class ApiProfileCollectionsServiceTests
           "/api/v1/users/user%201/users/followers?after=cursor%201&limit=25",
           "/api/v1/users/user%201/rss-feeds/following?after=cursor%201&feed_type=podcast&limit=25",
           "/api/v1/users/user%201/communities/member?after=cursor%201&limit=25",
+          "/api/v1/referral-links?after=cursor%201&limit=25&user_id=user%201",
         ],
         handler.Requests.Select(request => request.PathAndQuery));
   }

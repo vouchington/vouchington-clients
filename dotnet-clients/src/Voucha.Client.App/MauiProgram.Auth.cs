@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Voucha.Client.Core;
+using Voucha.Client.Core.Analytics;
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.Auth;
 
@@ -19,6 +20,10 @@ public static partial class MauiProgram
     services.AddSingleton<IPasskeyAssertionProvider, PlatformPasskeyAssertionProvider>();
     services.AddSingleton<AuthenticationService>();
     services.AddTransient<AuthViewModel>();
+    services.AddSingleton<IAccountChangeConfirmation, MauiAccountChangeConfirmation>();
+    services.AddSingleton<IReAuthProviderAssertion, PlatformReAuthProviderAssertion>();
+    services.AddSingleton<FreshAccountBroker>();
+    services.AddSingleton<IFreshAccountProofService, FreshAccountProofService>();
   }
 
   private static void AddAuthSessionServices(IServiceCollection services)
@@ -26,9 +31,17 @@ public static partial class MauiProgram
     services.AddSingleton<CookieContainer>();
     services.AddSingleton(PublicKeyPinningPolicy.VouchaDefault);
     services.AddSingleton<ISessionCookiePersistence>(sp =>
-        new MauiSecureSessionCookiePersistence(
-            sp.GetRequiredService<AppConfig>().ApiBaseUrl,
-            sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>()));
+    {
+      ISessionCookiePersistence Production() => new MauiSecureSessionCookiePersistence(
+          sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+          sp.GetRequiredService<ILogger<MauiSecureSessionCookiePersistence>>());
+#if DEBUG
+      if (CatalystAuthNewsLaunch.IsRequested) return new CatalystAuthNewsSessionPersistence();
+      return CatalystGuiSessionCookiePersistence.Select(CatalystGuiPreflight.IsActive(), Production);
+#else
+      return Production();
+#endif
+    });
     services.AddSingleton(sp => new SessionCookieJar(
         sp.GetRequiredService<CookieContainer>(),
         sp.GetRequiredService<AppConfig>().ApiBaseUrl,
@@ -56,19 +69,31 @@ public static partial class MauiProgram
       };
     });
     services.AddSingleton(_ => NativeClientMetadata.Current());
-    services.AddSingleton(sp => new HttpClient(
-        new ClientMetadataHandler(
-            sp.GetRequiredService<ClientMetadata>(),
-            sp.GetRequiredService<AppConfig>().ApiBaseUrl,
-            sp.GetRequiredService<SessionCookieJar>(),
-            new SessionCookiePersistenceHandler(
-                sp.GetRequiredService<SessionCookieJar>(),
-                sp.GetRequiredService<SocketsHttpHandler>())),
-        disposeHandler: true)
+    services.AddSingleton(sp =>
     {
-      BaseAddress = sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+      HttpMessageHandler transport = sp.GetRequiredService<SocketsHttpHandler>();
+#if DEBUG
+      transport = CatalystGuiFixtureHandler.Wrap(transport);
+      if (CatalystAuthNewsLaunch.IsRequested) transport = new CatalystAuthNewsHandler();
+#endif
+      return new HttpClient(
+          new ClientMetadataHandler(
+              sp.GetRequiredService<ClientMetadata>(),
+              sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+              sp.GetRequiredService<SessionCookieJar>(),
+              new SessionCookiePersistenceHandler(
+                  sp.GetRequiredService<SessionCookieJar>(),
+                  transport)),
+          disposeHandler: true)
+      {
+        BaseAddress = sp.GetRequiredService<AppConfig>().ApiBaseUrl,
+      };
     });
+    services.AddSingleton(sp => new BotChallengeReplay(
+        () => sp.GetRequiredService<ISessionStore>(),
+        (action, token) => sp.GetRequiredService<ITurnstileTokenProvider>().GetTokenAsync(action, token)));
     services.AddSingleton<VouchaApiClient>();
+    services.AddSingleton<IProductSurfaceAnalytics, SessionProductSurfaceAnalytics>();
     services.AddSingleton<CookieSessionStore>();
     services.AddSingleton<ISessionStore>(sp => sp.GetRequiredService<CookieSessionStore>());
 #if DEBUG

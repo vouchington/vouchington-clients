@@ -13,7 +13,7 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/messages"] = [
@@ -56,7 +56,7 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/messages"] = [
@@ -91,7 +91,7 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/messages"] = [
@@ -134,7 +134,7 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.queuedHandlers["/api/v1/my/messages/conversation-1/messages"] = [
@@ -281,33 +281,7 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
               ],
               "page_info": {
                 "has_next_page": \(hasNextPage),
-                "end_cursor": \(jsonString(endCursor)),
-                "start_cursor": null
-              }
-            }
-            """.utf8
-        )
-    }
-
-    private func participantsPage(conversationId: String, ownerUserId: String) -> Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "\(conversationId)",
-                  "user_id": "\(ownerUserId)",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
+                "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
                 "start_cursor": null
               }
             }
@@ -351,11 +325,6 @@ final class DirectMessagesViewModelThreadLoadingTests: NativeRouteSurfaceViewMod
             }
             """.utf8
         )
-    }
-
-    private func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
     }
 
     private func assertLoadState(

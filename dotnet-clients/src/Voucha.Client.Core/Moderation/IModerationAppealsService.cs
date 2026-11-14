@@ -4,13 +4,18 @@ namespace Voucha.Client.Core.Moderation;
 
 public interface IModerationAppealsService
 {
-  Task<ModerationAppealListResponse> FetchAppealsAsync(
+  Task<StaffModerationAppealListResponse> FetchAppealsAsync(
       ModerationAppealStatus status,
       string? after = null,
       int limit = 25,
       CancellationToken cancellationToken = default);
 
   Task<ModerationAppealResponse> FetchAppealAsync(string id, CancellationToken cancellationToken = default);
+
+  Task<ModerationAppealResolutionDraftRunResponse> FetchAIRerunAsync(
+      string appealId,
+      string runId,
+      CancellationToken cancellationToken = default);
 
   Task<ModerationAppealResponse> UpdatePublicResponseAsync(string id, string publicResponse, CancellationToken cancellationToken = default);
 

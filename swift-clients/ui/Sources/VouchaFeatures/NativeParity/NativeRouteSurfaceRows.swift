@@ -31,7 +31,7 @@ struct NativeActionSurface: View {
 @MainActor
 func nativeRetryAction(for viewModel: NativeRouteSurfaceViewModel) -> (@Sendable () async -> Void)? {
     guard viewModel.destination?.supportsRemoteNativeSurface == true else { return nil }
-    return { await viewModel.load() }
+    return { await viewModel.retryLoad() }
 }
 
 struct NativeRowsSurface: View {

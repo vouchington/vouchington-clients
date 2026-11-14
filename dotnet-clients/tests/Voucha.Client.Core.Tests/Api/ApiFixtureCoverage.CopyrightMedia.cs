@@ -8,6 +8,7 @@ internal static partial class ApiFixtureCoverage
       this Dictionary<string, Type> registry)
   {
     registry["native.posts.images.placement.default"] = typeof(PostImagePlacementResponse);
+    registry["native.posts.images.placement-limit.conflict"] = typeof(System.Text.Json.JsonElement);
     registry["native.moderation.copyright.image-similarity-candidates.default"] =
         typeof(CopyrightImageSimilarityCandidatesResponse);
     registry["web.copyright.notices.default"] = typeof(CopyrightNoticesResponse);
@@ -24,6 +25,12 @@ internal static partial class ApiFixtureCoverage
   public static Dictionary<string, ApiRequest> WithCopyrightMediaEndpoints(
       this Dictionary<string, ApiRequest> registry)
   {
+    const string placementConflict = "native.posts.images.placement-limit.conflict";
+    registry[placementConflict] = VouchaApiEndpoints.SetPostImages(
+        ApiFixtureLoader.RouteParameterValue(placementConflict, "idOrSlug"),
+        System.Text.Json.JsonSerializer.Deserialize<SetPostImagesBody>(
+            ApiFixtureLoader.DotnetCoreRouteFixtures.Single(entry => entry.Id == placementConflict)
+                .RequestBody!.ToJsonString(), VouchaApiJson.Options)!);
     registry["native.posts.images.placement.default"] = VouchaApiEndpoints.PostImages(
         ApiFixtureLoader.RouteParameterValue("native.posts.images.placement.default", "idOrSlug"));
     registry["native.moderation.copyright.image-similarity-candidates.default"] =

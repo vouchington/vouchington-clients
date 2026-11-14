@@ -26,7 +26,7 @@ public abstract partial class CommunitySectionPage
     CommunityDetailSurfaceSection.Settings => BuildSettingsActions(),
     CommunityDetailSurfaceSection.Members => BuildMemberActions(),
     CommunityDetailSurfaceSection.Lists => BuildListsActions(),
-    CommunityDetailSurfaceSection.Applications => BuildApplicationsActions(),
+    CommunityDetailSurfaceSection.Applications => new VerticalStackLayout(),
     CommunityDetailSurfaceSection.Invites => BuildInvitesActions(),
     CommunityDetailSurfaceSection.PinnedPosts => BuildPinnedPostsActions(),
     CommunityDetailSurfaceSection.Bans => BuildBansActions(),

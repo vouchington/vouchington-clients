@@ -37,16 +37,20 @@ public struct AdminReviewQueueMediaReveal: Codable, Sendable {
 }
 
 public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
+    public let postLabel: String
     public let id: String
     public let title: String
-    @RequiredNullable public var declaredLanguage: String?
-    @RequiredNullable public var linguaRsDetectedLanguage: String?
+    @RequiredNullable
+    public var declaredLanguage: String?
+    @RequiredNullable
+    public var linguaRsDetectedLanguage: String?
     public let slug: String?
     public let markdownPreview: String
     public let postType: String
     public let createdById: String?
     public let createdAt: Date
-    @RequiredNullable public var rootId: String?
+    @RequiredNullable
+    public var rootId: String?
     public let rootPostType: String?
     public let rootSlug: String?
     public let clearanceStatus: AdminReviewQueueClearanceStatus
@@ -55,7 +59,7 @@ public struct AdminReviewQueuePost: Codable, Identifiable, Sendable {
     public let mediaReveal: AdminReviewQueueMediaReveal
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, declaredLanguage, linguaRsDetectedLanguage, slug, markdownPreview
+        case id, title, postLabel, declaredLanguage, linguaRsDetectedLanguage, slug, markdownPreview
         case postType, createdById, createdAt, rootPostType, rootSlug, clearanceStatus
         case clearanceUpdatedAt, moderationSummary, mediaReveal
         case rootId = "rootPostId"

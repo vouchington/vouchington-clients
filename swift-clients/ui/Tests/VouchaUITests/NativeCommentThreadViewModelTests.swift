@@ -45,15 +45,13 @@ final class NativeCommentThreadViewModelTests: XCTestCase {
         XCTAssertEqual(bestTree.last?.children.map(\.post.id), ["comment-a-1"])
     }
 
-    func testCollapseStorageKeyIncludesOptionalUserId() {
+    func testCollapseStorageKeyIsRootScoped() {
         XCTAssertEqual(
             NativeCommentThreadViewModel.collapseStorageKey(rootPostId: "root-1"),
             "comments-collapsed:root-1"
         )
-        XCTAssertEqual(
-            NativeCommentThreadViewModel.collapseStorageKey(rootPostId: "root-1", userId: "user-1"),
-            "comments-collapsed:root-1:user-1"
-        )
+        XCTAssertNil(NativeCommentThreadViewModel(client: nil, rootPostId: "root-1", currentUserId: "user-1")
+            .collapseStorageKey)
     }
 
     func testLoadPermalinkTracksStatesAndBuildsTree() async throws {
@@ -434,7 +432,7 @@ final class NativeCommentThreadViewModelTests: XCTestCase {
             "can_lock": true
           },
           "html": "<p>Root body</p>",
-          "post_metrics": { "count": { "descendants": 2, "children": 1, "ancestors": 0 } },
+          "post_metrics": { "count": { "descendants": 2, "children": 1 } },
           "post_election": { "votes_score_net": 0, "votes_count_up": 0, "votes_count_down": 0 },
           "election_vote": null,
           "bookmarks": { "root-1": { "save": false } }
@@ -535,8 +533,8 @@ final class NativeCommentThreadViewModelTests: XCTestCase {
             }
           },
           "posts_metrics": {
-            "comment-a": { "count": { "descendants": 1, "children": 1, "ancestors": 1 } },
-            "comment-b": { "count": { "descendants": 0, "children": 0, "ancestors": 2 } }
+            "comment-a": { "count": { "descendants": 1, "children": 1 } },
+            "comment-b": { "count": { "descendants": 0, "children": 0 } }
           },
           "post_elections": {
             "comment-a": { "votes_score_net": 3, "votes_count_up": 3, "votes_count_down": 0 },
@@ -613,7 +611,7 @@ final class NativeCommentThreadViewModelTests: XCTestCase {
             }
           },
           "posts_metrics": {
-            "comment-a": { "count": { "descendants": 1, "children": 1, "ancestors": 1 } }
+            "comment-a": { "count": { "descendants": 1, "children": 1 } }
           },
           "markdown_to_html": {
             "comment-a": "<p>First reply</p>"

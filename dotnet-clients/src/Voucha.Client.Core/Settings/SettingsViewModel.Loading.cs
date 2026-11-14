@@ -174,7 +174,6 @@ public sealed partial class SettingsViewModel
       [
         new("processing_restricted_at", T(UiMessageKey.NativeDotnetSettingsRestrictProcessing), T(UiMessageKey.NativeDotnetSettingsRestrictProcessingDescription), user.ProcessingRestrictedAt is not null, localization),
         new("third_party_marketing", T(UiMessageKey.NativeDotnetSettingsThirdPartyMarketing), T(UiMessageKey.NativeDotnetSettingsThirdPartyMarketingDescription), user.ThirdPartyMarketing ?? false, localization),
-        new("hn_discussions", T(UiMessageKey.ExtractedMyPreferencesFormHackerNewsDiscussions065664a4), T(UiMessageKey.ExtractedMyPreferencesFormShowRelatedHackerNewsThreadsWhen00754911), user.HnDiscussions ?? false, localization),
       ];
 
   private string DisplayPlanName(string? plan)

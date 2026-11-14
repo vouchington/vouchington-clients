@@ -92,7 +92,7 @@ public sealed record ModerationAppeal(
     [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null);
 
 public sealed record ModerationAppealListResponse(
-    [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppeal> Appeals,
+    [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppealSummary> Appeals,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record ModerationAppealResponse(
@@ -141,7 +141,8 @@ public sealed record ModerationDispute(
     [property: JsonPropertyName("post_content")] ModerationDisputePostContent? PostContent = null,
     [property: JsonPropertyName("staff_context")] ModerationDisputeStaffContext? StaffContext = null,
     [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
-    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null);
+    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
+    [property: JsonPropertyName("post_label"), JsonRequired, JsonConverter(typeof(NonNullApiStringConverter))] string PostLabel = "");
 
 public sealed record AuthoredContentText
 {
@@ -174,7 +175,7 @@ public sealed record AuthoredContentText
 }
 
 public sealed record ModerationDisputeListResponse(
-    [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDispute> Disputes,
+    [property: JsonPropertyName("disputes")] IReadOnlyList<ModerationDisputeSummary> Disputes,
     [property: JsonPropertyName("page_info")] PageInfo PageInfo);
 
 public sealed record ModerationCaseCountResponse(

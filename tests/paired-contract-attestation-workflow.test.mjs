@@ -2,18 +2,10 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { it } from 'node:test'
 import { runPairedContractCommand } from '../scripts/paired-contract-attestation.mjs'
-import { jobBlock } from './workflow-job-block.mjs'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const workflowPath = '../.github/workflows/paired-native-contract-attestation.yml'
 const readWorkflow = () => readFile(new URL(workflowPath, import.meta.url), 'utf8')
-
-function stepBlock(workflow, name) {
-  const marker = `      - name: ${name}`
-  const start = workflow.indexOf(marker)
-  assert.notEqual(start, -1, `missing step ${name}`)
-  const next = workflow.indexOf('\n      - name:', start + marker.length)
-  return workflow.slice(start, next === -1 ? undefined : next)
-}
 
 it('keeps paired review evidence separate from the required native contract workflow', async () => {
   const [workflow, existingWorkflow] = await Promise.all([
@@ -79,7 +71,7 @@ it('isolates candidate code from every authenticated identity-resolution step', 
     'Run the producer exporter in the isolated pinned runtime',
     'Stage the explicitly declared contract paths',
     'Assert extracted localization representatives',
-    'Check paired candidate generated localization against staged contract',
+    'Verify the staged contract layout',
   ])
     assert.match(candidate, new RegExp(`- name: ${step}`, 'u'))
   assert.doesNotMatch(candidate, /pnpm install|pnpm\/action-setup|npm install/u)
@@ -245,7 +237,7 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
   for (const step of [
     'Verify immutable merge snapshots and trusted contract declaration',
     'Assert extracted localization representatives from untrusted data',
-    'Check exact candidate generated localization against untrusted data',
+    'Verify the staged contract layout',
   ])
     assert.match(finalize, new RegExp(`- name: ${step}`, 'u'))
   assert.match(
@@ -253,7 +245,7 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
     /PRODUCER_CANDIDATE_ROOT: \$\{\{ github\.workspace \}\}\/producer-candidate/u,
   )
   assert.ok(
-    finalize.indexOf('Check exact candidate generated localization against untrusted data') <
+    finalize.indexOf('Verify the staged contract layout') <
       finalize.indexOf('Recheck live identities and write exact informational evidence'),
     'trusted candidate-data checks must precede the authenticated live recheck',
   )

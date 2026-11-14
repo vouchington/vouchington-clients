@@ -11,7 +11,7 @@ public sealed class TopicsPageBinding : LoadablePageBinding<TopicPageRow>
   private readonly ISessionStore sessionStore;
   private readonly AppConfig config;
   private readonly EventHandler<SessionChangedEventArgs> sessionChangedHandler;
-  private bool isSessionChangedAttached;
+  private readonly SessionChangedSubscription sessionChangedSubscription = new();
 
   public TopicsPageBinding(TopicsViewModel viewModel, ISessionStore sessionStore, AppConfig config) : base(() => viewModel.LoadAsync())
   {
@@ -28,18 +28,12 @@ public sealed class TopicsPageBinding : LoadablePageBinding<TopicPageRow>
 
   public void AttachSessionChanged()
   {
-    if (isSessionChangedAttached) return;
-    sessionStore.SessionChanged += sessionChangedHandler;
-    isSessionChangedAttached = true;
+    if (!sessionChangedSubscription.TryAttach(sessionStore, sessionChangedHandler)) return;
     OnPropertyChanged(nameof(Items));
   }
 
-  public void DetachSessionChanged()
-  {
-    if (!isSessionChangedAttached) return;
-    sessionStore.SessionChanged -= sessionChangedHandler;
-    isSessionChangedAttached = false;
-  }
+  public void DetachSessionChanged() =>
+      sessionChangedSubscription.TryDetach(sessionStore, sessionChangedHandler);
 
   public bool CanVote => sessionStore.Current.CanCastPublicVotes();
 

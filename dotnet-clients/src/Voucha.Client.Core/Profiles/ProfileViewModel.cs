@@ -48,6 +48,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
     this.imageUploadService = imageUploadService ?? throw new ArgumentNullException(nameof(imageUploadService));
     this.config = config ?? throw new ArgumentNullException(nameof(config));
     this.localization = localization ?? UiLocalization.English;
+    TimeRange = new(this.localization);
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
     historyTabs = BuildTabs(null, ProfileHistoryTab.All);
   }
@@ -124,17 +125,15 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
     get => canEdit;
     private set
     {
-      if (SetProperty(ref canEdit, value)) OnPropertyChanged(nameof(CanMutateAvatar));
+      SetPropertyAndNotify(ref canEdit, value, nameof(CanMutateAvatar));
+      NotifyPrivateMetrics();
     }
   }
 
   public bool IsUploadingAvatar
   {
     get => isUploadingAvatar;
-    private set
-    {
-      if (SetProperty(ref isUploadingAvatar, value)) OnPropertyChanged(nameof(CanMutateAvatar));
-    }
+    private set => SetPropertyAndNotify(ref isUploadingAvatar, value, nameof(CanMutateAvatar));
   }
 
   public bool CanMutateAvatar => CanEdit && !IsUploadingAvatar;
@@ -148,10 +147,7 @@ public sealed partial class ProfileViewModel : ObservableObject, IDisposable, IU
   public LoadState State
   {
     get => state;
-    private set
-    {
-      if (SetProperty(ref state, value)) OnPropertyChanged(nameof(IsLoading));
-    }
+    private set => SetPropertyAndNotify(ref state, value, nameof(IsLoading));
   }
 
   public bool IsLoading => State == LoadState.Loading;

@@ -43,6 +43,7 @@ public struct SignInView: View {
         initialEmail: String? = nil,
         initialCode: String? = nil,
         initialOAuthMFAAttemptId: String? = nil,
+        initialTurnstileToken: String? = nil,
         onSuccess: @escaping () -> Void
     ) {
         self.signInService = signInService
@@ -63,7 +64,8 @@ public struct SignInView: View {
                 signInService: signInService,
                 uiLocale: uiLocale,
                 initialEmail: initialEmail,
-                initialCode: initialCode
+                initialCode: initialCode,
+                initialTurnstileToken: initialTurnstileToken
             )
         )
     }

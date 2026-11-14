@@ -3,7 +3,10 @@ import VouchaAPI
 extension EndpointManifestCoverage {
     static let swiftCoreEndpoints: [ManifestRegisteredEndpoint] = [
         ManifestRegisteredEndpoint(id: "swift.posts.feed.default") {
-            Endpoint.posts(feedType: "any")
+            Endpoint.posts(
+                feedType: "any",
+                timeRange: ApiFixtureLoader.optionalQueryValue("swift.posts.feed.default", "time_range")
+            )
         },
         ManifestRegisteredEndpoint(id: "swift.notifications.default") {
             Endpoint.notifications()
@@ -27,10 +30,15 @@ extension EndpointManifestCoverage {
             Endpoint.myEmailAddresses(after: "fixture-owner-scoped-email-cursor", limit: 1)
         },
         ManifestRegisteredEndpoint(id: "native.my.email-addresses.request.default") {
-            Endpoint.requestMyEmailAddressVerification(emailAddress: " Tests+Native-User@Voucha.ai ")
+            Endpoint.requestMyEmailAddressVerification(
+                emailAddress: " Tests+Native-User@Voucha.ai ",
+                reAuthToken: "fresh-auth-fixture"
+            )
         },
         ManifestRegisteredEndpoint(id: "native.my.email-addresses.verify.default") {
-            Endpoint.verifyMyEmailAddress(emailAddress: "tests+native-user@voucha.ai", token: "ABCD1234")
+            Endpoint.verifyMyEmailAddress(
+                emailAddress: "tests+native-user@voucha.ai", token: "ABCDEFGHJK", reAuthToken: "fresh-auth-fixture"
+            )
         },
         ManifestRegisteredEndpoint(id: "native.users.delete.default") {
             Endpoint.deleteUser(idOrSlug: "user-abc")
@@ -104,7 +112,7 @@ extension EndpointManifestCoverage {
             Endpoint.rssFeedItem(id: "00000000-0000-7000-8000-000000007886")
         },
         ManifestRegisteredEndpoint(id: "native.topic-recommendation.detail.default") {
-            Endpoint.topicRecommendation(id: "recommendation-1")
+            Endpoint.post(idOrSlug: "recommendation-1")
         },
         ManifestRegisteredEndpoint(id: "native.topic-recommendations.top-hashtags.default") {
             Endpoint.topHashtags()

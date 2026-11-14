@@ -20,6 +20,9 @@ internal abstract class ReviewQueueModerationServiceStub : IModerationService
   public virtual Task<ModerationReportJudgementResponse> RerunReportJudgementAsync(string reportId, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
+  public virtual Task<ModerationReportJudgementRunResponse> GetReportJudgementRunAsync(string reportId, string runId, CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
   public virtual Task<AdminUserWarningResponse> IssueWarningAsync(IssueAdminWarningRequest request, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
@@ -32,10 +35,16 @@ internal abstract class ReviewQueueModerationServiceStub : IModerationService
   public virtual Task DeleteReportTargetAsync(string entityId, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
-  public virtual Task<ModerationAppealListResponse> FetchAppealsAsync(bool mine = false, string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+  public virtual Task<ModerationAppealListResponse> FetchMemberAppealsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
-  public virtual Task<ModerationDisputeListResponse> FetchDisputesAsync(bool mine = false, string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+  public virtual Task<ModerationDisputeListResponse> FetchMemberDisputesAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
+  public virtual Task<StaffModerationAppealListResponse> FetchStaffAppealsAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      throw new NotSupportedException();
+
+  public virtual Task<StaffModerationDisputeListResponse> FetchStaffDisputesAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
       throw new NotSupportedException();
 
   public virtual Task<AdminReviewQueueResponse> FetchReviewQueueAsync(string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>

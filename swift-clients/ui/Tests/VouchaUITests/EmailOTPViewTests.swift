@@ -104,6 +104,6 @@ final class EmailOTPViewTests: XCTestCase {
             cookieStorage: storage,
             protocolClasses: [EmailOTPViewFailingURLProtocol.self]
         )
-        return SignInService(client: client, sessionManager: SessionManager(client: client, cookieStorage: storage))
+        return SignInService(client: client, sessionManager: SessionManager(client: client))
     }
 }

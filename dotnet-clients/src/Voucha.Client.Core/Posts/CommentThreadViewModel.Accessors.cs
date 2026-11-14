@@ -5,6 +5,7 @@ namespace Voucha.Client.Core.Posts;
 
 public sealed partial class CommentThreadViewModel
 {
+  public HackerNewsReferences? RootHackerNewsReferences => rootPostResponse?.PostHackerNewsReferences?.GetValueOrDefault(rootPostResponse.Post.Id);
   private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, bool>> EmptyBookmarks =
       new Dictionary<string, IReadOnlyDictionary<string, bool>>(StringComparer.Ordinal);
 
@@ -51,16 +52,13 @@ public sealed partial class CommentThreadViewModel
         : null;
   }
 
-  private static string? NormalizeFocusedCommentId(string? commentId) =>
-      string.IsNullOrWhiteSpace(commentId) ? null : commentId.Trim();
-
   private static string NormalizeSort(string? value) =>
       string.Equals(value, CommentThreadSorts.New, StringComparison.Ordinal) ? CommentThreadSorts.New : CommentThreadSorts.Best;
 
-  public static string BuildCollapseStateKey(string rootPostId, string? currentUserId = null) =>
+  public static string? BuildCollapseStateKey(string rootPostId, string? currentUserId = null) =>
       string.IsNullOrWhiteSpace(currentUserId)
           ? $"comments-collapsed:{rootPostId}"
-          : $"comments-collapsed:{rootPostId}:{currentUserId}";
+          : null;
 
   private static string? EntityId(EntityReference result) => result.EntityId ?? result.Id;
 }

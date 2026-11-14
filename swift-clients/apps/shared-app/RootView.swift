@@ -23,6 +23,9 @@ public struct RootView: View {
     #endif
 
     public static let rootShellAccessibilityIdentifier = "root-shell"
+    /// Compact and regular signed-out controls that present the sign-in sheet.
+    /// Feed vote menus also use the Sign In label, so launch smoke must not query by label alone.
+    public static let signedOutSignInAccessibilityIdentifier = "signed-out-sign-in"
     @State
     var selectedSection: AppSection? = .news
     /// macOS only: driven by column-2 sub-option list selection.
@@ -52,6 +55,8 @@ public struct RootView: View {
     var showingCustomizeNavigation = false
     @State
     var showingSignIn = false
+    @State
+    var nativeChatMCPConnectTask: Task<Void, Never>?
     @State
     var podcastPlaybackController: PodcastPlaybackController
     @Environment(\.openURL)
@@ -87,8 +92,17 @@ public struct RootView: View {
 
     public var body: some View {
         appBody
+            .mutationChallengeSheet(
+                broker: viewModelFactory.mutationChallengeBroker,
+                siteKey: viewModelFactory.config.requiredTurnstileSiteKey,
+                baseURL: viewModelFactory.config.baseURL
+            )
+            .task {
+                await viewModelFactory.installMutationChallengeHandler()
+            }
             .environment(viewModelFactory.uiLocaleController)
             .environment(\.locale, viewModelFactory.uiLocaleController.locale.foundationLocale)
+            .environment(\.freshConfirmationBroker, viewModelFactory.nativeOAuthAuthorizationCoordinator)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if podcastPlaybackController.currentItem != nil {
                     PodcastMiniPlayerView(controller: podcastPlaybackController)
@@ -96,9 +110,7 @@ public struct RootView: View {
             }
             .task {
                 await restoreSessionAndNativeAuthorizationsOnLaunch()
-                await viewModelFactory.nativeChatMCPSession?.useAccount(
-                    viewModelFactory.sessionManager.currentUserId
-                )
+                startNativeChatMCPConnect(for: viewModelFactory.sessionManager.currentUserId)
                 await refreshLocalization()
                 await refreshFeatureFlags()
                 let nativeOAuthCoordinator = viewModelFactory.nativeOAuthAuthorizationCoordinator
@@ -109,10 +121,8 @@ public struct RootView: View {
                 Task { await refreshLocalization() }
             }
             .onChange(of: viewModelFactory.sessionManager.currentUserId) { _, accountId in
-                Task {
-                    guard accountId == viewModelFactory.sessionManager.currentUserId else { return }
-                    await viewModelFactory.nativeChatMCPSession?.useAccount(accountId)
-                }
+                viewModelFactory.mutationChallengeBroker.cancel()
+                startNativeChatMCPConnect(for: accountId)
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }

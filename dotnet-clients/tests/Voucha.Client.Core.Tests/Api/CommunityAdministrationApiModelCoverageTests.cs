@@ -125,7 +125,8 @@ public sealed class CommunityAdministrationApiModelCoverageTests
         ReportedUserId: null);
     var vacation = new CommunityMemberVacation("community-1", "moderator-1", createdAt, updatedAt, createdAt, updatedAt);
 
-    var applications = new CommunityApplicationsResponse([reference], pageInfo, new Dictionary<string, CommunityApplication> { [application.Id] = application });
+    var summary = new CommunityApplicationSummary(application.Id, application.UserId, "approved", application.Message, application.Answers.Count, application.CreatedAt, "community_application_summary");
+    var applications = new CommunityApplicationsResponse([reference], pageInfo, new Dictionary<string, CommunityApplicationSummary> { [summary.Id] = summary }, new Dictionary<string, PublicUser>());
     var questions = new CommunityApplicationQuestionsResponse([question]);
     var invites = new CommunityInvitesResponse([reference], pageInfo, new Dictionary<string, CommunityInvite> { [invite.Id] = invite });
     var bans = new CommunityBansResponse([reference], pageInfo, new Dictionary<string, CommunityBan> { [ban.Id] = ban }, new Dictionary<string, PublicUser>());
@@ -146,16 +147,19 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(1, questions.Questions[0].OrderIndex);
     Assert.True(questions.Questions[0].Required);
     Assert.Equal(createdAt, questions.Questions[0].CreatedAt);
-    Assert.Equal("application-1", applications.CommunityApplications["application-1"].Id);
-    Assert.Equal("community-1", applications.CommunityApplications["application-1"].CommunityId);
-    Assert.Equal("user-1", applications.CommunityApplications["application-1"].UserId);
-    Assert.Equal("Because", applications.CommunityApplications["application-1"].Answers["question-1"]);
-    Assert.Equal("Please let me in", applications.CommunityApplications["application-1"].Message);
-    Assert.Equal(createdAt, applications.CommunityApplications["application-1"].ReviewedAt);
-    Assert.Equal("moderator-1", applications.CommunityApplications["application-1"].ReviewedById);
-    Assert.Equal(createdAt, applications.CommunityApplications["application-1"].ApprovedAt);
-    Assert.Equal(createdAt, applications.CommunityApplications["application-1"].CreatedAt);
-    Assert.Equal("community_application", applications.CommunityApplications["application-1"].EntityType);
+    Assert.Equal("application-1", applications.CommunityApplicationSummaries["application-1"].Id);
+    Assert.Equal("approved", applications.CommunityApplicationSummaries["application-1"].Status);
+    Assert.Equal(1, applications.CommunityApplicationSummaries["application-1"].AnswerCount);
+    Assert.Equal("Please let me in", applications.CommunityApplicationSummaries["application-1"].MessagePreview);
+    Assert.Equal("community-1", application.CommunityId);
+    Assert.Equal("user-1", application.UserId);
+    Assert.Equal("Because", application.Answers["question-1"]);
+    Assert.Equal("Please let me in", application.Message);
+    Assert.Equal(createdAt, application.ReviewedAt);
+    Assert.Equal("moderator-1", application.ReviewedById);
+    Assert.Equal(createdAt, application.ApprovedAt);
+    Assert.Equal(createdAt, application.CreatedAt);
+    Assert.Equal("community_application", application.EntityType);
     Assert.Equal("invite-1", invites.CommunityInvites["invite-1"].Id);
     Assert.Equal("community-1", invites.CommunityInvites["invite-1"].CommunityId);
     Assert.Equal("user-2", invites.CommunityInvites["invite-1"].InvitedUserId);
@@ -306,7 +310,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     var savedReply = new CommunitySavedReply("reply-1", "community-1", "Greeting", "Hello", createdAt);
 
     var queue = new CommunityModerationQueueResponse([queueEntry], pageInfo, "moderator");
-    var prompts = new CommunityAgentPromptsResponse([prompt], new Dictionary<string, object> { ["available"] = 1 });
+    var prompts = new CommunityAgentPromptsResponse([prompt], new(2, 3, 1, new(3, 10)), new(null, false, null));
     var historyResponse = new CommunityAgentPromptHistoryResponse([history], "cursor-1");
     var simulation = new CommunityAutomodSimulation(simulationSummary, [simulationResult]);
     var threads = new CommunityModmailThreadListResponse([thread], pageInfo);
@@ -361,7 +365,7 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(createdAt, prompts.CommunityAgentPrompts[0].ActivatedAt);
     Assert.Equal(createdAt, prompts.CommunityAgentPrompts[0].CreatedAt);
     Assert.Equal(updatedAt, prompts.CommunityAgentPrompts[0].UpdatedAt);
-    Assert.Equal(1, prompts.SlotInfo["available"]);
+    Assert.Equal(1, prompts.SlotInfo.Remaining);
     Assert.Equal("history-1", historyResponse.Entries[0].Id);
     Assert.Equal("prompt-1", historyResponse.Entries[0].AgentPromptId);
     Assert.Equal("community-1", historyResponse.Entries[0].CommunityId);
@@ -381,8 +385,8 @@ public sealed class CommunityAdministrationApiModelCoverageTests
     Assert.Equal(5, simulation.Simulation.SampleCount);
     Assert.Equal(1, simulation.Simulation.WouldFlagCount);
     Assert.Equal("record_only", simulation.Simulation.CommunityAutomodAction);
-    Assert.Equal(10, simulation.Simulation.FalsePositiveEstimate!.HistoricalFlaggedCount);
-    Assert.Equal(2, simulation.Simulation.FalsePositiveEstimate.HistoricalApprovedCount);
+    Assert.Equal(10, simulation.Simulation.FalsePositiveEstimate!.SampledFlaggedCount);
+    Assert.Equal(2, simulation.Simulation.FalsePositiveEstimate.SampledApprovedCount);
     Assert.Equal(0.2m, simulation.Simulation.FalsePositiveEstimate.Rate);
     Assert.Equal("community", analytics.Scope.Type);
     Assert.Equal("community-1", analytics.Scope.CommunityId);

@@ -34,7 +34,7 @@ extension ReviewDisputeCard {
                     .nativeSwiftReviewDisputesActionAccessibility,
                     parameters: [
                         "action": UiMessages.string(action.titleKey, locale: nativeUiLocale),
-                        "id": dispute.id
+                        "id": dispute.postLabel
                     ],
                     locale: nativeUiLocale
                 ))

@@ -1,16 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
 
-const jobBlock = (workflow, job) => {
-  const start = workflow.indexOf(`  ${job}:`)
-  assert.notEqual(start, -1, `missing workflow job ${job}`)
-  const remainder = workflow.slice(start)
-  const nextJob = remainder.search(/\n {2}[A-Za-z0-9_-]+:/u)
-  return remainder.slice(0, nextJob === -1 ? remainder.length : nextJob)
-}
+const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
-test('macOS app smoke launches the root shell and rejects a missing GUI session', () => {
+test('macOS app smoke launches the root shell, sidebar feeds, and email sign-in', () => {
   const workflow = readFileSync(
     new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
     'utf8',
@@ -21,9 +16,10 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
     macJob.indexOf('- name: Build macOS app shell'),
   )
   const launch = macJob.slice(
-    macJob.indexOf('- name: Launch macOS root shell'),
+    macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
     macJob.indexOf('- name: Collect failed macOS launch diagnostics'),
   )
+  assert.match(launch, /timeout-minutes: 15/u)
 
   assert.match(macJob, /runs-on: macos-latest/u)
   assert.match(macJob, /^    timeout-minutes: 40$/mu)
@@ -37,8 +33,37 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
   )
   assert.ok(
     macJob.indexOf('- name: Build macOS app shell') <
-      macJob.indexOf('- name: Launch macOS root shell'),
+      macJob.indexOf('- name: Run Sentry SDK boundary and launch transport tests'),
   )
+  assert.ok(
+    macJob.indexOf('- name: Run Sentry SDK boundary and launch transport tests') <
+      macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
+  )
+  const boundary = macJob.slice(
+    macJob.indexOf('- name: Run Sentry SDK boundary and launch transport tests'),
+    macJob.indexOf('- name: Run feed transport boundary tests'),
+  )
+  assert.match(boundary, /timeout-minutes: 10/u)
+  assert.match(boundary, /-only-testing:VouchaSentryBoundaryTests/u)
+  assert.match(boundary, /-only-testing:VouchaLaunchTransportTests/u)
+  assert.match(
+    boundary,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 4 and \.passedTests == 4 and \.failedTests == 0 and \.skippedTests == 0/u,
+  )
+  assert.doesNotMatch(boundary, /VouchaLaunchSmoke\.entitlements|continue-on-error/u)
+  const transport = macJob.slice(
+    macJob.indexOf('- name: Run feed transport boundary tests'),
+    macJob.indexOf('- name: Launch macOS root shell, sidebar feeds, and email sign-in'),
+  )
+  assert.match(transport, /-only-testing:VouchaFeedTransportTests/u)
+  assert.match(transport, /VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
+  assert.match(transport, /CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO/u)
+  assert.match(
+    transport,
+    /\.totalTestCount == 5 and \.passedTests == 5 and \.failedTests == 0 and \.skippedTests == 0/u,
+  )
+  assert.doesNotMatch(transport, /continue-on-error/u)
+
   assert.match(macJob, /generate\.sh macOS/u)
   assert.match(macJob, /-destination 'platform=macOS' build/u)
   assert.match(launch, /-destination 'platform=macOS'/u)
@@ -46,12 +71,43 @@ test('macOS app smoke launches the root shell and rejects a missing GUI session'
     launch,
     /-only-testing:VouchaLaunchSmokeTests\/LaunchSmokeTests\/testLaunchRendersRootShell/u,
   )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarFeedTests\/testVideoFeedSurvivesSidebarNavigation/u,
+  )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSEmailSignInTests\/testEmailOTPSignInReplacesTheSignedOutControl/u,
+  )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarPodcastTests\/testPodcastFeedSurvivesSidebarNavigation/u,
+  )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarPostsTests\/testPostsFeedSurvivesSidebarNavigation/u,
+  )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/SourceCreationSmokeTests\/testCreatesAndOpensSourceFromEveryVertical/u,
+  )
+  assert.match(
+    launch,
+    /-only-testing:VouchaLaunchSmokeTests\/MacOSSidebarFeedRecoveryTests\/testVideoFeedRetryRecoversCanonicalRow/u,
+  )
+  assert.equal((launch.match(/-only-testing:/gu) ?? []).length, 7)
+  assert.match(launch, /VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
+  const macProject = readFileSync(
+    new URL('../swift-clients/apps/macOS/project.yml', import.meta.url),
+    'utf8',
+  )
+  assert.match(macProject, /VOUCHA_CONTRACT_ROOT: '\$\(VOUCHA_CONTRACT_ROOT\)'/u)
   assert.doesNotMatch(launch, /-only-testing:.*FeedFlowTests/u)
-  assert.doesNotMatch(launch, /testNotificationSettings|testFediverse/u)
+  assert.doesNotMatch(launch, /\/SignInFlowTests\/|testNotificationSettings|testFediverse/u)
   assert.match(launch, /platform:macOS/u)
   assert.match(
     launch,
-    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 1 and \.passedTests == 1 and \.failedTests == 0 and \.skippedTests == 0/u,
+    /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == 7 and \.passedTests == 7 and \.failedTests == 0 and \.skippedTests == 0/u,
   )
   assert.doesNotMatch(launch, /continue-on-error/u)
   assert.match(

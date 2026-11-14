@@ -41,6 +41,7 @@ public sealed partial class TopicDetailViewModel
 
   public void OnUiLocaleChanged()
   {
+    NotifyCategoryCountsChanged();
     OnPropertyChanged(nameof(TopicFollowActionLabel));
     OnPropertyChanged(nameof(SourceFollowActionLabel));
     OnPropertyChanged(nameof(TopicMuteActionLabel));

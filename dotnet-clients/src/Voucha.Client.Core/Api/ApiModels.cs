@@ -9,7 +9,12 @@ public sealed record PageInfo(
     [property: JsonPropertyName("has_next_page")] bool HasNextPage,
     [property: JsonPropertyName("start_cursor")] string? StartCursor,
     [property: JsonPropertyName("has_more")] bool? HasMore = null,
-    [property: JsonPropertyName("has_previous_page")] bool? HasPreviousPage = null);
+    [property: JsonPropertyName("has_previous_page")] bool? HasPreviousPage = null)
+{
+  // has_more is optional. A missing value does not continue the page.
+  [JsonIgnore]
+  public bool HasMorePages => HasNextPage || HasMore == true;
+}
 
 public sealed record EntityReference(
     [property: JsonPropertyName("__entity_type")] string? EntityType,
@@ -24,7 +29,9 @@ public sealed record EntityReference(
     [property: JsonPropertyName("shared_at")] DateTimeOffset? SharedAt,
     [property: JsonPropertyName("story_id")] string? StoryId,
     [property: JsonPropertyName("published_at")] DateTimeOffset? PublishedAt = null,
-    [property: JsonPropertyName("post_type")] string? PostType = null);
+    [property: JsonPropertyName("post_type")] string? PostType = null,
+    [property: JsonPropertyName("ranking")] double? Ranking = null,
+    [property: JsonPropertyName("search_vector_ts")] string? SearchVectorTs = null);
 
 public sealed record User(
     [property: JsonPropertyName("id")] string Id,
@@ -58,7 +65,6 @@ public sealed record User(
     [property: JsonPropertyName("is_fediverse_federation_enabled")] bool? FediverseFederationEnabled = null,
     [property: JsonPropertyName("processing_restricted_at")] DateTimeOffset? ProcessingRestrictedAt = null,
     [property: JsonPropertyName("third_party_marketing")] bool? ThirdPartyMarketing = null,
-    [property: JsonPropertyName("hn_discussions")] bool? HnDiscussions = null,
     [property: JsonPropertyName("roles")] IReadOnlyList<string>? Roles = null,
     [property: JsonPropertyName("account_type")] AccountType? AccountType = null,
     [property: JsonPropertyName("ui_locale")] string? UiLocale = null,

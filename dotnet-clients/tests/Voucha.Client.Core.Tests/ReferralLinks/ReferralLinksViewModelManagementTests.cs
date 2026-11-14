@@ -168,6 +168,44 @@ public sealed partial class ReferralLinksViewModelTests
   }
 
   [Fact]
+  public async Task AnalyticsRowsRetainClearedLandingUrlWithoutNavigation()
+  {
+    var createdAt = new DateTimeOffset(2026, 3, 1, 11, 55, 0, TimeSpan.Zero);
+    var service = new RecordingReferralLinksService
+    {
+      ClickResponses =
+      [
+        new ReferralClickLogResponse(
+            [new ReferralClickLogResult("cleared"), new ReferralClickLogResult("current")],
+            new Dictionary<string, ReferralClickLogEntry>(StringComparer.Ordinal)
+            {
+              ["cleared"] = new("cleared", null, null, null, createdAt),
+              ["current"] = new("current", "https://example.com/current", null, null, createdAt),
+            },
+            new Dictionary<string, User>(StringComparer.Ordinal),
+            new PageInfo(null, false, null)),
+      ],
+    };
+    var viewModel = new ReferralLinksViewModel(service);
+
+    await viewModel.LoadAnalyticsAsync(TestContext.Current.CancellationToken);
+
+    Assert.Collection(viewModel.Items,
+        cleared =>
+        {
+          Assert.Equal("cleared", cleared.Id);
+          Assert.Equal("—", cleared.Title);
+          Assert.Null(cleared.Url);
+        },
+        current =>
+        {
+          Assert.Equal("current", current.Id);
+          Assert.Equal("https://example.com/current", current.Title);
+          Assert.Equal(new Uri("https://example.com/current"), current.Url);
+        });
+  }
+
+  [Fact]
   public async Task StaleAnalyticsCompletionDoesNotRestoreAnalyticsCursor()
   {
     var deferredClicks = new TaskCompletionSource<ReferralClickLogResponse>();

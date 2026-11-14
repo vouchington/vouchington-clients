@@ -112,8 +112,8 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
 
         @available(macOS 26.4, iOS 26.4, *)
         func testPublishedMCPToolsSelectBoundedFoundationModelsSession() async throws {
-            let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
-            let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
+            let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+            let url = try ContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
             let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
             let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
             let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })
@@ -204,8 +204,8 @@ final class NativeChatMCPToolBridgeTests: XCTestCase {
     }
 
     func testPublishedUserSchemasProjectWithoutDroppingOptionRefs() throws {
-        let root = try FilamentsContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
-        let url = try FilamentsContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
+        let root = try ContractRoot.url(requiredPaths: ["api-fixtures/v1/mcp.json"])
+        let url = try ContractRoot.requiredURL("api-fixtures/v1/mcp.json", root: root)
         let manifest = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         let servers = try XCTUnwrap(manifest["servers"] as? [[String: Any]])
         let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })

@@ -51,7 +51,8 @@ public sealed record Post(
     [property: JsonPropertyName("declared_language")] string? DeclaredLanguage = null,
     [property: JsonPropertyName("lingua_rs_detected_language")] string? LinguaRsDetectedLanguage = null,
     [property: JsonPropertyName("provenance")] PublicContentProvenance? Provenance = null,
-    [property: JsonPropertyName("staff_provenance")] StaffContentProvenance? StaffProvenance = null);
+    [property: JsonPropertyName("staff_provenance")] StaffContentProvenance? StaffProvenance = null,
+    [property: JsonPropertyName("placeholder_state")] string? PlaceholderState = null);
 
 public sealed record PublicContentProvenance(
     [property: JsonPropertyName("via")] string Via,
@@ -78,8 +79,7 @@ public sealed record PostHashtag(
 
 public sealed record PostMetricCounts(
     [property: JsonPropertyName("descendants")] int Descendants,
-    [property: JsonPropertyName("children")] int Children = 0,
-    [property: JsonPropertyName("ancestors")] int Ancestors = 0);
+    [property: JsonPropertyName("children")] int Children = 0);
 
 public sealed record PostMetrics(
     [property: JsonPropertyName("__entity_type")] string? EntityType = null,
@@ -99,7 +99,8 @@ public sealed record PostsFeedResponse(
     [property: JsonPropertyName("bookmarks")] IReadOnlyDictionary<string, BookmarkPredicates>? Bookmarks = null,
     [property: JsonPropertyName("election_votes")] IReadOnlyDictionary<string, ElectionVote>? ElectionVotes = null,
     [property: JsonPropertyName("posts_metrics")] IReadOnlyDictionary<string, PostMetrics>? PostsMetrics = null,
-    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null);
+    [property: JsonPropertyName("post_link_embeds")] IReadOnlyDictionary<string, UrlEmbed>? PostLinkEmbeds = null,
+    [property: JsonPropertyName("post_hacker_news_references")] IReadOnlyDictionary<string, HackerNewsReferences>? PostHackerNewsReferences = null);
 
 public sealed record PostThreadResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<EntityReference> Results,

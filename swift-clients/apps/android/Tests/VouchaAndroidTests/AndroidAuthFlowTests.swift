@@ -28,7 +28,7 @@ final class AndroidAuthFlowTests: XCTestCase {
         account.turnstileToken = "challenge-token"
 
         await account.requestOTP()
-        account.otp = "123456"
+        account.otp = "abcdefgh23"
         await account.verifyOTP()
         account.totp = "654321"
         await account.verifyMFA()
@@ -107,9 +107,9 @@ final class AndroidAuthFlowTests: XCTestCase {
         await account.session.setBeforeSignOut { _ in throw URLError(.cancelled) }
 
         await account.signOut()
-        try storage.setCookie(XCTUnwrap(HTTPCookie(properties: [
-            .name: "st", .value: "still-active", .domain: "voucha.ai", .path: "/", .secure: "TRUE"
-        ])))
+        var activeProperties = try XCTUnwrap(storage.cookies?.first { $0.name == "st" }?.properties)
+        activeProperties[.value] = "still-active"
+        try storage.setCookie(XCTUnwrap(HTTPCookie(properties: activeProperties)))
         await storage.flushPendingPersistence()
 
         XCTAssertTrue(account.session.isSignedIn)
@@ -120,9 +120,10 @@ final class AndroidAuthFlowTests: XCTestCase {
 
 private func assertAuthenticationRequests(_ requests: [URLRequest]) throws {
     XCTAssertEqual(requests.map { $0.url?.path }, [
-        "/api/v1/auth/email-address/tokens",
-        "/api/v1/auth/email-address/login",
+        "/api/v1/auth/native/email-address/tokens",
+        "/api/v1/auth/native/email-address/login",
         "/api/v1/auth/mfa/totp/verification",
+        "/api/v1/session",
         "/api/v1/my/identity"
     ])
     XCTAssertTrue(try String(data: XCTUnwrap(requests.first?.httpBody), encoding: .utf8)?
@@ -132,8 +133,8 @@ private func assertAuthenticationRequests(_ requests: [URLRequest]) throws {
 
 private func installAndroidIdentityFixture() throws {
     let fixture = "api-fixtures/v1/responses/swift.my.identity.default.json"
-    let root = try FilamentsContractRoot.url(requiredPaths: [fixture])
+    let root = try ContractRoot.url(requiredPaths: [fixture])
     try AndroidAuthURLProtocol.setIdentity(
-        Data(contentsOf: FilamentsContractRoot.requiredURL(fixture, root: root))
+        Data(contentsOf: ContractRoot.requiredURL(fixture, root: root))
     )
 }

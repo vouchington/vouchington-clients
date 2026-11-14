@@ -27,6 +27,7 @@ public struct NativeCommentThreadNode: Identifiable, Sendable {
 public final class NativeCommentThreadViewModel {
     public let rootPostId: String
     public let currentUserId: String?
+    public let isSignedIn: Bool
     public var sort: NativeCommentThreadSort = .new {
         didSet {
             if oldValue != sort {
@@ -46,6 +47,7 @@ public final class NativeCommentThreadViewModel {
     public internal(set) var collapsedCommentIds: Set<String> = []
     public internal(set) var postElectionsById: [String: PostElection] = [:]
     public internal(set) var electionVotesById: [String: PostVote] = [:]
+    public internal(set) var hackerNewsReferencesByPostId: [String: HackerNewsReferences] = [:]
     public internal(set) var postEmbedsByPostId: [String: UrlEmbed] = [:]
     public internal(set) var usersById: [String: PublicUser] = [:]
     public internal(set) var postMetricsById: [String: PostMetrics] = [:]
@@ -66,19 +68,35 @@ public final class NativeCommentThreadViewModel {
     let emailVerificationGate = EmailVerificationGatedMutation()
     let contributionIdentity = ContributionRequestIdentity()
 
+    public internal(set) var inFlightCollapseIds: Set<String> = []
+    var subtreePagination: [String: CursorPaginationState<Post>] = [:]
+    var collapseOverrides: [String: Bool] = [:]
+    var collapseGeneration = 0
+    var sessionIsActive = true
+    let collapseDefaults: UserDefaults
     let client: APIClient?
     var descendantPosts: [Post] = []
     var descendantPagination = CursorPaginationState<Post>()
     var ancestorPagination = CursorPaginationState<Post>()
 
-    public init(client: APIClient?, rootPostId: String, currentUserId: String? = nil) {
+    public init(
+        client: APIClient?, rootPostId: String, currentUserId: String? = nil,
+        collapseDefaults: UserDefaults = .standard,
+        isSignedIn: Bool? = nil
+    ) {
         self.client = client
         self.rootPostId = rootPostId
         self.currentUserId = currentUserId
+        self.isSignedIn = isSignedIn ?? (currentUserId != nil)
+        self.collapseDefaults = collapseDefaults
+        if !self.isSignedIn {
+            collapsedCommentIds = Set(collapseDefaults
+                .stringArray(forKey: Self.collapseStorageKey(rootPostId: rootPostId)) ?? [])
+        }
     }
 
-    public var collapseStorageKey: String {
-        Self.collapseStorageKey(rootPostId: rootPostId, userId: currentUserId)
+    public var collapseStorageKey: String? {
+        isSignedIn ? nil : Self.collapseStorageKey(rootPostId: rootPostId)
     }
 
     public var isLoading: Bool {
@@ -98,16 +116,8 @@ public final class NativeCommentThreadViewModel {
         self.sort = sort
     }
 
-    public func toggleCollapse(commentId: String) {
-        if collapsedCommentIds.contains(commentId) {
-            collapsedCommentIds.remove(commentId)
-        } else {
-            collapsedCommentIds.insert(commentId)
-        }
-    }
-
-    public static func collapseStorageKey(rootPostId: String, userId: String? = nil) -> String {
-        "comments-collapsed:\(rootPostId)\(userId.map { ":\($0)" } ?? "")"
+    public static func collapseStorageKey(rootPostId: String) -> String {
+        "comments-collapsed:\(rootPostId)"
     }
 
 }

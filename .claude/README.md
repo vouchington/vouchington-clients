@@ -41,8 +41,10 @@ the prerequisite instead of using the overlay alone.
 ### Review workflow
 
 Use `pr-shepherd@jonathanong` for PR creation or iteration only when the user requests that review
-workflow. Its repository guidance is portable; it does not install Filaments web, tmux, session,
+workflow. Its repository guidance is portable; it does not install Vouchington web, tmux, session,
 or post-edit hooks in this client checkout.
+
+`/shepherd`, `/plan` and `/fix` comments now go to the owner's triage loop.
 
 Session ids, agent names, and parent-session ids remain explicit journal inputs; the server must
 not infer them. Plugins, marketplaces, MCP servers, MCP tool approvals, and machine sandbox, model,

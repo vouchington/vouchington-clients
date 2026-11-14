@@ -38,7 +38,9 @@ public sealed record ChatMessageRow(
     string? CompletionStatus = null,
     UiMessageKey? ErrorMessageKey = null,
     IUiLocalization? Localization = null,
-    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null) : INotifyPropertyChanged
+    IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null,
+    IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts = null,
+    IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts = null) : INotifyPropertyChanged
 {
   public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -56,6 +58,15 @@ public sealed record ChatMessageRow(
 
   public bool HasFeedPostFacts => FeedPostReceipts is { Count: > 0 };
 
+  public bool HasRssItemFacts => RssItemReceipts is { Count: > 0 };
+
+  public bool HasReferralLinkFacts => ReferralLinkReceipts is { Count: > 0 };
+
+  public string? DisplayRssItemFacts => McpFeedRssItemReceipt.Display(RssItemReceipts, Localization);
+
+  public string? DisplayReferralLinkFacts =>
+      McpFeedReferralLinkReceipt.Display(ReferralLinkReceipts, Localization);
+
   public string? DisplayFeedPostFacts => FeedPostReceipts is not { Count: > 0 } receipts ? null :
       string.Join("\n", new[] { Localization?.Localize(UiMessageKey.NativeDotnetResidualPosts) ?? string.Empty }
           .Concat(receipts.SelectMany(receipt => receipt.PostIds.Count == 0
@@ -72,5 +83,9 @@ public sealed record ChatMessageRow(
     }
     if (HasFeedPostFacts)
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayFeedPostFacts)));
+    if (HasRssItemFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayRssItemFacts)));
+    if (HasReferralLinkFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayReferralLinkFacts)));
   }
 }

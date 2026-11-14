@@ -4,7 +4,7 @@ import Foundation
     import CryptoKit
     import Security
 
-    final class PublicKeyPinningURLSessionDelegate: NSObject, URLSessionDelegate {
+    final class PublicKeyPinningURLSessionDelegate: FirstPartySessionDelegate {
         private let policy: PublicKeyPinningPolicy
 
         init(policy: PublicKeyPinningPolicy) {

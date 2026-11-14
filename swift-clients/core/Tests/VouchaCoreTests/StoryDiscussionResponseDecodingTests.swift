@@ -41,30 +41,12 @@ final class StoryDiscussionResponseDecodingTests: XCTestCase {
             "spam_detection_results": null,
             "spam_detection_score": null,
             "updated_by_id": null
-          },
-          "story": {
-            "id": "story-1",
-            "title": "Cluster title",
-            "cluster_reason": "shared topic",
-            "published_at": null,
-            "official_rss_feed_item_id": null,
-            "official_locked_at": null,
-            "created_at": "2026-01-01T00:00:00Z",
-            "updated_at": "2026-01-01T00:00:00Z",
-            "deleted_at": null
-          },
-          "postStory": {
-            "post_id": "post-1",
-            "story_id": "story-1",
-            "initiated_by_id": "user-1",
-            "created_at": "2026-01-01T00:00:00Z"
           }
         }
         """.utf8)
 
         let response = try decoder.decode(StoryPostResult.self, from: json)
         XCTAssertEqual(response.post.id, "post-1")
-        XCTAssertEqual(response.story.id, "story-1")
-        XCTAssertEqual(response.postStory.postId, "post-1")
+        XCTAssertEqual(response.post.postType, .story)
     }
 }

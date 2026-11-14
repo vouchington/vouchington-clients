@@ -16,7 +16,6 @@ public struct PostMetrics: Codable, Sendable {
 public struct PostMetricCounts: Codable, Sendable {
     public let descendants: Int
     public let children: Int
-    public let ancestors: Int
 }
 
 public struct PostElection: Codable, Sendable {

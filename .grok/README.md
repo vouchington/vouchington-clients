@@ -12,5 +12,5 @@ and shared skills from [`.agents/skills/`](../.agents/skills); it does not recei
   [pr-shepherd plugin guidance](../.claude/README.md#review-workflow) when PR iteration is in
   scope.
 
-`.grok/worktrees/` is ignored runtime state. No Filaments web, tmux, or session hooks are part of
+`.grok/worktrees/` is ignored runtime state. No Vouchington web, tmux, or session hooks are part of
 this client repository.

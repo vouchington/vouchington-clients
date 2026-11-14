@@ -11,8 +11,22 @@ public sealed record ScopeCatalogEntry(
     [property: JsonPropertyName("description_key")] string? DescriptionKey,
     [property: JsonPropertyName("requires")] string? Requires);
 
+public sealed record ScopeAudiencePolicy(
+    [property: JsonPropertyName("audience")] string Audience,
+    [property: JsonPropertyName("accepts_api_keys")] bool AcceptsApiKeys,
+    [property: JsonPropertyName("requires_administrator")] bool RequiresAdministrator,
+    [property: JsonPropertyName("requires_moderation_staff")] bool RequiresModerationStaff = false);
+
+[method: JsonConstructor]
 public sealed record ScopeCatalogResponse(
-    [property: JsonPropertyName("scopes")] IReadOnlyList<ScopeCatalogEntry> Scopes);
+    [property: JsonPropertyName("scopes")] IReadOnlyList<ScopeCatalogEntry> Scopes,
+    [property: JsonPropertyName("audiences")] IReadOnlyList<ScopeAudiencePolicy> Audiences)
+{
+  public ScopeCatalogResponse(IReadOnlyList<ScopeCatalogEntry> scopes)
+      : this(scopes, [])
+  {
+  }
+}
 
 public sealed record OAuthGrantClient(
     [property: JsonPropertyName("id")] string Id,
@@ -26,7 +40,9 @@ public sealed record OAuthGrant(
     [property: JsonPropertyName("resource")] string Resource,
     [property: JsonPropertyName("scopes")] IReadOnlyList<string> Scopes,
     [property: JsonPropertyName("consented_at")] DateTimeOffset ConsentedAt,
-    [property: JsonPropertyName("last_used_at")] DateTimeOffset? LastUsedAt);
+    [property: JsonPropertyName("last_used_at")] DateTimeOffset? LastUsedAt,
+    [property: JsonPropertyName("session_id")] string? SessionId = null,
+    [property: JsonPropertyName("attestation_status")] string? AttestationStatus = null);
 
 public sealed record OAuthGrantListResponse(
     [property: JsonPropertyName("results")] IReadOnlyList<OAuthGrant> Results,

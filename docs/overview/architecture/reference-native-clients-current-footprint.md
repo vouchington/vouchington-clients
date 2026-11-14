@@ -30,6 +30,11 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
 
 ## Shared native behavior
 
+- Household invitations have native owner and invitee controls in Swift and .NET: invite by
+  username with an optional relationship, browse and revoke sent invitations, and accept or
+  decline received invitations. Notification activation reaches the received invitation list.
+  Rows use the embedded usernames with a translated member fallback, never an identity UUID.
+  Both lists forward opaque cursors and retain loaded rows on continuation failures.
 - Both clients forward opaque `after` cursors, append pages by stable entity id, preserve rows on
   continuation failure, and reset traversal when filters change. The API and parity requirements
   are defined by Vouchington's [pagination contract](https://github.com/vouchington/vouchington/blob/main/docs/overview/architecture/pagination.md).
@@ -46,6 +51,36 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
   local generation is text-only and never silently falls back to another provider.
 - Session cookies are stored through platform-secure stores and keyed by API origin. Native OAuth,
   passkey, and deep-link callbacks remain inside their platform app boundaries.
+- An explicit HTTP 403 `BOT_CHALLENGE_REQUIRED` response with action `bot-challenge.mutation`
+  can open the existing provider-controlled Turnstile challenge. After a fresh proof, the native
+  transports replay the captured mutation method, URL, and body bytes once with
+  `x-voucha-bot-challenge-token`. Cancellation, session changes, unrelated failures, and another
+  challenge do not trigger another attempt. Analytics delivery does not open an interactive
+  challenge. This implements the Turnstile proof slice of
+  [#486](https://github.com/vouchington/vouchington-clients/issues/486); dedicated generic App Attest
+  proof and its assertion-order acceptance remain separate from existing route-specific attestation.
+- Existing email, linked-provider, and Bluesky settings changes use the
+  [fresh account confirmation component](../../development/fresh-account-confirmation.md).
+  Confirmation carries a one-use producer proof for the initiating account, device, and session;
+  it does not create a new login or MFA assurance. Google SDK confirmation and the existing
+  Windows passkey assertion gap remain fail-closed. Passkey and authenticator management screens remain
+  outside this component's scope.
+- Public landing pages render native item actions in Swift and .NET. Signed-in viewers send one
+  visit per activation and click requests at item activation, including the outer item and member
+  identifiers for topic-group entries. Existing RSS source and focused-item view requests use the
+  same session-attributed, best-effort delivery. Signals have a bounded in-flight limit and deadline;
+  delivery failure does not block navigation. Signed-out views send no analytics request. App-open,
+  foreground, and pre-sign-in installation identity/linkage remain owner and producer decisions in
+  [#478](https://github.com/vouchington/vouchington-clients/issues/478). No generic event endpoint,
+  advertising identifier, or tracking permission is added.
+- PostgreSQL API helpers support separate classifier-result and export-request partition ranges,
+  including optional DEFAULT-row budgets. Omitted ranges retain the monthly partition requests.
+  Both view models can prepare and confirm an immutable range request with session guards;
+  these entry points are not wired to rendered controls. Leaving the PostgreSQL screen cancels
+  pending range work. Operator range inputs and localized confirmations remain blocked on
+  Vouchington-owned copy and native consumer claims in
+  [#497](https://github.com/vouchington/vouchington-clients/issues/497). The `engineering-core`
+  parity status remains partial.
 - Direct media playback is native where a direct URL is available. Embed-only media keeps its
   explicit external-source action and does not launch a browser as an implicit playback route.
 - Subscription screens are status and plan presentation only. Purchase, cancellation, and store
@@ -54,8 +89,8 @@ and [client parity matrix](https://github.com/vouchington/vouchington/blob/main/
 
 ## Ownership boundaries
 
-Vouchington produces the shared API fixtures and localization contract consumed through the explicit
-`VOUCHA_FILAMENTS_CONTRACT_ROOT`. It also owns cross-surface route, pagination, TLS, and parity
+Vouchington produces the shared API fixtures and localization contract, consumed at the commit pinned
+in `contracts/vouchington.json` through `contracts:pull` and `VOUCHA_CONTRACT_ROOT`. It also owns cross-surface route, pagination, TLS, and parity
 decisions. This repository owns the Swift/.NET implementation, native test harnesses, and the
 client-specific deep-linking behavior documented in [`.NET deep linking`](dotnet-deep-linking.md)
 and the store billing behavior documented in [Native store billing](native-store-billing.md).

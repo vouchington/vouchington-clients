@@ -107,6 +107,7 @@ internal sealed partial class ScriptedCommunitiesService
       CommunityAgentPromptUpsertRequest request,
       CancellationToken cancellationToken = default)
   {
+    if (AgentPromptCreateHandler is { } create) return create(request);
     MutationCalls.Add(("agent-prompt-create", idOrSlug));
     MutationDetails.Add(request.Prompt);
     return Task.FromResult(NewAgentPrompt("prompt-2", request.Prompt, request.ModelName ?? "gpt-5.4-nano", request.ModelProvider ?? "openai"));
@@ -118,6 +119,7 @@ internal sealed partial class ScriptedCommunitiesService
       CommunityAgentPromptUpdateRequest request,
       CancellationToken cancellationToken = default)
   {
+    if (AgentPromptUpdateHandler is { } update) return update(request);
     MutationCalls.Add(("agent-prompt-update", idOrSlug));
     MutationDetails.Add($"{promptId}:{request.Prompt}");
     return Task.FromResult(NewAgentPrompt(promptId, request.Prompt ?? "Updated prompt", "gpt-5.4-nano", "openai"));
@@ -127,21 +129,21 @@ internal sealed partial class ScriptedCommunitiesService
   {
     MutationCalls.Add(("agent-prompt-delete", idOrSlug));
     MutationDetails.Add(promptId);
-    return Task.CompletedTask;
+    return AgentPromptMutationHandler?.Invoke("delete") ?? Task.CompletedTask;
   }
 
   public Task AllocateAgentPromptSlotAsync(string idOrSlug, string promptId, CancellationToken cancellationToken = default)
   {
     MutationCalls.Add(("agent-prompt-allocate", idOrSlug));
     MutationDetails.Add(promptId);
-    return Task.CompletedTask;
+    return AgentPromptMutationHandler?.Invoke("allocate") ?? Task.CompletedTask;
   }
 
   public Task DeallocateAgentPromptSlotAsync(string idOrSlug, string promptId, CancellationToken cancellationToken = default)
   {
     MutationCalls.Add(("agent-prompt-deallocate", idOrSlug));
     MutationDetails.Add(promptId);
-    return Task.CompletedTask;
+    return AgentPromptMutationHandler?.Invoke("deallocate") ?? Task.CompletedTask;
   }
 
   public Task<JsonElement> TestAgentPromptAsync(

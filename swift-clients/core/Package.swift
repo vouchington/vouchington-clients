@@ -16,13 +16,16 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "VouchaTestSupport", path: "../test-support"),
-        .package(url: "https://github.com/apple/swift-crypto.git", exact: "5.0.1")
+        .package(url: "https://github.com/apple/swift-crypto.git", exact: "5.1.1")
     ],
     targets: [
         .target(
             name: "VouchaCore",
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto")
+            ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
             ]
         ),
         .target(name: "VouchaModels", dependencies: ["VouchaCore"]),
@@ -32,6 +35,9 @@ let package = Package(
                 "VouchaModels",
                 "VouchaCore",
                 .product(name: "Crypto", package: "swift-crypto")
+            ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
             ]
         ),
         .target(

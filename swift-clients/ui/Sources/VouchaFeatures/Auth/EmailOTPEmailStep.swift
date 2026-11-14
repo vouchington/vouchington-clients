@@ -18,6 +18,20 @@ struct EmailOTPEmailStep: View {
             Spacer()
         }
         .padding(Spacing.lg)
+        #if os(iOS)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    // The centered Send Code button sits under the email keyboard, so the
+                    // same action is also on the keyboard bar where it can be tapped.
+                    Button {
+                        Task { await viewModel.requestCode() }
+                    } label: {
+                        Text(UiMessages.string(.nativeAuthSendCode, locale: locale))
+                    }
+                    .disabled(!viewModel.canRequestCode)
+                }
+            }
+        #endif
     }
 
     private var header: some View {

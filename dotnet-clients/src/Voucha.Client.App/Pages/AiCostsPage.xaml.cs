@@ -1,5 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using Voucha.Client.Core.Engineering;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -15,12 +15,10 @@ public partial class AiCostsPage : ContentPage, IDisposable
     Unloaded += (_, _) => Dispose();
   }
 
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "The view model owns presentation failures.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try { await viewModel.EnsureLoadedAsync(); }
-    catch (Exception error) { System.Diagnostics.Debug.WriteLine(error); }
+    await PageLoadGuard.RunAsync(() => viewModel.EnsureLoadedAsync());
   }
 
   private async void OnRefreshing(object? sender, EventArgs eventArgs) => await viewModel.RefreshAsync();

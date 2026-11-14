@@ -74,6 +74,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         await viewModel.removeListItem(itemType: .topic, itemId: "item-1")
 
         viewModel.selectedTab = .applications
+        await viewModel.load()
         await viewModel.approveApplication(applicationId: "application-1")
         await viewModel.rejectApplication(applicationId: "application-1", reason: "Needs more detail")
 
@@ -140,7 +141,8 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
         ] = (
             Data("""
             {
-              "community_agent_moderations": [],
+              "results": [],
+              "page_info": { "has_next_page": false, "end_cursor": null, "start_cursor": null },
               "platform_moderation": { "status": "in_review" }
             }
             """.utf8),
@@ -163,7 +165,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
 
         viewModel.selectedTab = .bans
         await viewModel.banMember(userId: "user-2", reason: "spam", expiresAt: nil)
-        await viewModel.liftBan(userId: "user-2")
+        await viewModel.liftBan(banId: "user-2")
 
         viewModel.selectedTab = .restrictions
         await viewModel.activateRestrictions(
@@ -327,29 +329,7 @@ final class CommunityDetailActionTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/applications"] = (
-            Data(
-                """
-                {
-                  "results": [{ "id": "application-1" }],
-                  "page_info": { "has_next_page": false, "end_cursor": null },
-                  "community_applications": {
-                    "application-1": {
-                      "id": "application-1",
-                      "community_id": "community-1",
-                      "user_id": "user-2",
-                      "answers": {},
-                      "message": "Let me in",
-                      "reviewed_at": null,
-                      "reviewed_by_id": null,
-                      "approved_at": null,
-                      "rejected_at": null,
-                      "rejection_reason": null,
-                      "created_at": "2026-07-01T00:00:00Z"
-                    }
-                  }
-                }
-                """.utf8
-            ),
+            ApiFixtureLoader.data("web.communities.applications.default"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/communities/builders/application-questions"] = (

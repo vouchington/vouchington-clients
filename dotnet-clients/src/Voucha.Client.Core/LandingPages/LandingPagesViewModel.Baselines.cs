@@ -13,28 +13,19 @@ public sealed partial class LandingPagesViewModel
   public string Title
   {
     get => title;
-    set
-    {
-      if (SetProperty(ref title, value)) OnPropertyChanged(nameof(HasUnsavedMetadata));
-    }
+    set => SetPropertyAndNotify(ref title, value, nameof(HasUnsavedMetadata));
   }
 
   public string Subtitle
   {
     get => subtitle;
-    set
-    {
-      if (SetProperty(ref subtitle, value)) OnPropertyChanged(nameof(HasUnsavedMetadata));
-    }
+    set => SetPropertyAndNotify(ref subtitle, value, nameof(HasUnsavedMetadata));
   }
 
   public string Slug
   {
     get => slug;
-    set
-    {
-      if (SetProperty(ref slug, value)) OnPropertyChanged(nameof(HasUnsavedMetadata));
-    }
+    set => SetPropertyAndNotify(ref slug, value, nameof(HasUnsavedMetadata));
   }
 
   public bool HasUnsavedMetadata =>

@@ -5,6 +5,7 @@ namespace Voucha.Client.Core.Communities;
 
 public sealed partial class CommunityDetailViewModel
 {
+  private const int ModerationResultsPageLimit = 100;
   private long moderationResultsRequestRevision;
 
   public Task LoadSavedRepliesAsync(CancellationToken cancellationToken = default) =>
@@ -29,18 +30,22 @@ public sealed partial class CommunityDetailViewModel
 
     var requestRevision = Interlocked.Increment(ref moderationResultsRequestRevision);
     var requestContextRevision = Volatile.Read(ref communityContextRevision);
-    var response = await service.FetchModerationResultsAsync(communityIdOrSlug, postId, cancellationToken).ConfigureAwait(true);
-    if (cancellationToken.IsCancellationRequested ||
-        requestRevision != Volatile.Read(ref moderationResultsRequestRevision) ||
-        requestContextRevision != Volatile.Read(ref communityContextRevision))
+    bool IsCurrent() =>
+        !cancellationToken.IsCancellationRequested &&
+        requestRevision == Volatile.Read(ref moderationResultsRequestRevision) &&
+        requestContextRevision == Volatile.Read(ref communityContextRevision);
+
+    var response = await FetchAllModerationResultPagesAsync(postId, IsCurrent, cancellationToken).ConfigureAwait(true);
+    if (response is null)
     {
-      return response;
+      return null;
     }
+
     Moderation = [
       Summary(
           "community-agent-moderations",
           UiText.Localized(UiMessageKey.NativeDotnetCsharpCommunitiesCommunityAgentModerations),
-          UiText.Verbatim(localization.FormatNumber(response.CommunityAgentModerations.Count))),
+          UiText.Verbatim(localization.FormatNumber(response.Results.Count))),
       Summary(
           "platform-moderation",
           UiText.Localized(UiMessageKey.NativeModerationSummaryTitle),
@@ -48,6 +53,40 @@ public sealed partial class CommunityDetailViewModel
     ];
     OnPropertyChanged(nameof(Moderation));
     return response;
+  }
+
+  // Follows every page so the count is the full total, never the default page size. Returns null
+  // when the load went stale; throws when the cursor chain cannot be followed.
+  private async Task<CommunityModerationResultsResponse?> FetchAllModerationResultPagesAsync(
+      string postId,
+      Func<bool> isCurrent,
+      CancellationToken cancellationToken)
+  {
+    List<CommunityAgentModerationSummary> results = [];
+    HashSet<string> seenCursors = new(StringComparer.Ordinal);
+    string? after = null;
+    while (true)
+    {
+      var page = await service.FetchModerationResultsAsync(
+          communityIdOrSlug, postId, after, ModerationResultsPageLimit, cancellationToken).ConfigureAwait(true);
+      if (!isCurrent())
+      {
+        return null;
+      }
+
+      results.AddRange(page.Results);
+      if (!page.PageInfo.HasNextPage)
+      {
+        return page with { Results = results };
+      }
+
+      if (page.PageInfo.EndCursor is not { } cursor || !seenCursors.Add(cursor))
+      {
+        throw new InvalidOperationException("Moderation results pagination did not provide a usable next cursor.");
+      }
+
+      after = cursor;
+    }
   }
 
   private static UiText PlatformModerationStatusText(CommunityPlatformModeration moderation) =>

@@ -43,6 +43,7 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             Data(
                 """
                 {
+                  "item_limit": 100,
                   "landing_page": {
                     "id": "landing-page-2",
                     "user_id": "user-abc",
@@ -91,7 +92,7 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/candidates"] = (
             Data(
                 """
-                {"candidates":{"can_create_landing_pages":false,"profile_links":[],"reviews":[],"referral_links":[]}}
+                {"item_limit":100,"page_info":{"start_cursor":null,"has_next_page":false,"end_cursor":null},"candidates":{"can_create_landing_pages":false,"profile_links":[],"reviews":[],"referral_links":[]}}
                 """.utf8
             ),
             200
@@ -196,14 +197,14 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/landing-page-1"] = (Data(), 204)
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages"] = (
             Data(
-                #"{"results":[{"id":"landing-page-2","user_id":"user-abc","title":"Travel Stack","subtitle":null,"slug":"travel","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z"}],"page_info":{"has_next_page":false,"end_cursor":null}}"#
+                #"{"results":[{"id":"landing-page-2","user_id":"user-abc","title":"Travel Stack","subtitle":null,"slug":"travel","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z"}],"page_info":{"start_cursor":null,"has_next_page":false,"end_cursor":null}}"#
                     .utf8
             ),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/landing-page-2"] = (
             Data(
-                #"{"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Travel Stack","subtitle":null,"slug":"travel","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z","items":[]}}"#
+                #"{"item_limit":100,"landing_page":{"id":"landing-page-2","user_id":"user-abc","title":"Travel Stack","subtitle":null,"slug":"travel","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z","items":[]}}"#
                     .utf8
             ),
             200
@@ -222,7 +223,7 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages/landing-page-2"] = (Data(), 204)
         CannedFeedURLProtocol.handlers["/api/v1/my/landing-pages"] = (
             Data(
-                #"{"results":[{"id":"landing-page-1","user_id":"user-abc","title":"Home","subtitle":null,"slug":"home","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z"}],"page_info":{"has_next_page":false,"end_cursor":null}}"#
+                #"{"results":[{"id":"landing-page-1","user_id":"user-abc","title":"Home","subtitle":null,"slug":"home","is_default":true,"created_at":"2026-06-28T11:00:00Z","updated_at":"2026-06-29T11:00:00Z"}],"page_info":{"start_cursor":null,"has_next_page":false,"end_cursor":null}}"#
                     .utf8
             ),
             200
@@ -333,6 +334,7 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
             Data(
                 """
                 {
+                  "item_limit": 100,
                   "landing_page": {
                     "id": "landing-page-2",
                     "user_id": "user-abc",
@@ -371,7 +373,10 @@ final class LandingPagesViewModelTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNotNil(createViewModel.errorMessage)
 
         CannedFeedURLProtocol.handlers = [
-            "/api/v1/my/landing-pages/\(page.id)": (Data(#"{"landing_page":{"id":"page-1"}}"#.utf8), 200)
+            "/api/v1/my/landing-pages/\(page.id)": (
+                Data(#"{"item_limit":100,"landing_page":{"id":"page-1"}}"#.utf8),
+                200
+            )
         ]
         let saveDetailsViewModel = try LandingPagesViewModel(client: makeClient())
         saveDetailsViewModel.setActivePage(page)

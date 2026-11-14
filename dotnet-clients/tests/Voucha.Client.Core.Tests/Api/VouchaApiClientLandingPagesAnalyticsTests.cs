@@ -36,9 +36,9 @@ public sealed partial class VouchaApiClientTests
   {
     var (client, handler) = CreateClient("native.admin-landing-page-analytics.default");
 
-    var response = await client.FetchAdminLandingPageAnalyticsAsync("page-1", TestContext.Current.CancellationToken);
+    var response = await client.FetchAdminLandingPageAnalyticsAsync("alice", "my-links", TestContext.Current.CancellationToken);
 
-    AssertRequest(handler, HttpMethod.Get, "/api/v1/admin/landing-pages/page-1/analytics");
+    AssertRequest(handler, HttpMethod.Get, "/api/v1/admin/users/alice/landing-pages/my-links/analytics");
     Assert.Equal("landing-page-1", response.LandingPage.Id);
     Assert.Equal(12, response.Analytics.TotalVisits);
   }

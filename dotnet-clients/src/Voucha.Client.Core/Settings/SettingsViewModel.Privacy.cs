@@ -71,7 +71,6 @@ public sealed partial class SettingsViewModel
           {
             "processing_restricted_at" => new UpdateUserPrivacyBody(ProcessingRestrictedAt: row.IsChecked),
             "third_party_marketing" => new UpdateUserPrivacyBody(ThirdPartyMarketing: row.IsChecked),
-            "hn_discussions" => new UpdateUserPrivacyBody(HnDiscussions: row.IsChecked),
             _ => throw new InvalidOperationException($"Unsupported privacy toggle '{row.Key}'."),
           },
           cancellationToken).ConfigureAwait(true);

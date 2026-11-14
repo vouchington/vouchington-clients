@@ -33,7 +33,7 @@ public sealed partial class CommentThreadViewModelTests
 
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
-    Assert.Equal("comments-collapsed:root-1:user-1", viewModel.CollapseStateKey);
+    Assert.Null(viewModel.CollapseStateKey);
     Assert.Equal(root.Id, viewModel.RootPost?.Id);
     Assert.Equal(root.Id, viewModel.RootPostId);
     Assert.Equal("user-1", viewModel.CurrentUserId);
@@ -71,9 +71,9 @@ public sealed partial class CommentThreadViewModelTests
 
     viewModel.Sort = "unknown";
     Assert.Equal(CommentThreadSorts.Best, viewModel.Sort);
-    viewModel.ToggleCollapse(firstReply.Id);
+    await viewModel.ToggleCollapseAsync(firstReply.Id, TestContext.Current.CancellationToken);
     Assert.Contains(firstReply.Id, viewModel.CollapsedCommentIds);
-    viewModel.ToggleCollapse(firstReply.Id);
+    await viewModel.ToggleCollapseAsync(firstReply.Id, TestContext.Current.CancellationToken);
     Assert.DoesNotContain(firstReply.Id, viewModel.CollapsedCommentIds);
   }
 
@@ -230,11 +230,11 @@ public sealed partial class CommentThreadViewModelTests
 
   [Theory]
   [InlineData("root-1", null, "comments-collapsed:root-1")]
-  [InlineData("root-1", "user-1", "comments-collapsed:root-1:user-1")]
+  [InlineData("root-1", "user-1", null)]
   public void CollapseStateKeyUsesOptionalUserId(
       string rootPostId,
       string? userId,
-      string expected)
+      string? expected)
   {
     Assert.Equal(expected, CommentThreadViewModel.BuildCollapseStateKey(rootPostId, userId));
   }
@@ -376,6 +376,7 @@ public sealed partial class CommentThreadViewModelTests
         CancellationToken cancellationToken = default)
     {
       DescendantPageCursors.Add(after);
+      if (DescendantHandler is not null) return DescendantHandler(postIdOrSlug, after);
       return Task.FromResult(after is null
           ? DescendantsResponse ?? throw new InvalidOperationException("Missing descendants response.")
           : DescendantPageResponses.Dequeue());
@@ -413,13 +414,13 @@ public sealed partial class CommentThreadViewModelTests
     public Task BookmarkPostAsync(string postIdOrSlug, string predicate = "save", CancellationToken cancellationToken = default)
     {
       BookmarkCalls.Add((postIdOrSlug, predicate, true));
-      return Task.CompletedTask;
+      return BookmarkHandler?.Invoke(postIdOrSlug, true) ?? Task.CompletedTask;
     }
 
     public Task UnbookmarkPostAsync(string postIdOrSlug, string predicate = "save", CancellationToken cancellationToken = default)
     {
       BookmarkCalls.Add((postIdOrSlug, predicate, false));
-      return Task.CompletedTask;
+      return BookmarkHandler?.Invoke(postIdOrSlug, false) ?? Task.CompletedTask;
     }
 
     public Task ReportAsync(ReportBody body, CancellationToken cancellationToken = default)

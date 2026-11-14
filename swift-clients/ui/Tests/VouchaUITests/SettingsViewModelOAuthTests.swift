@@ -26,7 +26,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertTrue(fixture.viewModel.canConnectOAuthAccount(provider: .github))
         XCTAssertFalse(fixture.viewModel.canConnectOAuthAccount(provider: .x))
         var openedURL: URL?
-        await fixture.viewModel.beginOAuthConnection(provider: .github) { openedURL = $0 }
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.beginOAuthConnection(provider: .github) { openedURL = $0 }
+        }
 
         XCTAssertEqual(openedURL?.host, "github.com")
         XCTAssertEqual(fixture.coordinator.pending?.flowId, "flow-1")
@@ -63,7 +65,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         )
         var openedURL: URL?
 
-        await fixture.viewModel.beginOAuthConnection(provider: .linkedin) { openedURL = $0 }
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.beginOAuthConnection(provider: .linkedin) { openedURL = $0 }
+        }
 
         XCTAssertEqual(openedURL?.host, "www.linkedin.com")
         XCTAssertEqual(fixture.coordinator.pending?.provider, .linkedin)
@@ -96,7 +100,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             503
         )
 
-        await fixture.viewModel.disconnectOAuthAccount(provider: .linkedin)
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.disconnectOAuthAccount(provider: .linkedin)
+        }
 
         XCTAssertNil(fixture.viewModel.account(for: .linkedin))
         XCTAssertNil(fixture.viewModel.oauthErrorMessage)
@@ -111,8 +117,10 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             503
         )
 
-        await fixture.viewModel.beginOAuthConnection(provider: .github) { _ in
-            XCTFail("A failed authorization must not open a URL")
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.beginOAuthConnection(provider: .github) { _ in
+                XCTFail("A failed authorization must not open a URL")
+            }
         }
 
         XCTAssertNotNil(fixture.viewModel.oauthErrorMessage)
@@ -178,7 +186,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             Data(#"{"message":"unrelated settings failure"}"#.utf8),
             503
         )
-        await fixture.viewModel.disconnectOAuthAccount(provider: .github)
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.disconnectOAuthAccount(provider: .github)
+        }
 
         XCTAssertNil(fixture.viewModel.account(for: .github))
         XCTAssertNil(fixture.viewModel.oauthErrorMessage)
@@ -201,7 +211,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             503
         )
 
-        await refreshFailure.viewModel.disconnectOAuthAccount(provider: .github)
+        try await confirmAccountChange(XCTUnwrap(refreshFailure.viewModel.freshConfirmation)) {
+            await refreshFailure.viewModel.disconnectOAuthAccount(provider: .github)
+        }
 
         XCTAssertNotNil(refreshFailure.viewModel.oauthErrorMessage)
         XCTAssertNotNil(refreshFailure.viewModel.account(for: .github))
@@ -219,7 +231,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
 
-        await confirmationFailure.viewModel.disconnectOAuthAccount(provider: .github)
+        try await confirmAccountChange(XCTUnwrap(confirmationFailure.viewModel.freshConfirmation)) {
+            await confirmationFailure.viewModel.disconnectOAuthAccount(provider: .github)
+        }
 
         XCTAssertEqual(
             confirmationFailure.viewModel.oauthErrorMessage,
@@ -241,7 +255,9 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
             503
         )
 
-        await fixture.viewModel.disconnectOAuthAccount(provider: .facebook)
+        try await confirmAccountChange(XCTUnwrap(fixture.viewModel.freshConfirmation)) {
+            await fixture.viewModel.disconnectOAuthAccount(provider: .facebook)
+        }
 
         XCTAssertEqual(fixture.viewModel.account(for: .facebook)?.name, "Facebook Alice")
         XCTAssertNotNil(fixture.viewModel.oauthErrorMessage)
@@ -403,10 +419,10 @@ final class SettingsViewModelOAuthTests: NativeRouteSurfaceViewModelTestCase {
         viewModel: SettingsViewModel,
         coordinator: NativeOAuthAuthorizationCoordinator
     ) {
-        let client = try makeClient()
+        let client = try makeFreshAccountSettingsTestClient()
         let coordinator = try NativeOAuthAuthorizationCoordinator(
             client: client,
-            sessionManager: SessionManager(client: client, cookieStorage: HTTPCookieStorage()),
+            sessionManager: SessionManager(client: client),
             store: NativeOAuthAuthorizationStore(
                 secureState: UserDefaultsNativePendingState(
                     key: "nativeOAuthPendingAuthorization",

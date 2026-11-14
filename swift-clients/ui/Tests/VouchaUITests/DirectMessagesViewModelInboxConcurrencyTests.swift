@@ -273,7 +273,7 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
             )
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -335,7 +335,7 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
               ],
               "page_info": {
                 "has_next_page": \(hasNextPage),
-                "end_cursor": \(jsonString(endCursor)),
+                "end_cursor": \(DirectMessagesTestJSON.string(endCursor)),
                 "start_cursor": null
               }
             }
@@ -380,32 +380,6 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
         )
     }
 
-    private func participantsPage(conversationId: String, ownerUserId: String) -> Data {
-        Data(
-            """
-            {
-              "results": [
-                {
-                  "id": "participant-owner",
-                  "conversation_id": "\(conversationId)",
-                  "user_id": "\(ownerUserId)",
-                  "role": "owner",
-                  "created_at": "2026-01-01T00:00:00Z",
-                  "removed_at": null,
-                  "username": "alice",
-                  "profile_image_id": null
-                }
-              ],
-              "page_info": {
-                "has_next_page": false,
-                "end_cursor": null,
-                "start_cursor": null
-              }
-            }
-            """.utf8
-        )
-    }
-
     private func directMessageResponseData(conversationId: String, id: String, bodyText: String) -> Data {
         Data(
             """
@@ -426,7 +400,7 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
     }
 
     private func message(id: String, conversationId: String, bodyText: String) -> DirectMessage {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -440,18 +414,6 @@ final class DirectMessagesViewModelInboxConcurrencyTests: NativeRouteSurfaceView
             }
             """
         )
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
-
-    private func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
     }
 
     private func assertLoadState(

@@ -34,8 +34,7 @@ extension NativeRouteSurfaceViewModel {
                 title: rawText($0.flagType),
                 detail: .joined([
                     appText($0.resolvedAt == nil ? .nativeSwiftRouteSurfacePending : .nativeSwiftRouteSurfaceResolved),
-                    rawText($0.postId ?? $0.topicId ?? $0.hostnameId ?? $0.entityRelationId
-                        ?? $0.agentModerationId ?? $0.id)
+                    rawText($0.entityLabel)
                 ])
             )
         }
@@ -55,6 +54,7 @@ extension NativeRouteSurfaceViewModel {
                 title: rawText($0.flagType),
                 detail: .joined([
                     appText($0.resolvedAt == nil ? .nativeSwiftRouteSurfacePending : .nativeSwiftRouteSurfaceResolved),
+                    rawText($0.entityLabel),
                     countText($0.reporterCount, item: "reporter")
                 ])
             )
@@ -89,7 +89,7 @@ extension NativeRouteSurfaceViewModel {
                 forwardRow(
                     id: $0.id,
                     icon: "arrow.uturn.left.circle",
-                    title: rawText($0.caseId ?? $0.id),
+                    title: appealSummaryTitle($0.targetContext),
                     detail: appText($0.status.titleKey)
                 )
             }
@@ -102,7 +102,7 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "arrow.uturn.left.circle",
-                title: rawText($0.caseId ?? $0.id),
+                title: appealSummaryTitle($0.targetContext),
                 detail: appText($0.status.titleKey)
             )
         }
@@ -130,7 +130,7 @@ extension NativeRouteSurfaceViewModel {
             forwardRow(
                 id: $0.id,
                 icon: "exclamationmark.bubble",
-                title: rawText($0.claimText),
+                title: rawText($0.postLabel),
                 detail: .joined([
                     appText($0.status.titleKey),
                     $0.recommendedAction.map { appText($0.titleKey) }

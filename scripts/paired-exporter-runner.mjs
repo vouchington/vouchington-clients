@@ -14,23 +14,20 @@ import {
   materializeOutput,
   maximumResponseBytes,
 } from './paired-exporter-output-protocol.mjs'
+import { prefixedFailure } from './prefixed-failure.mjs'
 
 const image = pairedExporterImage.reference
-const bootstrap = fileURLToPath(new URL('./paired-exporter-bootstrap.mjs', import.meta.url))
-const runtimeContract = fileURLToPath(
-  new URL('./paired-exporter-runtime-evidence.mjs', import.meta.url),
-)
-const archiveValidator = fileURLToPath(new URL('./paired-exporter-archive.mjs', import.meta.url))
-const outputCollector = fileURLToPath(
-  new URL('./paired-exporter-output-collector.mjs', import.meta.url),
-)
+const trustedScript = name => fileURLToPath(new URL(name, import.meta.url))
+const bootstrap = trustedScript('./paired-exporter-bootstrap.mjs')
+const runtimeContract = trustedScript('./paired-exporter-runtime-evidence.mjs')
+const archiveValidator = trustedScript('./paired-exporter-archive.mjs')
+const outputCollector = trustedScript('./paired-exporter-output-collector.mjs')
+const failureHelper = trustedScript('./prefixed-failure.mjs')
+const pathHelper = trustedScript('./path-within.mjs')
 const maximumDiagnosticBytes = 4 * 1024 * 1024
 const defaultExecutionTimeoutMs = 5 * 60 * 1000
-const maximumExecutionTimeoutMs = defaultExecutionTimeoutMs
 
-function fail(message) {
-  throw new Error(`Isolated native exporter failed: ${message}`)
-}
+const fail = prefixedFailure('Isolated native exporter failed')
 
 export async function runIsolatedNativeExporter({
   producerRoot,
@@ -43,7 +40,7 @@ export async function runIsolatedNativeExporter({
   if (
     !Number.isSafeInteger(executionTimeoutMs) ||
     executionTimeoutMs < 1 ||
-    executionTimeoutMs > maximumExecutionTimeoutMs
+    executionTimeoutMs > defaultExecutionTimeoutMs
   )
     fail('candidate execution timeout is outside the allowed bound')
   const [producer, consumer, output, bundle] = await Promise.all([
@@ -130,6 +127,10 @@ export async function runIsolatedNativeExporter({
     `type=bind,src=${archiveValidator},dst=/trusted/paired-exporter-archive.mjs,readonly`,
     '--mount',
     `type=bind,src=${outputCollector},dst=/trusted/paired-exporter-output-collector.mjs,readonly`,
+    '--mount',
+    `type=bind,src=${failureHelper},dst=/trusted/prefixed-failure.mjs,readonly`,
+    '--mount',
+    `type=bind,src=${pathHelper},dst=/trusted/path-within.mjs,readonly`,
     image,
     'node',
     '/trusted/bootstrap.mjs',

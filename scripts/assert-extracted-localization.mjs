@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { declaredFilamentsContractPaths } from './contracts.mjs'
+import { localizationPaths } from './contracts.mjs'
 
-const [, swiftPath, dotnetPath] = declaredFilamentsContractPaths
+const [swiftPath, dotnetPath] = localizationPaths
 
 export async function assertExtractedLocalizationRepresentatives(contractRoot) {
   const root = resolve(contractRoot)

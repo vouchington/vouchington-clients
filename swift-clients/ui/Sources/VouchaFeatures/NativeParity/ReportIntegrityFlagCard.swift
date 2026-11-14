@@ -11,13 +11,15 @@ struct ReportIntegrityFlagCard: View {
     let onNavigate: (String) -> Void
     let onRequestPenalty: () -> Void
 
+    @State
+    private var showsDetail = false
+
     var body: some View {
         let target = reportIntegrityTarget(flag)
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Label(flagTypeText, systemImage: "flag.2.crossed")
                 .font(Typography.headline)
             targetRow(target)
-            LabeledContent(text(.nativeSwiftIntegrityFlagId), value: flag.id)
             LabeledContent(
                 text(.nativeSwiftIntegrityReporterCount),
                 value: UiMessages.number(flag.reporterCount, locale: nativeUiLocale)
@@ -28,14 +30,8 @@ struct ReportIntegrityFlagCard: View {
             )
             LabeledContent(text(.nativeSwiftIntegrityCreated), value: date(flag.createdAt))
             lifecycleRows
-            if !flag.details.isEmpty {
-                Divider()
-                Text(text(.nativeSwiftIntegrityEvidence)).font(Typography.subheadline.weight(.semibold))
-                ForEach(integrityDetails(flag.details, locale: nativeUiLocale), id: \.self) {
-                    Text(verbatim: UiMessages.string(.verbatim($0), locale: nativeUiLocale))
-                        .font(Typography.caption.monospaced())
-                }
-            }
+            Button(text(.nativeSwiftIntegrityEvidence)) { showsDetail = true }
+                .accessibilityIdentifier("report-integrity-\(flag.id)-open-detail")
             if let count = viewModel.penalizedReporterCounts[flag.id] {
                 Text(text(.nativeSwiftIntegrityPenalizedReporters, parameters: [
                     "count": UiMessages.number(count, locale: nativeUiLocale)
@@ -63,6 +59,9 @@ struct ReportIntegrityFlagCard: View {
         .background(Colors.background)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .accessibilityIdentifier("report-integrity-\(flag.id)")
+        .sheet(isPresented: $showsDetail) {
+            ReportIntegrityDetail(viewModel: viewModel, id: flag.id)
+        }
     }
 
     @ViewBuilder
@@ -85,8 +84,15 @@ struct ReportIntegrityFlagCard: View {
         if let resolvedAt = flag.resolvedAt {
             LabeledContent(text(.nativeSwiftIntegrityResolvedAt), value: date(resolvedAt))
         }
-        if let resolvedById = flag.resolvedById {
-            LabeledContent(text(.nativeSwiftIntegrityResolvedBy), value: resolvedById)
+        if flag.resolvedAt != nil {
+            LabeledContent(
+                text(.nativeSwiftIntegrityResolvedBy),
+                value: moderationIdentityLabel(
+                    displayName: flag.resolverDisplayName,
+                    username: flag.resolverUsername,
+                    locale: nativeUiLocale
+                )
+            )
         }
     }
 
@@ -116,8 +122,8 @@ struct ReportIntegrityFlagCard: View {
         }
     }
 
-    private func targetText(_ target: IntegrityTarget) -> String {
-        text(target.kind.messageKey, parameters: ["id": target.id])
+    private func targetText(_: IntegrityTarget) -> String {
+        UiMessages.string(.verbatim(flag.entityLabel), locale: nativeUiLocale)
     }
 
     private func date(_ value: Date) -> String {

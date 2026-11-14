@@ -43,7 +43,7 @@ final class LocalLLMEndpointPolicyContractTests: XCTestCase {
 
     private func makeContractRoot() throws -> URL {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filaments-android-contract-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("vouchington-android-contract-\(UUID().uuidString)", isDirectory: true)
         let fixtureRoot = root.appendingPathComponent("api-fixtures/v1", isDirectory: true)
         try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
         try Data("{\"hostPolicyRows\":[],\"originPairs\":[]}".utf8).write(

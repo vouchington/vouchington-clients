@@ -29,10 +29,10 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
         )
         let rootView = section(for: root, isRoot: true, title: root.title ?? "")
             .environment(\.locale, Locale(identifier: "en"))
-        let ancestor = try XCTUnwrap(ancestors.posts["comment-a"])
+        let ancestor = try XCTUnwrap(ancestors.posts[CommentFixture.a])
         let ancestorView = section(for: ancestor, isRoot: false, title: ancestor.createdBy?.username ?? "")
             .environment(\.locale, Locale(identifier: "en"))
-        let comment = try XCTUnwrap(descendants.posts["comment-a"])
+        let comment = try XCTUnwrap(descendants.posts[CommentFixture.a])
         let commentView = nodeView(for: comment).environment(\.locale, Locale(identifier: "en"))
 
         try assertPlacement(in: rootView)
@@ -41,12 +41,19 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
     }
 
     func testAnonymousAndDeletedCommentAuthorsNeverRenderPlacementImages() throws {
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: ApiFixtureLoader.data("native.comments.descendants.default")
+        ) as? [String: Any])
+        var posts = try XCTUnwrap(object["posts"] as? [String: [String: Any]])
+        posts[CommentFixture.b]?["placeholder_state"] = "deleted"
+        posts[CommentFixture.b]?["deleted_at"] = "2026-01-02T00:00:00Z"
+        object["posts"] = posts
         let response = try fixtureDecoder().decode(
             PostThreadEnvelope.self,
-            from: ApiFixtureLoader.data("native.comments.descendants.default")
+            from: JSONSerialization.data(withJSONObject: object)
         )
-        let anonymous = try XCTUnwrap(response.posts["comment-c"])
-        let deleted = try XCTUnwrap(response.posts["comment-d"])
+        let anonymous = try XCTUnwrap(response.posts[CommentFixture.c])
+        let deleted = try XCTUnwrap(response.posts[CommentFixture.b])
 
         for post in [anonymous, deleted] {
             let rendered = try nodeView(for: post)
@@ -122,9 +129,9 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
             showSignIn: {}
         )
         surface.viewModel.rootPost = root
-        surface.viewModel.ancestorPosts = try [XCTUnwrap(ancestors.posts["comment-a"])]
+        surface.viewModel.ancestorPosts = try [XCTUnwrap(ancestors.posts[CommentFixture.a])]
         surface.viewModel.commentTree = try [
-            NativeCommentThreadNode(post: XCTUnwrap(descendants.posts["comment-a"]))
+            NativeCommentThreadNode(post: XCTUnwrap(descendants.posts[CommentFixture.a]))
         ]
 
         let images = try surface.inspect().findAll(ViewType.View<AsyncImageView>.self)
@@ -182,7 +189,7 @@ final class PostAuthorAvatarRenderingTests: XCTestCase {
     private func nodeView(for post: Post) -> NativeCommentThreadNodeView {
         NativeCommentThreadNodeView(
             node: NativeCommentThreadNode(post: post),
-            rootPostId: "comment-root-post",
+            rootPostId: CommentFixture.root,
             rootPostType: "discussion",
             depth: 0,
             collapsedIds: [],

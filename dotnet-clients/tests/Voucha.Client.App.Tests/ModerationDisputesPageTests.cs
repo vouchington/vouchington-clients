@@ -26,8 +26,12 @@ public sealed class ModerationDisputesPageTests
     await page.ReloadAsync();
 
     var list = Find<CollectionView>(page, "review-disputes-list");
-    var card = Assert.IsAssignableFrom<VerticalStackLayout>(list.ItemTemplate.CreateContent());
-    card.BindingContext = viewModel.Disputes.Single();
+    var summary = Assert.IsAssignableFrom<VerticalStackLayout>(list.ItemTemplate.CreateContent());
+    summary.BindingContext = viewModel.Summaries.Single();
+    Assert.Empty(summary.Children.OfType<Editor>());
+    var detail = await viewModel.FetchDetailAsync(viewModel.Summaries.Single().Id, TestContext.Current.CancellationToken);
+    var card = new ModerationDisputeCardView(viewModel, () => TestContext.Current.CancellationToken)
+    { BindingContext = detail };
     Assert.Contains(
         card.Children.OfType<Label>(),
         label => label.Text?.Contains("The review is inaccurate", StringComparison.Ordinal) == true);
@@ -91,16 +95,17 @@ public sealed class ModerationDisputesPageTests
     var page = new ModerationDisputesPage(viewModel);
     await page.ReloadAsync();
     var list = Find<CollectionView>(page, "review-disputes-list");
-    var card = Assert.IsAssignableFrom<VerticalStackLayout>(list.ItemTemplate.CreateContent());
-    card.BindingContext = viewModel.Disputes.Single();
+    var detailPage = new ModerationDetailPage<ModerationDispute>(
+        token => viewModel.FetchDetailAsync(viewModel.Summaries.Single().Id, token),
+        (detail, token) => new ModerationDisputeCardView(viewModel, () => token) { BindingContext = detail });
+    var lifecycle = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly;
+    detailPage.GetType().GetMethod("OnAppearing", lifecycle)!.Invoke(detailPage, null);
+    var card = Assert.Single(VisualTreeElements.Descendants<ModerationDisputeCardView>(detailPage));
     card.Children.OfType<Editor>().First().Text = "Updated response";
 
     Find<Button>(card, "review-dispute-approve").SendClicked();
     await WaitForBarrierAsync(service.UpdateStarted.Task, "the card mutation to start its public-response update");
-    typeof(ModerationDisputesPage).GetMethod(
-        "OnDisappearing",
-        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-        .Invoke(page, null);
+    detailPage.GetType().GetMethod("OnDisappearing", lifecycle)!.Invoke(detailPage, null);
 
     await WaitForBarrierAsync(service.CancellationObserved.Task, "page disappearance to cancel the public-response update");
 
@@ -226,6 +231,7 @@ public sealed class ModerationDisputesPageTests
         {
           "id":"dispute-1",
           "post_id":"post-1",
+          "post_label":"Post",
           "status":"pending",
           "reason":"incorrect",
           "claim_text":"The review is inaccurate",
@@ -251,7 +257,11 @@ public sealed class ModerationDisputesPageTests
         """,
         VouchaApiJson.Options)!;
 
-    public async Task<ModerationDisputeListResponse> FetchDisputesAsync(
+    public Task<StaffModerationDisputeListResponse> FetchDisputesAsync(
+        ModerationDisputeStatus status, string? after = null, int limit = 25,
+        CancellationToken cancellationToken = default) => FetchPageAsync(status, after, limit, cancellationToken);
+
+    private async Task<StaffModerationDisputeListResponse> FetchPageAsync(
         ModerationDisputeStatus status,
         string? after = null,
         int limit = 25,
@@ -263,8 +273,9 @@ public sealed class ModerationDisputesPageTests
         LoadStarted.SetResult();
         await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
       }
-      return new ModerationDisputeListResponse(
-          Empty ? [] : [Current with { Status = status }],
+      return new StaffModerationDisputeListResponse(
+          Empty ? [] : [JsonSerializer.SerializeToElement(Current with { Status = status }, VouchaApiJson.Options)
+              .Deserialize<ModerationDisputeSummary>(VouchaApiJson.Options)!],
           new PageInfo(null, false, null));
     }
 

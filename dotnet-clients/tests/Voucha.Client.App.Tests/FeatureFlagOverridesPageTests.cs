@@ -38,15 +38,15 @@ public sealed class FeatureFlagOverridesPageTests
         Assert.IsAssignableFrom<IEnumerable>(picker.ItemsSource).Cast<string>());
     Assert.Equal(0, picker.SelectedIndex);
     picker.SelectedIndex = 1;
-    await WaitUntilAsync(() => state.LocalOverrides.TryGetValue("fediverse", out var value) && value);
+    await PageTestWait.WaitUntilAsync(() => state.LocalOverrides.TryGetValue("fediverse", out var value) && value);
     Find<Picker>(page, "feature-flag-fediverse-override").SelectedIndex = 2;
-    await WaitUntilAsync(() => state.LocalOverrides.TryGetValue("fediverse", out var value) && !value);
+    await PageTestWait.WaitUntilAsync(() => state.LocalOverrides.TryGetValue("fediverse", out var value) && !value);
     Find<Picker>(page, "feature-flag-fediverse-override").SelectedIndex = 0;
-    await WaitUntilAsync(() => !state.LocalOverrides.ContainsKey("fediverse"));
+    await PageTestWait.WaitUntilAsync(() => !state.LocalOverrides.ContainsKey("fediverse"));
     Find<Picker>(page, "feature-flag-fediverse-override").SelectedIndex = 1;
-    await WaitUntilAsync(() => state.LocalOverrides.ContainsKey("fediverse"));
+    await PageTestWait.WaitUntilAsync(() => state.LocalOverrides.ContainsKey("fediverse"));
     Find<Button>(page, "feature-flag-clear-overrides").SendClicked();
-    await WaitUntilAsync(() => state.LocalOverrides.Count == 0);
+    await PageTestWait.WaitUntilAsync(() => state.LocalOverrides.Count == 0);
 
     Assert.Equal(1, featureService.FetchCalls);
     Assert.Equal(0, dynamicService.Calls);
@@ -104,7 +104,7 @@ public sealed class FeatureFlagOverridesPageTests
     await writeViewModel.LoadAsync(token);
     var writePage = CreatePage(writeViewModel);
     Find<Picker>(writePage, "feature-flag-fediverse-override").SelectedIndex = 1;
-    await WaitUntilAsync(() => writeViewModel.HasError);
+    await PageTestWait.WaitUntilAsync(() => writeViewModel.HasError);
     var writeError = UiLocalization.English.Format(
         UiMessageKey.NativeSwiftDynamicConfigFeatureFlagsSaveOverrideFailedReason,
         ("error", UiText.ExternalContent("disk full")));
@@ -126,7 +126,7 @@ public sealed class FeatureFlagOverridesPageTests
     Assert.DoesNotContain(viewModel.Flags, flag => flag.Key == "removed-flag");
 
     clear.SendClicked();
-    await WaitUntilAsync(() => !viewModel.HasLocalOverrides);
+    await PageTestWait.WaitUntilAsync(() => !viewModel.HasLocalOverrides);
 
     Assert.Empty(state.LocalOverrides);
     Assert.False(Find<Button>(page, "feature-flag-clear-overrides").IsEnabled);
@@ -156,12 +156,6 @@ public sealed class FeatureFlagOverridesPageTests
 
   private static T Find<T>(Element root, string automationId) where T : Element =>
       Assert.Single(VisualTreeElements.Descendants<T>(root), element => element.AutomationId == automationId);
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++) await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 
   private sealed class FeatureFlagService : IFeatureFlagService
   {

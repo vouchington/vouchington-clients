@@ -10,6 +10,21 @@ let moderationClusteredPageOneEndCursor =
 
 extension ApiFixtureEndpointCoverageTests {
     static let moderationEndpointRegistry: [String: Endpoint] = [
+        "native.moderation.topic-claims.pending": Endpoint.pendingTopicClaims(),
+        "native.moderation.topic-claims.verification": Endpoint
+            .verifyTopicClaim(id: "00000000-0000-7000-8000-000000000401"),
+        "native.moderation.topic-claims.rejection": Endpoint.rejectTopicClaim(
+            id: "00000000-0000-7000-8000-000000000401", reason: "Insufficient evidence"
+        ),
+        "native.moderation.topic-claims.revocation": Endpoint.revokeTopicClaim(
+            id: "00000000-0000-7000-8000-000000000401", reason: "Evidence withdrawn"
+        ),
+        "native.moderation.mod-notes.default": Endpoint
+            .userModerationNotes(userId: "00000000-0000-7000-8000-000000000911"),
+        "native.moderation.mod-notes.create.default": Endpoint.createUserModerationNote(
+            userId: "00000000-0000-7000-8000-000000000911", body: "Observed repeated spam.",
+            communityId: "00000000-0000-7000-8000-000000000914"
+        ),
         "native.moderation.reports.default": Endpoint.moderationReports(status: .pending, limit: 25),
         "native.moderation.reports.clustered.default": Endpoint.clusteredModerationReports(
             status: .pending,
@@ -28,6 +43,20 @@ extension ApiFixtureEndpointCoverageTests {
             reportId: moderationFlatReportId,
             runId: "00000000-0000-7000-8000-000000000303"
         ),
+        "native.moderation.report-judgement-run.succeeded": Endpoint.moderationReportJudgementRun(
+            reportId: moderationFlatReportId,
+            runId: "00000000-0000-7000-8000-000000000303"
+        ),
+        "native.moderation.report-judgement-run.failed": Endpoint.moderationReportJudgementRun(
+            reportId: moderationFlatReportId,
+            runId: "00000000-0000-7000-8000-000000000303"
+        ),
+        "native.moderation.report-judgement-run.expired": Endpoint.moderationReportJudgementRun(
+            reportId: moderationFlatReportId,
+            runId: "00000000-0000-7000-8000-000000000303"
+        ),
+        "native.moderation.report-detail.pending": Endpoint.moderationReport(reportId: moderationFlatReportId),
+        "native.moderation.report-detail.saved": Endpoint.moderationReport(reportId: moderationFlatReportId),
         "native.moderation.report-resolution.reviewed": Endpoint.resolveModerationReport(
             reportId: moderationFlatReportId,
             status: .reviewed

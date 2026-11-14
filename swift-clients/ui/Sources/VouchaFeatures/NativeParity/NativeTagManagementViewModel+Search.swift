@@ -52,7 +52,7 @@ extension NativeTagManagementViewModel {
         case "topic":
             .topics(query: query, limit: 10)
         case "post":
-            .posts(query: query, limit: 10)
+            .posts(query: query, limit: 10, timeRange: PostTimeRange.allTime.rawValue)
         case "url":
             .urls(query: query, limit: 10)
         default:

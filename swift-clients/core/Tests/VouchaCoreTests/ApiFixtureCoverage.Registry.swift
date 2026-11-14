@@ -40,8 +40,10 @@ let currencyFixtureCoverage: [RegisteredFixture] = [
 
 enum ApiFixtureCoverage {
     static let registry: [RegisteredFixture] =
+        communityBanFixtureCoverage +
         entityProvenanceFixtureCoverage +
         communityAutomodFixtureCoverage +
+        communityLimitFixtureCoverage +
         webCommunityApiFixtureCoverage +
         householdFixtureCoverage +
         paymentCardFixtureCoverage +
@@ -59,9 +61,12 @@ enum ApiFixtureCoverage {
         nativeImportExportCoverage +
         nativeModerationCoverage +
         moderationAppealLifecycleFixtureCoverage +
+        moderationRunFixtureCoverage +
         moderationParityFixtureCoverage +
         nativeListMessageCoverage +
         nativeCommentAncestorCoverage +
+        nativeContentFixtureCoverage +
+        topicRecommendationCreateFixtureCoverage +
         nativeUrlApiFixtureCoverage +
         userProfileApiFixtureCoverage +
         nativeMembershipFixtureCoverage +
@@ -74,6 +79,9 @@ enum ApiFixtureCoverage {
         + copyrightMediaFixtureCoverage
         + copyrightNoticesFixtureCoverage
         + chatFixtureCoverage
+        + topicClaimFixtureCoverage
+        + nativeSessionFixtureCoverage
+        + contractDriftFixtureCoverage
 }
 
 let chatFixtureCoverage: [RegisteredFixture] = [

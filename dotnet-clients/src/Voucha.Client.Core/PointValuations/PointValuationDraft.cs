@@ -1,11 +1,10 @@
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using Voucha.Client.Core.Api;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.PointValuations;
 
-public sealed class PointValuationDraft : INotifyPropertyChanged
+public sealed class PointValuationDraft : ObservableObject
 {
   private string valuePerPoint;
   private string note;
@@ -28,7 +27,6 @@ public sealed class PointValuationDraft : INotifyPropertyChanged
     currency = original?.ValuePerPoint.Currency ?? "usd";
   }
 
-  public event PropertyChangedEventHandler? PropertyChanged;
   public PointValuation? Original { get; }
   public string ValuePerPoint
   {
@@ -36,11 +34,11 @@ public sealed class PointValuationDraft : INotifyPropertyChanged
     set
     {
       valuePerPointEdited = true;
-      Set(ref valuePerPoint, value ?? string.Empty);
+      SetProperty(ref valuePerPoint, value ?? string.Empty);
     }
   }
-  public string Note { get => note; set => Set(ref note, value ?? string.Empty); }
-  public string Currency { get => currency; set => Set(ref currency, value ?? string.Empty); }
+  public string Note { get => note; set => SetProperty(ref note, value ?? string.Empty); }
+  public string Currency { get => currency; set => SetProperty(ref currency, value ?? string.Empty); }
   public IReadOnlyList<string> SupportedCurrencies => supportedCurrencies;
 
   internal void ApplyCulture(CultureInfo value)
@@ -49,7 +47,7 @@ public sealed class PointValuationDraft : INotifyPropertyChanged
     if (valuePerPointEdited) return;
     culture = value;
     var formatted = Original?.ValuePerPoint.ToMajorUnits().ToString("0.######", culture) ?? string.Empty;
-    Set(ref valuePerPoint, formatted, nameof(ValuePerPoint));
+    SetProperty(ref valuePerPoint, formatted, nameof(ValuePerPoint));
   }
 
   public bool TryBuildCreate(string rewardsProgramId, out CreatePointValuationBody? body)
@@ -105,11 +103,4 @@ public sealed class PointValuationDraft : INotifyPropertyChanged
   }
 
   private static string? EmptyToNull(string value) => value.Length == 0 ? null : value;
-
-  private void Set(ref string field, string value, [CallerMemberName] string? name = null)
-  {
-    if (field == value) return;
-    field = value;
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-  }
 }

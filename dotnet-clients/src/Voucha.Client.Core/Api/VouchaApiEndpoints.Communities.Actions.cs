@@ -50,8 +50,8 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest BanCommunityMember(string idOrSlug, BanCommunityMemberRequest body) =>
       new(HttpMethod.Post, $"/api/v1/communities/{Path(idOrSlug)}/bans") { Body = body };
 
-  public static ApiRequest LiftCommunityBan(string idOrSlug, string userId) =>
-      new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/bans/{Path(userId)}");
+  public static ApiRequest LiftCommunityBan(string idOrSlug, string banId) =>
+      new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/bans/{Path(banId)}");
 
   public static ApiRequest CommunityRestrictions(string idOrSlug, string? after = null) =>
       Get($"/api/v1/communities/{Path(idOrSlug)}/restrictions", Query(("after", after)));
@@ -144,8 +144,8 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest DeleteCommunityAiAgent(string idOrSlug, string agentSlug) =>
       new(HttpMethod.Delete, $"/api/v1/communities/{Path(idOrSlug)}/ai-agents/{Path(agentSlug)}");
 
-  public static ApiRequest CommunityAgentPrompts(string idOrSlug) =>
-      Get($"/api/v1/communities/{Path(idOrSlug)}/agent-prompts");
+  public static ApiRequest CommunityAgentPrompts(string idOrSlug, string? after = null, int? limit = null) =>
+      Get($"/api/v1/communities/{Path(idOrSlug)}/agent-prompts", Query(("limit", limit.HasValue ? (limit.Value <= 0 ? 25 : Math.Min(limit.Value, 100)) : (int?)null), ("after", after)));
 
   public static ApiRequest CommunityAgentPrompt(string idOrSlug, string promptId) =>
       Get($"/api/v1/communities/{Path(idOrSlug)}/agent-prompts/{Path(promptId)}");

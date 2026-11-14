@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace Voucha.Client.App.Tests;
@@ -8,10 +7,10 @@ public sealed class TopicManagementPagePaginationTests
   [Fact]
   public void AliasesAndAdditionalHostnamesWireHybridPaginationControls()
   {
-    var markup = AppSource("Pages", "TopicManagementPage.xaml");
-    var constructorSource = AppSource("Pages", "TopicManagementPage.xaml.cs");
-    var paginationSource = AppSource("Pages", "TopicManagementPage.Pagination.cs");
-    var operationsSource = AppSource("Pages", "TopicManagementPage.Operations.cs");
+    var markup = AppSource.Read("Pages", "TopicManagementPage.xaml");
+    var constructorSource = AppSource.Read("Pages", "TopicManagementPage.xaml.cs");
+    var paginationSource = AppSource.Read("Pages", "TopicManagementPage.Pagination.cs");
+    var operationsSource = AppSource.Read("Pages", "TopicManagementPage.Operations.cs");
 
     Assert.Contains("x:Name=\"AliasesPaginationControl\"", markup, StringComparison.Ordinal);
     Assert.Contains("PaginationId=\"topic-aliases\"", markup, StringComparison.Ordinal);
@@ -52,14 +51,5 @@ public sealed class TopicManagementPagePaginationTests
         "hostnamesPagination.RestoreContinuation(response.PageInfo.EndCursor, response.PageInfo.HasNextPage);",
         operationsSource,
         StringComparison.Ordinal);
-  }
-
-  private static string AppSource(string directory, string file, [CallerFilePath] string sourceFile = "")
-  {
-    var root = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
-    while (root is not null && !Directory.Exists(Path.Combine(root.FullName, "src"))) root = root.Parent;
-    return File.ReadAllText(Path.Combine(
-        root?.FullName ?? throw new DirectoryNotFoundException(),
-        "src", "Voucha.Client.App", directory, file));
   }
 }

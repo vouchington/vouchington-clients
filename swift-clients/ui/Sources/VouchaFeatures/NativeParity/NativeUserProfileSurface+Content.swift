@@ -121,9 +121,18 @@ extension NativeUserProfileSurface {
         let metrics = profile.userMetrics
         let posts = ["reviews", "discussions", "comments"].reduce(0) { $0 + (metrics?.visibleCount($1) ?? 0) }
         return HStack(spacing: Spacing.md) {
-            localizedCount(.nativeSwiftProfilePostsCount, posts)
-            localizedCount(.nativeSwiftProfileFollowingCount, metrics?.visibleCount("users_following") ?? 0)
-            localizedCount(.nativeSwiftProfileFollowersCount, metrics?.visibleCount("users_followers") ?? 0)
+            localizedCount(
+                .nativeSwiftProfilePostsCount, posts,
+                capped: ["reviews", "discussions", "comments"].contains { metrics?.isVisibleCountCapped($0) == true }
+            )
+            localizedCount(
+                .nativeSwiftProfileFollowingCount, metrics?.visibleCount("users_following") ?? 0,
+                capped: metrics?.isVisibleCountCapped("users_following") == true
+            )
+            localizedCount(
+                .nativeSwiftProfileFollowersCount, metrics?.visibleCount("users_followers") ?? 0,
+                capped: metrics?.isVisibleCountCapped("users_followers") == true
+            )
         }
         .font(Typography.caption)
         .foregroundStyle(Colors.secondaryLabel)

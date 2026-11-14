@@ -248,7 +248,7 @@ public sealed class CommunityPendingReportPaginationTests
     Assert.Null(report.CaseId);
     Assert.Null(report.EntityType);
     Assert.Null(report.EntityId);
-    Assert.Null(report.TargetLabel);
+    Assert.Equal(string.Empty, report.TargetLabel);
     Assert.Null(report.TargetPath);
     Assert.Null(report.Reason);
     Assert.Equal("pending", report.Status);
@@ -296,23 +296,19 @@ public sealed class CommunityPendingReportPaginationTests
   private static CommunityPendingReportsResponse PendingPage(string id, string? cursor, bool hasNext) =>
       new([new CommunityPendingReport(id, EntityId: $"post-{id}")], new PageInfo(cursor, hasNext, null));
 
-  private static CommunityModerationQueueResponse QueueResponse(string id) =>
-      JsonSerializer.Deserialize<CommunityModerationQueueResponse>(
-          $$$"""
-          {"entries":[{"id":"{{{id}}}","community_id":"community-1","entity_type":"post",
-          "entity_id":"post-1","post_id":"post-1","status":"pending","queue_source":"report",
-          "reason":"spam","note":null,"report_count":1,"action_at":"2026-07-01T00:00:00Z",
-          "created_at":"2026-07-01T00:00:00Z","target_label":"Post","target_path":null,
-          "target_available":true,"target_is_anonymous":false,"target_is_restricted":false,
-          "target_user_id":null,"reporter_user_id":null,"reporter_username":null,
-          "resolved_by_id":null,"judgement":null,"flagged_reason":"spam","admin_action_path":null,
-          "community_ban_evasion":null,"post_moderation_context":null,"is_system_generated":false,
-          "cursor_created_at":null,"cursor_report_count":null,"cursor_severity_rank":null,
-          "target_content":{"kind":"post","text":"محتوى مبلّغ عنه","declared_language":"ar",
-          "lingua_rs_detected_language":null}}],
-          "page_info":{"has_next_page":false},"viewer_tier":"moderator"}
-          """,
-          VouchaApiJson.Options)!;
+  private static CommunityModerationQueueResponse QueueResponse(string id)
+  {
+    var response = JsonSerializer.Deserialize<CommunityModerationQueueResponse>(
+        ApiFixtureLoader.LoadResponse("web.communities.moderation-queue.default"), VouchaApiJson.Options)!;
+    return response with
+    {
+      Entries = [response.Entries.Single() with
+      {
+        Id = id,
+        TargetContent = new AuthoredContentText("post", "محتوى مبلّغ عنه", "ar"),
+      }],
+    };
+  }
 }
 
 internal sealed partial class ScriptedCommunitiesService

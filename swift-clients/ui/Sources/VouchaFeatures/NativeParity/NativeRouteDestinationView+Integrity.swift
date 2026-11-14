@@ -3,6 +3,7 @@ import VouchaDesignSystem
 
 extension NativeRouteDestinationSurface {
     func rebuildViewModels() {
+        viewModel.invalidateProductSignals()
         let resolvedClient = Self.resolvedClient(entry: entry, client: client, isSignedIn: isSignedIn)
         viewModel = NativeRouteSurfaceViewModel(
             entry: entry,
@@ -10,7 +11,8 @@ extension NativeRouteDestinationSurface {
             routeMatch: routeMatch,
             routeQuery: routeQuery,
             isAdministrator: isAdministrator,
-            isSiteModerator: isSiteModerator
+            isSiteModerator: isSiteModerator,
+            isSignedIn: isSignedIn
         )
         reviewQueueViewModel = NativeReviewQueueViewModel(
             client: resolvedClient,

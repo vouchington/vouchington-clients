@@ -118,7 +118,7 @@ public partial class PostComposePage : ContentPage
 
     try
     {
-      viewModel.TurnstileToken = await turnstileTokenProvider.GetTokenAsync().ConfigureAwait(true);
+      viewModel.TurnstileToken = await turnstileTokenProvider.GetTokenAsync(viewModel.IsCommunityPost ? "communities.create-post" : "posts.create").ConfigureAwait(true);
       return true;
     }
     catch (OperationCanceledException)

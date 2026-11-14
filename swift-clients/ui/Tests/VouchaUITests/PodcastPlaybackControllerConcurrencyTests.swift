@@ -35,7 +35,7 @@ final class PodcastPlaybackControllerConcurrencyTests: XCTestCase {
 
     private func makeSignedInSessionManager() async throws -> SessionManager {
         let client = makeClient()
-        let sessionManager = SessionManager(client: client, cookieStorage: HTTPCookieStorage())
+        let sessionManager = SessionManager(client: client)
         CannedFeedURLProtocol.handlers["/api/v1/my/identity"] = (
             PrivateUserTestFixture.identityEnvelope(
                 username: "listener",
@@ -101,7 +101,7 @@ final class PodcastPlaybackControllerConcurrencyTests: XCTestCase {
     func testFinalReleaseFromDetachedTaskUsesIsolatedDeinitializer() async throws {
         var controller: PodcastPlaybackController? = PodcastPlaybackController(
             client: makeClient(),
-            sessionManager: SessionManager(client: makeClient(), cookieStorage: HTTPCookieStorage())
+            sessionManager: SessionManager(client: makeClient())
         )
         weak let weakController = controller
         let releaseBox = try DetachedReleaseBox(XCTUnwrap(controller))
@@ -324,8 +324,7 @@ final class PodcastPlaybackControllerConcurrencyTests: XCTestCase {
 
     func testResumingEndedCurrentItemSeeksBackToZeroBeforePlaying() async {
         let controller = PodcastPlaybackController(client: makeClient(), sessionManager: SessionManager(
-            client: makeClient(),
-            cookieStorage: HTTPCookieStorage()
+            client: makeClient()
         ))
         let item = makeAudioItem()
         let endedDuration = Double(item.durationSeconds ?? 0)

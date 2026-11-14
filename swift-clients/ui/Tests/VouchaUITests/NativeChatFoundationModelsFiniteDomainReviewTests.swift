@@ -154,13 +154,17 @@ import XCTest
                 .object(["mode": .string("published")]), schema: authoritative
             ))
             let projected = try NativeChatFoundationModelsSchema.project(raw)
-            let encoded = try XCTUnwrap(JSONSerialization
-                .jsonObject(with: JSONEncoder().encode(projected)) as? [String: Any])
-            let definitions = try XCTUnwrap(encoded["$defs"] as? [String: [String: Any]])
-            let mode = try XCTUnwrap(definitions["Mode"])
-            let alternatives = try XCTUnwrap(mode["anyOf"] as? [[String: Any]])
-            XCTAssertEqual(alternatives.count, 1)
-            XCTAssertEqual(alternatives[0]["enum"] as? [String], ["draft"])
+            let projectedSchema = try JSONDecoder().decode(
+                DecodedJSONValue.self, from: JSONEncoder().encode(projected)
+            )
+            XCTAssertTrue(try NativeChatMCPInputSchema.accepts(
+                .object(["mode": .string("draft")]), schema: projectedSchema
+            ))
+            for rejected in [DecodedJSONValue.string("published"), .string("other"), .null] {
+                XCTAssertFalse(try NativeChatMCPInputSchema.accepts(
+                    .object(["mode": rejected]), schema: projectedSchema
+                ))
+            }
         }
 
         func testUniqueSingletonItemCapsProjectedArrayAtOne() throws {

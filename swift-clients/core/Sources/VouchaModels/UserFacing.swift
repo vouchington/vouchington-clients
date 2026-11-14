@@ -9,6 +9,11 @@ public struct CaptchaConfigResponse: Codable, Sendable {
     public let alwaysApprove: Bool
 }
 
+public struct HackerNewsConfigResponse: Codable, Sendable {
+    public let referencesVisible: Bool
+    public let postTimeRangeCap: String
+}
+
 public struct CommunityMembership: Decodable, Identifiable, Sendable {
     public let id: String
     public let communityId: String
@@ -27,7 +32,7 @@ public struct ReferralClickLogResult: Codable, Identifiable, Sendable {
 
 public struct ReferralClickLogEntry: Codable, Identifiable, Sendable {
     public let id: String
-    public let landingUrl: String
+    @RequiredNullable public var landingUrl: String?
     public let signedUpAt: Date?
     public let userId: String?
     public let createdAt: Date

@@ -28,7 +28,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-1/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-1", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -154,7 +154,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             (messagesPageData(conversationId: "conversation-99"), 200, 0)
         ]
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-99", ownerUserId: "user-1"),
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-99"] = (
@@ -264,7 +264,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             200
         )
         CannedFeedURLProtocol.handlers["/api/v1/my/messages/conversation-2/participants"] = (
-            participantsPageData,
+            DirectMessagesTestJSON.ownerParticipantsPage(conversationId: "conversation-2", ownerUserId: "user-1"),
             200
         )
         let viewModel = try DirectMessagesViewModel(client: makeClient(), currentUserId: "user-1")
@@ -348,13 +348,6 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         )
     }
 
-    private var participantsPageData: Data {
-        Data(
-            #"{"results":[{"id":"participant-owner","conversation_id":"conversation-1","user_id":"user-1","role":"owner","created_at":"2026-01-01T00:00:00Z","removed_at":null,"username":"alice","profile_image_id":null}],"page_info":{"has_next_page":false,"end_cursor":null,"start_cursor":null}}"#
-                .utf8
-        )
-    }
-
     private func directConversationResponseData(
         conversationId: String = "conversation-1",
         participantAddPolicy: ConversationParticipantAddPolicy?
@@ -370,7 +363,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
                 "created_by_id": "user-1",
                 "updated_at": "2026-01-01T00:00:00Z",
                 "participant_usernames": ["alice", "bob"],
-                "participant_add_policy": \(jsonString(participantAddPolicy?.rawValue))
+                "participant_add_policy": \(DirectMessagesTestJSON.string(participantAddPolicy?.rawValue))
               }
             }
             """.utf8
@@ -381,7 +374,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
         id: String,
         participantAddPolicy: ConversationParticipantAddPolicy
     ) -> DirectConversation {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -398,7 +391,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func publicUser(id: String, username: String) -> PublicUser {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -414,12 +407,12 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func participant(id: String, userId: String?, role: String) -> ConversationParticipant {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
               "conversation_id": "conversation-1",
-              "user_id": \(jsonString(userId)),
+              "user_id": \(DirectMessagesTestJSON.string(userId)),
               "role": "\(role)",
               "created_at": "2026-01-01T00:00:00Z",
               "removed_at": null,
@@ -431,7 +424,7 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
     }
 
     private func message(id: String, conversationId: String, bodyText: String) -> DirectMessage {
-        try! decodeJSON(
+        try! DirectMessagesTestJSON.decode(
             """
             {
               "id": "\(id)",
@@ -445,17 +438,5 @@ final class DirectMessagesSurfaceTests: NativeRouteSurfaceViewModelTestCase {
             }
             """
         )
-    }
-
-    private func decodeJSON<T: Decodable>(_ json: String) throws -> T {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(T.self, from: Data(json.utf8))
-    }
-
-    private func jsonString(_ value: String?) -> String {
-        guard let value else { return "null" }
-        return "\"\(value)\""
     }
 }

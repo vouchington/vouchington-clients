@@ -10,8 +10,7 @@ struct CommunityApplicationReviewControls: View {
     let isSignedIn: Bool
     let showSignIn: () -> Void
 
-    @State
-    private var applicationId = ""
+    var applicationId = ""
     @State
     private var rejectionReason = ""
 
@@ -19,10 +18,6 @@ struct CommunityApplicationReviewControls: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(UiMessages.string(.nativeSwiftCommunitiesApplicationReview, locale: nativeUiLocale))
                 .font(Typography.headline)
-            TextField(
-                UiMessages.string(.nativeSwiftCommunitiesApplicationId, locale: nativeUiLocale),
-                text: $applicationId
-            ).textFieldStyle(.roundedBorder)
             TextField(
                 UiMessages.string(.nativeSwiftCommunitiesRejectionReason, locale: nativeUiLocale),
                 text: $rejectionReason
@@ -49,6 +44,7 @@ struct CommunityApplicationReviewControls: View {
                     Task { await viewModel.rejectApplication(applicationId: applicationId, reason: rejectionReason) }
                 }
             }
+            .disabled(isSignedIn && !viewModel.canReviewApplication(applicationId))
         }
     }
 }

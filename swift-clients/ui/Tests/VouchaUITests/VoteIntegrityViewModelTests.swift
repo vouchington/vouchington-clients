@@ -391,7 +391,7 @@ final class VoteIntegrityViewModelTests: NativeRouteSurfaceViewModelTestCase {
               "id":"\(id)",
               "user_id":"00000000-0000-7000-8000-000000000001",
               "penalty_multiplier":0.2,
-              "reason":"voting_ring",
+              "reason":"voting_ring","source_flag_type":"vote_integrity_flag","user_display_name":null,"user_username":null,"creator_display_name":null,"creator_username":null,"revoker_display_name":null,"revoker_username":null,
               "source_flag_id":"\(flagId)",
               "created_by_id":"00000000-0000-7000-8000-000000000002",
               "revoked_at":"2026-07-01T12:00:00.000Z",

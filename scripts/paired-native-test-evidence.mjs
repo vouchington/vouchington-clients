@@ -1,14 +1,7 @@
-import { createHash } from 'node:crypto'
 import { lstat, opendir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-
-const fail = message => {
-  throw new Error(`Paired native test evidence rejected: ${message}`)
-}
-
-export function sha256(bytes) {
-  return createHash('sha256').update(bytes).digest('hex')
-}
+import { exactKeys, fail } from './paired-native-evidence-validation.mjs'
+import { sha256 } from './sha256.mjs'
 
 export function validateNativeAbiEntries(entries) {
   for (const name of ['libSkipAndroidBridge.so', 'libSwiftJNI.so', 'libVouchaAndroid.so'])
@@ -18,15 +11,6 @@ export function validateNativeAbiEntries(entries) {
     if (match && match[1] !== 'arm64-v8a') fail(`APK advertises unsupported native ABI ${match[1]}`)
   }
   return true
-}
-
-function exactKeys(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    fail(`${label} must be an object`)
-  const actual = Object.keys(value).sort()
-  const expected = [...keys].sort()
-  if (JSON.stringify(actual) !== JSON.stringify(expected))
-    fail(`${label} fields differ from the fixed schema`)
 }
 
 export function bindArtifact({ artifact, expected, runId, runAttempt }) {

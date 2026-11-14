@@ -28,10 +28,10 @@ public sealed class RewardsProgramStatusesPageTests
     service.CreatePending = createPending.Task;
     Find<Button>(option, "reward-statuses-create").SendClicked();
 
-    await WaitUntilAsync(() => model.IsCreating);
+    await PageTestWait.WaitUntilAsync(() => model.IsCreating);
     Assert.False(Find<Button>(option, "reward-statuses-create").IsEnabled);
     createPending.SetResult(Status("created"));
-    await WaitUntilAsync(() => !model.IsCreating);
+    await PageTestWait.WaitUntilAsync(() => !model.IsCreating);
 
     Find<Button>(row, "reward-statuses-edit").SendClicked();
     model.EditDraft!.SinceEnabled = true;
@@ -40,7 +40,7 @@ public sealed class RewardsProgramStatusesPageTests
     service.UpdatePending = pending.Task;
     var save = model.SaveAsync(TestContext.Current.CancellationToken);
 
-    await WaitUntilAsync(() => model.IsMutating("pending"));
+    await PageTestWait.WaitUntilAsync(() => model.IsMutating("pending"));
     Assert.False(Find<Button>(page, "reward-statuses-save").IsEnabled);
     pending.SetResult(Status("pending"));
     await save;
@@ -63,11 +63,11 @@ public sealed class RewardsProgramStatusesPageTests
 
     model.SearchQuery = "Gold";
     Find<Button>(page, "reward-statuses-search").SendClicked();
-    await WaitUntilAsync(() => service.SearchCalls == 1);
+    await PageTestWait.WaitUntilAsync(() => service.SearchCalls == 1);
     Assert.Single(model.SearchRows);
 
     Find<Button>(page, "pagination-reward-statuses-action").SendClicked();
-    await WaitUntilAsync(() => service.Fetches == 2);
+    await PageTestWait.WaitUntilAsync(() => service.Fetches == 2);
     Assert.Equal([id, "next"], model.Statuses.Select(status => status.Id));
 
     Find<Button>(row, "reward-statuses-edit").SendClicked();
@@ -77,7 +77,7 @@ public sealed class RewardsProgramStatusesPageTests
     Find<DatePicker>(page, "reward-statuses-edit-until").Date = new DateTime(2026, 1, 1);
     Find<Button>(page, "reward-statuses-save").SendClicked();
 
-    await WaitUntilAsync(() => model.HasError);
+    await PageTestWait.WaitUntilAsync(() => model.HasError);
     Assert.Empty(service.UpdateBodies);
     Assert.Contains(Descendants<Label>(page), label => label.Text == UiLocalization.English.Localize(
         UiMessageKey.ExtractedMyRewardsProgramStatusesManagerSinceMustBeBeforeUntilA4745364));
@@ -147,12 +147,6 @@ public sealed class RewardsProgramStatusesPageTests
 
   private static IEnumerable<T> Descendants<T>(Element root) where T : Element =>
       root.GetVisualTreeDescendants().OfType<T>();
-
-  private static async Task WaitUntilAsync(Func<bool> condition)
-  {
-    for (var attempt = 0; attempt < 100 && !condition(); attempt++) await Task.Delay(10, TestContext.Current.CancellationToken);
-    Assert.True(condition());
-  }
 
   private static RewardsProgramStatus Status(string id) => new(
       id, "topic", new RewardsProgramSummary("topic", "Gold", "gold"), null, null);

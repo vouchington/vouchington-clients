@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.Core.Posts;
 
@@ -86,8 +87,8 @@ public sealed partial class PostComposeViewModel
   private static readonly HashSet<string> PrivacyValues = ["public", "private"];
 
   private bool HasValidAudience =>
-      EmptyToNull(Broadcast) is { } broadcast &&
-      EmptyToNull(Privacy) is { } privacy &&
+      TrimmedText.NonEmpty(Broadcast) is { } broadcast &&
+      TrimmedText.NonEmpty(Privacy) is { } privacy &&
       BroadcastValues.Contains(broadcast) &&
       PrivacyValues.Contains(privacy);
 
@@ -97,9 +98,9 @@ public sealed partial class PostComposeViewModel
           : (IsAdministrator ? PostComposeTypes.AdminTypes : PostComposeTypes.NonAdminTypes).Contains(PostType);
 
   private bool HasValidLinkTarget =>
-      EmptyToNull(LinkIdentifier) is { } linkIdentifier
+      TrimmedText.NonEmpty(LinkIdentifier) is { } linkIdentifier
           ? Guid.TryParse(linkIdentifier, out _)
-          : Uri.TryCreate(EmptyToNull(LinkAddress), UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
+          : Uri.TryCreate(TrimmedText.NonEmpty(LinkAddress), UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
 
   private PostComposeValidation Invalid(UiMessageKey key) =>
       new(false, localization.Localize(key));

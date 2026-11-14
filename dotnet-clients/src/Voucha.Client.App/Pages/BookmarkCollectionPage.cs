@@ -1,7 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Maui.Controls.Shapes;
 using Voucha.Client.Core.Bookmarks;
 using Voucha.Client.Core.Localization;
+using Voucha.Client.Core.Support;
 
 namespace Voucha.Client.App.Pages;
 
@@ -108,18 +108,10 @@ public sealed partial class BookmarkCollectionPage : ContentPage
     Grid.SetRow(rows, 4);
   }
 
-  [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Native page load failures are displayed in page state.")]
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    try
-    {
-      await viewModel.LoadAsync().ConfigureAwait(true);
-    }
-    catch (Exception ex)
-    {
-      System.Diagnostics.Debug.WriteLine(ex);
-    }
+    await PageLoadGuard.RunAsync(() => viewModel.LoadAsync()).ConfigureAwait(true);
   }
 
   public void SetContext(BookmarkCollectionRouteContext context) => viewModel.SetContext(context);

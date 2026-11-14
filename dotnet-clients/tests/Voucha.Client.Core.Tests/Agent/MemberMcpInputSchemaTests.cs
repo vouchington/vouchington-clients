@@ -10,7 +10,7 @@ public sealed class MemberMcpInputSchemaTests
   [Fact]
   public void CurrentProducerCatalogProjectsEveryAdvertisedTool()
   {
-    using var fixture = JsonDocument.Parse(File.ReadAllText(FilamentsContractPaths.ApiFixture("mcp.json")));
+    using var fixture = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
     var server = fixture.RootElement.GetProperty("servers").EnumerateArray()
         .Single(item => item.GetProperty("name").GetString() == "voucha-user-mcp");
     var tools = server.GetProperty("tools").EnumerateArray()
