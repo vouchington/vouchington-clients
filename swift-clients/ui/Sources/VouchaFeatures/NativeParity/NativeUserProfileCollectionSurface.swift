@@ -5,7 +5,7 @@ import VouchaLocalization
 import VouchaModels
 
 extension NativeUserProfileSurface {
-    private var topicImageConfig: AppConfig {
+    var profileImageConfig: AppConfig {
         guard let client = viewModel.client else { return .shared }
         return AppConfig(baseURL: client.baseURL, imageBaseURL: client.imageBaseURL)
     }
@@ -74,7 +74,7 @@ extension NativeUserProfileSurface {
                 Button { onNavigate(NativeUserProfileNavigationTarget.user(user)) } label: {
                     UserRow(
                         user: user,
-                        avatarURL: AppConfig.shared.imageURL(for: user.profileImagePlacement, width: 96)
+                        avatarURL: profileImageConfig.imageURL(for: user.profileImagePlacement, width: 96)
                     )
                 }
                 .buttonStyle(.plain)
@@ -86,7 +86,7 @@ extension NativeUserProfileSurface {
                     NativeUserProfileTopicRow(
                         topic: topic,
                         isStaffViewer: isStaffViewer,
-                        imageConfig: topicImageConfig
+                        imageConfig: profileImageConfig
                     )
                 }
                 .buttonStyle(.plain)
