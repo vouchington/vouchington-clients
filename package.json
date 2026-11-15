@@ -23,7 +23,7 @@
     "coverage:swift": "node scripts/swift-coverage.mjs",
     "coverage:swift:local": "coverage-check check --rules .coverage-rules.yml --artifacts coverage --aggregate-artifacts --advisory --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "lint": "pnpm run lint:portable && pnpm run lint:gitleaks && pnpm run lint:swift && pnpm run lint:dotnet",
-    "lint:ast-grep": "vouchington ast-grep-examples --rules ast-grep-rules --config sgconfig.yml && ast-grep scan --error --no-ignore hidden -- swift-clients/ dotnet-clients/",
+    "lint:ast-grep": "vouchington ast-grep-examples --rules ast-grep-rules --config sgconfig.yml && node scripts/ast-grep-scan.mjs --error --no-ignore hidden -- swift-clients/ dotnet-clients/",
     "lint:dependencies": "knip --treat-config-hints-as-errors && depcruise --config dependency-cruiser.mjs scripts tests",
     "lint:diff": "git diff --check && git diff --cached --check",
     "lint:dotnet": "bash dotnet-clients/tooling/harness.sh --checks fmt",
