@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -45,7 +45,7 @@ exec(compile(text, "gate", "exec"))
     encoding: 'utf8',
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
   })
-  return result
+  return { ...result, calls: readFileSync(log, 'utf8').trim().split('\n') }
 }
 
 describe('ios launch spawn gate', () => {
@@ -60,6 +60,7 @@ describe('ios launch spawn gate', () => {
     assert.equal(result.status, 0, result.stderr)
     assert.match(result.stdout, /terminate-budget-exhausted/u)
     assert.match(result.stdout, /reset/u)
+    assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall', 'install'])
   })
 
   it('fails closed when terminate hangs and the reset fails', () => {
