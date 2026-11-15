@@ -25,6 +25,16 @@ public sealed partial class ModerationAppealsViewModel
     return appeal.AiDraftRequestedRunStatus is { } reported ? KeyFor(reported) : null;
   }
 
+  // A failed or expired exact run is recorded on the visible row before its admission is released,
+  // so the status copy never falls back to the previous run's snapshot.
+  private void RecordObservedRunEnd(string appealId, ModerationAppealResolutionDraftRunResponse run)
+  {
+    var updated = Appeals.Select(item => item.Id == appealId
+        ? item with { AiDraftRequestedRunId = run.RunId, AiDraftRequestedRunStatus = run.Status }
+        : item).ToList();
+    Appeals = updated;
+  }
+
   private static UiMessageKey KeyFor(ModerationRunStatus status) => status switch
   {
     ModerationRunStatus.Succeeded => UiMessageKey.NativeSwiftAiRunStatusAppealDraftSucceeded,

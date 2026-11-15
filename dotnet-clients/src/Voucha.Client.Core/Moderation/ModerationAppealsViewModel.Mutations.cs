@@ -101,6 +101,7 @@ public sealed partial class ModerationAppealsViewModel
               UiMessageKey.NativeSwiftReviewDisputesRerunStillProcessing));
         if (run.Status is ModerationRunStatus.Failed or ModerationRunStatus.Expired)
         {
+          RecordObservedRunEnd(appeal.Id, run);
           ClearPendingAIRerun(appeal.Id, admission.Token);
           throw new InvalidOperationException(localization.Localize(
               UiMessageKey.NativeSwiftModerationReportsActionFailed));

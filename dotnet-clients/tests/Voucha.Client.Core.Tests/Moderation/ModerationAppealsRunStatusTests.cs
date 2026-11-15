@@ -39,6 +39,41 @@ public sealed partial class ModerationAppealsViewModelTests
     Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
   }
 
+  [Theory]
+  [InlineData(ModerationRunStatus.Failed, "NativeSwiftAiRunStatusAppealDraftFailed")]
+  [InlineData(ModerationRunStatus.Expired, "NativeSwiftAiRunStatusAppealDraftExpired")]
+  public async Task PolledTerminalRunIsKeptOnTheRowAfterRefreshReleasesTheAdmission(
+      ModerationRunStatus status, string name)
+  {
+    var service = new ModerationAppealsTestService();
+    var viewModel = PollingStaffViewModel(service, attempts: 1);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+    service.Runs.Enqueue(Run(service.RunId, status));
+
+    await viewModel.RefreshPendingAIRerunAsync(appeal, TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsAIRerunPending(appeal));
+    Assert.Equal(name, KeyName(viewModel.AIDraftStatusKey(viewModel.Appeals.Single())));
+    Assert.Single(service.Calls, call => call == $"rerun:{appeal.Id}");
+  }
+
+  [Fact]
+  public async Task PolledFailureDuringRerunIsKeptOnTheRow()
+  {
+    var service = new ModerationAppealsTestService();
+    var viewModel = PollingStaffViewModel(service, attempts: 1);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+    service.Runs.Enqueue(Run(service.RunId, ModerationRunStatus.Expired));
+
+    await viewModel.RerunAsync(appeal, TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsAIRerunPending(appeal));
+    Assert.Equal("NativeSwiftAiRunStatusAppealDraftExpired", KeyName(viewModel.AIDraftStatusKey(viewModel.Appeals.Single())));
+  }
+
   [Fact]
   public async Task ViewersWithoutAccessGetNoRunStatusCopy()
   {
