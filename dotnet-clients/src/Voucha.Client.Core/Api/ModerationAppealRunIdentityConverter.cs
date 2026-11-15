@@ -6,7 +6,7 @@ internal sealed class ModerationAppealRunIdentityConverter : ModerationRunIdenti
   {
     "case_id", "appellant_user_id", "appeal_reason", "recommended_action",
     "ai_public_response", "ai_internal_response", "model", "ai_drafted_at", "ai_draft_run_id",
-    "ai_draft_requested_run_id", "internal_notes", "drafted_at", "edited_at", "edited_by_id",
+    "ai_draft_requested_run_id", "ai_draft_requested_run_status", "internal_notes", "drafted_at", "edited_at", "edited_by_id",
     "approved_by_id", "resolved_by_id", "latest_lifecycle_change_id", "staff_context",
   };
 
