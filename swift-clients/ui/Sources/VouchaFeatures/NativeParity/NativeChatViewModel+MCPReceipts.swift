@@ -6,7 +6,7 @@ extension NativeChatViewModel {
         context: NativeChatDraftSendContext,
         snapshot: NativeChatMCPAgentSession.ConnectedSnapshot?
     ) -> NativeChatMCPTurnContext? {
-        guard case .appleFoundationModels = context.providerSelection, let snapshot,
+        guard context.providerSelection.carriesMCPReceipts, let snapshot,
               isCurrentMCPSnapshot(snapshot), isCurrentLocalGeneration(context) else { return nil }
         let owner = NativeChatMCPTurnOwner(
             accountId: snapshot.accountId, revision: snapshot.revision,

@@ -3,7 +3,7 @@ using Voucha.Client.Core.Agent;
 
 namespace Voucha.Client.Core.Chat;
 
-public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
+public sealed partial class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
 {
   private readonly ILocalLLMConfigurationStore configurationStore;
   private readonly ILocalLLMSecretStore secretStore;
@@ -103,32 +103,11 @@ public sealed class OpenAICompatibleLocalChatProvider : IMcpLocalChatProvider
     var model = profile.SelectedModel
         ?? throw LocalizedException(UiMessageKey.NativeDotnetChatConversationChooseLocalModel);
     var key = await secretStore.ReadApiKeyAsync(profileId, cancellationToken).ConfigureAwait(false);
-    string? response;
     if (snapshot is not null)
-    {
-      var session = mcpSession ?? throw new OperationCanceledException("MCP session is unavailable.");
-      if (!session.IsCurrent(snapshot)) throw new OperationCanceledException("MCP account or catalog changed.");
-      var bridge = new MemberMcpToolBridge(snapshot.Catalog);
-      response = bridge.Tools.Count == 0
-          ? await responsesClient.GenerateAssistantContentAsync(
-              message, history, profile, key, cancellationToken).ConfigureAwait(false)
-          : await responsesClient.GenerateAssistantContentWithToolsAsync(
-          message, history, profile, key, bridge.Tools,
-          () => session.IsCurrent(snapshot),
-          (name, arguments, _) =>
-          {
-            bridge.Validate(name, arguments);
-            return Task.CompletedTask;
-          },
-          (name, arguments, token, admitted) =>
-              bridge.ExecuteAsync(name, arguments, session, snapshot, admitted, token),
-          cancellationToken).ConfigureAwait(false);
-    }
-    else
-    {
-      response = await responsesClient.GenerateAssistantContentAsync(
-          message, history, profile, key, cancellationToken).ConfigureAwait(false);
-    }
+      return await GenerateWithMcpAsync(message, history, profile, key, snapshot, cancellationToken)
+          .ConfigureAwait(false);
+    var response = await responsesClient.GenerateAssistantContentAsync(
+        message, history, profile, key, cancellationToken).ConfigureAwait(false);
     if (string.IsNullOrWhiteSpace(response))
     {
       throw LocalizedException(UiMessageKey.NativeDotnetChatConversationLocalModelEmptyResponse);
