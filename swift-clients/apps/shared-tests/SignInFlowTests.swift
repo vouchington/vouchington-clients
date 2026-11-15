@@ -26,32 +26,43 @@
             try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
-            XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
+            XCTAssertTrue(
+                app.descendants(matching: .any)["root-shell"]
+                    .waitForExistence(timeout: LaunchSmokeTiming.launchReadiness),
+                "Sign-in launch did not mount the native root"
+            )
             dismissSidebarIfPresented(in: app)
             let signIn = app.buttons["signed-out-sign-in"]
-            XCTAssertTrue(signIn.waitForExistence(timeout: 20))
-            tapHittableButton("Sign In", identifier: "signed-out-sign-in", in: app, timeout: 20, requireUnique: true)
+            XCTAssertTrue(signIn.waitForExistence(timeout: LaunchSmokeTiming.interaction))
+            tapHittableButton(
+                "Sign In",
+                identifier: "signed-out-sign-in",
+                in: app,
+                timeout: LaunchSmokeTiming.interaction,
+                requireUnique: true
+            )
 
             let continueWithEmail = app.buttons["Continue with Email"]
-            XCTAssertTrue(continueWithEmail.waitForExistence(timeout: 20))
+            XCTAssertTrue(
+                continueWithEmail.waitForExistence(timeout: LaunchSmokeTiming.interaction),
+                "Sign-in sheet did not present. \(LaunchSmokeTiming.visibleText(in: app))"
+            )
             continueWithEmail.tap()
 
             let emailField = app.textFields["Email address"]
-            XCTAssertTrue(emailField.waitForExistence(timeout: 20))
+            XCTAssertTrue(emailField.waitForExistence(timeout: LaunchSmokeTiming.interaction))
             LaunchSmokeFieldTyping.type(email, into: emailField)
             tapHittableButton("Send Code", in: app)
 
-            XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: 20))
+            XCTAssertTrue(app.staticTexts["Check your email"].waitForExistence(timeout: LaunchSmokeTiming.interaction))
             let codeField = app.textFields["Verify Code"]
-            XCTAssertTrue(codeField.waitForExistence(timeout: 20))
+            XCTAssertTrue(codeField.waitForExistence(timeout: LaunchSmokeTiming.interaction))
             LaunchSmokeFieldTyping.type(code, into: codeField)
             tapHittableButton("Verify Code", in: app)
 
-            let signedOutControlGone = signIn.waitForNonExistence(timeout: 20)
+            let signedOutControlGone = signIn.waitForNonExistence(timeout: LaunchSmokeTiming.interaction)
             if !signedOutControlGone {
-                let labels = app.staticTexts.allElementsBoundByIndex.map(\.label)
-                let visible = labels.prefix(24).joined(separator: " | ")
-                XCTFail("Sign In remained (\(labels.count) texts). Visible text: \(visible)")
+                XCTFail("Sign In remained. \(LaunchSmokeTiming.visibleText(in: app))")
             }
             XCTAssertTrue(app.descendants(matching: .any)["root-shell"].exists)
         }
@@ -64,10 +75,10 @@
             let sidebarReady = NSPredicate { _, _ in
                 [hideSidebar, showSidebar].contains { $0.exists && $0.isHittable && $0.isEnabled }
             }
-            wait(for: [expectation(for: sidebarReady, evaluatedWith: nil)], timeout: 20)
+            wait(for: [expectation(for: sidebarReady, evaluatedWith: nil)], timeout: LaunchSmokeTiming.interaction)
             guard hideSidebar.exists, hideSidebar.isHittable, hideSidebar.isEnabled else { return }
-            tapHittableButton("Hide Sidebar", in: app, timeout: 20)
-            XCTAssertTrue(hideSidebar.waitForNonExistence(timeout: 20))
+            tapHittableButton("Hide Sidebar", in: app, timeout: LaunchSmokeTiming.interaction)
+            XCTAssertTrue(hideSidebar.waitForNonExistence(timeout: LaunchSmokeTiming.interaction))
         }
 
         @discardableResult
@@ -75,7 +86,7 @@
             _ label: String,
             identifier: String? = nil,
             in app: XCUIApplication,
-            timeout: TimeInterval = 10,
+            timeout: TimeInterval = LaunchSmokeTiming.interaction,
             requireUnique: Bool = false
         ) -> XCUIElement {
             let matches = identifier.map { app.buttons.matching(identifier: $0) }
