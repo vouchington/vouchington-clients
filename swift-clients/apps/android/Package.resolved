@@ -1,6 +1,15 @@
 {
-  "originHash" : "160aae5cfd2b70a6d6edbc55aee48f549b87f37885da9f51f9975ef7339efaa7",
+  "originHash" : "29919636bb0bff91e996262de785d2b7ebeecee0625df0de4c0cf8fa8fcac8c0",
   "pins" : [
+    {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenSwiftUIProject/OpenCombine.git",
+      "state" : {
+        "revision" : "fa6ba53f863bba054a1ef9a6088615d0d34528ab",
+        "version" : "0.17.0"
+      }
+    },
     {
       "identity" : "skip",
       "kind" : "remoteSourceControl",
@@ -31,7 +40,7 @@
     {
       "identity" : "skip-foundation",
       "kind" : "remoteSourceControl",
-      "location" : "https://source.skip.tools/skip-foundation.git",
+      "location" : "https://github.com/skiptools/skip-foundation.git",
       "state" : {
         "revision" : "79b422dc6612b1a392ae0b6b6ac4724a6ffdb7af",
         "version" : "1.4.6"
@@ -60,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://source.skip.tools/skip-keychain.git",
       "state" : {
-        "revision" : "def9e33d25a5a6c92a4e6ae029d7a2ed3ecdd9d2",
-        "version" : "0.3.2"
+        "revision" : "57ec073652c7d307217b4ceb11fce989f38afc66",
+        "version" : "0.3.4"
       }
     },
     {
