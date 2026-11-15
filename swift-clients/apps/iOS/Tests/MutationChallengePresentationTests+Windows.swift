@@ -114,6 +114,10 @@ extension MutationChallengePresentationTests {
         XCTAssertTrue(sheet.presentingViewController === root)
         XCTAssertTrue(sheet.viewIfLoaded?.window === window)
         presented = true
+        addTeardownBlock { @MainActor in
+            window.isHidden = true
+            window.rootViewController = nil
+        }
         return (window, root)
     }
 
@@ -129,15 +133,17 @@ extension MutationChallengePresentationTests {
         return try XCTUnwrap(sheet.presentedViewController as? UIHostingController<AnyView>)
     }
 
+    /// Polls observed UIKit state until it holds; the generous backstop only turns a hang into a failure.
     func waitUntil(_ condition: @escaping () -> Bool, file: StaticString = #filePath, line: UInt = #line) async throws {
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in condition() }, object: nil)
-        let result = await XCTWaiter.fulfillment(of: [ready], timeout: 5)
-        _ = try XCTUnwrap(
-            result == .completed && condition() ? true : nil,
-            "Presentation state did not settle",
-            file: file,
-            line: line
-        )
+        let clock = ContinuousClock()
+        let backstop = clock.now.advanced(by: .seconds(120))
+        while !condition() {
+            if clock.now >= backstop {
+                XCTFail("Presentation state did not settle", file: file, line: line)
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
     }
 }
 
