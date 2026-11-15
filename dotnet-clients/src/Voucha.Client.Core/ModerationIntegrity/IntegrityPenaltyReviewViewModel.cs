@@ -168,7 +168,10 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   private UiText LosePermission()
   {
     permissionLost = true;
-    return UiText.Localized(UiMessageKey.NativeSwiftIntegrityAdministratorMessage);
+    // Surface at section level: hiding the rows must not hide the only explanation.
+    var text = UiText.Localized(UiMessageKey.NativeSwiftIntegrityAdministratorMessage);
+    error = text;
+    return text;
   }
 
   private UiText FailureText(Exception exception, UiMessageKey fallback) =>

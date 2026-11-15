@@ -249,6 +249,7 @@ public sealed class IntegrityPenaltyReviewViewModelTests
     Assert.False(queue.CanConfirm(id));
     Assert.False(queue.CanRevoke(id));
     Assert.Contains("administrators", queue.ActionError(id), StringComparison.Ordinal);
+    Assert.Contains("administrators", queue.ErrorMessage, StringComparison.Ordinal);
   }
 
   [Theory]
