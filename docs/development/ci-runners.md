@@ -146,7 +146,9 @@ polling and remain permitted.
 
 `repair-dependabot-dotnet-locks.yml` regenerates the .NET restore matrix's twelve lockfiles, while
 `dependabot-swift-android-repair.yml` repairs Android Skip's checked archive version and checksum.
-No workflow arms auto-merge; Dependabot PRs merge through the ordinary triage path. Their
+No workflow arms auto-merge; Dependabot PRs merge through the ordinary triage path. At cutover,
+auto-merge was disabled on the one open Dependabot PR that the removed workflow had armed (#696),
+so no earlier arming bypasses triage. Their
 `pull_request_target` producers check out only the exact default-branch base and fetch candidate dependency files as inert API data. They never check out or execute the
 Dependabot head. Fork pull requests run on hosted `pull_request` without repository secrets; do not
 reintroduce self-hosted labels for untrusted code.
