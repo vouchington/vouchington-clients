@@ -238,6 +238,23 @@ public sealed class McpAccountFactReceiptTests
   }
 
   [Fact]
+  public void OpenEndedIncomeRangeShowsTheLowerBoundAndKeepsTheOtherFields()
+  {
+    var receipt = Receipt("get_my_financial_profile", "{}", """
+        {"success":true,"result":{"financial_profile":{"credit_score_range":"800-850",
+        "stated_income_range":{"minimum":{"amount":7500000,"currency":"usd"},"maximum":null},
+        "total_credit_limit":null,"years_of_credit_history":5,"hard_inquiries_12m":null,"cards_opened_24m":null}}}
+        """);
+
+    var lines = McpFactReceipt.Display([receipt!], UiLocalization.English)!.Split('\n');
+
+    Assert.Equal(3, lines.Length);
+    Assert.EndsWith("+", lines[1], StringComparison.Ordinal);
+    Assert.DoesNotContain("–", lines[1], StringComparison.Ordinal);
+    Assert.Equal("Years of credit history: 5", lines[2]);
+  }
+
+  [Fact]
   public void AllNullFinancialProfileUsesTheEmptyState()
   {
     var receipt = Receipt("get_my_financial_profile", "{}", """

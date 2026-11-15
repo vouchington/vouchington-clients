@@ -31,9 +31,11 @@ public sealed record McpFinancialProfileFact(
     var lines = new List<string>();
     if (CreditScoreRange is not null)
       lines.Add(Row(localization, UiMessageKey.NativeMcpFactsFinancialProfileCreditScoreRange, CreditScoreRange));
-    if (IncomeMinimum is not null && IncomeMaximum is not null)
+    if (IncomeMinimum is not null)
       lines.Add(Row(localization, UiMessageKey.NativeMcpFactsFinancialProfileStatedIncomeRange,
-          $"{IncomeMinimum.Format(localization)} – {IncomeMaximum.Format(localization)}"));
+          IncomeMaximum is null
+              ? $"{IncomeMinimum.Format(localization)}+"
+              : $"{IncomeMinimum.Format(localization)} – {IncomeMaximum.Format(localization)}"));
     if (TotalCreditLimit is not null)
       lines.Add(Row(localization, UiMessageKey.NativeMcpFactsFinancialProfileTotalCreditLimit,
           TotalCreditLimit.Format(localization)));
@@ -88,8 +90,14 @@ internal static class McpFinancialFacts
     if (range.ValueKind == JsonValueKind.Null) return true;
     if (range.ValueKind != JsonValueKind.Object ||
         !range.TryGetProperty("minimum", out var low) || ReadMoney(low) is not { } min ||
-        !range.TryGetProperty("maximum", out var high) || ReadMoney(high) is not { } max ||
-        min.Currency != max.Currency || min.Major > max.Major) return false;
+        !range.TryGetProperty("maximum", out var high)) return false;
+    // The producer sends maximum: null for an open-ended range.
+    if (high.ValueKind == JsonValueKind.Null)
+    {
+      minimum = min;
+      return true;
+    }
+    if (ReadMoney(high) is not { } max || min.Currency != max.Currency || min.Major > max.Major) return false;
     minimum = min;
     maximum = max;
     return true;
