@@ -18,6 +18,7 @@ internal sealed partial class ModerationAppealCardView : VerticalStackLayout
   private readonly Label aiInternalResponse = new();
   private readonly Label internalNotes = new();
   private readonly Label lifecycle = new() { FontSize = 12 };
+  private readonly Label aiDraftStatus = new() { FontSize = 12, AutomationId = "moderation-appeal-aiDraftStatus" };
   private readonly Editor publicResponse = UiCopy.Bind(
       new Editor { AutoSize = EditorAutoSizeOption.TextChanges },
       Editor.PlaceholderProperty,
@@ -79,6 +80,7 @@ internal sealed partial class ModerationAppealCardView : VerticalStackLayout
     Children.Add(aiInternalResponse);
     Children.Add(internalNotes);
     Children.Add(lifecycle);
+    Children.Add(aiDraftStatus);
     Children.Add(UiCopy.Bind(
         new Label { FontAttributes = FontAttributes.Bold },
         Label.TextProperty,
@@ -132,6 +134,8 @@ internal sealed partial class ModerationAppealCardView : VerticalStackLayout
         UiMessageKey.NativeSwiftModerationAppealsInternalNotes,
         appeal.InternalNotes);
     lifecycle.Text = ModerationAppealCardPresentation.Lifecycle(appeal);
+    aiDraftStatus.Text = ModerationAppealCardPresentation.AIDraftStatus(viewModel.AIDraftStatusKey(appeal));
+    aiDraftStatus.IsVisible = aiDraftStatus.Text.Length > 0;
     publicResponse.Text = viewModel.DraftFor(appeal);
     UpdateActions();
   }
