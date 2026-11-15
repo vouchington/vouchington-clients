@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 BUDGET_SECONDS = 150
+RECOVERY_SECONDS = 60
 BUNDLE_ID = "ai.voucha.ios"
 
 
@@ -26,6 +27,18 @@ def run(args: list[str], deadline: float, *, check: bool) -> subprocess.Complete
         text=True,
         timeout=remaining,
     )
+
+
+def reset_app(simulator_id: str, app: str) -> bool:
+    """Kill a pre-launched app that ignored terminate by removing and reinstalling it."""
+    deadline = time.monotonic() + RECOVERY_SECONDS
+    log("reset")
+    try:
+        run(["xcrun", "simctl", "uninstall", simulator_id, BUNDLE_ID], deadline, check=True)
+        run(["xcrun", "simctl", "install", simulator_id, app], deadline, check=True)
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        return False
+    return True
 
 
 def main() -> int:
@@ -70,6 +83,13 @@ def main() -> int:
             run(["xcrun", "simctl", "terminate", simulator_id, bundle_id], deadline, check=False)
         except subprocess.TimeoutExpired:
             log("terminate-budget-exhausted")
+            if not reset_app(simulator_id, app):
+                print(
+                    "::error::Could not stop the pre-launched app; refusing to start the UI tests "
+                    "against a leftover process",
+                    file=sys.stderr,
+                )
+                return 1
         log("stopped")
     except subprocess.TimeoutExpired:
         print("::warning::Spawn gate exceeded 150s; continuing to xcodebuild", file=sys.stderr)
