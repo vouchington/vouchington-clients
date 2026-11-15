@@ -16,6 +16,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   private readonly HashSet<string> actionIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> reconciliationIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> committedIds = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, TPenalty> baselines = new(StringComparer.Ordinal);
   private readonly Dictionary<string, UiText> actionErrors = new(StringComparer.Ordinal);
   private IReadOnlyList<TPenalty> items = [];
   private LoadState state = LoadState.Idle;

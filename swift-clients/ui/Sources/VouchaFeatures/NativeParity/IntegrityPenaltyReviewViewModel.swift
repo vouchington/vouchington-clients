@@ -23,6 +23,8 @@ final class IntegrityPenaltyReviewViewModel {
 
     var penalties: [IntegrityPenaltyRow] = []
     var committedIds: Set<String> = []
+    /// Penalties revoked this session; a response that predates the revoke must not restore them.
+    var removedIds: Set<String> = []
     var hasMore = false
     var isLoading = false
     var isLoadingMore = false
@@ -77,8 +79,9 @@ final class IntegrityPenaltyReviewViewModel {
                 penalties.filter { committedIds.contains($0.id) }.map { ($0.id, $0) },
                 uniquingKeysWith: { first, _ in first }
             )
-            penalties = page.results.map { completed[$0.id] ?? $0 }
-            committedIds = committedIds.intersection(page.results.map(\.id))
+            let visible = page.results.filter { !removedIds.contains($0.id) }
+            penalties = visible.map { completed[$0.id] ?? $0 }
+            committedIds = committedIds.intersection(visible.map(\.id))
             endCursor = page.pageInfo.endCursor
             hasMore = page.pageInfo.hasNextPage
             hasLoaded = true
@@ -101,7 +104,9 @@ final class IntegrityPenaltyReviewViewModel {
             let page = try await service.reviewDue(domain: domain, after: endCursor, limit: Self.pageSize)
             guard generation == loadGeneration else { return }
             var ids = Set(penalties.map(\.id))
-            penalties.append(contentsOf: page.results.filter { ids.insert($0.id).inserted })
+            penalties.append(contentsOf: page.results.filter {
+                !removedIds.contains($0.id) && ids.insert($0.id).inserted
+            })
             self.endCursor = page.pageInfo.endCursor
             hasMore = page.pageInfo.hasNextPage
         } catch is CancellationError {

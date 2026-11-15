@@ -250,6 +250,36 @@ public sealed class IntegrityPenaltyReviewViewModelTests
   [Theory]
   [InlineData(false)]
   [InlineData(true)]
+  public async Task ReconciliationUsesPreMutationBaselineAcrossRefreshThatClearsRows(bool vote)
+  {
+    var reviews = new PenaltyReviewTestService();
+    QueueDue(reviews, vote);
+    QueueReview(reviews, vote, Http(HttpStatusCode.ServiceUnavailable));
+    reviews.ReportDue.Enqueue(() => Task.FromResult(
+        new ReportIntegrityPenaltiesResponse([], new PageInfo(null, false, null))));
+    reviews.VoteDue.Enqueue(() => Task.FromResult(
+        new VoteIntegrityPenaltiesResponse([], new PageInfo(null, false, null), null)));
+    var calls = 0;
+    var unchanged = vote ? VoteDue().Results[0].ReviewDueAt : ReportDue().Results[0].ReviewDueAt;
+    var service = Exact(vote, () => ++calls == 1
+        ? Task.FromException<DateTimeOffset?>(new HttpRequestException("still down"))
+        : Task.FromResult(unchanged));
+    var queue = Make(vote, reviews, service);
+    await queue.LoadAsync(Token);
+    var id = queue.Rows[0].Id;
+    await queue.ConfirmAsync(id, Token);
+    await queue.RefreshAsync(Token);
+    Assert.Empty(queue.Rows);
+
+    await queue.ReconcileAsync(id);
+
+    Assert.False(queue.IsCommitted(id));
+    Assert.False(queue.NeedsReconciliation(id));
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
   public async Task ForbiddenReconciliationLosesPermissionButKeepsReconciliationMarker(bool vote)
   {
     var reviews = new PenaltyReviewTestService();

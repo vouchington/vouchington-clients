@@ -31,6 +31,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   {
     if (!allowed(id) || !actionIds.Add(id)) return;
     actionErrors.Remove(id);
+    if (Find(id) is { } baseline) baselines[id] = baseline;
     Notify();
     try
     {
@@ -51,6 +52,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
     finally
     {
       actionIds.Remove(id);
+      if (!reconciliationIds.Contains(id)) baselines.Remove(id);
       Notify();
     }
   }
@@ -61,10 +63,12 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   /// </summary>
   private async Task ReconcileCoreAsync(string id)
   {
-    var before = Find(id);
+    // The pre-mutation baseline survives queue refreshes that clear the visible rows.
+    var before = baselines.TryGetValue(id, out var baseline) ? baseline : Find(id);
     try
     {
       var current = await FetchExactAsync(id, CancellationToken.None).ConfigureAwait(true);
+      baselines.Remove(id);
       reconciliationIds.Remove(id);
       actionErrors.Remove(id);
       var advanced = before is null || ReviewDueAt(current) != ReviewDueAt(before) ||

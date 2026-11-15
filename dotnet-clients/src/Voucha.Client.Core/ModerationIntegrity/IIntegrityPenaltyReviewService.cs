@@ -31,6 +31,7 @@ public interface IIntegrityPenaltyReviewModel : INotifyPropertyChanged
   bool CanConfirm(string id);
   bool CanRevoke(string id);
   bool NeedsReconciliation(string id);
+  bool IsCommitted(string id);
   string? ActionError(string id);
   Task LoadAsync(CancellationToken cancellationToken = default);
   Task RefreshAsync(CancellationToken cancellationToken = default);

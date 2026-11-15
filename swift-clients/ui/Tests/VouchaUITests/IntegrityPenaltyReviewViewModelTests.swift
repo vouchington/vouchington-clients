@@ -76,6 +76,21 @@ final class IntegrityPenaltyReviewViewModelTests: XCTestCase {
         XCTAssertTrue(model.committedIds.contains(row.id))
     }
 
+    func testStaleRefreshResponseDoesNotRestoreRevokedPenalty() async throws {
+        let service = IntegrityPenaltyReviewServiceDouble()
+        let due = try Support.dueRows(.report)
+        service.duePages = [.success(due), .success(due)]
+        service.revokeResults = try [.success(IntegrityPenaltyTestSupport.revokedReportRow())]
+        let model = makeModel(.report, service: service)
+        await model.load()
+        let row = try XCTUnwrap(model.penalties.first)
+        await model.revoke(row)
+
+        await model.load()
+
+        XCTAssertTrue(model.penalties.isEmpty)
+    }
+
     func testAmbiguousConfirmReconcilesCommittedReviewWithoutResubmitting() async throws {
         let service = IntegrityPenaltyReviewServiceDouble()
         service.duePages = try [.success(Support.dueRows(.report))]

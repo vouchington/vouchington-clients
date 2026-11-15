@@ -76,5 +76,6 @@ extension IntegrityPenaltyReviewViewModel {
     private func remove(_ penaltyId: String) {
         penalties.removeAll { $0.id == penaltyId }
         committedIds.remove(penaltyId)
+        removedIds.insert(penaltyId)
     }
 }
