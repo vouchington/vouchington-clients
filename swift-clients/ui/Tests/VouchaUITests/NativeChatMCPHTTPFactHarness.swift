@@ -25,7 +25,10 @@ struct NativeChatMCPHTTPFixture {
         let option = (arguments["option"] as? String).map(DecodedJSONValue.string)
         guard let value = try? DecodedJSONValue(exactJSONData: JSONSerialization.data(withJSONObject: structured))
         else { return nil }
-        return NativeChatMCPFact.make(tool: tool, option: option, content: value)
+        let nested = arguments["arguments"].flatMap {
+            try? DecodedJSONValue(exactJSONData: JSONSerialization.data(withJSONObject: $0))
+        }
+        return NativeChatMCPFact.make(tool: tool, option: option, arguments: nested, content: value)
     }
 
     /// A Responses API function-call turn with the provider-issued call identity.
@@ -41,10 +44,20 @@ struct NativeChatMCPHTTPFixture {
         return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
     }
 
+    private static let legalFactTools: Set = [
+        "search_copyright_notices_for_association",
+        "list_repeat_infringer_accounts"
+    ]
+
+    /// The member server's tools plus the legal server's copyright tools. Native chat connects only to the member
+    /// server today, so the legal tools exercise the shared bridge through a catalog a legal connection would supply.
     static func publishedCatalog() throws -> DecodedJSONValue {
         let servers = try XCTUnwrap(load("mcp.json")["servers"] as? [[String: Any]])
-        let server = try XCTUnwrap(servers.first { $0["name"] as? String == "voucha-user-mcp" })
-        let tools = try XCTUnwrap(server["tools"] as? [[String: Any]]).map { try XCTUnwrap($0["tool"]) }
+        let tools = try ["voucha-user-mcp", "voucha-legal-mcp"].flatMap { name -> [Any] in
+            let server = try XCTUnwrap(servers.first { $0["name"] as? String == name })
+            return try XCTUnwrap(server["tools"] as? [[String: Any]]).compactMap { $0["tool"] as? [String: Any] }
+                .filter { name == "voucha-user-mcp" || Self.legalFactTools.contains($0["name"] as? String ?? "") }
+        }
         return try DecodedJSONValue(exactJSONData: JSONSerialization.data(withJSONObject: ["tools": tools]))
     }
 }
