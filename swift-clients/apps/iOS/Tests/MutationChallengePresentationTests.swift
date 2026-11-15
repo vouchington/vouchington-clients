@@ -14,6 +14,7 @@ final class MutationChallengePresentationTests: XCTestCase {
         let broker = MutationChallengeBroker()
         let completed = expectation(description: "Awaited create-list save completes")
         var proof: String?
+        var saveError: Error?
         let client = try APIClient(
             config: AppConfig(baseURL: XCTUnwrap(URL(string: "http://localhost:2999"))),
             cookieStorage: HTTPCookieStorage(),
@@ -26,7 +27,8 @@ final class MutationChallengePresentationTests: XCTestCase {
                 let response = try await client.data(for: .createList(name: "New list", visibility: "private"))
                 proof = String(data: response, encoding: .utf8)
             } catch {
-                XCTFail("Create-list mutation failed: \(error)")
+                // Recorded, not XCTFail'd: a save that outlives its test must not fail the next one.
+                saveError = error
             }
             completed.fulfill()
         })
@@ -35,7 +37,11 @@ final class MutationChallengePresentationTests: XCTestCase {
             window.isHidden = true
         }
         let save = Task { await sheet.rootView.onSave("New list") }
-        defer { save.cancel() }
+        // Drain the save task before the test ends so no mutation (or its error) leaks into the next test.
+        addTeardownBlock { @MainActor in
+            save.cancel()
+            await save.value
+        }
 
         let challenge = try await presentedChallenge(above: sheet)
         XCTAssertTrue(root.presentedViewController === sheet)
@@ -44,6 +50,7 @@ final class MutationChallengePresentationTests: XCTestCase {
         try XCTUnwrap(provider.onToken)("provider-proof")
 
         await fulfillment(of: [completed], timeout: 2)
+        XCTAssertNil(saveError)
         XCTAssertEqual(proof, "provider-proof")
         try await waitUntil { sheet.presentedViewController == nil }
         XCTAssertTrue(root.presentedViewController === sheet)
