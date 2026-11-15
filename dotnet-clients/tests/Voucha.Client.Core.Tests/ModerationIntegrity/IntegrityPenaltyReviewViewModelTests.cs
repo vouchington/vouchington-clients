@@ -217,9 +217,13 @@ public sealed class IntegrityPenaltyReviewViewModelTests
     Assert.Empty(queue.Rows);
 
     await queue.RefreshAsync(Token);
-    await queue.RevokeAsync(id, Token);
     Assert.Empty(queue.Rows);
-    Assert.False(queue.NeedsReconciliation(id));
+
+    var again = Make(vote, reviews, service);
+    await again.LoadAsync(Token);
+    await again.RevokeAsync(id, Token);
+    Assert.Empty(again.Rows);
+    Assert.False(again.NeedsReconciliation(id));
   }
 
   [Theory]

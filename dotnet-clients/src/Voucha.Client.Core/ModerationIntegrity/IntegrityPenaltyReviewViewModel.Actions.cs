@@ -91,6 +91,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
     {
       Items = Items.Where(item => Id(item) != id).ToArray();
       committedIds.Remove(id);
+      revokedIds.Add(id);
     }
     else
     {

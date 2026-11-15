@@ -16,6 +16,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   private readonly HashSet<string> actionIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> reconciliationIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> committedIds = new(StringComparer.Ordinal);
+  private readonly HashSet<string> revokedIds = new(StringComparer.Ordinal);
   private readonly Dictionary<string, TPenalty> baselines = new(StringComparer.Ordinal);
   private readonly Dictionary<string, UiText> actionErrors = new(StringComparer.Ordinal);
   private IReadOnlyList<TPenalty> items = [];
@@ -144,6 +145,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   private void Accept(IntegrityQueuePage<TPenalty> page, bool append)
   {
     Items = (append ? Items.Concat(page.Results) : page.Results)
+        .Where(item => !revokedIds.Contains(Id(item)))
         .DistinctBy(Id, StringComparer.Ordinal).ToArray();
     cursor = page.EndCursor;
     HasMore = page.HasNextPage;
