@@ -115,7 +115,8 @@ public sealed partial class ChatConversationViewModel
         provider.MatchesAccountEpoch(snapshot) &&
         (localReceipt.FeedPostReceipts is { Count: > 0 } ||
          localReceipt.RssItemReceipts is { Count: > 0 } ||
-         localReceipt.ReferralLinkReceipts is { Count: > 0 }))
+         localReceipt.ReferralLinkReceipts is { Count: > 0 } ||
+         localReceipt.FactReceipts is { Count: > 0 }))
     {
       var index = messages.FindIndex(message => message.Id == localReceipt.Body.AssistantMessageId &&
           message.IsAssistant);
@@ -126,6 +127,7 @@ public sealed partial class ChatConversationViewModel
           FeedPostReceipts = localReceipt.FeedPostReceipts,
           RssItemReceipts = localReceipt.RssItemReceipts,
           ReferralLinkReceipts = localReceipt.ReferralLinkReceipts,
+          FactReceipts = localReceipt.FactReceipts,
         };
     }
     HasMoreMessages = response.PageInfo.HasMorePages;

@@ -6,7 +6,7 @@ public enum WindowsBuiltInTurnKind { Declined, Stopped, Answer, Retained }
 
 public sealed record WindowsBuiltInToolOutput(
     string Envelope, McpFeedPostReceipt? Receipt, McpFeedRssItemReceipt? RssItemReceipt = null,
-    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null);
+    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null, McpFactReceipt? Fact = null);
 
 public sealed record WindowsBuiltInTurn(
     WindowsBuiltInTurnKind Kind,
@@ -16,7 +16,8 @@ public sealed record WindowsBuiltInTurn(
     string? Status,
     McpFeedRssItemReceipt? RssItemReceipt = null,
     string? CallId = null,
-    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null)
+    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null,
+    McpFactReceipt? Fact = null)
 {
   public WindowsBuiltInTurn ForPersistenceRetry() =>
       Kind is WindowsBuiltInTurnKind.Answer or WindowsBuiltInTurnKind.Retained
@@ -33,7 +34,8 @@ public sealed record RetainedWindowsBuiltInToolResult(
     string Envelope,
     McpFeedPostReceipt? FeedPostReceipt,
     McpFeedRssItemReceipt? RssItemReceipt,
-    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null);
+    McpFeedReferralLinkReceipt? ReferralLinkReceipt = null,
+    McpFactReceipt? FactReceipt = null);
 
 public sealed class WindowsBuiltInResultRetainedException : InvalidOperationException
 {
@@ -49,13 +51,16 @@ public sealed class WindowsBuiltInResultRetainedException : InvalidOperationExce
   public WindowsBuiltInResultRetainedException(
       string envelope, McpFeedPostReceipt? receipt, McpFeedRssItemReceipt? rssItemReceipt = null,
       string? callId = null, string? accountId = null, long accountEpoch = 0,
-      McpFeedReferralLinkReceipt? referralLinkReceipt = null) : base(DefaultMessage)
+      McpFeedReferralLinkReceipt? referralLinkReceipt = null,
+      McpFactReceipt? factReceipt = null) : base(DefaultMessage)
   {
     Envelope = envelope ?? throw new ArgumentNullException(nameof(envelope));
     Receipt = receipt;
     RssItemReceipt = rssItemReceipt;
     ReferralLinkReceipt = referralLinkReceipt;
-    CallId = callId ?? receipt?.CallId ?? rssItemReceipt?.CallId ?? referralLinkReceipt?.CallId ?? "";
+    FactReceipt = factReceipt;
+    CallId = callId ?? receipt?.CallId ?? rssItemReceipt?.CallId ?? referralLinkReceipt?.CallId ??
+        factReceipt?.CallId ?? "";
     AccountId = accountId ?? "";
     AccountEpoch = accountEpoch;
   }
@@ -64,6 +69,7 @@ public sealed class WindowsBuiltInResultRetainedException : InvalidOperationExce
   public McpFeedPostReceipt? Receipt { get; }
   public McpFeedRssItemReceipt? RssItemReceipt { get; }
   public McpFeedReferralLinkReceipt? ReferralLinkReceipt { get; }
+  public McpFactReceipt? FactReceipt { get; }
   public string CallId { get; } = "";
   public string AccountId { get; } = "";
   public long AccountEpoch { get; }
@@ -119,7 +125,7 @@ public static class WindowsBuiltInToolLoop
     {
       if (!WindowsBuiltInPrompt.Fits(continuation, await observe(continuation, cancellationToken).ConfigureAwait(false)))
         return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, "Complete",
-            output.RssItemReceipt, call.Id, output.ReferralLinkReceipt);
+            output.RssItemReceipt, call.Id, output.ReferralLinkReceipt, output.Fact);
       second = await generate(continuation, cancellationToken).ConfigureAwait(false);
       if (!isCurrent()) throw new PossibleMcpToolSideEffectException();
     }
@@ -129,7 +135,7 @@ public static class WindowsBuiltInToolLoop
     }
     if (!string.Equals(second.Status, "Complete", StringComparison.Ordinal))
       return new(WindowsBuiltInTurnKind.Retained, null, output.Envelope, output.Receipt, second.Status,
-          output.RssItemReceipt, call.Id, output.ReferralLinkReceipt);
+          output.RssItemReceipt, call.Id, output.ReferralLinkReceipt, output.Fact);
     WindowsBuiltInParsedCommand continued;
     try { continued = WindowsBuiltInCommandParser.Parse(second.Text ?? ""); }
     catch (Exception error) when (error is not PossibleMcpToolSideEffectException)
@@ -139,7 +145,7 @@ public static class WindowsBuiltInToolLoop
     if (continued.ToolCall is not null || string.IsNullOrWhiteSpace(continued.Answer))
       throw new PossibleMcpToolSideEffectException();
     return new(WindowsBuiltInTurnKind.Answer, continued.Answer, output.Envelope, output.Receipt, "Complete",
-        output.RssItemReceipt, null, output.ReferralLinkReceipt);
+        output.RssItemReceipt, null, output.ReferralLinkReceipt, output.Fact);
   }
 
   private static void RequireCurrent(Func<bool> isCurrent)

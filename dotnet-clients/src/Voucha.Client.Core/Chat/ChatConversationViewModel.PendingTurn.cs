@@ -17,7 +17,8 @@ public sealed partial class ChatConversationViewModel
       IMcpLocalChatProvider? McpProvider,
       IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts,
       IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts,
-      IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts);
+      IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts,
+      IReadOnlyList<McpFactReceipt>? FactReceipts = null);
 
   private ChatProviderStatus ProviderForPendingMcpRetry(string text) =>
       pendingLocalTurn is { McpSnapshot: not null } pending &&

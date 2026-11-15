@@ -51,8 +51,10 @@ public sealed partial class ChatConversationViewModel
         generation?.RssItemReceipts, mcpSnapshot);
     var referralLinkReceipts = retry?.ReferralLinkReceipts ?? CurrentReferralLinkReceipts(
         generation?.ReferralLinkReceipts, mcpSnapshot);
+    var factReceipts = retry?.FactReceipts ?? CurrentFactReceipts(generation?.FactReceipts, mcpSnapshot);
     var pending = retry ?? new PendingLocalTurn(conversationId, selectedProvider, body, mcpSnapshot,
-        mcpSnapshot is null ? null : mcpProvider, feedPostReceipts, rssItemReceipts, referralLinkReceipts);
+        mcpSnapshot is null ? null : mcpProvider, feedPostReceipts, rssItemReceipts, referralLinkReceipts,
+        factReceipts);
     pendingLocalTurn = pending;
 
     messages.Add(new ChatMessageRow(
@@ -63,7 +65,8 @@ public sealed partial class ChatConversationViewModel
         Localization: localization,
         FeedPostReceipts: feedPostReceipts,
         RssItemReceipts: rssItemReceipts,
-        ReferralLinkReceipts: referralLinkReceipts));
+        ReferralLinkReceipts: referralLinkReceipts,
+        FactReceipts: factReceipts));
     OnPropertyChanged(nameof(Messages));
 
     try
@@ -134,6 +137,15 @@ public sealed partial class ChatConversationViewModel
             !McpFeedReferralLinkReceipt.SafeUri(link.Url)))) return null;
     return receipts.Select(receipt => new McpFeedReferralLinkReceipt(
         receipt.AccountId, receipt.CallId, receipt.Links.ToArray())).ToArray();
+  }
+
+  private static McpFactReceipt[]? CurrentFactReceipts(
+      IReadOnlyList<McpFactReceipt>? receipts, MemberMcpConnectedSnapshot? snapshot)
+  {
+    if (snapshot is null || receipts is not { Count: > 0 } || receipts.Count > 32) return null;
+    var calls = new HashSet<string>(StringComparer.Ordinal);
+    return receipts.Any(receipt => receipt.AccountId != snapshot.AccountId ||
+        string.IsNullOrEmpty(receipt.CallId) || !calls.Add(receipt.CallId)) ? null : receipts.ToArray();
   }
 
   private void ResetStreamingState() => IsStreaming = true;
