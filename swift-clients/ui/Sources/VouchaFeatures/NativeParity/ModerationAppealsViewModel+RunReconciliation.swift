@@ -31,6 +31,13 @@ extension ModerationAppealsViewModel {
             guard run.runId == runId else { throw AppealAIRerunError.stillProcessing }
             switch run.status {
             case .failed, .expired:
+                // Keep the exact run's outcome visible: read the row that names it before the
+                // admission (and its pending display) is released.
+                if let detail: ModerationAppealEnvelope = try? await client.send(.appeal(id: appeal.id)),
+                   isCurrent(), detail.appeal.id == appeal.id,
+                   detail.appeal.aiDraftRequestedRunId == runId {
+                    replace(with: detail.appeal, preservingEditedDraft: true)
+                }
                 admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
                 throw AppealAIRerunError.ended
             case .succeeded:

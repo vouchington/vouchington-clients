@@ -280,6 +280,16 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
         return try decoder.decode(ModerationAppeal.self, from: Data(json.utf8))
     }
 
+    func testFailedPolledRunKeepsItsOwnTerminalStatusAfterAdmissionReleases() async throws {
+        let (model, appeal) = try await setup()
+        CannedFeedURLProtocol.handlers[runPath] = (run("failed"), 200)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(requestedRunStatus: "failed")), 200)
+        await model.rerunAI(for: appeal)
+        XCTAssertNil(model.pendingAIReruns[appeal.id])
+        let shown = try XCTUnwrap(model.appeals.first)
+        XCTAssertEqual(model.aiDraftStatusKey(for: shown), ModerationAIRunStatus.failed.appealDraftKey)
+    }
+
     func testRequestedRunStatusKeysCoverEveryStatus() {
         let keys = [ModerationAIRunStatus.active, .succeeded, .failed, .expired].map(\.appealDraftKey)
         XCTAssertEqual(Set(keys.map(\.rawValue)).count, 4)
