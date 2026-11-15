@@ -1,6 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises'
 
-export const authNewsBudgetMs = 150_000
+// Green runs take 54-138s on hosted macOS runners; the budget catches hangs, not slow runners.
+export const authNewsBudgetMs = 240_000
 export const authNewsCleanupMs = 10_000
 export const authNewsTypingMs = 30_000
 

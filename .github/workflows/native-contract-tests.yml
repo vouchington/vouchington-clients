@@ -2379,7 +2379,7 @@ jobs:
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
           node scripts/catalyst-notification-evidence.mjs "$CATALYST_GUI_RESULT" "$CATALYST_NATIVE_REVISION"
       - name: Exercise Catalyst email sign-in and News controls
-        timeout-minutes: 3
+        timeout-minutes: 5
         working-directory: candidate-clients
         env:
           CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
