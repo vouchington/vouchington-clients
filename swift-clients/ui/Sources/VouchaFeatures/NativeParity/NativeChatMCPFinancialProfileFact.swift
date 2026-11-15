@@ -3,7 +3,8 @@ import VouchaModels
 
 struct NativeChatFinancialIncomeRange: Equatable {
     let minimum: Money
-    let maximum: Money
+    /// Nil for an open-ended range (the producer sends `maximum: null`).
+    let maximum: Money?
 }
 
 /// Only the member's own displayable fields. `individual_id`, `currency` and `updated_at` are never decoded.
@@ -39,7 +40,7 @@ extension NativeChatMCPFact {
     }
 
     private static func validIncome(_ range: IncomeRow) -> Bool {
-        known(range.minimum) && known(range.maximum) && range.minimum.amount <= range.maximum.amount
+        known(range.minimum) && (range.maximum.map { known($0) && range.minimum.amount <= $0.amount } ?? true)
     }
 
     private static func known(_ money: Money) -> Bool {
@@ -74,5 +75,5 @@ private struct FinancialRow: Decodable {
 
 private struct IncomeRow: Decodable {
     let minimum: Money
-    let maximum: Money
+    let maximum: Money?
 }

@@ -16,7 +16,8 @@ struct NativeChatFinancialProfileFactView: View {
                 if let income = profile.statedIncomeRange {
                     row(
                         .nativeMcpFactsFinancialProfileStatedIncomeRange,
-                        .joined([money(income.minimum), money(income.maximum)], separator: " – ")
+                        income.maximum.map { .joined([money(income.minimum), money($0)], separator: " – ") }
+                            ?? .joined([money(income.minimum), .protocolValue("+")], separator: "")
                     )
                 }
                 if let limit = profile.totalCreditLimit {

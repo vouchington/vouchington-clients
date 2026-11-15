@@ -32,7 +32,7 @@ final class NativeChatMCPAccountFactTests: NativeRouteSurfaceViewModelTestCase {
         ) else { return XCTFail("Expected a populated profile") }
         XCTAssertEqual(profile.creditScoreRange, "670-739")
         XCTAssertEqual(profile.statedIncomeRange?.minimum.amount, 7_500_000)
-        XCTAssertEqual(profile.statedIncomeRange?.maximum.amount, 10_000_000)
+        XCTAssertEqual(profile.statedIncomeRange?.maximum?.amount, 10_000_000)
         XCTAssertEqual(profile.yearsOfCreditHistory, 7)
         XCTAssertNil(profile.totalCreditLimit)
         XCTAssertNil(profile.hardInquiries12m)
@@ -113,6 +113,11 @@ final class NativeChatMCPAccountFactTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertNil(try financial(["credit_score_range": "999-999"]))
         XCTAssertNil(try financial(["years_of_credit_history": -1]))
         XCTAssertNil(try financial(["total_credit_limit": ["amount": 1, "currency": "xyz"]]))
+        guard case let .financialProfile(open?) = try financial(["stated_income_range": [
+            "minimum": ["amount": 7_500_000, "currency": "usd"], "maximum": NSNull()
+        ]]) else { return XCTFail("An open-ended income range is a valid result") }
+        XCTAssertNil(open.statedIncomeRange?.maximum)
+        XCTAssertEqual(open.statedIncomeRange?.minimum.amount, 7_500_000)
         XCTAssertNil(try financial(["stated_income_range": [
             "minimum": ["amount": 5, "currency": "usd"], "maximum": ["amount": 1, "currency": "usd"]
         ]]))
