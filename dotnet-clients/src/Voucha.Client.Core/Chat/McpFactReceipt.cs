@@ -18,8 +18,7 @@ public sealed record McpFactReceipt(string AccountId, string CallId, McpResultFa
     if (string.IsNullOrEmpty(accountId) || string.IsNullOrEmpty(callId) ||
         arguments.ValueKind != JsonValueKind.Object ||
         structuredContent.ValueKind != JsonValueKind.Object ||
-        !structuredContent.TryGetProperty("success", out var success) ||
-        success.ValueKind != JsonValueKind.True) return null;
+        !Succeeded(tool, structuredContent)) return null;
     var option = arguments.TryGetProperty("option", out var selected) &&
         selected.ValueKind == JsonValueKind.String ? selected.GetString() : null;
     McpResultFact? fact = (tool, option) switch
@@ -33,10 +32,21 @@ public sealed record McpFactReceipt(string AccountId, string CallId, McpResultFa
       ("read_rss_feed_item", "list") => McpContentFacts.RssList(structuredContent),
       ("read_rss_feed_item", "details") => McpContentFacts.RssDetails(structuredContent),
       ("get_story", null) => McpContentFacts.Story(structuredContent),
+      ("get_my_financial_profile", null) => McpFinancialFacts.Profile(structuredContent),
+      ("manage_bookmark", "set") => McpBookmarkFacts.Set(arguments, structuredContent),
+      ("manage_bookmark", "remove") => McpBookmarkFacts.Remove(arguments, structuredContent),
+      ("search_copyright_notices_for_association", null) => McpCopyrightFacts.Notices(structuredContent),
+      ("list_repeat_infringer_accounts", null) => McpRepeatInfringerFacts.Accounts(structuredContent),
       _ => null,
     };
     return fact is null ? null : new McpFactReceipt(accountId, callId, fact);
   }
+
+  /// <summary>The producer's copyright tools return bare lists; every other tool must report success.</summary>
+  private static bool Succeeded(string tool, JsonElement content) =>
+      content.TryGetProperty("success", out var success)
+          ? success.ValueKind == JsonValueKind.True
+          : tool is "search_copyright_notices_for_association" or "list_repeat_infringer_accounts";
 
   internal static string? Display(IReadOnlyList<McpFactReceipt>? receipts, IUiLocalization? localization)
   {

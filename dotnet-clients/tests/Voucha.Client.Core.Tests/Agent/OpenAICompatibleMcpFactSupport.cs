@@ -35,12 +35,23 @@ public sealed partial class MemberMcpSessionTests
       },
     });
 
+    private static readonly string[] LegalFactTools =
+        ["search_copyright_notices_for_association", "list_repeat_infringer_accounts"];
+
+    /// <summary>
+    /// The member server's tools plus the legal server's copyright tools. Native chat connects only to the
+    /// member server today, so the legal tools exercise the shared bridge through the catalog a legal
+    /// connection would supply.
+    /// </summary>
     public static JsonElement PublishedCatalog()
     {
       using var manifest = JsonDocument.Parse(File.ReadAllText(ContractPaths.ApiFixture("mcp.json")));
-      var server = manifest.RootElement.GetProperty("servers").EnumerateArray()
-          .Single(item => item.GetProperty("name").GetString() == "voucha-user-mcp");
-      var tools = server.GetProperty("tools").EnumerateArray().Select(item => item.GetProperty("tool"));
+      var servers = manifest.RootElement.GetProperty("servers").EnumerateArray().ToArray();
+      var tools = servers.Single(item => item.GetProperty("name").GetString() == "voucha-user-mcp")
+          .GetProperty("tools").EnumerateArray().Select(item => item.GetProperty("tool"))
+          .Concat(servers.Single(item => item.GetProperty("name").GetString() == "voucha-legal-mcp")
+              .GetProperty("tools").EnumerateArray().Select(item => item.GetProperty("tool"))
+              .Where(tool => LegalFactTools.Contains(tool.GetProperty("name").GetString())));
       return JsonDocument.Parse(JsonSerializer.Serialize(new { tools })).RootElement.Clone();
     }
   }

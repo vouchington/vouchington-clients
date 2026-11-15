@@ -4,13 +4,18 @@ using Voucha.Client.Core.Settings;
 
 namespace Voucha.Client.Core.Chat;
 
-public sealed record McpFactRow(UiMessageKey Label, UiText Value);
+public sealed record McpFactRow(UiMessageKey Label, UiText Value, IReadOnlyList<int>? Weekdays = null);
 
 /// <summary>Labeled rows read from the member's own preferences result.</summary>
 public sealed record McpPreferencesFact(IReadOnlyList<McpFactRow> Rows) : McpResultFact
 {
   internal override IReadOnlyList<string> Lines(IUiLocalization localization) =>
-      Rows.Select(row => $"{localization.Localize(row.Label)}: {localization.Resolve(row.Value)}").ToArray();
+      Rows.Select(row => $"{localization.Localize(row.Label)}: {Value(row, localization)}").ToArray();
+
+  private static string Value(McpFactRow row, IUiLocalization localization) => row.Weekdays is null
+      ? localization.Resolve(row.Value)
+      : string.Join(", ", row.Weekdays.Order().Select(day =>
+          localization.Culture.DateTimeFormat.GetAbbreviatedDayName((DayOfWeek)(day % 7))));
 }
 
 internal static class McpPreferenceFacts
@@ -36,7 +41,7 @@ internal static class McpPreferenceFacts
         !McpFactJson.Text(source, "moderation_email_cadence", out var cadence) ||
         !McpFactJson.Text(source, "moderation_email_time_of_day", out var time) ||
         !McpFactJson.OptionalText(source, "moderation_email_timezone", out var timezone) ||
-        !McpFactJson.Array(source, "moderation_email_days_of_week", out var days) || !ValidDays(days) ||
+        !McpFactJson.Array(source, "moderation_email_days_of_week", out var days) || !ValidDays(days, out var weekdays) ||
         !McpFactJson.Displayable(time) ||
         Option(SettingsOptionSets.DigestFrequencyOptions, news) is not { } newsLabel ||
         Option(SettingsOptionSets.DigestFrequencyOptions, community) is not { } communityLabel ||
@@ -48,6 +53,7 @@ internal static class McpPreferenceFacts
       new(UiMessageKey.NativeDotnetSettingsModerationEmails, YesNo(moderation)),
       new(UiMessageKey.NativeDotnetSettingsCommunityDigest, communityLabel),
       new(UiMessageKey.NativeDotnetSettingsModerationEmailCadence, cadenceLabel),
+      new(UiMessageKey.NativeSwiftSettingsModerationDays, default, weekdays),
       new(UiMessageKey.NativeDotnetSettingsModerationEmailTime, UiText.ProtocolValue(time)),
     };
     if (timezone is not null)
@@ -70,10 +76,12 @@ internal static class McpPreferenceFacts
         Option(SettingsOptionSets.BroadcastOptions, broadcast) is not { } broadcastLabel ||
         !McpFactJson.Text(source, "default_post_privacy", out var privacy) ||
         Option(SettingsOptionSets.PostPrivacyOptions, privacy) is not { } privacyLabel ||
-        !McpFactJson.OptionalText(source, "country", out _) ||
+        !McpFactJson.OptionalText(source, "country", out var country) ||
         !McpFactJson.OptionalText(source, "ui_locale", out var locale)) return null;
     rows.Add(new(UiMessageKey.NativeDotnetSettingsDefaultPostAudience, broadcastLabel));
     rows.Add(new(UiMessageKey.NativeDotnetSettingsDefaultPostPrivacy, privacyLabel));
+    rows.Add(new(UiMessageKey.SettingsLanguageCountryLabel, country is null
+        ? UiText.Localized(UiMessageKey.SettingsLanguageNoCountryPreference) : UiText.ProtocolValue(country)));
     rows.Add(new(UiMessageKey.NativeDotnetSettingsUiLocale, locale is null
         ? UiText.Localized(UiMessageKey.SettingsLanguageUseSiteDefault) : UiText.ProtocolValue(locale)));
     return new McpPreferencesFact(rows);
@@ -86,12 +94,14 @@ internal static class McpPreferenceFacts
       options.Where(option => option.Value == value).Select(option => (UiText?)option.LabelText)
           .FirstOrDefault();
 
-  private static bool ValidDays(JsonElement days)
+  private static bool ValidDays(JsonElement days, out IReadOnlyList<int> weekdays)
   {
-    var seen = new HashSet<int>();
+    var seen = new List<int>();
+    weekdays = seen;
     foreach (var day in days.EnumerateArray())
       if (day.ValueKind != JsonValueKind.Number || !day.TryGetInt32(out var value) ||
-          value is < 1 or > 7 || !seen.Add(value)) return false;
+          value is < 1 or > 7 || seen.Contains(value)) return false;
+      else seen.Add(value);
     return true;
   }
 }

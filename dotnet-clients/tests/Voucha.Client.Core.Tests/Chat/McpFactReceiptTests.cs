@@ -67,10 +67,7 @@ public sealed class McpFactReceiptTests
   [Theory]
   [InlineData("read_posts", """{"option":"other"}""")]
   [InlineData("read_my_profile", """{"option":7}""")]
-  [InlineData("manage_bookmark", """{"option":"set"}""")]
-  [InlineData("get_my_financial_profile", """{}""")]
-  [InlineData("search_copyright_notices_for_association", """{}""")]
-  [InlineData("list_repeat_infringer_accounts", """{}""")]
+  [InlineData("delete_my_account", """{}""")]
   public void UnsupportedToolsAndOptionsNeverProduceFacts(string tool, string arguments)
   {
     using var args = JsonDocument.Parse(arguments);
