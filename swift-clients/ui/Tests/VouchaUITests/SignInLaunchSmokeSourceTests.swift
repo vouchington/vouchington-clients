@@ -21,7 +21,7 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertTrue(flow.contains("app.buttons[\"signed-out-sign-in\"]"))
         XCTAssertTrue(flow.contains("identifier: \"signed-out-sign-in\""))
         XCTAssertTrue(flow.contains("app.buttons[\"Continue with Email\"]"))
-        XCTAssertTrue(flow.contains("continueWithEmail.waitForExistence(timeout: 20)"))
+        XCTAssertTrue(flow.contains("continueWithEmail.waitForExistence(timeout: LaunchSmokeTiming.interaction)"))
         XCTAssertFalse(flow.contains("app.buttons[\"Sign In\"]"))
     }
 

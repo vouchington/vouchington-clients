@@ -22,7 +22,8 @@
                 try LaunchSmokeFixtures.configureSession(in: app)
                 app.launch()
                 app.activate()
-                XCTAssertTrue(app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20))
+                XCTAssertTrue(app.descendants(matching: .any)["root-shell"]
+                    .waitForExistence(timeout: LaunchSmokeTiming.launchReadiness))
                 LaunchSmokeSidebar.click(section, in: app)
                 let sources = LaunchSmokeSidebar.visibleText(sourcesTitle, in: app)
                 XCTAssertTrue(sources.waitForExistence(timeout: 10))

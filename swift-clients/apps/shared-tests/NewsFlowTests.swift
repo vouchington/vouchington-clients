@@ -28,25 +28,35 @@
             app.launch()
 
             // Fixture identity restoration precedes mounting RootView and loading its feed.
-            // Keep launch readiness separate from the existing content assertion deadline.
+            // Keep launch readiness separate from the per-action deadline.
             XCTAssertTrue(
-                app.descendants(matching: .any)["root-shell"].waitForExistence(timeout: 20),
+                app.descendants(matching: .any)["root-shell"]
+                    .waitForExistence(timeout: LaunchSmokeTiming.launchReadiness),
                 "News fixture did not finish identity restoration and mount the native root"
             )
             let primary = app.staticTexts[fixture.primaryTitle].firstMatch
-            XCTAssertTrue(primary.waitForExistence(timeout: 20))
+            XCTAssertTrue(
+                primary.waitForExistence(timeout: LaunchSmokeTiming.interaction),
+                "News feed row did not render. \(LaunchSmokeTiming.visibleText(in: app))"
+            )
             let related = app.staticTexts[fixture.relatedTitle].firstMatch
             XCTAssertFalse(related.exists, "Related articles must start collapsed")
             let expand = app.buttons["story-related-\(fixture.primaryID)"]
-            XCTAssertTrue(expand.waitForExistence(timeout: 10))
+            XCTAssertTrue(expand.waitForExistence(timeout: LaunchSmokeTiming.interaction))
             XCTAssertTrue(expand.isHittable)
             expand.tap()
-            XCTAssertTrue(related.waitForExistence(timeout: 10))
+            XCTAssertTrue(
+                related.waitForExistence(timeout: LaunchSmokeTiming.interaction),
+                "Related articles did not expand. \(LaunchSmokeTiming.visibleText(in: app))"
+            )
             XCTAssertTrue(primary.exists)
 
             XCTAssertTrue(expand.isHittable)
             expand.tap()
-            XCTAssertTrue(related.waitForNonExistence(timeout: 10))
+            XCTAssertTrue(
+                related.waitForNonExistence(timeout: LaunchSmokeTiming.interaction),
+                "Related articles did not collapse. \(LaunchSmokeTiming.visibleText(in: app))"
+            )
             XCTAssertTrue(primary.exists, "Collapsing related articles must retain the primary news row")
         }
 

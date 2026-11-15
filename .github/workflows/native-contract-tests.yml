@@ -1421,6 +1421,14 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Resolve pinned Swift packages
+        timeout-minutes: 5
+        uses: ./.github/actions/resolve-swift-packages
+        with:
+          platform: iOS
+          source-root: candidate-clients
+          clones-dir: ${{ runner.temp }}/swift-ios-package-clones
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build selected iPhone test products
         timeout-minutes: 10
         working-directory: candidate-clients
@@ -1509,12 +1517,19 @@ jobs:
           test -x "$xcodegen_bin"
           test "$("$xcodegen_bin" --version)" = "Version: ${XCODEGEN_VERSION}"
           dirname "$xcodegen_bin" >> "$GITHUB_PATH"
+      - name: Resolve pinned Swift packages
+        timeout-minutes: 5
+        uses: ./.github/actions/resolve-swift-packages
+        with:
+          platform: iOS
+          source-root: candidate-clients
+          clones-dir: ${{ runner.temp }}/swift-ios-package-clones
       - name: Compile x86_64 iOS Simulator app
         timeout-minutes: 9
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-ios-x86-derived-data
-          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-x86-package-clones
+          SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-ios-package-clones
         run: |
           set -euo pipefail
           simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"

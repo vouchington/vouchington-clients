@@ -19,7 +19,7 @@
             try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
-            XCTAssertTrue(app.otherElements["root-shell"].waitForExistence(timeout: 20))
+            XCTAssertTrue(app.otherElements["root-shell"].waitForExistence(timeout: LaunchSmokeTiming.launchReadiness))
             let videos = app.tabBars.buttons["Videos"]
             XCTAssertTrue(videos.waitForExistence(timeout: 10))
             videos.tap()

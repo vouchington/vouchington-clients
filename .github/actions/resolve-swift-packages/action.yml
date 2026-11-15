@@ -1,0 +1,49 @@
+name: Resolve Swift packages
+description: Restore or fetch the pinned SwiftPM clones for one generated Xcode project, so builds never touch the network
+
+inputs:
+  platform:
+    description: App platform directory under swift-clients/apps (iOS or macOS)
+    required: true
+  source-root:
+    description: Checkout directory of this repository relative to the workspace
+    required: true
+  clones-dir:
+    description: Absolute SwiftPM clones directory that later xcodebuild steps pass with -clonedSourcePackagesDirPath
+    required: true
+  save-cache:
+    description: Whether this job saves the clones cache after a miss
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Swift package clones
+      id: clones
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ inputs.clones-dir }}/checkouts
+          ${{ inputs.clones-dir }}/artifacts
+          ${{ inputs.clones-dir }}/workspace-state.json
+        key: ${{ runner.os }}-swiftpm-${{ inputs.platform }}-xcode-26.6-${{ hashFiles(format('{0}/swift-clients/ui/Package.resolved', inputs.source-root), format('{0}/swift-clients/core/Package.resolved', inputs.source-root), format('{0}/swift-clients/tooling/generate.sh', inputs.source-root), format('{0}/swift-clients/apps/{1}/project.yml', inputs.source-root, inputs.platform), format('{0}/scripts/resolve-swift-packages.sh', inputs.source-root)) }}
+    - name: Resolve packages from the pinned versions
+      shell: bash
+      working-directory: ${{ inputs.source-root }}
+      env:
+        PLATFORM: ${{ inputs.platform }}
+        CLONES_DIR: ${{ inputs.clones-dir }}
+      run: |
+        ./swift-clients/tooling/generate.sh "$PLATFORM"
+        ./scripts/resolve-swift-packages.sh "swift-clients/apps/$PLATFORM/Voucha.xcodeproj" "$CLONES_DIR"
+        test -f "$CLONES_DIR/workspace-state.json"
+    - name: Save Swift package clones
+      if: ${{ inputs.save-cache == 'true' && steps.clones.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ inputs.clones-dir }}/checkouts
+          ${{ inputs.clones-dir }}/artifacts
+          ${{ inputs.clones-dir }}/workspace-state.json
+        key: ${{ steps.clones.outputs.cache-primary-key }}
