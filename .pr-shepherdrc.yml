@@ -8,6 +8,12 @@ checks:
   ignore:
     - 'Sourcery review'
 
+# Explicit even though 0 is the built-in default: pr-shepherd merges every
+# .pr-shepherdrc.yml from cwd up to $HOME, so agent worktrees under
+# .claude/worktrees/ also inherit the primary checkout's copy, which may be stale.
+iterate:
+  ready-delay-minutes: 0
+
 # pr-shepherd's bundled bot-noise classification rules.
 classify:
   standard:
