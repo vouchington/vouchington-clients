@@ -40,10 +40,10 @@ public enum LocalLLMToolLoopFailure: Error, Equatable {
     case toolNotAdmitted
 }
 
-struct LocalLLMFunctionCall {
-    let callID: String
-    let name: String
-    let arguments: String
+public struct LocalLLMFunctionCall: Sendable {
+    public let callID: String
+    public let name: String
+    public let arguments: String
 }
 
 public extension OpenAICompatibleResponsesClient {
@@ -62,6 +62,18 @@ public extension OpenAICompatibleResponsesClient {
         isCurrent: @Sendable () async -> Bool,
         validate: @Sendable (String, String) async throws -> Void = { _, _ in },
         execute: @Sendable (String, String) async throws -> String
+    ) async throws -> String? {
+        try await generateAssistantResponseWithTools(
+            request: request, isCurrent: isCurrent, validate: validate
+        ) { call in try await execute(call.name, call.arguments) }
+    }
+
+    /// Same loop, but each call reaches the executor with the provider-issued call identity.
+    func generateAssistantResponseWithTools(
+        request: LocalLLMToolRequest,
+        isCurrent: @Sendable () async -> Bool,
+        validate: @Sendable (String, String) async throws -> Void = { _, _ in },
+        executeCall: @Sendable (LocalLLMFunctionCall) async throws -> String
     ) async throws -> String? {
         guard let url = request.endpoint.responsesURL else { throw LocalLLMError.invalidEndpoint }
         guard let model = request.endpoint.selectedModel else { throw LocalLLMError.missingModel }
@@ -101,7 +113,7 @@ public extension OpenAICompatibleResponsesClient {
                     validate: validate
                 )
                 let result = try await Self.invokeTool(
-                    call, hadPreviousExecution: attemptedToolExecution, execute: execute
+                    call, hadPreviousExecution: attemptedToolExecution, execute: executeCall
                 )
                 attemptedToolExecution = true
                 guard result.utf8.count <= Self.maximumToolResultBytes else {
@@ -124,25 +136,6 @@ public extension OpenAICompatibleResponsesClient {
         let text = responseText(response, output: output)
         if attemptedToolExecution, text == nil { throw LocalLLMToolLoopFailure.partialExecution }
         return text
-    }
-
-    private static func consumeCallBudget(_ count: Int, remaining: inout Int) throws {
-        guard count <= remaining else { throw LocalLLMToolLoopFailure.tooManyCalls }
-        remaining -= count
-    }
-
-    private static func requireSingleCall(_ calls: [LocalLLMFunctionCall]) throws {
-        guard calls.count == 1 else { throw LocalLLMToolLoopFailure.invalidResponse }
-    }
-
-    private static func recordUniqueCallIDs(
-        _ calls: [LocalLLMFunctionCall], seen: inout Set<String>
-    ) throws {
-        for call in calls {
-            guard seen.insert(call.callID).inserted else {
-                throw LocalLLMToolLoopFailure.invalidResponse
-            }
-        }
     }
 
     private static func decodedToolResponse(_ data: Data) throws -> [String: Any] {

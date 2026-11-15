@@ -11,4 +11,23 @@ extension OpenAICompatibleResponsesClient {
             }
         }
     }
+
+    static func consumeCallBudget(_ count: Int, remaining: inout Int) throws {
+        guard count <= remaining else { throw LocalLLMToolLoopFailure.tooManyCalls }
+        remaining -= count
+    }
+
+    static func requireSingleCall(_ calls: [LocalLLMFunctionCall]) throws {
+        guard calls.count == 1 else { throw LocalLLMToolLoopFailure.invalidResponse }
+    }
+
+    static func recordUniqueCallIDs(
+        _ calls: [LocalLLMFunctionCall], seen: inout Set<String>
+    ) throws {
+        for call in calls {
+            guard seen.insert(call.callID).inserted else {
+                throw LocalLLMToolLoopFailure.invalidResponse
+            }
+        }
+    }
 }
