@@ -32,9 +32,6 @@ importers:
       oxlint:
         specifier: 1.80.0
         version: 1.80.0
-      pr-shepherd:
-        specifier: 1.0.0
-        version: 1.0.0(supports-color@7.2.0)
       vouchington-tooling:
         specifier: 0.48.0
         version: 0.48.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.5.4))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.94.0)(supports-color@7.2.0)(zod@4.5.4)
@@ -1845,11 +1842,6 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  pr-shepherd@1.0.0:
-    resolution: {integrity: sha512-MOE+s43j7s6BtsfLT0tmeikVEYPyL/sxw0rzbkjaTqe/Ivw5GLTMnw224UUDvq3QNAxuVA3K1+kaSE4iLWlPjA==}
-    engines: {node: '>=22.19.0'}
-    hasBin: true
-
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
@@ -2057,10 +2049,6 @@ packages:
     resolution: {integrity: sha512-b7zoBQvpWp0vuN5q2vK2RRBR2SvuruQAs50DApdDveBSn3eSYd84IaHodFqQIMlvY9K2VnyBUEXgwOBuGU9GBg==}
     engines: {node: '>=14'}
 
-  undici@8.12.2:
-    resolution: {integrity: sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg==}
-    engines: {node: '>=22.19.0'}
-
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
 
@@ -2100,11 +2088,14 @@ packages:
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.31.0
       no-mistakes: '*'
+      typescript: '>=5'
       vitest: '>=5'
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
       no-mistakes:
+        optional: true
+      typescript:
         optional: true
       vitest:
         optional: true
@@ -4036,17 +4027,6 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  pr-shepherd@1.0.0(supports-color@7.2.0):
-    dependencies:
-      '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.5.4)
-      picomatch: 4.0.7
-      undici: 8.12.2
-      yaml: 2.9.1
-      zod: 4.5.4
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - supports-color
-
   prelude-ls@1.2.1: {}
 
   prompts@2.4.2:
@@ -4282,8 +4262,6 @@ snapshots:
   typescript@6.0.3: {}
 
   unbash@4.0.10: {}
-
-  undici@8.12.2: {}
 
   unified@11.0.5:
     dependencies:

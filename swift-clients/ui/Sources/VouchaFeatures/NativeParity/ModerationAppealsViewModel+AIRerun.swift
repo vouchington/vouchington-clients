@@ -1,5 +1,6 @@
 import Foundation
 import VouchaAPI
+import VouchaLocalization
 import VouchaModels
 
 struct AppealAIRerunBaseline: Equatable {
@@ -22,6 +23,18 @@ extension ModerationAppealsViewModel {
         canAccess && !isMutating && appeal.status == .pending
             && appeals.contains(where: { $0.id == appeal.id })
             && pendingAIReruns[appeal.id] != nil
+    }
+
+    /// A pending admission owns the display until the row names its run, so a previous
+    /// run's terminal status never shows beside a re-run that is still in flight.
+    func aiDraftStatusKey(for appeal: ModerationAppeal) -> UiMessageKey? {
+        if let baseline = pendingAIReruns[appeal.id] {
+            let admitted = baseline.runId
+            if admitted == nil || appeal.aiDraftRequestedRunId != admitted {
+                return ModerationAIRunStatus.active.appealDraftKey
+            }
+        }
+        return appeal.aiDraftRequestedRunStatus?.appealDraftKey
     }
 
     func startAIRerun(for appeal: ModerationAppeal) {

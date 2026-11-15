@@ -37,7 +37,6 @@
     "lint:complexity": "mise exec -- node scripts/scc-complexity.mjs",
     "lint:shell": "git ls-files -z '*.sh' 'dev/*' | xargs -0 mise exec -- shellcheck",
     "lint:swift": "bash swift-clients/tooling/harness.sh --checks fmt,lint,lint-tests",
-    "pr:shepherd": "pr-shepherd",
     "prepare": "node scripts/prepare-hooks.mjs",
     "quality:check": "pnpm run lint",
     "test:plan:dotnet": "no-mistakes tests plan dotnet --format commands --lock-timeout 300",
@@ -54,7 +53,6 @@
     "no-mistakes": "0.94.0",
     "oxfmt": "0.67.0",
     "oxlint": "1.80.0",
-    "pr-shepherd": "1.0.0",
     "vouchington-tooling": "0.48.0"
   },
   "engines": {
