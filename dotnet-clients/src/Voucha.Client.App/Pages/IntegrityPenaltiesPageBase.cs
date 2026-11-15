@@ -52,8 +52,9 @@ public abstract class IntegrityPenaltiesPageBase<TPenalty> : ContentPage
   protected override async void OnAppearing()
   {
     base.OnAppearing();
-    if (reviewSection is not null) await reviewSection.LoadAsync().ConfigureAwait(true);
-    await viewModel.LoadAsync(Token()).ConfigureAwait(true);
+    // Independent loads start together so a slow review queue cannot delay the ledger.
+    var review = reviewSection?.LoadAsync() ?? Task.CompletedTask;
+    await Task.WhenAll(review, viewModel.LoadAsync(Token())).ConfigureAwait(true);
   }
 
   protected override void OnDisappearing()
