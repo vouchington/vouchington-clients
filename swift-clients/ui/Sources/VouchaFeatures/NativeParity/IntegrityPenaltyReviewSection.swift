@@ -1,5 +1,4 @@
 import SwiftUI
-import VouchaAPI
 import VouchaDesignSystem
 import VouchaLocalization
 
@@ -9,20 +8,6 @@ struct IntegrityPenaltyReviewSection: View {
     @State
     var viewModel: IntegrityPenaltyReviewViewModel
     let onNavigate: (String) -> Void
-
-    init(
-        client: APIClient?,
-        viewerTier: IntegrityViewerTier,
-        domain: IntegrityDomain,
-        onNavigate: @escaping (String) -> Void
-    ) {
-        _viewModel = State(initialValue: IntegrityPenaltyReviewViewModel(
-            service: client.map(APIIntegrityPenaltyService.init(client:)),
-            viewerTier: viewerTier,
-            domain: domain
-        ))
-        self.onNavigate = onNavigate
-    }
 
     init(
         viewModel: IntegrityPenaltyReviewViewModel,
