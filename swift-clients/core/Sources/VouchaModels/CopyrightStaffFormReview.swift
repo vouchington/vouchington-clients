@@ -10,6 +10,7 @@ public struct CopyrightStaffFormReview: Codable, Sendable {
 }
 
 public struct CopyrightStaffFormScreening: Codable, Sendable {
+    public let attemptId: String
     public let state: String
     @RequiredNullable
     public var recommendation: String?

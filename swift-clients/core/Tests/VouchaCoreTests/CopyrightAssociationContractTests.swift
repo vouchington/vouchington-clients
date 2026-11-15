@@ -80,6 +80,23 @@ final class CopyrightAssociationContractTests: XCTestCase {
         }
     }
 
+    func testStaffQueueScreeningNamesItsAttempt() throws {
+        let body = try fixture("web.copyright.staff-queue.default")
+        let decoded = try decode(CopyrightStaffQueueResponse.self, body)
+        let screenings = decoded.copyrightNotices.compactMap { $0.formReview?.screening }
+        XCTAssertEqual(screenings.first?.attemptId, "00000000-0000-7000-8000-000000000828")
+        XCTAssertEqual(screenings.map(\.state), ["completed", "completed"])
+        var notices = try XCTUnwrap(body["copyright_notices"] as? [[String: Any]])
+        var review = try XCTUnwrap(notices[0]["form_review"] as? [String: Any])
+        var screening = try XCTUnwrap(review["screening"] as? [String: Any])
+        screening.removeValue(forKey: "attempt_id")
+        review["screening"] = screening
+        notices[0]["form_review"] = review
+        var missing = body
+        missing["copyright_notices"] = notices
+        XCTAssertThrowsError(try decode(CopyrightStaffQueueResponse.self, missing))
+    }
+
     func testStaffPlacementTupleCannotBePartial() throws {
         let body = try fixture("web.copyright.staff-queue.default")
         for key in ["image_id", "placement_id", "placement_revision"] {

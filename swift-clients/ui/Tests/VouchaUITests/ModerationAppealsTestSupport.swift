@@ -30,7 +30,8 @@ enum ModerationAppealsTestSupport {
         resolutionAction: String? = nil,
         lifecycleChangeId: String? = "change-1",
         completedRunId: String? = "previous-run",
-        requestedRunId: String = "appeal_resolution_00000000-0000-7000-8000-000000000202"
+        requestedRunId: String = "appeal_resolution_00000000-0000-7000-8000-000000000202",
+        requestedRunStatus: String? = nil
     ) -> String {
         """
         {
@@ -42,6 +43,7 @@ enum ModerationAppealsTestSupport {
           "ai_public_response":\(json(aiPublicResponse)),"ai_internal_response":"Internal AI context",
           "model":"native-test-model","ai_drafted_at":\(json(aiDraftedAt)),
           "ai_draft_requested_run_id":"\(requestedRunId)",
+          "ai_draft_requested_run_status":\(json(requestedRunStatus)),
           "ai_draft_run_id":\(json(aiDraftedAt == nil ? nil :
                   completedRunId)),
           "public_response":\(json(publicResponse)),"internal_notes":\(json(internalNotes)),

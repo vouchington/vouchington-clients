@@ -233,6 +233,68 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertEqual(model.errorMessage, .message(.nativeSwiftReviewDisputesRerunStillProcessing))
     }
 
+    func testDetailStatusOfAdmittedRunIsShownAndEndsOnlyThatRun() async throws {
+        let (model, appeal) = try await setup()
+        CannedFeedURLProtocol.handlers[runPath] = (run("succeeded"), 200)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(requestedRunStatus: "active")), 200)
+        await model.rerunAI(for: appeal)
+        XCTAssertNotNil(model.pendingAIReruns[appeal.id])
+        XCTAssertEqual(model.appeals.first?.aiDraftRequestedRunStatus, .active)
+        let card = try ModerationAppealCard(viewModel: model, appeal: XCTUnwrap(model.appeals.first)).inspect()
+        XCTAssertNoThrow(try card.find(text: UiMessages.string(
+            .nativeSwiftAiRunStatusAppealDraftActive, locale: Locale(identifier: "en")
+        )))
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
+            requestedRunId: "newer-run", requestedRunStatus: "failed"
+        )), 200)
+        await model.refreshPendingAIRerun(for: appeal)
+        XCTAssertNotNil(model.pendingAIReruns[appeal.id])
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(requestedRunStatus: "expired")), 200)
+        await model.refreshPendingAIRerun(for: appeal)
+        XCTAssertNil(model.pendingAIReruns[appeal.id])
+        XCTAssertEqual(model.appeals.first?.aiDraftRequestedRunStatus, .expired)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
+    }
+
+    func testStatusKeyHidesStaleRowStatusWhileAdmittedRunIsPending() async throws {
+        let (model, appeal) = try await setup()
+        let failedKey = ModerationAIRunStatus.failed.appealDraftKey
+        let stale = try decodeAppeal(Support.appeal(requestedRunId: "previous-run", requestedRunStatus: "failed"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: stale), failedKey)
+        CannedFeedURLProtocol.handlers[runPath] = (run("active"), 200)
+        await model.rerunAI(for: appeal)
+        XCTAssertNotNil(model.pendingAIReruns[appeal.id])
+        XCTAssertEqual(model.aiDraftStatusKey(for: stale), ModerationAIRunStatus.active.appealDraftKey)
+        let matching = try decodeAppeal(Support.appeal(requestedRunStatus: "failed"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: matching), failedKey)
+        let empty = try decodeAppeal(Support.appeal())
+        XCTAssertNil(model.aiDraftStatusKey(for: empty))
+        let nilStale = try decodeAppeal(Support.appeal(requestedRunId: "previous-run"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: nilStale), ModerationAIRunStatus.active.appealDraftKey)
+    }
+
+    private func decodeAppeal(_ json: String) throws -> ModerationAppeal {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(ModerationAppeal.self, from: Data(json.utf8))
+    }
+
+    func testFailedPolledRunKeepsItsOwnTerminalStatusAfterAdmissionReleases() async throws {
+        let (model, appeal) = try await setup()
+        CannedFeedURLProtocol.handlers[runPath] = (run("failed"), 200)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(requestedRunStatus: "failed")), 200)
+        await model.rerunAI(for: appeal)
+        XCTAssertNil(model.pendingAIReruns[appeal.id])
+        let shown = try XCTUnwrap(model.appeals.first)
+        XCTAssertEqual(model.aiDraftStatusKey(for: shown), ModerationAIRunStatus.failed.appealDraftKey)
+    }
+
+    func testRequestedRunStatusKeysCoverEveryStatus() {
+        let keys = [ModerationAIRunStatus.active, .succeeded, .failed, .expired].map(\.appealDraftKey)
+        XCTAssertEqual(Set(keys.map(\.rawValue)).count, 4)
+    }
+
     private func setup(
         store: AppealAIRerunAdmissionStore? = nil, userId: String? = nil
     ) async throws -> (ModerationAppealsViewModel, ModerationAppeal) {
