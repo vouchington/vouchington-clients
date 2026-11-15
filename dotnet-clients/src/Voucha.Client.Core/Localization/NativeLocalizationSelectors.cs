@@ -12,6 +12,7 @@ public static class NativeLocalizationSelectors
       "engineering.requestRange.*",
       "images.uploadPreviewUnavailable",
       "moderation.communityBans.*",
+      "moderation.penaltyReviews.*",
       "nav.*",
       "settings.*",
       "shared.*",

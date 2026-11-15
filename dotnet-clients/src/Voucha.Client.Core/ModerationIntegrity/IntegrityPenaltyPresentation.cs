@@ -16,7 +16,9 @@ public sealed record IntegrityPenaltyRow(
     UiText UserLabel = default,
     UiText CreatorLabel = default,
     UiText RevokerLabel = default,
-    string? SourceFlagType = null);
+    string? SourceFlagType = null,
+    DateTimeOffset? ReviewDueAt = null,
+    DateTimeOffset? ReviewedAt = null);
 
 internal static class IntegrityPenaltyPresentation
 {
@@ -33,7 +35,9 @@ internal static class IntegrityPenaltyPresentation
       Person(penalty.UserDisplayName, penalty.UserUsername),
       Person(penalty.CreatorDisplayName, penalty.CreatorUsername),
       Person(penalty.RevokerDisplayName, penalty.RevokerUsername),
-      penalty.SourceFlagType);
+      penalty.SourceFlagType,
+      penalty.ReviewDueAt,
+      penalty.ReviewedAt);
 
   public static IntegrityPenaltyRow Vote(VoteWeightPenalty penalty) => new(
       penalty.Id,
@@ -48,7 +52,9 @@ internal static class IntegrityPenaltyPresentation
       Person(penalty.UserDisplayName, penalty.UserUsername),
       Person(penalty.CreatorDisplayName, penalty.CreatorUsername),
       Person(penalty.RevokerDisplayName, penalty.RevokerUsername),
-      penalty.SourceFlagType);
+      penalty.SourceFlagType,
+      penalty.ReviewDueAt,
+      penalty.ReviewedAt);
 
   private static UiText Person(string? displayName, string? username) =>
       !string.IsNullOrWhiteSpace(displayName) ? UiText.UserContent(displayName.Trim()) :

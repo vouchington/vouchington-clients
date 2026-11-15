@@ -2,7 +2,8 @@ using Voucha.Client.Core.Api;
 
 namespace Voucha.Client.Core.ModerationIntegrity;
 
-public sealed class ApiModerationIntegrityService(VouchaApiClient client) : IModerationIntegrityService
+public sealed class ApiModerationIntegrityService(VouchaApiClient client)
+    : IModerationIntegrityService, IIntegrityPenaltyReviewService
 {
   public Task<ReportIntegrityFlagsResponse> FetchReportFlagsAsync(
       IntegrityFlagStatus status,
@@ -85,4 +86,20 @@ public sealed class ApiModerationIntegrityService(VouchaApiClient client) : IMod
   public Task<VoteWeightPenaltyResponse> RevokeVotePenaltyAsync(
       string penaltyId, CancellationToken cancellationToken = default) =>
       client.RevokeVoteIntegrityPenaltyAsync(penaltyId, cancellationToken);
+
+  public Task<ReportIntegrityPenaltiesResponse> FetchReportPenaltyReviewsDueAsync(
+      string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      client.FetchReportIntegrityPenaltyReviewsDueAsync(after, limit, cancellationToken);
+
+  public Task<ReportAbusePenaltyResponse> ReviewReportPenaltyAsync(
+      string penaltyId, CancellationToken cancellationToken = default) =>
+      client.ReviewReportIntegrityPenaltyAsync(penaltyId, cancellationToken);
+
+  public Task<VoteIntegrityPenaltiesResponse> FetchVotePenaltyReviewsDueAsync(
+      string? after = null, int limit = 25, CancellationToken cancellationToken = default) =>
+      client.FetchVoteIntegrityPenaltyReviewsDueAsync(after, limit, cancellationToken);
+
+  public Task<VoteWeightPenaltyResponse> ReviewVotePenaltyAsync(
+      string penaltyId, CancellationToken cancellationToken = default) =>
+      client.ReviewVoteIntegrityPenaltyAsync(penaltyId, cancellationToken);
 }
