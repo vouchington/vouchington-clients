@@ -58,6 +58,24 @@ final class IntegrityPenaltyReviewViewModelTests: XCTestCase {
         }
     }
 
+    func testStaleRefreshResponseDoesNotUndoCompletedReview() async throws {
+        let service = IntegrityPenaltyReviewServiceDouble()
+        let due = try Support.dueRows(.report)
+        let reviewed = try Support.reviewed(.report)
+        service.duePages = [.success(due), .success(due)]
+        service.reviewResults = [.success(reviewed)]
+        let model = makeModel(.report, service: service)
+        await model.load()
+        let row = try XCTUnwrap(model.penalties.first)
+        await model.confirmReview(row)
+
+        await model.load()
+
+        XCTAssertEqual(model.penalties.first?.reviewDueAt, reviewed.reviewDueAt)
+        XCTAssertFalse(model.canConfirm(row))
+        XCTAssertTrue(model.committedIds.contains(row.id))
+    }
+
     func testAmbiguousConfirmReconcilesCommittedReviewWithoutResubmitting() async throws {
         let service = IntegrityPenaltyReviewServiceDouble()
         service.duePages = try [.success(Support.dueRows(.report))]

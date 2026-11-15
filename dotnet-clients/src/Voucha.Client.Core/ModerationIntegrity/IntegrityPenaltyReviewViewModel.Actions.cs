@@ -74,7 +74,9 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
     catch (Exception exception) when (IntegrityMutationFailure.IsExpected(exception) ||
         exception is OperationCanceledException)
     {
-      actionErrors[id] = UiText.Localized(UiMessageKey.NativeSwiftIntegrityReconciliationFailed);
+      actionErrors[id] = IsForbidden(exception)
+          ? LosePermission()
+          : UiText.Localized(UiMessageKey.NativeSwiftIntegrityReconciliationFailed);
     }
   }
 

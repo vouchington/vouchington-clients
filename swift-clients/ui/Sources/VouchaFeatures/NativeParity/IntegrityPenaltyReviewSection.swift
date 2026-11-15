@@ -56,7 +56,7 @@ struct IntegrityPenaltyReviewSection: View {
             ProgressView(text(.nativeSwiftIntegrityLoading))
         } else if viewModel.initialError != nil, viewModel.penalties.isEmpty {
             Text(text(.moderationPenaltyReviewsLoadFailed)).foregroundStyle(.red)
-        } else if viewModel.penalties.isEmpty {
+        } else if viewModel.penalties.isEmpty, !viewModel.hasMore {
             Text(text(.moderationPenaltyReviewsEmpty))
         } else {
             ScrollView {

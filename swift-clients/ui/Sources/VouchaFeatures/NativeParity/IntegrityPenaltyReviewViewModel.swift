@@ -72,8 +72,13 @@ final class IntegrityPenaltyReviewViewModel {
         do {
             let page = try await service.reviewDue(domain: domain, after: nil, limit: Self.pageSize)
             guard generation == loadGeneration else { return }
-            penalties = page.results
-            committedIds = []
+            // Keep reviews completed while this request was in flight; the response may predate them.
+            let completed = Dictionary(
+                penalties.filter { committedIds.contains($0.id) }.map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            penalties = page.results.map { completed[$0.id] ?? $0 }
+            committedIds = committedIds.intersection(page.results.map(\.id))
             endCursor = page.pageInfo.endCursor
             hasMore = page.pageInfo.hasNextPage
             hasLoaded = true

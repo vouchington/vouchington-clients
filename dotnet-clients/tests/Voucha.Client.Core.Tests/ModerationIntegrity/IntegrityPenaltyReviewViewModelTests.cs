@@ -247,6 +247,27 @@ public sealed class IntegrityPenaltyReviewViewModelTests
     Assert.Contains("administrators", queue.ActionError(id), StringComparison.Ordinal);
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ForbiddenReconciliationLosesPermissionButKeepsReconciliationMarker(bool vote)
+  {
+    var reviews = new PenaltyReviewTestService();
+    QueueDue(reviews, vote);
+    QueueReview(reviews, vote, Http(HttpStatusCode.ServiceUnavailable));
+    var service = Exact(vote, () => Task.FromException<DateTimeOffset?>(Http(HttpStatusCode.Forbidden)));
+    var queue = Make(vote, reviews, service);
+    await queue.LoadAsync(Token);
+    var id = queue.Rows[0].Id;
+
+    await queue.ConfirmAsync(id, Token);
+
+    Assert.False(queue.IsAuthorized);
+    Assert.True(queue.NeedsReconciliation(id));
+    Assert.False(queue.CanConfirm(id));
+    Assert.Contains("administrators", queue.ActionError(id), StringComparison.Ordinal);
+  }
+
   [Fact]
   public async Task ReportAndVoteGatesAreIndependentAndNonAdministratorsNeverFetch()
   {
