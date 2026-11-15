@@ -79,7 +79,7 @@ describe('native sign-in and News CI selection (not runtime evidence)', () => {
     const job = jobBlock(workflow, 'dotnet-catalyst-gui')
     const flow = stepBlock(job, 'Exercise Catalyst email sign-in and News controls')
     assert.match(job, /\n    timeout-minutes: 15\n/u)
-    assert.match(flow, /timeout-minutes: 3/u)
+    assert.match(flow, /timeout-minutes: 5\n/u)
     assert.match(flow, /Contents\/Resources\/auth-news-contract/u)
     assert.match(flow, /catalyst-gui-auth-news\.mjs --stage-fixture "\$staged"/u)
     assert.match(flow, /catalyst-gui-auth-news\.mjs --session/u)

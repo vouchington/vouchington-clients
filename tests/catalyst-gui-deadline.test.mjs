@@ -9,13 +9,13 @@ import {
 import { assertAuthNewsControls } from '../dotnet-clients/tooling/catalyst-gui-auth-news-session.mjs'
 
 describe('Catalyst auth/news shared deadline', () => {
-  it('caps later phases by elapsed startup time and reserves teardown inside three minutes', () => {
+  it('caps later phases by elapsed startup time and reserves teardown inside the five-minute step', () => {
     let now = 0
     const budget = createDeadline(authNewsBudgetMs, () => now)
     assert.equal(budget.remaining(20_000), 20_000)
     now += 20_000
     assert.equal(budget.remaining(110_000), 110_000)
-    now += 100_000
+    now += authNewsBudgetMs - 50_000
     assert.equal(budget.remaining(75_000), 30_000)
     assert.equal(budget.remaining(100_000, 10_000), 20_000)
     assert.equal(budget.remaining(10_000), 10_000)
@@ -23,7 +23,7 @@ describe('Catalyst auth/news shared deadline', () => {
     assert.throws(() => budget.remaining(), /overall deadline/u)
     const cleanup = createDeadline(authNewsCleanupMs, () => now)
     assert.equal(cleanup.remaining(), 10_000)
-    assert.ok(authNewsBudgetMs + authNewsCleanupMs < 180_000)
+    assert.ok(authNewsBudgetMs + authNewsCleanupMs < 300_000)
   })
 
   it('clips the typing cap to shared time remaining and includes in-flight deadline context', async () => {
@@ -31,7 +31,7 @@ describe('Catalyst auth/news shared deadline', () => {
     const budget = createDeadline(authNewsBudgetMs, () => now)
     assert.equal(authNewsTypingMs, 30_000)
     assert.equal(budget.remaining(authNewsTypingMs), 30_000)
-    now = 125_000
+    now = authNewsBudgetMs - 25_000
     assert.equal(budget.remaining(authNewsTypingMs), 25_000)
     await assert.rejects(
       createDeadline(5, undefined, () => ' during POST /element/email/value (cap 5ms)').run(

@@ -254,7 +254,7 @@ describe('Catalyst auth/news CLI orchestration with a child fake (not GUI eviden
         const realFetch = globalThis.fetch
         globalThis.fetch = async (url, options) => {
           const response = await realFetch(url, options)
-          if (url.endsWith('/session') && options.method === 'POST') elapsed = 150001
+          if (url.endsWith('/session') && options.method === 'POST') elapsed = 240001
           return response
         }
       `,
@@ -332,7 +332,7 @@ describe('Catalyst auth/news CLI orchestration with a child fake (not GUI eviden
         const realFetch = globalThis.fetch
         globalThis.fetch = async (url, options) => {
           const response = await realFetch(url, options)
-          if (url.endsWith('/value') && options.method === 'POST') elapsed = 150001
+          if (url.endsWith('/value') && options.method === 'POST') elapsed = 240001
           return response
         }
       `,
