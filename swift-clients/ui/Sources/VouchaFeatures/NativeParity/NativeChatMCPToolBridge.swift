@@ -102,7 +102,9 @@ struct NativeChatMCPToolBridge {
             throw Failure.resultTooLarge
         }
         let fact = result.isError == true ? nil : result.structuredContent.flatMap { content in
-            NativeChatMCPFact.make(tool: name, option: object["option"], content: content)
+            NativeChatMCPFact.make(
+                tool: name, option: object["option"], arguments: object["arguments"], content: content
+            )
         }
         return ValidatedResult(envelope: text, isError: result.isError == true, fact: fact)
     }

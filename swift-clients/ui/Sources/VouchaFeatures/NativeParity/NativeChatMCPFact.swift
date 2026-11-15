@@ -12,6 +12,10 @@ enum NativeChatMCPFact: Equatable {
     case feedReferralLinks([NativeChatFeedReferralLinkFact])
     case postSummaries([NativeChatPostSummaryFact])
     case rssItemSummaries([NativeChatRssItemSummaryFact])
+    case financialProfile(NativeChatFinancialProfileFact?)
+    case bookmark(NativeChatBookmarkFact)
+    case copyrightNotices([NativeChatCopyrightNoticeFact])
+    case repeatInfringers([NativeChatRepeatInfringerFact])
 
     static func makeGeneralPreferences(_ value: DecodedJSONValue) -> Self? {
         guard let data = try? value.exactJSONData(),

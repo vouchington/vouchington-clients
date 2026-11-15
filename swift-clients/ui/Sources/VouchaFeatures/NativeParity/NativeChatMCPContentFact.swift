@@ -71,7 +71,7 @@ extension NativeChatMCPFact {
         !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private static func decodeContent<T: Decodable>(_ type: T.Type, _ value: DecodedJSONValue) -> T? {
+    static func decodeContent<T: Decodable>(_ type: T.Type, _ value: DecodedJSONValue) -> T? {
         guard let data = try? value.exactJSONData() else { return nil }
         return try? JSONDecoder.contentFact.decode(type, from: data)
     }

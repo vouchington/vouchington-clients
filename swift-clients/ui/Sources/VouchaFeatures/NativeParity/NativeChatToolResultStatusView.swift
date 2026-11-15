@@ -34,6 +34,14 @@ struct NativeChatToolResultStatusView: View {
                         NativeChatPostSummaryFactView(posts: posts, locale: locale)
                     case let .rssItemSummaries(items):
                         NativeChatRssItemSummaryFactView(items: items, locale: locale)
+                    case let .financialProfile(profile):
+                        NativeChatFinancialProfileFactView(profile: profile, locale: locale)
+                    case let .bookmark(bookmark):
+                        NativeChatBookmarkFactView(bookmark: bookmark, locale: locale)
+                    case let .copyrightNotices(notices):
+                        NativeChatCopyrightNoticesFactView(notices: notices, locale: locale)
+                    case let .repeatInfringers(accounts):
+                        NativeChatRepeatInfringersFactView(accounts: accounts, locale: locale)
                     case nil:
                         EmptyView()
                     }
