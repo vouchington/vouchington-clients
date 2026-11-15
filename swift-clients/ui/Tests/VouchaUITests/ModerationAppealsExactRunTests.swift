@@ -256,6 +256,30 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
     }
 
+    func testStatusKeyHidesStaleRowStatusWhileAdmittedRunIsPending() async throws {
+        let (model, appeal) = try await setup()
+        let failedKey = ModerationAIRunStatus.failed.appealDraftKey
+        let stale = try decodeAppeal(Support.appeal(requestedRunId: "previous-run", requestedRunStatus: "failed"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: stale), failedKey)
+        CannedFeedURLProtocol.handlers[runPath] = (run("active"), 200)
+        await model.rerunAI(for: appeal)
+        XCTAssertNotNil(model.pendingAIReruns[appeal.id])
+        XCTAssertEqual(model.aiDraftStatusKey(for: stale), ModerationAIRunStatus.active.appealDraftKey)
+        let matching = try decodeAppeal(Support.appeal(requestedRunStatus: "failed"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: matching), failedKey)
+        let empty = try decodeAppeal(Support.appeal())
+        XCTAssertNil(model.aiDraftStatusKey(for: empty))
+        let nilStale = try decodeAppeal(Support.appeal(requestedRunId: "previous-run"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: nilStale), ModerationAIRunStatus.active.appealDraftKey)
+    }
+
+    private func decodeAppeal(_ json: String) throws -> ModerationAppeal {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(ModerationAppeal.self, from: Data(json.utf8))
+    }
+
     func testRequestedRunStatusKeysCoverEveryStatus() {
         let keys = [ModerationAIRunStatus.active, .succeeded, .failed, .expired].map(\.appealDraftKey)
         XCTAssertEqual(Set(keys.map(\.rawValue)).count, 4)

@@ -41,8 +41,8 @@ struct ModerationAppealCard: View {
                 ), systemImage: "sparkles")
                     .font(Typography.subheadline)
             }
-            if let status = appeal.aiDraftRequestedRunStatus {
-                Label(localized(status.appealDraftKey), systemImage: "sparkles")
+            if let key = viewModel.aiDraftStatusKey(for: appeal) {
+                Label(localized(key), systemImage: "sparkles")
                     .font(Typography.subheadline)
                     .accessibilityIdentifier("appeal-ai-run-status-\(appeal.id)")
             }
