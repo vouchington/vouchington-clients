@@ -1314,13 +1314,21 @@ jobs:
             echo "::error::Runner user $current_uid does not own the macOS GUI console session ($console_uid)"
             exit 1
           fi
+      - name: Resolve pinned Swift packages
+        timeout-minutes: 5
+        uses: ./.github/actions/resolve-swift-packages
+        with:
+          platform: macOS
+          source-root: candidate-clients
+          clones-dir: ${{ runner.temp }}/swift-package-clones
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build macOS app shell
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
           SWIFT_PACKAGE_CLONES: ${{ runner.temp }}/swift-package-clones
         run: |
-          rm -rf "$XCODE_DERIVED_DATA" "$SWIFT_PACKAGE_CLONES"
+          rm -rf "$XCODE_DERIVED_DATA"
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
       - name: Run Sentry SDK boundary and launch transport tests
@@ -1380,7 +1388,7 @@ jobs:
             ${{ runner.temp }}/macos-launch-smoke.xcresult
             ${{ runner.temp }}/macos-feed-transport.xcresult
             ${{ runner.temp }}/macos-launch-diagnostics
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
   build-ios-tests:
     name: Swift iOS Simulator build for testing
@@ -1723,7 +1731,7 @@ jobs:
           path: |
             ${{ runner.temp }}/ios-launch-smoke.xcresult
             ${{ runner.temp }}/ios-launch-diagnostics
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
 
   build-ios-ipad:
@@ -1917,7 +1925,7 @@ jobs:
           path: |
             ${{ runner.temp }}/ipad-launch-smoke.xcresult
             ${{ runner.temp }}/ipad-launch-diagnostics
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
 
   dotnet-maui-tests:

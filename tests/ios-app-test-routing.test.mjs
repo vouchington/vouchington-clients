@@ -101,6 +101,8 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       'utf8',
     )
     assert.match(spawnGate, /BUDGET_SECONDS = 150/u)
+    assert.match(spawnGate, /terminate-budget-exhausted[\s\S]*reset_app[\s\S]*return 1/u)
+    assert.match(spawnGate, /xcrun", "simctl", "uninstall"/u)
     assert.match(spawnGate, /xcrun", "simctl", "install"/u)
     assert.match(spawnGate, /xcrun", "simctl", "launch"/u)
     assert.match(spawnGate, /xcrun", "simctl", "terminate"/u)

@@ -208,7 +208,7 @@ describe('native contract workflow boundary', () => {
       workflow,
       /test "\$\("\$xcodegen_bin" --version\)" = "Version: \$\{XCODEGEN_VERSION\}"/u,
     )
-    assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA" "\$SWIFT_PACKAGE_CLONES"/u)
+    assert.match(workflow, /rm -rf "\$XCODE_DERIVED_DATA"\n/u)
     assert.doesNotMatch(candidateJobs, /coverage-transport|s3_transport|secrets\./u)
     assert.match(action, /VOUCHA_CONTRACT_ROOT=\$RUNNER_TEMP\/native-contract/u)
     assert.match(validation, /run: pnpm install --frozen-lockfile/u)
