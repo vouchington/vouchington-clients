@@ -48,14 +48,15 @@ public sealed partial class ChatConversationViewModel
     if (retainedFactsMessageId is { } previous) RemoveLocalMessage(previous);
     retainedFactsMessageId = null;
     if (retained is null || retained.FeedPostReceipt is null && retained.RssItemReceipt is null &&
-        retained.ReferralLinkReceipt is null) return;
+        retained.ReferralLinkReceipt is null && retained.FactReceipt is null) return;
     var id = Guid.CreateVersion7().ToString();
     retainedFactsMessageId = id;
     messages.Add(new ChatMessageRow(
         id, "assistant", "", DateTimeOffset.UtcNow, Localization: localization,
         FeedPostReceipts: retained.FeedPostReceipt is { } post ? [post] : null,
         RssItemReceipts: retained.RssItemReceipt is { } rss ? [rss] : null,
-        ReferralLinkReceipts: retained.ReferralLinkReceipt is { } referral ? [referral] : null));
+        ReferralLinkReceipts: retained.ReferralLinkReceipt is { } referral ? [referral] : null,
+        FactReceipts: retained.FactReceipt is { } fact ? [fact] : null));
     OnPropertyChanged(nameof(Messages));
   }
 
@@ -75,13 +76,18 @@ public sealed partial class ChatConversationViewModel
     var post = OwnedPost(retained.Receipt, snapshot.AccountId, retained.CallId);
     var rss = OwnedRss(retained.RssItemReceipt, snapshot.AccountId, retained.CallId);
     var referral = OwnedReferral(retained.ReferralLinkReceipt, snapshot.AccountId, retained.CallId);
+    var fact = OwnedFact(retained.FactReceipt, snapshot.AccountId, retained.CallId);
     if (retained.Receipt is not null && post is null ||
         retained.RssItemReceipt is not null && rss is null ||
-        retained.ReferralLinkReceipt is not null && referral is null)
+        retained.ReferralLinkReceipt is not null && referral is null ||
+        retained.FactReceipt is not null && fact is null)
       return null;
     return new(conversationId, requestText, retained.AccountId, retained.AccountEpoch, retained.CallId,
-        retained.Envelope, post, rss, referral);
+        retained.Envelope, post, rss, referral, fact);
   }
+
+  private static McpFactReceipt? OwnedFact(McpFactReceipt? receipt, string accountId, string callId) =>
+      receipt?.IsOwnedBy(accountId, callId) == true ? receipt : null;
 
   private static McpFeedPostReceipt? OwnedPost(McpFeedPostReceipt? receipt, string accountId, string callId)
   {

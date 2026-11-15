@@ -62,7 +62,8 @@ public sealed partial class OpenAICompatibleLocalChatProvider
     return new(response, "openai_compatible", model,
         NonEmpty(completed.Select(call => call.Result.FeedPostFact)),
         NonEmpty(completed.Select(call => call.Result.RssItemFact)),
-        NonEmpty(completed.Select(call => call.Result.ReferralLinkFact)));
+        NonEmpty(completed.Select(call => call.Result.ReferralLinkFact)),
+        NonEmpty(completed.Select(call => call.Result.Fact)));
   }
 
   private static T[]? NonEmpty<T>(IEnumerable<T?> facts) where T : class
@@ -78,5 +79,5 @@ public sealed partial class OpenAICompatibleLocalChatProvider
   private static WindowsBuiltInResultRetainedException Retained(
       (string CallId, MemberMcpValidatedResult Result) call, MemberMcpConnectedSnapshot snapshot) =>
       new(call.Result.Envelope, call.Result.FeedPostFact, call.Result.RssItemFact, call.CallId,
-          snapshot.AccountId, snapshot.AccountEpoch, call.Result.ReferralLinkFact);
+          snapshot.AccountId, snapshot.AccountEpoch, call.Result.ReferralLinkFact, call.Result.Fact);
 }

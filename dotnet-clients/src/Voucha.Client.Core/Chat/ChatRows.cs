@@ -40,7 +40,8 @@ public sealed record ChatMessageRow(
     IUiLocalization? Localization = null,
     IReadOnlyList<McpFeedPostReceipt>? FeedPostReceipts = null,
     IReadOnlyList<McpFeedRssItemReceipt>? RssItemReceipts = null,
-    IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts = null) : INotifyPropertyChanged
+    IReadOnlyList<McpFeedReferralLinkReceipt>? ReferralLinkReceipts = null,
+    IReadOnlyList<McpFactReceipt>? FactReceipts = null) : INotifyPropertyChanged
 {
   public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -61,6 +62,10 @@ public sealed record ChatMessageRow(
   public bool HasRssItemFacts => RssItemReceipts is { Count: > 0 };
 
   public bool HasReferralLinkFacts => ReferralLinkReceipts is { Count: > 0 };
+
+  public bool HasMcpFacts => FactReceipts is { Count: > 0 };
+
+  public string? DisplayMcpFacts => McpFactReceipt.Display(FactReceipts, Localization);
 
   public string? DisplayRssItemFacts => McpFeedRssItemReceipt.Display(RssItemReceipts, Localization);
 
@@ -87,5 +92,7 @@ public sealed record ChatMessageRow(
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayRssItemFacts)));
     if (HasReferralLinkFacts)
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayReferralLinkFacts)));
+    if (HasMcpFacts)
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayMcpFacts)));
   }
 }

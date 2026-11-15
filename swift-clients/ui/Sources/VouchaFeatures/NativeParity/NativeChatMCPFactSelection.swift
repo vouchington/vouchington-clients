@@ -10,6 +10,17 @@ extension NativeChatMCPFact {
         case ("read_feed", .string("posts")): makeFeedPostIds(content)
         case ("read_feed", .string("rss_items")): makeFeedRssItemIds(content)
         case ("read_feed", .string("referral_links")): makeFeedReferralLinks(content)
+        default: makeContent(tool: name, option: option, content: content)
+        }
+    }
+
+    private static func makeContent(tool name: String, option: DecodedJSONValue?, content: DecodedJSONValue) -> Self? {
+        switch (name, option) {
+        case ("read_posts", .string("search")): makePostSearch(content)
+        case ("read_posts", .string("details")): makePostDetails(content)
+        case ("read_rss_feed_item", .string("list")): makeRssItemList(content)
+        case ("read_rss_feed_item", .string("details")): makeRssItemDetails(content)
+        case ("get_story", nil): makeStoryItems(content)
         default: nil
         }
     }

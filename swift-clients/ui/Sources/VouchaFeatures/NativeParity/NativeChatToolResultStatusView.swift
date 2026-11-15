@@ -30,6 +30,10 @@ struct NativeChatToolResultStatusView: View {
                         NativeChatFeedRssItemFactView(itemIds: itemIds, locale: locale)
                     case let .feedReferralLinks(links):
                         NativeChatFeedReferralLinkFactView(links: links, locale: locale)
+                    case let .postSummaries(posts):
+                        NativeChatPostSummaryFactView(posts: posts, locale: locale)
+                    case let .rssItemSummaries(items):
+                        NativeChatRssItemSummaryFactView(items: items, locale: locale)
                     case nil:
                         EmptyView()
                     }
