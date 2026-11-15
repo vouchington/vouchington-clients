@@ -118,8 +118,6 @@ rules:
           reason: Platform binary published with the first-party no-mistakes release.
         - name: no-mistakes-win32-x64-msvc
           reason: Platform binary published with the first-party no-mistakes release.
-        - name: pr-shepherd
-          reason: First-party pull-request management tool.
         - name: vouchington-tooling
           reason: First-party shared repository tooling and runner utilities.
       scopedPrefixes: ['@vouchington/']
