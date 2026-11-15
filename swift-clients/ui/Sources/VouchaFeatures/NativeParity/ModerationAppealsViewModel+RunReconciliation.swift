@@ -54,10 +54,25 @@ extension ModerationAppealsViewModel {
         let response: ModerationAppealEnvelope = try await client.send(.appeal(id: appeal.id))
         guard isCurrent(), response.appeal.id == appeal.id else { return }
         guard admission.baseline.isReconciled(in: response.appeal) else {
+            try applyRequestedRunStatus(of: response.appeal, admission: admission)
             throw AppealAIRerunError.stillProcessing
         }
         admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
         replace(with: response.appeal, preservingEditedDraft: true)
     }
 
+    /// The detail read names the status of the exact admitted run. Show it, and end the
+    /// admission only when that same run failed or expired; never re-POST to find out.
+    private func applyRequestedRunStatus(
+        of appeal: ModerationAppeal,
+        admission: AppealAIRerunAdmissionStore.Admission
+    ) throws {
+        guard let runId = admission.baseline.runId, appeal.aiDraftRequestedRunId == runId,
+              let status = appeal.aiDraftRequestedRunStatus
+        else { return }
+        replace(with: appeal, preservingEditedDraft: true)
+        guard status == .failed || status == .expired else { return }
+        admissionStore.remove(appeal.id, for: admissionOwner, matching: admission.token)
+        throw AppealAIRerunError.ended
+    }
 }

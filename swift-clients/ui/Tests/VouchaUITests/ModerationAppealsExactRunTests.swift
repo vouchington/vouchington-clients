@@ -233,6 +233,34 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
         XCTAssertEqual(model.errorMessage, .message(.nativeSwiftReviewDisputesRerunStillProcessing))
     }
 
+    func testDetailStatusOfAdmittedRunIsShownAndEndsOnlyThatRun() async throws {
+        let (model, appeal) = try await setup()
+        CannedFeedURLProtocol.handlers[runPath] = (run("succeeded"), 200)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(requestedRunStatus: "active")), 200)
+        await model.rerunAI(for: appeal)
+        XCTAssertNotNil(model.pendingAIReruns[appeal.id])
+        XCTAssertEqual(model.appeals.first?.aiDraftRequestedRunStatus, .active)
+        let card = try ModerationAppealCard(viewModel: model, appeal: XCTUnwrap(model.appeals.first)).inspect()
+        XCTAssertNoThrow(try card.find(text: UiMessages.string(
+            .nativeSwiftAiRunStatusAppealDraftActive, locale: Locale(identifier: "en")
+        )))
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
+            requestedRunId: "newer-run", requestedRunStatus: "failed"
+        )), 200)
+        await model.refreshPendingAIRerun(for: appeal)
+        XCTAssertNotNil(model.pendingAIReruns[appeal.id])
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(requestedRunStatus: "expired")), 200)
+        await model.refreshPendingAIRerun(for: appeal)
+        XCTAssertNil(model.pendingAIReruns[appeal.id])
+        XCTAssertEqual(model.appeals.first?.aiDraftRequestedRunStatus, .expired)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
+    }
+
+    func testRequestedRunStatusKeysCoverEveryStatus() {
+        let keys = [ModerationAIRunStatus.active, .succeeded, .failed, .expired].map(\.appealDraftKey)
+        XCTAssertEqual(Set(keys.map(\.rawValue)).count, 4)
+    }
+
     private func setup(
         store: AppealAIRerunAdmissionStore? = nil, userId: String? = nil
     ) async throws -> (ModerationAppealsViewModel, ModerationAppeal) {

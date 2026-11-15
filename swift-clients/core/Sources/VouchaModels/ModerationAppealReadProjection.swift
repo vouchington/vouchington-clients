@@ -41,7 +41,7 @@ private enum ProtectedAppealField: String, CodingKey {
     case model, aiDraftedAt, internalNotes
     case draftedAt, editedAt, editedById
     case approvedById, resolvedById, latestLifecycleChangeId
-    case staffContext, aiDraftRequestedRunId, aiDraftRunId
+    case staffContext, aiDraftRequestedRunId, aiDraftRequestedRunStatus, aiDraftRunId
 
     var requiresStaffDetail: Bool {
         switch self {
@@ -59,7 +59,7 @@ private enum ProtectedAppealField: String, CodingKey {
              .model, .aiDraftedAt, .internalNotes,
              .draftedAt, .editedAt, .editedById,
              .approvedById, .resolvedById, .latestLifecycleChangeId,
-             .staffContext, .aiDraftRequestedRunId, .aiDraftRunId:
+             .staffContext, .aiDraftRequestedRunId, .aiDraftRequestedRunStatus, .aiDraftRunId:
             true
         }
     }

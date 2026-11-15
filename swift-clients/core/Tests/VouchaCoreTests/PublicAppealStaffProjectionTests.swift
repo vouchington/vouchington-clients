@@ -21,6 +21,8 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
         let data = try encoder.encode(projection)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         XCTAssertEqual(object["ai_draft_requested_run_id"] as? String, appeal.aiDraftRequestedRunId)
+        XCTAssertEqual(object["ai_draft_requested_run_status"] as? String, "succeeded")
+        XCTAssertEqual(appeal.aiDraftRequestedRunStatus, .succeeded)
         XCTAssertNotNil(object["ai_draft_run_id"])
         XCTAssertNotNil(object["internal_notes"])
     }
@@ -30,7 +32,8 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
         let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let appeal = try XCTUnwrap(envelope["appeal"] as? [String: Any])
         for key in [
-            "ai_draft_requested_run_id", "ai_draft_run_id", "internal_notes", "drafted_at",
+            "ai_draft_requested_run_id", "ai_draft_requested_run_status", "ai_draft_run_id",
+            "internal_notes", "drafted_at",
             "edited_at", "edited_by_id", "approved_by_id", "resolved_by_id", "latest_lifecycle_change_id"
         ] {
             var malformed = appeal

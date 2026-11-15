@@ -41,6 +41,11 @@ struct ModerationAppealCard: View {
                 ), systemImage: "sparkles")
                     .font(Typography.subheadline)
             }
+            if let status = appeal.aiDraftRequestedRunStatus {
+                Label(localized(status.appealDraftKey), systemImage: "sparkles")
+                    .font(Typography.subheadline)
+                    .accessibilityIdentifier("appeal-ai-run-status-\(appeal.id)")
+            }
             lifecycle
             staffContext
             if appeal.status == .pending {
@@ -140,6 +145,17 @@ extension ModerationAppealAction {
         case .accept: .nativeSwiftModerationAppealsAccept
         case .reduce: .nativeSwiftModerationAppealsReduce
         case .deny: .nativeSwiftModerationAppealsDeny
+        }
+    }
+}
+
+extension ModerationAIRunStatus {
+    var appealDraftKey: UiMessageKey {
+        switch self {
+        case .active: .nativeSwiftAiRunStatusAppealDraftActive
+        case .succeeded: .nativeSwiftAiRunStatusAppealDraftSucceeded
+        case .failed: .nativeSwiftAiRunStatusAppealDraftFailed
+        case .expired: .nativeSwiftAiRunStatusAppealDraftExpired
         }
     }
 }
