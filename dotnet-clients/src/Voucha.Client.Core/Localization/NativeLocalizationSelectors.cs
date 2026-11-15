@@ -26,6 +26,7 @@ public static class NativeLocalizationSelectors
       "native.dotnet.*",
       "native.language.*",
       "native.legal.*",
+      "native.mcpFacts.*",
       "native.moderation.*",
       "native.swift.*",
       "native.taxonomy.*",
