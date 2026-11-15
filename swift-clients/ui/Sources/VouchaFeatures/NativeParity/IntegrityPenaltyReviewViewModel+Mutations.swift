@@ -3,7 +3,8 @@ extension IntegrityPenaltyReviewViewModel {
         guard canConfirm(penalty), let service else { return }
         guard mutatingIds.insert(penalty.id).inserted else { return }
         errors[penalty.id] = nil
-        defer { mutatingIds.remove(penalty.id) }
+        baselines[penalty.id] = penalty
+        defer { finishMutation(penalty.id) }
         do {
             try await adopt(service.review(domain: domain, id: penalty.id))
         } catch {
@@ -21,7 +22,8 @@ extension IntegrityPenaltyReviewViewModel {
         guard canRevoke(penalty), let service else { return }
         guard mutatingIds.insert(penalty.id).inserted else { return }
         errors[penalty.id] = nil
-        defer { mutatingIds.remove(penalty.id) }
+        baselines[penalty.id] = penalty
+        defer { finishMutation(penalty.id) }
         do {
             _ = try await service.revoke(domain: domain, id: penalty.id)
             remove(penalty.id)
@@ -39,15 +41,20 @@ extension IntegrityPenaltyReviewViewModel {
     func reconcile(_ penaltyId: String) async {
         guard reconciliationRequiredIds.contains(penaltyId),
               mutatingIds.insert(penaltyId).inserted else { return }
-        defer { mutatingIds.remove(penaltyId) }
+        defer { finishMutation(penaltyId) }
         await reconcileWhileMutating(penaltyId)
+    }
+
+    private func finishMutation(_ penaltyId: String) {
+        mutatingIds.remove(penaltyId)
+        if !reconciliationRequiredIds.contains(penaltyId) { baselines[penaltyId] = nil }
     }
 
     /// Reads the authoritative penalty. A review counts as committed only when the server's
     /// review date moved; otherwise the one review may be retried without advancing it twice.
     private func reconcileWhileMutating(_ penaltyId: String) async {
         guard let service else { return }
-        let before = penalties.first { $0.id == penaltyId }
+        let before = baselines[penaltyId] ?? penalties.first { $0.id == penaltyId }
         do {
             let current = try await service.penalty(domain: domain, id: penaltyId)
             reconciliationRequiredIds.remove(penaltyId)

@@ -76,6 +76,30 @@ final class IntegrityPenaltyReviewViewModelTests: XCTestCase {
         XCTAssertTrue(model.committedIds.contains(row.id))
     }
 
+    func testReconciliationUsesPreMutationBaselineAfterRefreshDropsRow() async throws {
+        let service = IntegrityPenaltyReviewServiceDouble()
+        let due = try Support.dueRows(.vote)
+        let empty = IntegrityPenaltyPage(results: [], pageInfo: due.pageInfo)
+        service.duePages = [.success(due), .success(empty)]
+        service.reviewResults = [.failure(VouchaError.network(URLError(.timedOut)))]
+        service.exactResults = try [
+            .failure(VouchaError.network(URLError(.timedOut))),
+            .success(XCTUnwrap(due.results.first))
+        ]
+        let model = makeModel(.vote, service: service)
+        await model.load()
+        let row = try XCTUnwrap(model.penalties.first)
+        await model.confirmReview(row)
+        await model.load()
+        XCTAssertTrue(model.penalties.isEmpty)
+
+        await model.reconcile(row.id)
+
+        XCTAssertFalse(model.committedIds.contains(row.id))
+        XCTAssertTrue(model.reconciliationRequiredIds.isEmpty)
+        XCTAssertTrue(model.baselines.isEmpty)
+    }
+
     func testStaleRefreshResponseDoesNotRestoreRevokedPenalty() async throws {
         let service = IntegrityPenaltyReviewServiceDouble()
         let due = try Support.dueRows(.report)

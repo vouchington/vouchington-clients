@@ -25,6 +25,8 @@ final class IntegrityPenaltyReviewViewModel {
     var committedIds: Set<String> = []
     /// Penalties revoked this session; a response that predates the revoke must not restore them.
     var removedIds: Set<String> = []
+    /// Pre-mutation penalties, kept for reconciliation across refreshes that drop the row.
+    var baselines: [String: IntegrityPenaltyRow] = [:]
     var hasMore = false
     var isLoading = false
     var isLoadingMore = false
