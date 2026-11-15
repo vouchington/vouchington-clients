@@ -15,7 +15,8 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   private readonly bool canRevoke;
   private readonly HashSet<string> actionIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> reconciliationIds = new(StringComparer.Ordinal);
-  private readonly HashSet<string> committedIds = new(StringComparer.Ordinal);
+  // Adopted server penalties by id; they outlive the visible rows so an older page cannot undo them.
+  private readonly Dictionary<string, TPenalty> committedIds = new(StringComparer.Ordinal);
   private readonly HashSet<string> revokedIds = new(StringComparer.Ordinal);
   private readonly Dictionary<string, TPenalty> baselines = new(StringComparer.Ordinal);
   private readonly Dictionary<string, UiText> actionErrors = new(StringComparer.Ordinal);
@@ -56,13 +57,13 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   protected abstract Task<TPenalty> FetchExactAsync(string id, CancellationToken cancellationToken);
   protected abstract Task<TPenalty> RevokeExactAsync(string id, CancellationToken cancellationToken);
 
-  public bool IsCommitted(string id) => committedIds.Contains(id);
+  public bool IsCommitted(string id) => committedIds.ContainsKey(id);
   public bool NeedsReconciliation(string id) => reconciliationIds.Contains(id);
   public string? ActionError(string id) =>
       actionErrors.TryGetValue(id, out var text) ? localization.Resolve(text) : null;
 
   public bool CanConfirm(string id) => IsAuthorized && Find(id) is { } penalty && !IsRevoked(penalty) &&
-      !committedIds.Contains(id) && !actionIds.Contains(id) && !reconciliationIds.Contains(id);
+      !committedIds.ContainsKey(id) && !actionIds.Contains(id) && !reconciliationIds.Contains(id);
 
   public bool CanRevoke(string id) => IsAuthorized && canRevoke && Find(id) is { } penalty &&
       !IsRevoked(penalty) && !actionIds.Contains(id) && !reconciliationIds.Contains(id);
@@ -146,6 +147,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
   {
     Items = (append ? Items.Concat(page.Results) : page.Results)
         .Where(item => !revokedIds.Contains(Id(item)))
+        .Select(item => committedIds.GetValueOrDefault(Id(item)) ?? item)
         .DistinctBy(Id, StringComparer.Ordinal).ToArray();
     cursor = page.EndCursor;
     HasMore = page.HasNextPage;

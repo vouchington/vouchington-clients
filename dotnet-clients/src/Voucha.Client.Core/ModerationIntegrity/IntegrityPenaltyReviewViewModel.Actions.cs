@@ -96,7 +96,7 @@ public abstract partial class IntegrityPenaltyReviewViewModel<TPenalty>
     else
     {
       Items = Items.Select(item => Id(item) == id ? penalty : item).ToArray();
-      if (committed) committedIds.Add(id);
+      if (committed) committedIds[id] = penalty;
     }
     Notify();
   }

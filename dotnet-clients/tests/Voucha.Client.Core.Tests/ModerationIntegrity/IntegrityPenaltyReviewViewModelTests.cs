@@ -194,6 +194,7 @@ public sealed class IntegrityPenaltyReviewViewModelTests
     var reviews = new PenaltyReviewTestService();
     QueueDue(reviews, vote);
     QueueDue(reviews, vote);
+    QueueDue(reviews, vote);
     var revokedAt = DateTimeOffset.Parse("2026-10-24T12:00:00Z");
     var calls = 0;
     var service = new ModerationIntegrityTestService
@@ -221,7 +222,9 @@ public sealed class IntegrityPenaltyReviewViewModelTests
 
     var again = Make(vote, reviews, service);
     await again.LoadAsync(Token);
+    Assert.Single(again.Rows);
     await again.RevokeAsync(id, Token);
+    Assert.Equal(2, calls);
     Assert.Empty(again.Rows);
     Assert.False(again.NeedsReconciliation(id));
   }
@@ -280,6 +283,41 @@ public sealed class IntegrityPenaltyReviewViewModelTests
 
     Assert.False(queue.IsCommitted(id));
     Assert.False(queue.NeedsReconciliation(id));
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task InFlightRefreshPageCannotUndoReviewCompletedWhileItLoaded(bool vote)
+  {
+    var reviews = new PenaltyReviewTestService();
+    QueueDue(reviews, vote);
+    var due = new TaskCompletionSource<bool>();
+    var review = new TaskCompletionSource<bool>();
+    if (vote)
+    {
+      reviews.VoteDue.Enqueue(async () => { await due.Task; return VoteDue(); });
+      reviews.VoteReviews.Enqueue(async () => { await review.Task; return VoteReviewed(); });
+    }
+    else
+    {
+      reviews.ReportDue.Enqueue(async () => { await due.Task; return ReportDue(); });
+      reviews.ReportReviews.Enqueue(async () => { await review.Task; return ReportReviewed(); });
+    }
+    var queue = Make(vote, reviews);
+    await queue.LoadAsync(Token);
+    var id = queue.Rows[0].Id;
+    var confirm = queue.ConfirmAsync(id, Token);
+    var refresh = queue.RefreshAsync(Token);
+
+    review.SetResult(true);
+    await confirm;
+    due.SetResult(true);
+    await refresh;
+
+    Assert.NotNull(queue.Rows[0].ReviewedAt);
+    Assert.True(queue.IsCommitted(id));
+    Assert.False(queue.CanConfirm(id));
   }
 
   [Theory]

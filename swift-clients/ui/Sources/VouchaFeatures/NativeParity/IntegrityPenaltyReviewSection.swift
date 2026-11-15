@@ -52,12 +52,15 @@ struct IntegrityPenaltyReviewSection: View {
 
     @ViewBuilder
     private var content: some View {
+        if viewModel.initialError != nil {
+            Text(text(.moderationPenaltyReviewsLoadFailed)).foregroundStyle(.red)
+        }
         if viewModel.isLoading, viewModel.penalties.isEmpty {
             ProgressView(text(.nativeSwiftIntegrityLoading))
-        } else if viewModel.initialError != nil, viewModel.penalties.isEmpty {
-            Text(text(.moderationPenaltyReviewsLoadFailed)).foregroundStyle(.red)
         } else if viewModel.penalties.isEmpty, !viewModel.hasMore {
-            Text(text(.moderationPenaltyReviewsEmpty))
+            if viewModel.initialError == nil {
+                Text(text(.moderationPenaltyReviewsEmpty))
+            }
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
