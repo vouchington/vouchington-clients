@@ -17,6 +17,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
   private readonly Label claim = new();
   private readonly Label recommendation = new();
   private readonly Label lifecycle = new() { FontSize = 12 };
+  private readonly Label aiDraftStatus = new() { FontSize = 12, AutomationId = "moderation-dispute-aiDraftStatus" };
   private readonly Label aiInternal = new();
   private readonly Label internalNotes = new();
   private readonly Editor publicResponse = UiCopy.Bind(
@@ -73,6 +74,7 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     Children.Add(claim);
     Children.Add(recommendation);
     Children.Add(lifecycle);
+    Children.Add(aiDraftStatus);
     Children.Add(aiInternal);
     Children.Add(internalNotes);
     Children.Add(UiCopy.Bind(
@@ -143,6 +145,8 @@ internal sealed partial class ModerationDisputeCardView : VerticalStackLayout
     recommendation.Text = ModerationDisputeCardPresentation.Recommendation(dispute);
     recommendation.IsVisible = !string.IsNullOrWhiteSpace(recommendation.Text);
     lifecycle.Text = ModerationDisputeCardPresentation.Lifecycle(dispute);
+    aiDraftStatus.Text = ModerationDisputeCardPresentation.AIDraftStatus(viewModel.AIDraftStatusKey(dispute));
+    aiDraftStatus.IsVisible = aiDraftStatus.Text.Length > 0;
     PopulateReadOnly(
         aiInternal,
         UiMessageKey.NativeSwiftReviewDisputesInternalAiResponse,

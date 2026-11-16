@@ -9,6 +9,9 @@ internal static class ModerationDisputeCardPresentation
   public static string Heading(ModerationDispute dispute) =>
       ModerationLabels.Entity(dispute.PostLabel, UiCopy.CurrentLocalization);
 
+  public static string AIDraftStatus(UiMessageKey? key) =>
+      key is { } status ? UiCopy.Localize(status) : string.Empty;
+
   public static string Context(ModerationDispute dispute)
   {
     var staff = dispute.StaffContext;

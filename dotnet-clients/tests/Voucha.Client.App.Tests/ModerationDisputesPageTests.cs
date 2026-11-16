@@ -69,6 +69,30 @@ public sealed class ModerationDisputesPageTests
         StringComparison.Ordinal);
   }
 
+  [Theory]
+  [InlineData(ModerationRunStatus.Active, true)]
+  [InlineData(ModerationRunStatus.Succeeded, false)]
+  [InlineData(ModerationRunStatus.Failed, true)]
+  [InlineData(ModerationRunStatus.Expired, true)]
+  [InlineData(null, false)]
+  public async Task CardRendersTheRunStatusCopyAndHidesItWhenThereIsNone(
+      ModerationRunStatus? status, bool visible)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    var service = new Service();
+    service.Current = service.Dispute with { AiDraftRequestedRunStatus = status };
+    var viewModel = new ModerationDisputesViewModel(service, new NavigationViewer(true, ["moderator"]));
+    var detail = await viewModel.FetchDetailAsync(service.Current.Id, TestContext.Current.CancellationToken);
+    var card = new ModerationDisputeCardView(viewModel, () => TestContext.Current.CancellationToken)
+    { BindingContext = detail };
+
+    var label = card.Children.OfType<Label>().Single(item => item.AutomationId == "moderation-dispute-aiDraftStatus");
+    Assert.Equal(visible, label.IsVisible);
+    Assert.Equal(visible, label.Text.Length > 0);
+    Assert.Equal(string.Empty, ModerationDisputeCardPresentation.AIDraftStatus(null));
+  }
+
   [Fact]
   public void CanonicalPostContentReplacesTheStaffContextPostTitle()
   {
@@ -226,7 +250,7 @@ public sealed class ModerationDisputesPageTests
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     public ModerationDispute Dispute => Current;
 
-    private ModerationDispute Current { get; set; } = JsonSerializer.Deserialize<ModerationDispute>(
+    internal ModerationDispute Current { get; set; } = JsonSerializer.Deserialize<ModerationDispute>(
         """
         {
           "id":"dispute-1",

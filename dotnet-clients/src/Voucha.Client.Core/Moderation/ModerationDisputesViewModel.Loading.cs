@@ -44,6 +44,7 @@ public sealed partial class ModerationDisputesViewModel
       var response = await service.FetchDisputeAsync(
           disputeId,
           cancellationToken).ConfigureAwait(true);
+      if (response.Dispute.Id == disputeId && EndObservedRun(response.Dispute)) return;
       if (response.Dispute.Id != disputeId || !HasRerunReconciled(response.Dispute)) return;
       UnlockRerun(disputeId);
       Replace(response.Dispute, preserveUnconfirmedDirtyDraft: true);

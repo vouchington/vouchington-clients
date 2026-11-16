@@ -306,6 +306,7 @@ public sealed class ModerationDisputesViewModelTests
     {
       AiDraftedAt = (dispute.AiDraftedAt ?? DateTimeOffset.UtcNow).AddMinutes(1),
       LatestLifecycleChangeId = "rerun-lifecycle-change",
+      AiDraftRunId = "dispute-rerun-job-1",
     };
     service.Refreshes.Enqueue(advanced);
     await viewModel.RefreshAmbiguousAsync(
