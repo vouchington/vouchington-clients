@@ -164,5 +164,6 @@ public sealed partial class ModerationDisputesViewModel
 
   private sealed record RerunBaseline(
       DateTimeOffset? AiDraftedAt,
-      string? LatestLifecycleChangeId);
+      string? LatestLifecycleChangeId,
+      string? RunId = null);
 }

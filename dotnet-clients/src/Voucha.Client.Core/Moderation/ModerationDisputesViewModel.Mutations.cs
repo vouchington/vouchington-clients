@@ -117,12 +117,14 @@ public sealed partial class ModerationDisputesViewModel
         throw new InvalidOperationException(localization.Localize(
             UiMessageKey.NativeSwiftReviewDisputesRerunNotQueued));
       }
+      NoteQueuedRun(dispute.Id, queued.RunId);
       for (var attempt = 0; attempt < rerunPollAttempts; attempt++)
       {
         cancellationToken.ThrowIfCancellationRequested();
         var refreshed = (await service.FetchDisputeAsync(
             dispute.Id,
             cancellationToken).ConfigureAwait(true)).Dispute;
+        if (EndObservedRun(refreshed)) return;
         if (HasRerunReconciled(refreshed))
         {
           UnlockRerun(dispute.Id);
