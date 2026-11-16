@@ -78,6 +78,11 @@ describe('Dependabot repair workflow contracts', () => {
     assert.doesNotMatch(swiftAndroid, /dependabot-automerge|workflow_call:|--disable-auto/u)
   })
 
+  it('installs the Swift Android publish job without Husky hooks that need mise', () => {
+    const publish = swiftAndroid.split('\n  publish-swift-android:')[1]
+    assert.match(publish, /HUSKY: '0'\n {8}run: pnpm install --frozen-lockfile/u)
+  })
+
   it('accepts the complete allowed Dependabot change set but rejects larger candidates', () => {
     const predicate = dotnet.match(
       /jq -e --arg default "\$DEFAULT_BRANCH" --arg repo "\$GITHUB_REPOSITORY" '([\s\S]*?)'/u,
