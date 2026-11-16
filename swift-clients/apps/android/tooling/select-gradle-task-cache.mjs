@@ -24,9 +24,9 @@ export function selectGradleTaskCache(env, path) {
   const prefix = `${env.RUNNER_OS}-${env.RUNNER_ARCH}-android-gradle-tasks-v1-${pathHash}-${env.TASK_CACHE_CONFIG_HASH}-`
   let sourceRevision
   let previousKey
-  if (env.GITHUB_EVENT_NAME === 'pull_request') {
+  if (env.GITHUB_EVENT_NAME === 'pull_request' || env.GITHUB_EVENT_NAME === 'merge_group') {
     if (!revision.test(env.PR_BASE_REVISION ?? '')) {
-      throw new Error('Pull request Gradle cache requires an exact base revision')
+      throw new Error('Pull request and merge group Gradle cache requires an exact base revision')
     }
     sourceRevision = env.PR_BASE_REVISION
   } else if (env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main') {
@@ -37,7 +37,7 @@ export function selectGradleTaskCache(env, path) {
     }
     if (before !== '0'.repeat(40)) previousKey = `${prefix}${before}-${env.TASK_CACHE_KIND}`
   } else {
-    throw new Error('Gradle task-output cache only accepts pull requests or main pushes')
+    throw new Error('Gradle task-output cache only accepts pull requests, merge groups, or main pushes')
   }
   return {
     path,

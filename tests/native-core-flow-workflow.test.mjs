@@ -89,7 +89,7 @@ describe('native sign-in and News CI selection (not runtime evidence)', () => {
     )
     assert.doesNotMatch(flow, /continue-on-error|--session.*\|\| true/u)
     const upload = stepBlock(job, 'Upload Catalyst auth and News evidence')
-    assert.match(upload, /if: \$\{\{ success\(\) \}\}/u)
+    assert.match(upload, /if: \$\{\{ github\.event_name != 'push' && success\(\) \}\}/u)
     assert.match(upload, /auth-news-result\.json/u)
     assert.match(upload, /if-no-files-found: error/u)
     assert.match(upload, /actions\/upload-artifact@[a-f0-9]{40}/u)

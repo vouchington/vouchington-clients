@@ -37,8 +37,8 @@ Jobs may restore hash-keyed GitHub Actions caches for package stores and checksu
 archives. Frozen install commands remain the authority (`--frozen-lockfile`, `--locked-mode`,
 `--force-resolved-versions`). Extracted toolchains, SDKs, and NDK trees stay in `$RUNNER_TEMP` and
 are not cached. Shared pnpm stores restore on every run. A missing primary key is saved only after
-the frozen install on a `push` to `refs/heads/main`. Pull requests restore and install, and they
-do not save. Another job may reserve that key first; the lost save does not fail the run.
+the frozen install on a `push` to `refs/heads/main`. Pull requests and merge-queue runs restore and
+install, and they do not save. Another job may reserve that key first; the lost save does not fail the run.
 
 The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
 `main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
@@ -51,6 +51,28 @@ build succeeds. Their exact keys, package paths, and workload-specific restore p
 same. A PR with new dependencies may restore a main prefix and download the missing packages,
 but it does not save a branch-local cache copy. This reduces competing cache writes; it does not
 guarantee that a cache remains available or that a job gets faster.
+
+## Merge queue and main pushes
+
+The required checks `validate` (`validate.yml`) and `Tests` (`native-contract-tests.yml`) run on
+`pull_request` and on `merge_group` (`checks_requested`). The default-branch ruleset requires the
+merge queue (squash), so the required checks run against the exact combined result of the queued
+pull requests on top of `main`. Two pull requests that each pass alone can still conflict
+semantically, as a duplicate Swift declaration once did; the queue catches that before it lands
+(#705). A `merge_group` run checks out `github.sha` (the queue commit, equal to
+`merge_group.head_sha`), uses `merge_group.base_sha` where a pull request uses its base SHA, and has
+no `pull_request` or `before` payload.
+
+A push to `main` no longer runs tests. It is a build-and-warm path: it keeps every cache save, the
+Sentry symbol collection and upload jobs, and production DSN injection, and it skips the test jobs,
+the test steps inside warm jobs, and the `Tests` aggregate. Caches saved by a `merge_group` run are
+scoped to its `gh-readonly-queue/...` ref and cannot be restored by pull requests or `main`, while
+`merge_group` runs can restore `main` caches. So cache saves and Sentry uploads stay on the `main`
+push; an ejected queue group must not create a Sentry release or a cache entry.
+
+Add a new required test to a `merge_group`-capable job without a `github.event_name != 'push'`
+condition only if it also warms a cache or uploads symbols. `tests/merge-queue-workflow.test.mjs`
+pins the job list that remains on a `main` push.
 
 ## pnpm
 

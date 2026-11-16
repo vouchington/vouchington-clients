@@ -130,6 +130,33 @@ test('creates and verifies a main-branch push identity without a pull request', 
   assert.equal((await verifyContractArtifact(expected(identity))).candidate.event, 'push')
 })
 
+test('creates and verifies a merge-group identity without a pull request', async t => {
+  const identity = {
+    ...(await fixture(t)),
+    candidateEvent: 'merge_group',
+    candidateNumber: undefined,
+    headSha: 'd'.repeat(40),
+    revisionSha: 'd'.repeat(40),
+  }
+  const manifest = await createContractArtifact(identity)
+  assert.deepEqual(manifest.candidate, {
+    event: 'merge_group',
+    number: null,
+    base: identity.baseSha,
+    head: identity.headSha,
+    revision: identity.revisionSha,
+  })
+  assert.equal((await verifyContractArtifact(expected(identity))).candidate.event, 'merge_group')
+  await assert.rejects(
+    createContractArtifact({ ...identity, candidateNumber: 17 }),
+    /merge_group candidates must not have a PR number/,
+  )
+  await assert.rejects(
+    createContractArtifact({ ...identity, candidateEvent: 'workflow_dispatch' }),
+    /pull_request, push, or merge_group/,
+  )
+})
+
 test('rejects tampered content, size, unexpected paths, and symlinks', async t => {
   const identity = await fixture(t)
   await createContractArtifact(identity)

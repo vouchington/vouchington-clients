@@ -457,7 +457,10 @@ describe('native contract workflow boundary', () => {
     assert.match(workflow, /retention-days: 1/u)
     assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
     assert.match(workflow, /--expected-producer-run-attempt/u)
-    assert.match(workflow, /  tests:\n\s+name: Tests\n\s+if: \$\{\{ !cancelled\(\) \}\}/u)
+    assert.match(
+      workflow,
+      /  tests:\n\s+name: Tests\n\s+if: \$\{\{ github\.event_name != 'push' && !cancelled\(\) \}\}/u,
+    )
     assert.doesNotMatch(workflow, /pull_request\.head\.repo\.full_name/u)
     assert.doesNotMatch(workflow, /Vouchington contract parity|check-runs/u)
   })
@@ -475,7 +478,7 @@ describe('native contract workflow boundary', () => {
     )
     assert.match(
       dotnetJob,
-      /name: Test \.NET DTO fixture parity separately[\s\S]*if: \$\{\{ !cancelled\(\) \}\}[\s\S]*continue-on-error: true/u,
+      /name: Test \.NET DTO fixture parity separately[\s\S]*if: \$\{\{ github\.event_name != 'push' && !cancelled\(\) \}\}[\s\S]*continue-on-error: true/u,
     )
     assert.match(
       swiftJob,

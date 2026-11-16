@@ -66,6 +66,26 @@ test('revision-chain keys seed each successful main source revision with a compa
     path,
   )
   assert.equal(pr.cacheKey, main.previousKey)
+  const mergeGroup = selectGradleTaskCache(
+    {
+      ...baseCacheEvent,
+      GITHUB_EVENT_NAME: 'merge_group',
+      GITHUB_REF: 'refs/heads/gh-readonly-queue/main/pr-1-abc',
+      PR_BASE_REVISION: revisionA,
+      CANDIDATE_REVISION: revisionC,
+    },
+    path,
+  )
+  assert.equal(mergeGroup.cacheKey, pr.cacheKey, 'a merge group restores its base main cache')
+  assert.equal(mergeGroup.previousKey, undefined)
+  assert.throws(
+    () =>
+      selectGradleTaskCache(
+        { ...baseCacheEvent, GITHUB_EVENT_NAME: 'merge_group', PR_BASE_REVISION: '' },
+        path,
+      ),
+    /exact base/u,
+  )
   assert.equal(pr.previousKey, undefined, 'a pull request must not restore a predecessor or save')
   assert.equal(
     pr.compatiblePrefix,

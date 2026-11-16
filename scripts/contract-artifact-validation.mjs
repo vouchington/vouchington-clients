@@ -68,6 +68,7 @@ export async function configuredPaths(configPath) {
   }
   return config
 }
+const candidateEvents = ['pull_request', 'push', 'merge_group']
 export function createMetadata(options, config) {
   const clientsRepository = requiredString(options.clientsRepository, 'clients repository')
   if (!repositoryPattern.test(clientsRepository)) fail('clients repository must be owner/name')
@@ -77,14 +78,14 @@ export function createMetadata(options, config) {
   )
   if (!repositoryPattern.test(contractRepository)) fail('contract repository must be owner/name')
   const candidateEvent = requiredString(options.candidateEvent, 'candidate event')
-  if (!['pull_request', 'push'].includes(candidateEvent))
-    fail('candidate event must be pull_request or push')
+  if (!candidateEvents.includes(candidateEvent))
+    fail('candidate event must be pull_request, push, or merge_group')
   const candidateNumber =
     candidateEvent === 'pull_request'
       ? Number(positiveInteger(options.candidateNumber, 'candidate PR number'))
       : null
-  if (candidateEvent === 'push' && options.candidateNumber !== undefined)
-    fail('push candidates must not have a PR number')
+  if (candidateEvent !== 'pull_request' && options.candidateNumber !== undefined)
+    fail(`${candidateEvent} candidates must not have a PR number`)
   return {
     schema: 3,
     clientsRepository,
@@ -135,12 +136,11 @@ export function validateManifest(value, config, expectedContractRepository = con
     fail('invalid manifest Vouchington repository')
   sha(value.vouchington.sha, 'manifest Vouchington SHA')
   exactKeys(value.candidate, ['event', 'number', 'base', 'head', 'revision'], 'manifest candidate')
-  if (!['pull_request', 'push'].includes(value.candidate.event))
-    fail('invalid manifest candidate event')
+  if (!candidateEvents.includes(value.candidate.event)) fail('invalid manifest candidate event')
   if (value.candidate.event === 'pull_request')
     positiveInteger(value.candidate.number, 'manifest candidate PR number')
   else if (value.candidate.number !== null)
-    fail('manifest push candidate must not have a PR number')
+    fail('manifest non-pull-request candidate must not have a PR number')
   for (const key of ['base', 'head', 'revision'])
     sha(value.candidate[key], `manifest candidate ${key} SHA`)
   exactKeys(value.producer, ['runId', 'runAttempt'], 'manifest producer metadata')
