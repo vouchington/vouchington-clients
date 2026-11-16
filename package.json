@@ -46,13 +46,13 @@
   },
   "devDependencies": {
     "@ast-grep/cli": "0.51.1",
-    "coverage-check": "0.18.0",
+    "coverage-check": "0.18.1",
     "dependency-cruiser": "18.7.2",
     "husky": "9.1.7",
     "knip": "6.44.2",
-    "no-mistakes": "0.109.61",
-    "oxfmt": "0.77.0",
-    "oxlint": "1.92.0",
+    "no-mistakes": "0.109.63",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
     "vouchington-tooling": "3.4.0"
   },
   "engines": {
