@@ -21,3 +21,7 @@ Claude.md
 # Pulled from the pinned Vouchington contract by `pnpm run contracts:pull`; never committed.
 swift-clients/ui/Sources/VouchaLocalization/Generated/
 dotnet-clients/src/Voucha.Client.Core/Localization/Generated/
+
+# Python bytecode written by running scripts/*.py; never committed.
+__pycache__/
+*.py[cod]
