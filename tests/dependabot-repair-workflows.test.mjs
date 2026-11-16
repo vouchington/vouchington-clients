@@ -28,6 +28,12 @@ function jobIf(workflow, job) {
   return (match[1] ?? match[2]).replace(/\s+/gu, ' ').trim()
 }
 
+// Declared top-level job names: two-space-indent keys inside the `jobs:` section.
+function jobNames(workflow) {
+  const section = workflow.slice(workflow.search(/^jobs:/mu)).split(/\n(?=\S)/u)[0]
+  return [...section.matchAll(/^ {2}([A-Za-z0-9_-]+):/gmu)].map(match => match[1])
+}
+
 function count(source, pattern) {
   return [...source.matchAll(pattern)].length
 }
@@ -52,13 +58,21 @@ describe('Dependabot repair workflow contracts', () => {
       "github.event.pull_request.user.login == 'dependabot[bot]'",
       'github.event.pull_request.head.repo.full_name == github.repository',
     ]
-    for (const [workflow, job] of [
+    const gated = [
       [swiftAndroid, 'prepare'],
       [swiftAndroid, 'publish-swift-android'],
       [dotnet, 'gate'],
       [dotnet, 'prepare'],
       [dotnet, 'publish'],
-    ]) {
+    ]
+    // A newly added job must be added to the gated list above, or this fails.
+    for (const workflow of [swiftAndroid, dotnet]) {
+      assert.deepEqual(
+        jobNames(workflow),
+        gated.filter(([candidate]) => candidate === workflow).map(([, job]) => job),
+      )
+    }
+    for (const [workflow, job] of gated) {
       const condition = jobIf(workflow, job)
       for (const term of identity) {
         assert.ok(condition.includes(term), `${job} must require ${term}`)
