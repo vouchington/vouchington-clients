@@ -14,7 +14,7 @@ final class ReviewDisputesExactRunTests: NativeRouteSurfaceViewModelTestCase {
     func testStatusKeysMapEveryStatusToExistingDisputeCopy() {
         let keys = [ModerationAIRunStatus.active, .succeeded, .failed, .expired].map(\.disputeDraftKey)
         XCTAssertEqual(keys, [
-            .nativeSwiftReviewDisputesRerunStillProcessing, .nativeSwiftReviewDisputesDrafted,
+            .nativeSwiftReviewDisputesRerunStillProcessing, nil,
             .nativeSwiftReviewDisputesRerunFailed, .nativeSwiftReviewDisputesRerunExpired
         ])
     }
@@ -36,8 +36,10 @@ final class ReviewDisputesExactRunTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(model.aiDraftStatusKey(for: stale), ModerationAIRunStatus.active.disputeDraftKey)
         let nilStatus = try decode(Support.dispute())
         XCTAssertEqual(model.aiDraftStatusKey(for: nilStatus), ModerationAIRunStatus.active.disputeDraftKey)
-        let matching = try decode(Support.dispute(requestedRunId: admittedRun, requestedRunStatus: "succeeded"))
-        XCTAssertEqual(model.aiDraftStatusKey(for: matching), ModerationAIRunStatus.succeeded.disputeDraftKey)
+        let matching = try decode(Support.dispute(requestedRunId: admittedRun, requestedRunStatus: "failed"))
+        XCTAssertEqual(model.aiDraftStatusKey(for: matching), ModerationAIRunStatus.failed.disputeDraftKey)
+        let succeeded = try decode(Support.dispute(requestedRunId: admittedRun, requestedRunStatus: "succeeded"))
+        XCTAssertNil(model.aiDraftStatusKey(for: succeeded))
         let unnamed = try decode(Support.dispute(requestedRunId: admittedRun))
         XCTAssertNil(model.aiDraftStatusKey(for: unnamed))
     }

@@ -34,11 +34,11 @@ extension ReviewDisputesViewModel {
 }
 
 extension ModerationAIRunStatus {
-    /// Dispute drafts reuse the shared dispute copy; the producer ships no per-status dispute keys.
-    var disputeDraftKey: UiMessageKey {
+    /// The producer ships no succeeded copy for disputes, so a succeeded run shows no label.
+    var disputeDraftKey: UiMessageKey? {
         switch self {
         case .active: .nativeSwiftReviewDisputesRerunStillProcessing
-        case .succeeded: .nativeSwiftReviewDisputesDrafted
+        case .succeeded: nil
         case .failed: .nativeSwiftReviewDisputesRerunFailed
         case .expired: .nativeSwiftReviewDisputesRerunExpired
         }
