@@ -7,8 +7,8 @@ import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
 import { NUGET_LOCK_PATHS } from '../scripts/validate-dependabot-dotnet-repair.mjs'
 
-const automerge = await readFile(
-  new URL('../.github/workflows/dependabot-automerge.yml', import.meta.url),
+const swiftAndroid = await readFile(
+  new URL('../.github/workflows/dependabot-swift-android-repair.yml', import.meta.url),
   'utf8',
 )
 const dotnet = await readFile(
@@ -30,21 +30,21 @@ describe('Dependabot repair workflow contracts', () => {
       access(new URL('../.github/workflows/repair-dependabot-native.yml', import.meta.url)),
     )
     assert.match(swiftAndroidClassifier, /dependencyName === 'source\.skip\.tools\/skip'/u)
-    assert.doesNotMatch(automerge, /outputs\.dependency-names/u)
+    assert.doesNotMatch(swiftAndroid, /outputs\.dependency-names/u)
   })
 
   it('never checks out or executes a pull-request tree', () => {
-    for (const workflow of [automerge, dotnet]) {
+    for (const workflow of [swiftAndroid, dotnet]) {
       assert.doesNotMatch(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head/u)
       assert.doesNotMatch(workflow, /git (?:checkout|switch|worktree)/u)
       assert.match(workflow, /Check out exact trusted base/u)
       assert.match(workflow, /persist-credentials: false/u)
     }
-    assert.match(automerge, /Fetch candidate files as inert data/u)
+    assert.match(swiftAndroid, /Fetch candidate files as inert data/u)
   })
 
   it('binds artifacts and repair commits to exact live inputs', () => {
-    for (const workflow of [automerge, dotnet]) {
+    for (const workflow of [swiftAndroid, dotnet]) {
       assert.match(workflow, /git diff --raw --full-index -z --find-renames/u)
       assert.match(workflow, /BASE_SHA\.\.\.\$EXPECTED_HEAD_SHA/u)
       assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
@@ -56,16 +56,16 @@ describe('Dependabot repair workflow contracts', () => {
     }
   })
 
-  it('exposes the write token only to final push, cleanup, or pinned auto-merge steps', () => {
+  it('exposes the write token only to the final push step', () => {
     assert.equal(count(dotnet, /secrets\.DEPENDABOT_AUTOMERGE_TOKEN/gu), 1)
-    assert.equal(count(automerge, /secrets\.DEPENDABOT_AUTOMERGE_TOKEN/gu), 4)
+    assert.equal(count(swiftAndroid, /secrets\.DEPENDABOT_AUTOMERGE_TOKEN/gu), 1)
     assert.equal(count(dotnet, /name: Push with a single-command write credential/gu), 1)
-    assert.equal(count(automerge, /name: Push with a single-command write credential/gu), 1)
+    assert.equal(count(swiftAndroid, /name: Push with a single-command write credential/gu), 1)
   })
 
   it('repairs only the established fixed output sets', () => {
-    assert.match(automerge, /published-paths/u)
-    assert.match(automerge, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 2/u)
+    assert.match(swiftAndroid, /published-paths/u)
+    assert.match(swiftAndroid, /\$\(find repair-artifact -type f \| wc -l[^\n]+== 2/u)
     assert.match(dotnet, /published-paths/u)
     assert.match(
       dotnet,
@@ -75,8 +75,7 @@ describe('Dependabot repair workflow contracts', () => {
       dotnet,
       /group: dependabot-dotnet-lock-repair-\$\{\{ github\.event\.pull_request\.number \}\}/u,
     )
-    assert.match(automerge, /expected_base_sha:/u)
-    assert.match(automerge, /expected_head_sha:/u)
+    assert.doesNotMatch(swiftAndroid, /dependabot-automerge|workflow_call:|--disable-auto/u)
   })
 
   it('accepts the complete allowed Dependabot change set but rejects larger candidates', () => {

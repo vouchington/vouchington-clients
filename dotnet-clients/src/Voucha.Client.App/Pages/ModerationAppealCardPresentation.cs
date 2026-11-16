@@ -10,6 +10,9 @@ internal static partial class ModerationAppealCardPresentation
           UiMessageKey.NativeSwiftModerationAppealsAppealId,
           ("id", UiText.ProtocolValue(appeal.CaseId ?? appeal.Id)));
 
+  public static string AIDraftStatus(UiMessageKey? key) =>
+      key is { } status ? UiCopy.Localize(status) : string.Empty;
+
   public static string Reason(ModerationAppeal appeal) =>
       appeal.AppealReason ??
       UiCopy.Localize(UiMessageKey.NativeSwiftModerationAppealsNoReason);

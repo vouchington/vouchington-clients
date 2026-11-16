@@ -1,6 +1,6 @@
 # Voucha Android
 
-The Android client is a Skip Fuse 1.9.13 app targeting Android API 28 and newer. Its pinned Swift 6.4.0 Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
+The Android client is a Skip Fuse 1.9.20 app targeting Android API 28 and newer. Its pinned Swift 6.4.0 Android SDK ships API 28 target triples, which sets the effective client floor even though ML Kit Prompt API itself supports API 26.
 Swift compiles natively with the Swift Android SDK. Jetpack Compose renders the SwiftUI shell.
 
 ## Local models

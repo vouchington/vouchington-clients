@@ -8,7 +8,7 @@ const readWorkflow = name => readFile(workflowUrl(name), 'utf8')
 describe('event-driven CI orchestration', () => {
   it('classifies Swift Android repairs through the trusted classifier script', async () => {
     const [workflow, classifier] = await Promise.all([
-      readWorkflow('dependabot-automerge.yml'),
+      readWorkflow('dependabot-swift-android-repair.yml'),
       readFile(
         new URL('../scripts/classify-dependabot-swift-android-repair.mjs', import.meta.url),
         'utf8',

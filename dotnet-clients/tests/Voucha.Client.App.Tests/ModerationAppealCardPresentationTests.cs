@@ -265,6 +265,50 @@ public sealed class ModerationAppealCardPresentationTests
     Assert.Empty(card.Children);
   }
 
+  [Theory]
+  [InlineData(ModerationRunStatus.Active)]
+  [InlineData(ModerationRunStatus.Succeeded)]
+  [InlineData(ModerationRunStatus.Failed)]
+  [InlineData(ModerationRunStatus.Expired)]
+  public async Task CardRendersTheExactRunStatusCopyAndHidesItWhenAbsent(ModerationRunStatus status)
+  {
+    DispatcherProvider.SetCurrent(new ImmediateDispatcherProvider());
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    var owner = new NavigationViewer(true, ["administrator"], IdentityId: "staff-1");
+    var appeal = Appeal(null) with { AiDraftRequestedRunStatus = status };
+    using var model = new ModerationAppealsViewModel(new PendingAIRerunService(appeal), owner);
+    await model.FetchDetailAsync(appeal.Id, TestContext.Current.CancellationToken);
+    var card = new ModerationAppealCardView(model) { BindingContext = appeal };
+    typeof(ModerationAppealCardView).GetMethod("OnLoaded",
+        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .Invoke(card, new object?[] { null, EventArgs.Empty });
+
+    var label = card.Children.OfType<Label>().Single(item => item.AutomationId == "moderation-appeal-aiDraftStatus");
+    Assert.True(label.IsVisible);
+    var expected = status switch
+    {
+      ModerationRunStatus.Succeeded => UiMessageKey.NativeSwiftAiRunStatusAppealDraftSucceeded,
+      ModerationRunStatus.Failed => UiMessageKey.NativeSwiftAiRunStatusAppealDraftFailed,
+      ModerationRunStatus.Expired => UiMessageKey.NativeSwiftAiRunStatusAppealDraftExpired,
+      _ => UiMessageKey.NativeSwiftAiRunStatusAppealDraftActive,
+    };
+    Assert.Equal(UiCopy.Localize(expected), label.Text);
+    Assert.Equal(string.Empty, ModerationAppealCardPresentation.AIDraftStatus(null));
+  }
+
+  [Fact]
+  public void CardWithoutAccessRendersNoRunStatus()
+  {
+    using var scope = UiCopy.PushLocalization(UiLocalization.English);
+    var appeal = Appeal(null) with { AiDraftRequestedRunStatus = ModerationRunStatus.Failed };
+    using var model = new ModerationAppealsViewModel(
+        new PendingAIRerunService(appeal), new NavigationViewer(false, []));
+    var card = new ModerationAppealCardView(model) { BindingContext = appeal };
+
+    Assert.Null(card.BindingContext);
+    Assert.DoesNotContain(card.Children.OfType<Label>(), item => item.AutomationId == "moderation-appeal-aiDraftStatus");
+  }
+
   private sealed class PendingAIRerunService(
       ModerationAppeal appeal,
       bool ambiguousDelivery = false,
