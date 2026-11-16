@@ -3,8 +3,8 @@ name: Validate
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main]
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -58,7 +58,7 @@ jobs:
           tool: dotnet
       - name: Check changed lines
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           set -euo pipefail
           [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]

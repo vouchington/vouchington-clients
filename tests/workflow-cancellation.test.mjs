@@ -34,6 +34,8 @@ const statusPredicate = (expression, cancelled, success) => {
     .trim()
     .replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
     .replace(/\s+/gu, '')
+    // Main pushes only warm caches; the status predicate that remains is what is under test.
+    .replace(/^github\.event_name!='push'&&/u, '')
   switch (predicate) {
     case '!cancelled()':
       return !cancelled

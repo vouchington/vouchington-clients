@@ -1,12 +1,14 @@
 name: Native contract tests
 run-name: >-
-  Native contract tests for ${{ github.event.pull_request.number && format('PR #{0} at {1}', github.event.pull_request.number, github.event.pull_request.head.sha) || format('main at {0}', github.sha) }}
+  Native contract tests for ${{ github.event.pull_request.number && format('PR #{0} at {1}', github.event.pull_request.number, github.event.pull_request.head.sha) || github.event_name == 'merge_group' && format('merge queue at {0}', github.event.merge_group.head_sha) || format('main at {0}', github.sha) }}
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
     branches: [main]
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   actions: read
@@ -33,6 +35,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_REF: ${{ github.ref }}
           EVENT_SHA: ${{ github.sha }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -57,6 +61,17 @@ jobs:
             trusted_ref="$EVENT_SHA"
             base_sha="$EVENT_BEFORE"
             head_sha="$EVENT_SHA"
+          elif [ "$EVENT_NAME" = merge_group ] && [[ "$EVENT_REF" == refs/heads/gh-readonly-queue/main/* ]]; then
+            [[ "$MERGE_GROUP_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$MERGE_GROUP_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$EVENT_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [ "$EVENT_SHA" = "$MERGE_GROUP_HEAD_SHA" ]
+            candidate_event=merge_group
+            candidate_number=
+            candidate_ref="$EVENT_SHA"
+            trusted_ref="$EVENT_SHA"
+            base_sha="$MERGE_GROUP_BASE_SHA"
+            head_sha="$MERGE_GROUP_HEAD_SHA"
           else
             echo "::error::Unsupported native test event $EVENT_NAME on $EVENT_REF"
             exit 1
@@ -252,6 +267,8 @@ jobs:
           EVENT_REF: ${{ github.ref }}
           EVENT_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -288,6 +305,18 @@ jobs:
             if (manifest.candidate.base !== process.env.EVENT_BEFORE) throw new Error('push base SHA changed')
             if (manifest.candidate.head !== process.env.EVENT_SHA) throw new Error('push head SHA changed')
             if (manifest.candidate.revision !== process.env.EVENT_SHA) throw new Error('push revision SHA changed')
+            appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
+          } else if (
+            process.env.EVENT_NAME === 'merge_group' &&
+            process.env.EVENT_REF.startsWith('refs/heads/gh-readonly-queue/main/')
+          ) {
+            if (manifest.candidate.event !== 'merge_group') throw new Error('artifact is not for a merge group')
+            if (manifest.candidate.number !== null) throw new Error('merge group artifact has a pull request number')
+            if (manifest.candidate.base !== process.env.MERGE_GROUP_BASE_SHA) throw new Error('merge group base SHA changed')
+            if (manifest.candidate.head !== process.env.MERGE_GROUP_HEAD_SHA) throw new Error('merge group head SHA changed')
+            if (manifest.candidate.head !== process.env.EVENT_SHA) throw new Error('merge group head is not the event SHA')
+            if (manifest.candidate.revision !== process.env.EVENT_SHA) throw new Error('merge group revision SHA changed')
             appendFileSync(process.env.GITHUB_OUTPUT, `base_sha=${manifest.candidate.base}\n`)
             appendFileSync(process.env.GITHUB_OUTPUT, `revision_sha=${manifest.candidate.revision}\n`)
           } else {
@@ -372,6 +401,7 @@ jobs:
         working-directory: candidate-clients
         run: ./dotnet-clients/tooling/harness.sh
       - name: Test portable solution with coverage
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         run: >-
           ./dotnet-clients/tooling/harness.sh --exec
@@ -384,7 +414,7 @@ jobs:
           "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile=**/obj/**"
       - name: Test .NET DTO fixture parity separately
         id: dotnet-dto-fixture-parity
-        if: ${{ !cancelled() }}
+        if: ${{ github.event_name != 'push' && !cancelled() }}
         continue-on-error: true
         working-directory: candidate-clients
         run: >-
@@ -393,6 +423,7 @@ jobs:
           --configuration Release --no-build
           --filter "FullyQualifiedName~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto"
       - name: Normalize Core coverage report
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients/dotnet-clients
         run: |
           set -euo pipefail
@@ -403,6 +434,7 @@ jobs:
           }
           cp "$reports" TestResults/core/lcov.info
       - name: Upload .NET Core LCOV
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 2
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
@@ -411,6 +443,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
       - name: Enforce Core patch coverage
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         env:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
@@ -418,6 +451,7 @@ jobs:
         run: pnpm run coverage:dotnet-core
   periphery-swift-core:
     name: Swift Periphery (core)
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 15
@@ -454,6 +488,7 @@ jobs:
           bash swift-clients/tooling/periphery-scan.sh core
   periphery-swift-ui:
     name: Swift Periphery (UI)
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 20
@@ -486,6 +521,7 @@ jobs:
           bash swift-clients/tooling/periphery-scan.sh ui
   test-swift-core-linux:
     name: Swift core tests (Linux)
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -521,6 +557,7 @@ jobs:
           --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"'
   test-swift-core:
     name: Swift core tests
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 22
@@ -666,7 +703,7 @@ jobs:
         env:
           TASK_CACHE_KIND: app
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
-          PR_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+          PR_BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           PREVIOUS_MAIN_REVISION: ${{ github.event.before }}
           TASK_CACHE_CONFIG_HASH: ${{ hashFiles('candidate-clients/.mise.toml', 'candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle.properties', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/tooling/gradle-build-cache-dir.sh', 'candidate-clients/swift-clients/apps/android/tooling/select-gradle-task-cache.mjs', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
         run: |
@@ -787,6 +824,7 @@ jobs:
           mise exec -- swift package --disable-keychain --disable-netrc resolve --package-path swift-clients/apps/android --force-resolved-versions 2>&1 | tee "$resolve_log"
           ! grep -E 'Downloading binary artifact' "$resolve_log"
       - name: Build the selected Android validation phase
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         env:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
@@ -798,6 +836,7 @@ jobs:
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
   test-swift-android-host:
     name: Swift Android host tests
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 20
@@ -964,7 +1003,7 @@ jobs:
   test-swift-android-cookie:
     name: Swift Android Skip
     needs: [verify, build-swift-android, test-swift-android-libs, test-swift-android-host]
-    if: ${{ !cancelled() }}
+    if: ${{ github.event_name != 'push' && !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -1048,6 +1087,7 @@ jobs:
           retention-days: 1
   build-swift-ui-tests:
     name: Swift UI build for testing
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
@@ -1103,6 +1143,7 @@ jobs:
           retention-days: 1
   test-swift-ui:
     name: Swift UI tests and coverage
+    if: ${{ github.event_name != 'push' }}
     needs: [verify, build-swift-ui-tests]
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
@@ -1194,6 +1235,7 @@ jobs:
           if-no-files-found: error
   swift-patch-coverage:
     name: Swift patch coverage
+    if: ${{ github.event_name != 'push' }}
     needs: [verify, test-swift-core, test-swift-ui]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1255,6 +1297,7 @@ jobs:
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           bash swift-clients/tooling/build-android-core.sh --fetch
       - name: Build Android core package
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         run: >-
           docker run --rm
@@ -1323,6 +1366,7 @@ jobs:
           clones-dir: ${{ runner.temp }}/swift-package-clones
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build macOS app shell
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         env:
           XCODE_DERIVED_DATA: ${{ runner.temp }}/xcode-derived-data
@@ -1332,6 +1376,7 @@ jobs:
           ./swift-clients/tooling/generate.sh macOS
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
       - name: Run Sentry SDK boundary and launch transport tests
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 10
         working-directory: candidate-clients
         env:
@@ -1341,6 +1386,7 @@ jobs:
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaSentryBoundaryTests -only-testing:VouchaLaunchTransportTests -resultBundlePath "$RUNNER_TEMP/macos-sentry-boundary.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-sentry-boundary.xcresult" | jq -e '.totalTestCount == 4 and .passedTests == 4 and .failedTests == 0 and .skippedTests == 0'
       - name: Run feed transport boundary tests
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 5
         working-directory: candidate-clients
         env:
@@ -1350,6 +1396,7 @@ jobs:
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaFeedTransportTests -resultBundlePath "$RUNNER_TEMP/macos-feed-transport.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-feed-transport.xcresult" | jq -e '.totalTestCount == 5 and .passedTests == 5 and .failedTests == 0 and .skippedTests == 0'
       - name: Launch macOS root shell, sidebar feeds, and email sign-in
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 15
         working-directory: candidate-clients
         env:
@@ -1366,7 +1413,7 @@ jobs:
           xcodebuild -project swift-clients/apps/macOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedTests/testVideoFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSEmailSignInTests/testEmailOTPSignInReplacesTheSignedOutControl -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPodcastTests/testPodcastFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/MacOSSidebarPostsTests/testPostsFeedSurvivesSidebarNavigation -only-testing:VouchaLaunchSmokeTests/SourceCreationSmokeTests/testCreatesAndOpensSourceFromEveryVertical -only-testing:VouchaLaunchSmokeTests/MacOSSidebarFeedRecoveryTests/testVideoFeedRetryRecoversCanonicalRow -resultBundlePath "$RUNNER_TEMP/macos-launch-smoke.xcresult" test SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= CODE_SIGN_ENTITLEMENTS="$PWD/swift-clients/apps/macOS/VouchaLaunchSmoke.entitlements" VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT"
           xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/macos-launch-smoke.xcresult" | jq -e '.totalTestCount == 7 and .passedTests == 7 and .failedTests == 0 and .skippedTests == 0'
       - name: Collect failed macOS launch diagnostics
-        if: ${{ failure() }}
+        if: ${{ github.event_name != 'push' && failure() }}
         timeout-minutes: 2
         continue-on-error: true
         run: |
@@ -1378,7 +1425,7 @@ jobs:
             find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
           fi
       - name: Upload failed macOS launch diagnostics
-        if: ${{ failure() }}
+        if: ${{ github.event_name != 'push' && failure() }}
         timeout-minutes: 2
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
@@ -1438,6 +1485,7 @@ jobs:
           clones-dir: ${{ runner.temp }}/swift-ios-package-clones
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build selected iPhone test products
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 10
         working-directory: candidate-clients
         env:
@@ -1469,6 +1517,7 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest | wc -l | tr -d ' ')" -eq 1
           jq -n --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg revision "$(git rev-parse HEAD)" --arg xcode "$(xcodebuild -version | tr '\n' ' ')" --arg sdk "$simulator_sdk" --arg destination "$destination" --arg bundle "$bundle" --arg app "$app" --arg runner "$runner" --arg testBundle "$test_bundle" --arg flowTestBundle "$flow_test_bundle" '{run:$run,attempt:$attempt,revision:$revision,xcode:$xcode,sdk:$sdk,destination:$destination,bundle:$bundle,app:$app,runner:$runner,testBundle:$testBundle,flowTestBundle:$flowTestBundle}' > "$GITHUB_WORKSPACE/ios-test-manifest.json"
       - name: Package iOS test products
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -1477,6 +1526,7 @@ jobs:
           shasum -a 256 "$RUNNER_TEMP/ios-test-products.tar.gz" | awk '{print $1}' > "$RUNNER_TEMP/ios-test-products.sha256"
           cp "$GITHUB_WORKSPACE/ios-test-manifest.json" "$RUNNER_TEMP/ios-test-manifest.json"
       - name: Upload iOS test products
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 3
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
@@ -1490,6 +1540,7 @@ jobs:
 
   build-ios-x86:
     name: Swift iOS Simulator x86_64 build
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 12
@@ -1552,6 +1603,7 @@ jobs:
 
   build-ios-app:
     name: Swift iOS Simulator launch smoke (${{ matrix.shard }})
+    if: ${{ github.event_name != 'push' }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
     timeout-minutes: 12
@@ -1736,6 +1788,7 @@ jobs:
 
   build-ios-ipad:
     name: ${{ matrix.name }}
+    if: ${{ github.event_name != 'push' }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
     timeout-minutes: 12
@@ -1930,6 +1983,7 @@ jobs:
 
   dotnet-maui-tests:
     name: .NET MAUI rendered pages
+    if: ${{ github.event_name != 'push' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 10
@@ -2308,6 +2362,7 @@ jobs:
           test -x "$prefix/node_modules/.bin/appium"
           test -d "$prefix/home/node_modules/appium-mac2-driver/WebDriverAgentMac"
       - name: Restore the Debug Mac Catalyst graph
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 2
         working-directory: candidate-clients
         run: |
@@ -2317,6 +2372,7 @@ jobs:
           dotnet restore dotnet-clients/src/Voucha.Client.Core/Voucha.Client.Core.csproj \
             -p:Configuration=Debug -p:TargetFramework=net10.0 --locked-mode
       - name: Build the Debug app and the Mac2 host
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 6
         working-directory: candidate-clients
         env:
@@ -2340,6 +2396,7 @@ jobs:
             exit 1
           fi
       - name: Launch the root shell and notification settings sessions
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 3
         working-directory: candidate-clients
         env:
@@ -2379,6 +2436,7 @@ jobs:
           node dotnet-clients/tooling/catalyst-gui-preflight.mjs --session
           node scripts/catalyst-notification-evidence.mjs "$CATALYST_GUI_RESULT" "$CATALYST_NATIVE_REVISION"
       - name: Exercise Catalyst email sign-in and News controls
+        if: ${{ github.event_name != 'push' }}
         timeout-minutes: 5
         working-directory: candidate-clients
         env:
@@ -2405,7 +2463,7 @@ jobs:
           path: ${{ runner.temp }}/catalyst-appium
           key: ${{ steps.catalyst-appium-cache.outputs.cache-primary-key }}
       - name: Upload Catalyst control and dispatch evidence
-        if: ${{ success() }}
+        if: ${{ github.event_name != 'push' && success() }}
         timeout-minutes: 1
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
@@ -2416,7 +2474,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - name: Upload Catalyst auth and News evidence
-        if: ${{ success() }}
+        if: ${{ github.event_name != 'push' && success() }}
         timeout-minutes: 1
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
         with:
@@ -2425,7 +2483,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - name: Upload failed Catalyst GUI diagnostics
-        if: ${{ failure() }}
+        if: ${{ github.event_name != 'push' && failure() }}
         timeout-minutes: 1
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
@@ -2482,6 +2540,7 @@ jobs:
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet restore dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/Voucha.Client.WindowsImagePreview.Tests.csproj --locked-mode --configfile dotnet-clients/NuGet.config -p:MSBuildEnableWorkloadResolver=false
       - name: Test the Windows image decoder
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2673,6 +2732,7 @@ jobs:
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/voucha-windows-nuget-http-cache
         run: dotnet restore dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/Voucha.Client.WindowsLanguageModelSurface.Tests.csproj --locked-mode --configfile dotnet-clients/NuGet.config -p:MSBuildEnableWorkloadResolver=false
       - name: Probe the pinned Windows language-model surface
+        if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/voucha-windows-nuget-packages
@@ -2690,7 +2750,7 @@ jobs:
           key: ${{ steps.windows-language-model-surface-nuget-cache.outputs.cache-primary-key }}
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
-    if: ${{ !cancelled() }}
+    if: ${{ github.event_name != 'push' && !cancelled() }}
     needs:
       - dotnet-portable
       - test-swift-core
@@ -2711,7 +2771,7 @@ jobs:
 
   tests:
     name: Tests
-    if: ${{ !cancelled() }}
+    if: ${{ github.event_name != 'push' && !cancelled() }}
     needs:
       - produce
       - verify

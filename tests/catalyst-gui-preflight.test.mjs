@@ -83,7 +83,7 @@ describe('Mac Catalyst GUI preflight', () => {
     )
     assert.match(
       job,
-      /Upload Catalyst control and dispatch evidence\n\s+if: \$\{\{ success\(\) \}\}/u,
+      /Upload Catalyst control and dispatch evidence\n\s+if: \$\{\{ github\.event_name != 'push' && success\(\) \}\}/u,
     )
     assert.match(job, /result\.json\.app\.json\n\s+retention-days: 7\n\s+if-no-files-found: error/u)
     assert.equal(

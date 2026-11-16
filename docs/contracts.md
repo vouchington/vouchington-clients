@@ -60,7 +60,7 @@ workflow, which stages the producer pull request's merge commit instead of the p
 
 ## CI
 
-The native test workflow runs for pull requests and every push to `main`. Its producer job reads the
+The native test workflow runs for pull requests and merge-queue groups, and every push to `main` runs only its cache-warming and symbol-upload jobs. Its producer job reads the
 candidate's pin as data and asks GitHub whether the commit is reachable from producer `main`
 (`compare/<sha>...main` must be `identical` or `ahead`) before it checks out or installs anything
 from Vouchington, so privileged jobs only execute merged producer code. It then checks out exactly
@@ -68,8 +68,8 @@ that commit, stages the contract with the producer exporter against the candidat
 and copies only the allowlisted trees into a one-day, run-scoped GitHub Actions artifact. Its
 manifest binds every file's path, byte length, and SHA-256 digest to the pinned Vouchington revision,
 candidate event and revisions, repository, and workflow run identity. Pull-request manifests also
-bind the exact pull-request number and merge revision; main manifests bind the push's before and
-after revisions. Secretless downstream jobs check out that same workflow revision so local
+bind the exact pull-request number and merge revision; merge-group manifests bind the queue's base
+and head SHAs; main manifests bind the push's before and after revisions. Secretless downstream jobs check out that same workflow revision so local
 composite actions match, download that exact run's artifact, verify the complete manifest before
 reading it, revalidate the event identity, assert the artifact's Vouchington SHA equals the
 candidate's pin, and only then execute the candidate checkout against the verified inputs. Each
