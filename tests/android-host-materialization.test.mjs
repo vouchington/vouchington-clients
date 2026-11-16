@@ -26,6 +26,8 @@ test('host-only materialization verifies and seeds both Skip URLs without native
     new URL('swift-clients/apps/android/tooling/materialize-skip-host.sh', repository),
     'utf8',
   )
+  const skipVersion = source.match(/^SKIP_VERSION="([^"]+)"$/mu)[1]
+  const archiveName = `skip-macos-${skipVersion}.zip`
   const script = join(tooling, 'materialize-skip-host.sh')
   await writeFile(
     script,
@@ -36,7 +38,7 @@ test('host-only materialization verifies and seeds both Skip URLs without native
     await writeFile(path, '#!/bin/bash\necho "unexpected native provisioning" >&2\nexit 93\n')
     await chmod(path, 0o755)
   }
-  const archive = join(downloads, 'skip-macos-1.9.13.zip')
+  const archive = join(downloads, archiveName)
   await writeFile(archive, payload)
   const env = {
     ...process.env,
@@ -54,7 +56,7 @@ test('host-only materialization verifies and seeds both Skip URLs without native
   assert.ok(files.some(name => name.startsWith('https___source_skip_tools_')))
   assert.ok(files.some(name => name.startsWith('https___github_com_skiptools_')))
   for (const file of files) assert.equal(await readFile(join(artifacts, file), 'utf8'), payload)
-  assert.deepEqual(await readdir(downloads), ['skip-macos-1.9.13.zip'])
+  assert.deepEqual(await readdir(downloads), [archiveName])
   assert.deepEqual(await readdir(join(root, 'skip-home')), [])
 
   await writeFile(archive, 'corrupted archive')

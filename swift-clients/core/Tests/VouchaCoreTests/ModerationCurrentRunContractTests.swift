@@ -10,6 +10,31 @@ final class ModerationCurrentRunContractTests: XCTestCase {
         try assertStaffIdentities(ReviewDispute.self, object: object)
     }
 
+    func testStaffDisputeDecodesRequestedRunStatusAndRequiresIt() throws {
+        let object = try fixtureObject("native.moderation.disputes.detail.default", key: "dispute")
+        XCTAssertEqual(object["ai_draft_requested_run_status"] as? String, "active")
+        for type in [ModerationDispute.self as (Codable & Sendable).Type, ReviewDispute.self] {
+            let encoded = try roundTrip(type, object: object)
+            XCTAssertEqual(encoded["ai_draft_requested_run_status"] as? String, "active")
+            var missing = object
+            missing.removeValue(forKey: "ai_draft_requested_run_status")
+            XCTAssertThrowsError(try decode(type, object: missing))
+            var unknown = object
+            unknown["ai_draft_requested_run_status"] = "later"
+            XCTAssertThrowsError(try decode(type, object: unknown))
+            for status in ["active", "succeeded", "failed", "expired"] {
+                var row = object
+                row["ai_draft_requested_run_status"] = status
+                XCTAssertEqual(try roundTrip(type, object: row)["ai_draft_requested_run_status"] as? String, status)
+            }
+            var none = object
+            none["ai_draft_requested_run_status"] = NSNull()
+            XCTAssertTrue(try roundTrip(type, object: none)["ai_draft_requested_run_status"] is NSNull)
+        }
+        let review = try decode(ReviewDispute.self, object: object)
+        XCTAssertEqual(review.aiDraftRequestedRunStatus, .active)
+    }
+
     func testStaffAppealRequiresRequestedAndSavedRunIdentities() throws {
         let object = try fixtureObject("native.moderation.appeals.detail.default", key: "appeal")
         try assertStaffIdentities(ModerationAppeal.self, object: object)

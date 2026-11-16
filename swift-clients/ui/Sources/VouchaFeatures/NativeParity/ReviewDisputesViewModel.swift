@@ -130,8 +130,11 @@ final class ReviewDisputesViewModel {
 struct AIRerunBaseline {
     let aiDraftedAt: Date?
     let lifecycleChangeId: String?
+    /// The exact run an enqueue response admitted; nil until one is known.
+    var runId: String?
 
-    init(dispute: ReviewDispute) {
+    init(dispute: ReviewDispute, runId: String? = nil) {
+        self.runId = runId
         aiDraftedAt = dispute.aiDraftedAt
         lifecycleChangeId = dispute.latestLifecycleChangeId
     }

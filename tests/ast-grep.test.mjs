@@ -6,14 +6,15 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { scanWithoutExamples, stripExamples } from '../scripts/ast-grep-without-examples.mjs'
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 const astGrep = fileURLToPath(new URL('../node_modules/@ast-grep/cli/ast-grep', import.meta.url))
 const rulesDirectory = join(repoRoot, 'ast-grep-rules')
 const configPath = join(repoRoot, 'sgconfig.yml')
 
-function runAstGrep(...args) {
-  const result = runAstGrepResult(args, repoRoot)
+async function runAstGrep(...args) {
+  const result = await scanWithoutExamples(astGrep, args, repoRoot)
   assert.equal(result.error, undefined, result.error?.message)
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`)
 }
@@ -98,11 +99,13 @@ async function assertExample(rulePath, example, testDirectory) {
   )
   await mkdir(dirname(examplePath), { recursive: true })
   await writeFile(examplePath, example.code)
+  const strippedRulePath = join(testDirectory, 'rule.yml')
+  await writeFile(strippedRulePath, stripExamples(await readFile(rulePath, 'utf8')))
   const result = runAstGrepResult(
     [
       'scan',
       '--rule',
-      rulePath,
+      strippedRulePath,
       '--config',
       configPath,
       '--json=compact',
@@ -137,14 +140,6 @@ describe('native ast-grep guards', () => {
 
   it('scans the client-owned native sources with error-level enforcement', async () => {
     await access(astGrep)
-    runAstGrep(
-      'scan',
-      '--error',
-      '--no-ignore',
-      'hidden',
-      '--',
-      'swift-clients/',
-      'dotnet-clients/',
-    )
+    await runAstGrep('--error', '--no-ignore', 'hidden', '--', 'swift-clients/', 'dotnet-clients/')
   })
 })
