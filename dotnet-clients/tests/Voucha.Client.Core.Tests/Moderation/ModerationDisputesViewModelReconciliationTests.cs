@@ -41,6 +41,7 @@ public sealed class ModerationDisputesViewModelReconciliationTests
       AiPublicResponse = "New AI response",
       AiDraftedAt = (dispute.AiDraftedAt ?? DateTimeOffset.UtcNow).AddMinutes(1),
       LatestLifecycleChangeId = "rerun-complete",
+      AiDraftRunId = "dispute-rerun-job-1",
     });
 
     await viewModel.RerunAsync(dispute, TestContext.Current.CancellationToken);
