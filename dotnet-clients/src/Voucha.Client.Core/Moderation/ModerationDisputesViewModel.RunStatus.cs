@@ -29,6 +29,7 @@ public sealed partial class ModerationDisputesViewModel
   {
     if (rerunBaselines.TryGetValue(disputeId, out var baseline))
       rerunBaselines[disputeId] = baseline with { RunId = runId };
+    OnPropertyChanged(nameof(Disputes));
   }
 
   // A failed or expired exact run is recorded on the visible row before the pending re-run is

@@ -139,6 +139,7 @@ public sealed partial class ModerationDisputesViewModel
     rerunBaselines[dispute.Id] =
         new(dispute.AiDraftedAt, dispute.LatestLifecycleChangeId);
     ambiguousMutationIds.Add(dispute.Id);
+    OnPropertyChanged(nameof(Disputes));
   }
 
   private void UnlockRerun(string disputeId)

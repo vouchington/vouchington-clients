@@ -129,6 +129,19 @@ public sealed class ModerationDisputesRunStatusTests
     Assert.Equal("native.swift.reviewDisputes.rerunFailed", viewModel.AIDraftStatusKey(row)?.Value);
   }
 
+  [Fact]
+  public async Task RegisteringAndQueueingAPendingRunNotifiesObservers()
+  {
+    var viewModel = await LoadedAsync(new ModerationDisputesTestService(), attempts: 1);
+    var dispute = viewModel.Disputes.Single() with { AiDraftRequestedRunStatus = ModerationRunStatus.Failed };
+    var changes = 0;
+    viewModel.PropertyChanged += (_, args) => changes += args.PropertyName == nameof(viewModel.Disputes) ? 1 : 0;
+
+    await viewModel.RerunAsync(dispute, TestContext.Current.CancellationToken);
+
+    Assert.True(changes >= 2);
+  }
+
   private static async Task<ModerationDisputesViewModel> LoadedAsync(
       ModerationDisputesTestService service, int attempts = 20)
   {
