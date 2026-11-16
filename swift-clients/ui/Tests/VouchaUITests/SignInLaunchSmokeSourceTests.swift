@@ -25,6 +25,16 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertFalse(flow.contains("app.buttons[\"Sign In\"]"))
     }
 
+    func testTopOfScreenTapWaitsForSystemBannerAndReportsItOnFailure() throws {
+        let flow = try repoSource("swift-clients/apps/shared-tests/SignInFlowTests.swift")
+        let banner = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeSystemBanner.swift")
+
+        // Issue #713: a SpringBoard notification banner over the nav bar swallowed the tap.
+        XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.waitUntilClear(in: self"))
+        XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.describe(app: app)"))
+        XCTAssertTrue(banner.contains("com.apple.springboard"))
+    }
+
     func testSignedOutSubsectionControlDoesNotUseTheFixedSizePicker() throws {
         let navigation = try repoSource("swift-clients/apps/shared-app/SectionDetailView+Navigation.swift")
         let picker = try repoSource("swift-clients/apps/shared-app/SectionDetailView+SubsectionToolbar.swift")
