@@ -89,7 +89,8 @@ public sealed record ModerationAppeal(
     [property: JsonPropertyName("target_context")] ModerationAppealTargetContext? TargetContext = null,
     [property: JsonPropertyName("staff_context")] ModerationAppealStaffContext? StaffContext = null,
     [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
-    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null);
+    [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
+    [property: JsonPropertyName("ai_draft_requested_run_status")] ModerationRunStatus? AiDraftRequestedRunStatus = null);
 
 public sealed record ModerationAppealListResponse(
     [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppealSummary> Appeals,

@@ -71,6 +71,7 @@ public sealed partial class ContractDriftResponseFieldsTests
     Assert.Null(review.Review);
     var screening = Assert.IsType<CopyrightStaffFormScreening>(review.Screening);
     Assert.Equal("completed", screening.State);
+    Assert.Equal("00000000-0000-7000-8000-000000000828", screening.AttemptId);
     Assert.Equal("not_obviously_invalid", screening.Recommendation);
     Assert.Equal("No obvious spam markers.", screening.Rationale);
     var guidance = Assert.IsType<CopyrightStaffFormGuidance>(screening.Guidance);

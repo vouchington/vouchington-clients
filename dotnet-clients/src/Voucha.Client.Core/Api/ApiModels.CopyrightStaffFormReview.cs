@@ -12,7 +12,8 @@ public sealed record CopyrightStaffFormScreening(
     [property: JsonPropertyName("state")] string State,
     [property: JsonPropertyName("recommendation")] string? Recommendation,
     [property: JsonPropertyName("rationale")] string? Rationale,
-    [property: JsonPropertyName("guidance")] CopyrightStaffFormGuidance? Guidance);
+    [property: JsonPropertyName("guidance")] CopyrightStaffFormGuidance? Guidance,
+    [property: JsonPropertyName("attempt_id")] string? AttemptId = null);
 
 public sealed record CopyrightStaffIntakeReview(
     [property: JsonPropertyName("is_accepted")] bool IsAccepted,
