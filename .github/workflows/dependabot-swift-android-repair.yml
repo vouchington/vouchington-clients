@@ -1,21 +1,15 @@
-name: Dependabot Auto-merge
+name: Dependabot Swift Android repair
 
 on:
   pull_request_target:
     types: [opened, reopened, ready_for_review, synchronize]
-  workflow_call:
-    secrets:
-      DEPENDABOT_AUTOMERGE_TOKEN:
-        required: true
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  # Called workflows inherit github.workflow from the caller. Keep the original
-  # group so valid edited events still serialize with head/lifecycle events.
-  group: Dependabot Auto-merge-${{ github.event.pull_request.number || github.sha }}
+  group: dependabot-swift-android-repair-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -305,84 +299,3 @@ jobs:
           GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: Basic $write_token_b64" \
             git push --force-with-lease="refs/heads/$HEAD_REF:$EXPECTED_HEAD_SHA" \
               origin "$REPAIRED_HEAD_SHA:refs/heads/$HEAD_REF"
-  automerge:
-    needs: [prepare, publish-swift-android]
-    if: >-
-      always() && needs.prepare.result == 'success' && needs.prepare.outputs.eligible == 'true' &&
-      (needs.prepare.outputs.repair-kind == 'none' || needs.publish-swift-android.result == 'success')
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - name: Enable eligible Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@90e878e740edd47d19dae5d0dd28866afd719a01 # v0.85.3
-        with:
-          automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
-          expected_base_sha: ${{ needs.prepare.outputs.base-sha }}
-          expected_head_sha: ${{ needs.publish-swift-android.outputs.head-sha || needs.prepare.outputs.head-sha }}
-          manual_update_rules: '[{"packageEcosystem":"nuget","directory":"/dotnet-clients"}]'
-
-  cleanup-retargeted-automerge:
-    if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.base.ref != github.event.repository.default_branch &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.event.pull_request.head.ref, 'dependabot/')
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - name: Disable stale Dependabot auto-merge
-        uses: vouchington/vouchington-tooling/.github/actions/dependabot-automerge@90e878e740edd47d19dae5d0dd28866afd719a01 # v0.85.3
-        with:
-          automerge_token: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
-
-  cleanup-ineligible-automerge:
-    needs: prepare
-    if: >-
-      always() && needs.prepare.result != 'cancelled' &&
-      needs.prepare.outputs.eligible == 'false'
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - name: Disable auto-merge for the ineligible head
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          EXPECTED_HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
-          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/ineligible-pr.json"
-          jq -e \
-            --arg default "$DEFAULT_BRANCH" \
-            --arg head "$EXPECTED_HEAD_SHA" \
-            --arg number "$PR_NUMBER" \
-            --arg repository "$REPOSITORY" '
-              .state == "open" and .draft == false and
-              (.number | tostring) == $number and
-              .user.login == "dependabot[bot]" and
-              .base.ref == $default and
-              .head.repo.full_name == $repository and
-              (.head.ref | startswith("dependabot/")) and
-              (.head.sha | type) == "string" and
-              (.head.sha | test("^[a-f0-9]{40}$")) and .head.sha == $head and
-              ($head | test("^[a-f0-9]{40}$")) and
-              has("auto_merge") and
-              (
-                .auto_merge == null or
-                (
-                  (.auto_merge | type) == "object" and
-                  (.auto_merge | has("enabled_by") and has("merge_method") and has("commit_title") and has("commit_message")) and
-                  (.auto_merge.enabled_by | type) == "object" and
-                  (.auto_merge.enabled_by.login | type) == "string" and
-                  (.auto_merge.merge_method | IN("merge", "squash", "rebase")) and
-                  (.auto_merge.commit_title == null or (.auto_merge.commit_title | type) == "string") and
-                  (.auto_merge.commit_message == null or (.auto_merge.commit_message | type) == "string")
-                )
-              )
-            ' "$RUNNER_TEMP/ineligible-pr.json" > /dev/null
-          if [ "$(jq -r '.auto_merge == null' "$RUNNER_TEMP/ineligible-pr.json")" = true ]; then
-            echo 'Auto-merge is already disabled for the verified ineligible head.'
-            exit 0
-          fi
-          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --disable-auto

@@ -127,9 +127,12 @@ describe('GitHub-hosted runner policy', () => {
       'test-swift-android-cookie',
       androidEmulatorRunner,
     )
-    assertRunner(workflows['dependabot-automerge.yml'], 'automerge', 'ubuntu-slim')
-    assertRunner(workflows['dependabot-automerge.yml'], 'prepare', 'ubuntu-slim')
-    assertRunner(workflows['dependabot-automerge.yml'], 'publish-swift-android', 'ubuntu-slim')
+    assertRunner(workflows['dependabot-swift-android-repair.yml'], 'prepare', 'ubuntu-slim')
+    assertRunner(
+      workflows['dependabot-swift-android-repair.yml'],
+      'publish-swift-android',
+      'ubuntu-slim',
+    )
     assertRunner(workflows['repair-dependabot-dotnet-locks.yml'], 'prepare', 'macos-latest')
     assertRunner(workflows['repair-dependabot-dotnet-locks.yml'], 'publish', 'ubuntu-slim')
 
