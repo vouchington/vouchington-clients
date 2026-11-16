@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { describe, it } from 'node:test'
 
-function run(terminateBehavior, uninstallExit) {
+function run(terminateBehavior, uninstallExit, eraseExit = 1) {
   const dir = mkdtempSync(join(tmpdir(), 'spawn-gate-'))
   const bin = join(dir, 'bin')
   mkdirSync(bin)
@@ -21,6 +21,7 @@ case "$2" in
   launch) echo "ai.voucha.ios: 4242" ;;
   terminate) ${terminateBehavior} ;;
   uninstall) exit ${uninstallExit} ;;
+  erase) exit ${eraseExit} ;;
 esac
 exit 0
 `,
@@ -63,8 +64,22 @@ describe('ios launch spawn gate', () => {
     assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall', 'install'])
   })
 
-  it('fails closed when terminate hangs and the reset fails', () => {
-    const result = run('sleep 30', 1)
+  it('erases the device when terminate hangs and the app reset fails', () => {
+    const result = run('sleep 30', 1, 0)
+    assert.equal(result.status, 0, result.stderr)
+    assert.match(result.stdout, /erase/u)
+    assert.deepEqual(result.calls, [
+      'install',
+      'launch',
+      'terminate',
+      'uninstall',
+      'shutdown',
+      'erase',
+    ])
+  })
+
+  it('fails closed when terminate hangs and both the reset and the erase fail', () => {
+    const result = run('sleep 30', 1, 1)
     assert.equal(result.status, 1)
     assert.match(result.stderr, /Could not stop the pre-launched app/u)
   })
