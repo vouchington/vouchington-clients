@@ -86,31 +86,27 @@ describe('machine-owned agent host configuration', () => {
   it('documents user-scope plugin provisioning and reads AGENTS.md without a CLAUDE fallback', () => {
     const claude = read('.claude/README.md')
     assert.match(claude, /vouchington-workflow@vouchington/u)
-    assert.match(claude, /vouchington-testing@vouchington/u)
+    assert.match(claude, /skills@jonathanong-skills/u)
+    assert.doesNotMatch(claude, /vouchington-testing/u)
     assert.match(claude, /pr-shepherd@jonathanong/u)
     assert.match(claude, /canonical plugin is unavailable, stop/iu)
     assert.doesNotMatch(claude, /--scope project/u)
     const codex = read('.codex/README.md')
-    assert.match(codex, /vouchington-testing@vouchington/u)
+    assert.match(codex, /skills@jonathanong-skills/u)
+    assert.doesNotMatch(codex, /vouchington-testing/u)
     assert.match(codex, /Do not add a CLAUDE\.md fallback/u)
   })
 
   it('keeps native test overlays dependent on canonical testing skills', () => {
     for (const [name, canonical, guidance] of [
-      [
-        'swift-test-authoring',
-        'vouchington-testing:swift-test-authoring',
-        'swift-clients/AGENTS.md',
-      ],
-      [
-        'dotnet-test-authoring',
-        'vouchington-testing:dotnet-test-authoring',
-        'dotnet-clients/AGENTS.md',
-      ],
+      ['swift-test-authoring', 'references/swift.md', 'swift-clients/AGENTS.md'],
+      ['dotnet-test-authoring', 'references/dotnet.md', 'dotnet-clients/AGENTS.md'],
     ]) {
       const skill = read(`.agents/skills/${name}/SKILL.md`)
       const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+      assert.match(skill, /skills:test-authoring/u)
       assert.match(skill, new RegExp(escapeRegExp(canonical), 'u'))
+      assert.doesNotMatch(skill, /node_modules\/vouchington-tooling\/skills|vouchington-testing/u)
       assert.match(skill, new RegExp(escapeRegExp(guidance), 'u'))
       assert.match(skill, /stop and report the missing prerequisite/iu)
     }
