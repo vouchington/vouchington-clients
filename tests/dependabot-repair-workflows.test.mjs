@@ -33,6 +33,22 @@ describe('Dependabot repair workflow contracts', () => {
     assert.doesNotMatch(swiftAndroid, /outputs\.dependency-names/u)
   })
 
+  it('runs on pull_request with read-only token permissions and a same-repo Dependabot gate', () => {
+    for (const workflow of [swiftAndroid, dotnet]) {
+      assert.match(workflow, /\non:\n {2}pull_request:\n {4}types: \[/u)
+      assert.doesNotMatch(workflow, /pull_request_target/u)
+      assert.doesNotMatch(workflow, /contents: write|pull-requests: write/u)
+      for (const job of workflow.split(/\n {2}(?=[a-z-]+:\n {4}(?:needs|if|runs-on):)/u).slice(1)) {
+        assert.match(job, /github\.actor == 'dependabot\[bot\]'/u)
+        assert.match(job, /github\.event\.pull_request\.user\.login == 'dependabot\[bot\]'/u)
+        assert.match(
+          job,
+          /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u,
+        )
+      }
+    }
+  })
+
   it('never checks out or executes a pull-request tree', () => {
     for (const workflow of [swiftAndroid, dotnet]) {
       assert.doesNotMatch(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head/u)

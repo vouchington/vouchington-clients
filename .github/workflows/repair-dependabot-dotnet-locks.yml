@@ -1,7 +1,7 @@
 name: Repair Dependabot .NET locks
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - 'dotnet-clients/Directory.Packages.props'
@@ -18,6 +18,8 @@ on:
       - 'dotnet-clients/src/Voucha.Client.Core/packages.net10.0-windows10.0.26100.0.win-x64.lock.json'
       - 'dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/packages.lock.json'
 
+# Dependabot-triggered pull_request runs read Dependabot secrets, never Actions
+# secrets. Only same-repository Dependabot PRs reach the write path.
 permissions:
   contents: read
   pull-requests: read
@@ -29,6 +31,7 @@ concurrency:
 jobs:
   prepare:
     if: >-
+      github.actor == 'dependabot[bot]' &&
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.base.ref == github.event.repository.default_branch &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -210,10 +213,16 @@ jobs:
           retention-days: 1
   publish:
     needs: prepare
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       actions: read
+      # The push uses DEPENDABOT_AUTOMERGE_TOKEN (a Dependabot secret), not
+      # GITHUB_TOKEN, so the repaired head triggers CI. GITHUB_TOKEN stays read-only.
       contents: read
       pull-requests: read
     steps:

@@ -170,10 +170,27 @@ polling and remain permitted.
 `dependabot-swift-android-repair.yml` repairs Android Skip's checked archive version and checksum.
 No workflow arms auto-merge; Dependabot PRs merge through the ordinary triage path. At cutover,
 auto-merge was disabled on the one open Dependabot PR that the removed workflow had armed (#696),
-so no earlier arming bypasses triage. Their
-`pull_request_target` producers check out only the exact default-branch base and fetch candidate dependency files as inert API data. They never check out or execute the
-Dependabot head. Fork pull requests run on hosted `pull_request` without repository secrets; do not
-reintroduce self-hosted labels for untrusted code.
+so no earlier arming bypasses triage. Both
+workflows run on `pull_request` (the org dropped `pull_request_target`). Their jobs run only when
+`github.actor` and the PR author are `dependabot[bot]` and the head branch lives in this
+repository; fork pull requests never reach a job, let alone a write path. Jobs still check out
+only the exact live default-branch base SHA (`persist-credentials: false`) and fetch candidate
+dependency files as inert API data, so repair scripts and `pnpm install` never execute the
+Dependabot head tree.
+
+Trust model under `pull_request`: the workflow definition itself now comes from the pull request's
+merge ref, not from the default branch, so the base-SHA checkout protects the scripts but not the
+workflow YAML. A Dependabot PR that edits these workflow files (a `github-actions` bump) would run
+its edited copy with the Dependabot secret. This is accepted because the actor, author, same-repo,
+branch, and `web-flow`-verified-head gates, the exact-diff and path allowlists, and the head lease
+all constrain which PRs and paths can be repaired, and only Dependabot can author the head. Review
+of workflow changes still happens before merge, not before the run. GITHUB_TOKEN is read-only in
+every job (`contents: read`, `pull-requests: read`, `actions: read`); it never pushes.
+
+Dependabot-triggered `pull_request` runs read only Dependabot secrets, not Actions secrets.
+`DEPENDABOT_AUTOMERGE_TOKEN` must therefore exist as a Dependabot repository secret; it is the only
+secret either workflow reads. Pushes made with the default GITHUB_TOKEN do not trigger workflow
+runs, so the final push keeps that token so CI reruns on the repaired head.
 
 The Swift Android repair workflow first checks the exact live head's API identity and
 verification status.
@@ -191,7 +208,7 @@ Read-only publishers revalidate the live Dependabot identity, base and head SHAs
 types, candidate and artifact allowlists, artifact provenance, hashes, and the head lease. They
 construct repair commits with temporary Git indexes; only the final `git push --force-with-lease`
 receives `DEPENDABOT_AUTOMERGE_TOKEN` (its name predates the removal of the auto-merge workflow).
-That secret must stay scoped to the repository Contents and Pull requests access needed by these
+That Dependabot secret must stay scoped to the repository Contents and Pull requests access needed by these
 single repair pushes. See
 [Frozen-install policy](reference-dependency-updates-frozen-install-policy.md) for the authoritative
 manifests and generated-output sets.

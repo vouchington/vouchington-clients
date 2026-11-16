@@ -121,7 +121,7 @@ test('shared pnpm stores restore always and save only a trusted main miss', asyn
   const cases = [
     ['pull_request merge ref', 'pull_request', 'refs/pull/448/merge', 'false', false],
     ['fork pull request', 'pull_request', 'refs/pull/9/merge', 'false', false],
-    ['pull_request_target on main', 'pull_request_target', 'refs/heads/main', 'false', false],
+    ['workflow_run on main', 'workflow_run', 'refs/heads/main', 'false', false],
     ['workflow_dispatch on main', 'workflow_dispatch', 'refs/heads/main', 'false', false],
     ['schedule on main', 'schedule', 'refs/heads/main', 'false', false],
     ['push to another branch', 'push', 'refs/heads/main-lookalike', 'false', false],
