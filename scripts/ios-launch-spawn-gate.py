@@ -41,6 +41,22 @@ def reset_app(simulator_id: str, app: str) -> bool:
     return True
 
 
+def erase_device(simulator_id: str) -> bool:
+    """Last resort for a wedged device: shut it down and erase it so no app process survives.
+
+    The UI-test xcodebuild boots the device again and installs the test products itself, so
+    an erased, shut-down device is a clean start rather than a lost state.
+    """
+    deadline = time.monotonic() + RECOVERY_SECONDS
+    log("erase")
+    try:
+        run(["xcrun", "simctl", "shutdown", simulator_id], deadline, check=False)
+        run(["xcrun", "simctl", "erase", simulator_id], deadline, check=True)
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        return False
+    return True
+
+
 def main() -> int:
     if len(sys.argv) != 3:
         print("usage: ios-launch-spawn-gate.py SIMULATOR_ID APP", file=sys.stderr)
@@ -83,7 +99,7 @@ def main() -> int:
             run(["xcrun", "simctl", "terminate", simulator_id, bundle_id], deadline, check=False)
         except subprocess.TimeoutExpired:
             log("terminate-budget-exhausted")
-            if not reset_app(simulator_id, app):
+            if not reset_app(simulator_id, app) and not erase_device(simulator_id):
                 print(
                     "::error::Could not stop the pre-launched app; refusing to start the UI tests "
                     "against a leftover process",
