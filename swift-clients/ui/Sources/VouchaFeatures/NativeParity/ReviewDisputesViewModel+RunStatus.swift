@@ -1,4 +1,3 @@
-import VouchaAPI
 import VouchaCore
 import VouchaLocalization
 import VouchaModels
