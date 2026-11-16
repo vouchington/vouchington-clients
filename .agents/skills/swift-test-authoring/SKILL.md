@@ -7,9 +7,9 @@ description: Use when adding or changing Swift tests in swift-clients.
 
 ## Canonical skill (required)
 
-Claude Code and Codex load `vouchington-testing:swift-test-authoring`; Grok and Cursor read
-`node_modules/vouchington-tooling/skills/swift-test-authoring/SKILL.md`. If the canonical skill
-cannot be read, stop and report the missing prerequisite; never apply this overlay alone.
+Claude Code, Codex, and Grok load the plugin skill `skills:test-authoring` and read its
+`references/swift.md` (Swift adapter). If the canonical skill or reference cannot be
+read, stop and report the missing prerequisite; never apply this overlay alone.
 
 ## Client additions
 

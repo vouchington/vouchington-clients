@@ -18,7 +18,7 @@ native-client `AGENTS.md` files as you work in those directories.
 ## Workflow plugins
 
 vouchington-machines enables the portable `vouchington-workflow@vouchington` and
-`vouchington-testing@vouchington` plugins plus `pr-shepherd@jonathanong`, and registers their
+`skills@jonathanong-skills` plugins plus `pr-shepherd@jonathanong`, and registers their
 marketplaces in each machine's user settings (`./configure-agents.sh`, then
 `./diagnose-agents.sh --repo <worktree>`). If a plugin is missing, rerun the machine configuration
 or install it by hand into user scope, never project scope, which would write a declaration into
@@ -27,15 +27,17 @@ this repository:
 ```sh
 claude plugin marketplace add vouchington/vouchington-tooling --scope user --sparse .claude-plugin plugins
 claude plugin marketplace add jonathanong/pr-shepherd --scope user
+claude plugin marketplace add jonathanong/skills --scope user
 claude plugin install vouchington-workflow@vouchington --scope user
-claude plugin install vouchington-testing@vouchington --scope user
+claude plugin install skills@jonathanong-skills --scope user
 claude plugin install pr-shepherd@jonathanong --scope user
 ```
 
 Confirm with `claude plugin marketplace list`, `claude plugin list`, and
 `claude plugin details <plugin>@<marketplace>`. The local Swift and .NET test-authoring files are
-thin overlays: they must load the matching `vouchington-testing` skill first and then apply the
-client's `AGENTS.md` and README guidance. If the canonical plugin is unavailable, stop and report
+thin overlays: they must load the `skills:test-authoring` skill and read its matching
+`references/swift.md` or `references/dotnet.md` first, then apply the client's `AGENTS.md` and
+README guidance. If the canonical plugin is unavailable, stop and report
 the prerequisite instead of using the overlay alone.
 
 ### Review workflow
