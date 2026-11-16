@@ -101,8 +101,7 @@ internal static partial class MemberMcpInputSchema
       if (Literal('-')) sign = -1;
       else if (!Literal('+')) return false;
       if (!Digits(2, out offsetHour)) return false;
-      Literal(':');
-      if (at < text.Length && !Digits(2, out offsetMinute)) return false;
+      if ((Literal(':') || at < text.Length) && !Digits(2, out offsetMinute)) return false;
     }
     if (at != text.Length) return false;
     var leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);

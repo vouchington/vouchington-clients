@@ -242,6 +242,7 @@ public sealed class MemberMcpOutputContractTests
   [InlineData("2026-10-09T00:00:00+0", false)]
   [InlineData("2026-10-09T00:00:00+00:0", false)]
   [InlineData("2026-10-09T00:00:00+00", true)]
+  [InlineData("2026-10-09T00:00:00+00:", false)]
   [InlineData("2026-10-09T00:00:00Z ", false)]
   [InlineData("2026-10-09T00:00:0\u0661Z", false)]
   public void OutputDateTimeIsCalendarValidAndInputSubsetIsUnchanged(string timestamp, bool expected)
