@@ -99,6 +99,7 @@ private enum ProtectedDisputeField: String, CodingKey {
     case hasDraft
     case disputantUserId, claimText, recommendedAction
     case aiPublicResponse, aiInternalResponse, model, aiDraftedAt, aiDraftRunId, aiDraftRequestedRunId
+    case aiDraftRequestedRunStatus
     case internalNotes, draftedAt, editedAt, editedById, approvedById, resolvedById
     case latestLifecycleChangeId, staffContext
 
@@ -106,7 +107,7 @@ private enum ProtectedDisputeField: String, CodingKey {
         switch self {
         case .hasDraft, .disputantUserId, .recommendedAction: false
         case .claimText, .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt,
-             .aiDraftRunId, .aiDraftRequestedRunId, .internalNotes, .draftedAt,
+             .aiDraftRunId, .aiDraftRequestedRunId, .aiDraftRequestedRunStatus, .internalNotes, .draftedAt,
              .editedAt, .editedById, .approvedById, .resolvedById, .latestLifecycleChangeId, .staffContext:
             true
         }
@@ -118,6 +119,7 @@ private enum ProtectedDisputeField: String, CodingKey {
         case .hasDraft: false
         case .disputantUserId, .claimText, .recommendedAction,
              .aiPublicResponse, .aiInternalResponse, .model, .aiDraftedAt, .aiDraftRunId, .aiDraftRequestedRunId,
+             .aiDraftRequestedRunStatus,
              .internalNotes, .draftedAt, .editedAt, .editedById, .approvedById, .resolvedById,
              .latestLifecycleChangeId, .staffContext:
             true

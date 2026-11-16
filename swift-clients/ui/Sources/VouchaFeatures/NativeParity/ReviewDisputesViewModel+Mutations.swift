@@ -66,6 +66,7 @@ extension ReviewDisputesViewModel {
     func rerunAI(for dispute: ReviewDispute) async {
         guard canRerun(dispute), let client else { return }
         let baseline = AIRerunBaseline(dispute: dispute)
+        var admitted = baseline
         let completed = await withMutation(dispute.id) {
             let queued: ReviewDisputeQueueResponse = try await client.send(
                 .disputeResolutionDrafts(id: dispute.id)
@@ -75,8 +76,9 @@ extension ReviewDisputesViewModel {
                     UiMessages.string(.nativeSwiftReviewDisputesRerunNotQueued, locale: .english)
                 )
             }
+            admitted = AIRerunBaseline(dispute: dispute, runId: queued.runId)
             ambiguousDisputeIds.insert(dispute.id)
-            ambiguousAIRerunBaselines[dispute.id] = baseline
+            ambiguousAIRerunBaselines[dispute.id] = admitted
             for attempt in 0 ..< rerunPollAttempts {
                 let refreshed: ReviewDisputeResponse = try await client.send(.dispute(id: dispute.id))
                 if baseline.isReconciled(in: refreshed.dispute) {
@@ -87,6 +89,7 @@ extension ReviewDisputesViewModel {
                     clearAmbiguity(for: dispute.id)
                     return
                 }
+                try applyRequestedRunStatus(of: refreshed.dispute, baseline: admitted)
                 if attempt + 1 < rerunPollAttempts {
                     try await rerunPollDelay()
                 }
@@ -96,7 +99,7 @@ extension ReviewDisputesViewModel {
             )
         }
         if !completed, ambiguousDisputeIds.contains(dispute.id) {
-            ambiguousAIRerunBaselines[dispute.id] = baseline
+            ambiguousAIRerunBaselines[dispute.id] = admitted
         }
     }
 
@@ -110,6 +113,7 @@ extension ReviewDisputesViewModel {
             )
             if let baseline = ambiguousAIRerunBaselines[disputeId],
                !baseline.isReconciled(in: response.dispute) {
+                try applyRequestedRunStatus(of: response.dispute, baseline: baseline)
                 throw VouchaError.unexpected(
                     UiMessages.string(.nativeSwiftReviewDisputesRerunStillProcessing, locale: .english)
                 )
@@ -118,7 +122,7 @@ extension ReviewDisputesViewModel {
         }
     }
 
-    private func clearAmbiguity(for disputeId: String) {
+    func clearAmbiguity(for disputeId: String) {
         ambiguousDisputeIds.remove(disputeId)
         ambiguousAIRerunBaselines.removeValue(forKey: disputeId)
     }

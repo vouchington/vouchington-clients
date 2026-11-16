@@ -81,6 +81,8 @@ public struct ReviewDispute: Codable, Identifiable, Sendable {
     public let postLabel: String
     public let aiDraftRequestedRunId: String
     @RequiredNullable
+    public var aiDraftRequestedRunStatus: ModerationAIRunStatus?
+    @RequiredNullable
     public var aiDraftRunId: String?
     public let id: String
     public let postId: String
