@@ -208,6 +208,12 @@ jobs:
         with:
           version: latest-12
       - name: Install trusted repair dependencies
+        # The repair commit is built with git plumbing and validated by the
+        # provenance, pull-request, and published-paths steps below. The
+        # pre-push hook (lint via mise) cannot run on this runner, so skip
+        # Husky's hook setup; the repaired PR still gets the full Validate run.
+        env:
+          HUSKY: '0'
         run: pnpm install --frozen-lockfile
       - name: Download same-run Swift Android artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.0
