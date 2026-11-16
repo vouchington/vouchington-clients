@@ -152,6 +152,9 @@ public sealed partial class ModerationDisputesViewModel
       !rerunBaselines.TryGetValue(dispute.Id, out var baseline) ||
       dispute.AiDraftedAt is not null &&
       dispute.AiDraftedAt != baseline.AiDraftedAt &&
+      // Once the queued run is known, only that run's own draft counts as advancement.
+      (baseline.RunId is null ||
+          string.Equals(dispute.AiDraftRunId, baseline.RunId, StringComparison.Ordinal)) &&
       !string.Equals(
           dispute.LatestLifecycleChangeId,
           baseline.LatestLifecycleChangeId,

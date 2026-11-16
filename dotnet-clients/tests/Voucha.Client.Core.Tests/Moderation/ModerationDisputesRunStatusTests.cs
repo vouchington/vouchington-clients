@@ -112,6 +112,46 @@ public sealed class ModerationDisputesRunStatusTests
   }
 
   [Fact]
+  public async Task AnEarlierRunsDraftDoesNotCompleteTheQueuedRerun()
+  {
+    var service = new ModerationDisputesTestService();
+    var viewModel = await LoadedAsync(service, attempts: 1);
+    var dispute = viewModel.Disputes.Single();
+    service.Refreshes.Enqueue(dispute with
+    {
+      AiDraftedAt = DateTimeOffset.Parse("2030-01-01T00:00:00Z"),
+      LatestLifecycleChangeId = "lifecycle-from-older-run",
+      AiDraftRunId = "older-run",
+      AiDraftRequestedRunId = QueuedRun,
+      AiDraftRequestedRunStatus = ModerationRunStatus.Active,
+    });
+
+    await viewModel.RerunAsync(dispute, TestContext.Current.CancellationToken);
+
+    Assert.True(viewModel.IsMutationAmbiguous(viewModel.Disputes.Single()));
+  }
+
+  [Fact]
+  public async Task TheQueuedRunsOwnDraftCompletesTheRerun()
+  {
+    var service = new ModerationDisputesTestService();
+    var viewModel = await LoadedAsync(service, attempts: 1);
+    var dispute = viewModel.Disputes.Single();
+    service.Refreshes.Enqueue(dispute with
+    {
+      AiDraftedAt = DateTimeOffset.Parse("2030-01-01T00:00:00Z"),
+      LatestLifecycleChangeId = "lifecycle-from-queued-run",
+      AiDraftRunId = QueuedRun,
+      AiDraftRequestedRunId = QueuedRun,
+      AiDraftRequestedRunStatus = ModerationRunStatus.Succeeded,
+    });
+
+    await viewModel.RerunAsync(dispute, TestContext.Current.CancellationToken);
+
+    Assert.False(viewModel.IsMutationAmbiguous(viewModel.Disputes.Single()));
+  }
+
+  [Fact]
   public async Task ManualRefreshOfAFailedExactRunEndsTheAdmission()
   {
     var service = new ModerationDisputesTestService();
