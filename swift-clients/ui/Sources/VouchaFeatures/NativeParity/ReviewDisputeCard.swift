@@ -38,6 +38,11 @@ struct ReviewDisputeCard: View {
                 ), systemImage: "sparkles")
                     .font(Typography.subheadline)
             }
+            if let key = viewModel.aiDraftStatusKey(for: dispute) {
+                Label(localized(key), systemImage: "sparkles")
+                    .font(Typography.subheadline)
+                    .accessibilityIdentifier("review-dispute-ai-run-status-\(dispute.id)")
+            }
             lifecycle
             staffContext
             if dispute.status == .pending {
