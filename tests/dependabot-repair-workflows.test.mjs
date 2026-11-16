@@ -5,6 +5,7 @@ import { access, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 import { NUGET_LOCK_PATHS } from '../scripts/validate-dependabot-dotnet-repair.mjs'
 
 const swiftAndroid = await readFile(
@@ -19,6 +20,13 @@ const swiftAndroidClassifier = await readFile(
   new URL('../scripts/classify-dependabot-swift-android-repair.mjs', import.meta.url),
   'utf8',
 )
+
+// Read one job's `if:` value (folded or inline) from its own block, independent of key order.
+function jobIf(workflow, job) {
+  const match = /^ {4}if: (?:>-\n((?: {6}.+\n?)+)|(.+))$/mu.exec(jobBlock(workflow, job))
+  assert.ok(match, `job ${job} has no if`)
+  return (match[1] ?? match[2]).replace(/\s+/gu, ' ').trim()
+}
 
 function count(source, pattern) {
   return [...source.matchAll(pattern)].length
@@ -38,14 +46,54 @@ describe('Dependabot repair workflow contracts', () => {
       assert.match(workflow, /\non:\n {2}pull_request:\n {4}types: \[/u)
       assert.doesNotMatch(workflow, /pull_request_target/u)
       assert.doesNotMatch(workflow, /contents: write|pull-requests: write/u)
-      for (const job of workflow.split(/\n {2}(?=[a-z-]+:\n {4}(?:needs|if|runs-on):)/u).slice(1)) {
-        assert.match(job, /github\.actor == 'dependabot\[bot\]'/u)
-        assert.match(job, /github\.event\.pull_request\.user\.login == 'dependabot\[bot\]'/u)
-        assert.match(
-          job,
-          /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u,
-        )
+    }
+    const identity = [
+      "github.actor == 'dependabot[bot]'",
+      "github.event.pull_request.user.login == 'dependabot[bot]'",
+      'github.event.pull_request.head.repo.full_name == github.repository',
+    ]
+    for (const [workflow, job] of [
+      [swiftAndroid, 'prepare'],
+      [swiftAndroid, 'publish-swift-android'],
+      [dotnet, 'gate'],
+      [dotnet, 'prepare'],
+      [dotnet, 'publish'],
+    ]) {
+      const condition = jobIf(workflow, job)
+      for (const term of identity) {
+        assert.ok(condition.includes(term), `${job} must require ${term}`)
       }
+    }
+  })
+
+  it('refuses repair for any pull request that changes .github and gates every write path on it', () => {
+    for (const [workflow, step] of [
+      [swiftAndroid, 'Capture live Dependabot identity'],
+      [dotnet, 'Refuse pull requests that change .github'],
+    ]) {
+      const block = stepBlock(workflow, step)
+      assert.match(
+        block,
+        /gh api --paginate "repos\/\$GITHUB_REPOSITORY\/pulls\/\$PR_NUMBER\/files/u,
+      )
+      assert.match(block, /length == \$pr\[0\]\.changed_files/u)
+      assert.match(block, /startswith\("\.github\/"\)/u)
+      assert.match(block, /set -euo pipefail/u)
+    }
+    assert.match(jobIf(dotnet, 'prepare'), /needs\.gate\.outputs\.eligible == 'true'/u)
+    assert.match(jobIf(dotnet, 'publish'), /needs\.gate\.outputs\.eligible == 'true'/u)
+    assert.match(
+      jobIf(swiftAndroid, 'publish-swift-android'),
+      /needs\.prepare\.outputs\.eligible == 'true'/u,
+    )
+    assert.doesNotMatch(swiftAndroid + dotnet, /paths-ignore|paths:\n\s+- '!/u)
+    for (const [workflow, job] of [
+      [swiftAndroid, 'publish-swift-android'],
+      [dotnet, 'publish'],
+    ]) {
+      const uses = [...jobBlock(workflow, job).matchAll(/^\s+(?:- )?uses: (\S+)/gmu)]
+      assert.ok(uses.length > 0)
+      for (const [, ref] of uses) assert.match(ref, /^[^@\s]+@[a-f0-9]{40}$/u)
     }
   })
 

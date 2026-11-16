@@ -178,13 +178,22 @@ only the exact live default-branch base SHA (`persist-credentials: false`) and f
 dependency files as inert API data, so repair scripts and `pnpm install` never execute the
 Dependabot head tree.
 
-Trust model under `pull_request`: the workflow definition itself now comes from the pull request's
+Trust model under `pull_request`: the workflow definition itself comes from the pull request's
 merge ref, not from the default branch, so the base-SHA checkout protects the scripts but not the
-workflow YAML. A Dependabot PR that edits these workflow files (a `github-actions` bump) would run
-its edited copy with the Dependabot secret. This is accepted because the actor, author, same-repo,
-branch, and `web-flow`-verified-head gates, the exact-diff and path allowlists, and the head lease
-all constrain which PRs and paths can be repaired, and only Dependabot can author the head. Review
-of workflow changes still happens before merge, not before the run. GITHUB_TOKEN is read-only in
+workflow YAML or its `uses:` refs. To close that, repair never runs when a PR changes anything
+under `.github/` (including a rename away from it). An early job that holds no secret and runs no
+action (`gate` in the .NET workflow, the `Capture live Dependabot identity` step of `prepare` in
+the Swift workflow) lists the PR's changed files through the API, fails closed on an API error or
+a truncated listing, and sets `eligible=false` if any path starts with `.github/`. Every
+downstream job, including the one whose step receives `DEPENDABOT_AUTOMERGE_TOKEN`, requires that
+output. The gate is a job-level check, not `paths-ignore` or a negated `paths:` pattern: a negated
+pattern still triggers when another changed file matches, and `paths` cannot be combined with
+`paths-ignore`. A `github-actions` Dependabot bump therefore never reaches a write path, and the
+ecosystem checks (`nuget` for .NET, the Skip classifier for Swift) independently reject it.
+Because `.github/` is unchanged, the merge-ref workflow and local composite actions equal the
+base's, and every `uses:` in the write-capable jobs is pinned to a full commit SHA (asserted by
+tests). The remaining trust is in the actor, author, same-repo, branch, and `web-flow`-verified
+head gates, the exact-diff and path allowlists, and the head lease. GITHUB_TOKEN is read-only in
 every job (`contents: read`, `pull-requests: read`, `actions: read`); it never pushes.
 
 Dependabot-triggered `pull_request` runs read only Dependabot secrets, not Actions secrets.
