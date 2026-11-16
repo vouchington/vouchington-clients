@@ -36,6 +36,11 @@ Linux and macOS because Darwin `URLSession` and Linux `FoundationNetworking` are
 runtimes. Do not add an OS matrix for confidence. See
 [native CI test placement](docs/development/native-ci-test-placement.md).
 
+`main` merges through a merge queue: the required `validate` and `Tests` checks run on the queued
+combination, and a push to `main` only warms caches and uploads symbols. Merge by enqueueing
+(`gh pr merge --squash`, or pr-shepherd's printed command); do not rebase only to make a branch
+current. See [merge queue and main pushes](docs/development/ci-runners.md#merge-queue-and-main-pushes).
+
 Use `pnpm clean` to remove checkout-local native build, coverage, and test output. Recycle only a
 linked disposable worktree with `./dev/reset-worktree`; it refuses dirty state unless `--force` is
 explicit and must never be used from the primary worktree.
