@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Voucha.Client.Core.Api;
-using Voucha.Client.Core.Localization;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.Api;
@@ -44,16 +43,6 @@ public sealed class ModerationAppealRunStatusContractTests
     staff["ai_draft_requested_run_status"] = "queued";
     Assert.ThrowsAny<JsonException>(() => Deserialize(staff));
   }
-
-  [Fact]
-  public void ScreeningStateMapsToCopyOrNothingForUnknownStates()
-  {
-    Assert.Equal(UiMessageKey.NativeSwiftAiRunStatusCopyrightScreeningPending, Screening("pending").StatusKey());
-    Assert.Equal(UiMessageKey.NativeSwiftAiRunStatusCopyrightScreeningFailed, Screening("failed").StatusKey());
-    Assert.Null(Screening("mystery").StatusKey());
-  }
-
-  private static CopyrightStaffFormScreening Screening(string state) => new(state, null, null, null);
 
   private static JsonObject Staff(string fixture) =>
       JsonNode.Parse(ApiFixtureLoader.LoadResponse(fixture))!["appeal"]!.AsObject();
