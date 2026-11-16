@@ -81,7 +81,7 @@ extension ReviewDisputesViewModel {
             ambiguousAIRerunBaselines[dispute.id] = admitted
             for attempt in 0 ..< rerunPollAttempts {
                 let refreshed: ReviewDisputeResponse = try await client.send(.dispute(id: dispute.id))
-                if baseline.isReconciled(in: refreshed.dispute) {
+                if admitted.isReconciled(in: refreshed.dispute) {
                     replaceWithTargetedOutcome(
                         refreshed.dispute,
                         preservingUnconfirmedPublicDraft: true
