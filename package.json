@@ -50,10 +50,10 @@
     "dependency-cruiser": "18.7.2",
     "husky": "9.1.7",
     "knip": "6.44.2",
-    "no-mistakes": "0.109.57",
+    "no-mistakes": "0.109.60",
     "oxfmt": "0.77.0",
     "oxlint": "1.92.0",
-    "vouchington-tooling": "2.0.2"
+    "vouchington-tooling": "3.2.0"
   },
   "engines": {
     "node": ">=24.0.0"
