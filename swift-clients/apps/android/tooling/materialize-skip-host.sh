@@ -11,10 +11,10 @@ source "$SCRIPT_DIR/../../../tooling/cached-archive.sh"
 
 # Match the full Android materializer's Skip pin. A regression checks all four
 # values so host-only changes do not invalidate unrelated native archive keys.
-SKIP_VERSION="1.9.13"
+SKIP_VERSION="1.9.20"
 SKIP_MACOS_ZIP_URL="https://source.skip.tools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"
 SKIP_MACOS_GITHUB_ZIP_URL="https://github.com/skiptools/skip/releases/download/${SKIP_VERSION}/skip-macos.zip"
-SKIP_MACOS_ZIP_SHA256="8a0242c19a65e3cb0c1af0cbceb79a7294bd545b47748c007c0a69dc41c9bfdc"
+SKIP_MACOS_ZIP_SHA256="bd3c6aacb46fecacaea34eac2445489c42e97800099057687a28654230467178"
 
 if [[ -z "${VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR:-}" ]]; then
   echo "VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR must be set to the persistent archive cache." >&2

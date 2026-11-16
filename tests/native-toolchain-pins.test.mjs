@@ -119,9 +119,9 @@ test('Skip package and verified materializer use the same Swift-compatible relea
 
   const manifestVersion = manifest.match(/skip\.git", exact: "([0-9.]+)"/u)?.[1]
   const lockedVersion = lock.pins.find(pin => pin.identity === 'skip')?.state.version
-  assert.equal(manifestVersion, '1.9.13')
+  assert.equal(manifestVersion, '1.9.20')
   assert.equal(lockedVersion, manifestVersion)
-  assert.match(materializer, /SKIP_VERSION="1\.9\.13"/u)
+  assert.match(materializer, /SKIP_VERSION="1\.9\.20"/u)
   assert.match(materializer, /resolve-mise-swift-toolchain\.sh/u)
   assert.doesNotMatch(materializer, /swiftly/u)
 })
