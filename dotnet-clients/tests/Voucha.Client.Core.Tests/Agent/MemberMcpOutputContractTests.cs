@@ -238,12 +238,28 @@ public sealed class MemberMcpOutputContractTests
   [InlineData("2026-10-09T00:00:00", false)]
   [InlineData("2026-10-09T24:00:00Z", false)]
   [InlineData("2026-10-09T00:00:00Z\n", false)]
+  [InlineData("2026-10-09T00:00:00.Z", false)]
+  [InlineData("2026-10-09T00:00:00+0", false)]
+  [InlineData("2026-10-09T00:00:00+00:0", false)]
+  [InlineData("2026-10-09T00:00:00+00", true)]
+  [InlineData("2026-10-09T00:00:00+00:", false)]
+  [InlineData("2026-10-09T00:00:00Z ", false)]
+  [InlineData("2026-10-09T00:00:0\u0661Z", false)]
   public void OutputDateTimeIsCalendarValidAndInputSubsetIsUnchanged(string timestamp, bool expected)
   {
     using var schema = JsonDocument.Parse("""{"type":"string","format":"date-time"}""");
     Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(schema.RootElement));
     MemberMcpInputSchema.Inspect(schema.RootElement, output: true);
     Assert.Equal(expected, MemberMcpInputSchema.AcceptsOutput(JsonSerializer.SerializeToElement(timestamp),
+        schema.RootElement, schema.RootElement));
+  }
+
+  [Fact]
+  public void OutputDateTimeValidationHasNoMatchDeadlineForLongFractions()
+  {
+    using var schema = JsonDocument.Parse("""{"type":"string","format":"date-time"}""");
+    var timestamp = "2026-10-09T00:00:00." + new string('9', 200_000) + "Z";
+    Assert.True(MemberMcpInputSchema.AcceptsOutput(JsonSerializer.SerializeToElement(timestamp),
         schema.RootElement, schema.RootElement));
   }
 
