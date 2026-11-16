@@ -309,7 +309,8 @@ final class ReviewDisputesViewModelTests: NativeRouteSurfaceViewModelTestCase {
                 Support.envelope(Support.dispute(
                     aiPublicResponse: "Fresh AI response",
                     aiDraftedAt: "2026-07-01T10:05:00Z",
-                    lifecycleChangeId: "change-2"
+                    lifecycleChangeId: "change-2",
+                    draftRunId: "00000000-0000-7000-8000-000000000211"
                 )), 200, 0
             )
         ]

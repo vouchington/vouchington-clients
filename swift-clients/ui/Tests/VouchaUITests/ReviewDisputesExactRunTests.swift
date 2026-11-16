@@ -95,6 +95,46 @@ final class ReviewDisputesExactRunTests: NativeRouteSurfaceViewModelTestCase {
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
     }
 
+    func testAnEarlierRunsDraftDoesNotCompleteTheQueuedRerun() async throws {
+        let (model, dispute) = try await loaded(attempts: 2)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.dispute(
+            aiDraftedAt: "2026-07-01T10:05:00Z", lifecycleChangeId: "change-from-older-run",
+            requestedRunId: admittedRun, requestedRunStatus: "active", draftRunId: "older-run"
+        )), 200)
+        await model.rerunAI(for: dispute)
+        XCTAssertTrue(model.ambiguousDisputeIds.contains(dispute.id))
+        XCTAssertEqual(model.ambiguousAIRerunBaselines[dispute.id]?.runId, admittedRun)
+        XCTAssertFalse(model.canRerun(model.disputes[0]))
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), 3)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount("\(path)/resolution-drafts"), 1)
+    }
+
+    func testTheQueuedRunsOwnDraftCompletesTheRerun() async throws {
+        let (model, dispute) = try await loaded(attempts: 2)
+        CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.dispute(
+            aiDraftedAt: "2026-07-01T10:05:00Z", lifecycleChangeId: "change-from-queued-run",
+            requestedRunId: admittedRun, requestedRunStatus: "succeeded", draftRunId: admittedRun
+        )), 200)
+        await model.rerunAI(for: dispute)
+        XCTAssertFalse(model.ambiguousDisputeIds.contains(dispute.id))
+        XCTAssertNil(model.ambiguousAIRerunBaselines[dispute.id])
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(model.disputes.first?.aiDraftRunId, admittedRun)
+        XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), 2)
+    }
+
+    func testBaselineWithoutARunIdKeepsTheDraftChangeRule() throws {
+        let row = try decode(Support.dispute(
+            aiDraftedAt: "2026-07-01T10:05:00Z", lifecycleChangeId: "change-2", draftRunId: "any-run"
+        ))
+        let original = try decode(Support.dispute())
+        let base = AIRerunBaseline(dispute: original)
+        XCTAssertTrue(base.hasAdvanced(in: row))
+        var named = base
+        named.runId = admittedRun
+        XCTAssertFalse(named.hasAdvanced(in: row))
+    }
+
     func testCardRendersTheStatusLabel() async throws {
         let (model, _) = try await loaded(attempts: 1)
         let row = try decode(Support.dispute(requestedRunStatus: "failed"))

@@ -142,6 +142,8 @@ struct AIRerunBaseline {
     func hasAdvanced(in dispute: ReviewDispute) -> Bool {
         dispute.aiDraftedAt != nil
             && dispute.aiDraftedAt != aiDraftedAt
+            // Once the queued run is known, only that run's own draft counts as advancement.
+            && (runId == nil || dispute.aiDraftRunId == runId)
             && dispute.latestLifecycleChangeId != lifecycleChangeId
     }
 

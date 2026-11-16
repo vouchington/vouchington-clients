@@ -14,7 +14,8 @@ enum ReviewDisputesTestSupport {
         resolutionAction: String? = nil,
         lifecycleChangeId: String? = "change-1",
         requestedRunId: String = "dispute_resolution_00000000-0000-7000-8000-000000000211",
-        requestedRunStatus: String? = nil
+        requestedRunStatus: String? = nil,
+        draftRunId: String = "dispute_resolution_00000000-0000-7000-8000-000000000211"
     ) -> String {
         let overrides = """
         {
@@ -26,8 +27,7 @@ enum ReviewDisputesTestSupport {
           "ai_internal_response":"Internal evidence","model":"native-test-model",
           "ai_draft_requested_run_id":"\(requestedRunId)",
           "ai_draft_requested_run_status":\(json(requestedRunStatus)),
-          "ai_draft_run_id":\(json(aiDraftedAt == nil ? nil :
-                  "dispute_resolution_00000000-0000-7000-8000-000000000211")),
+          "ai_draft_run_id":\(json(aiDraftedAt == nil ? nil : draftRunId)),
           "ai_drafted_at":\(json(aiDraftedAt)),"public_response":\(json(publicResponse)),
           "internal_notes":"Private staff notes","drafted_at":null,"edited_at":null,
           "edited_by_id":null,"approved_at":\(json(approvedAt)),
