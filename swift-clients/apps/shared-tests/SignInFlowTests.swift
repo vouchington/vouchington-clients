@@ -45,7 +45,8 @@
             let continueWithEmail = app.buttons["Continue with Email"]
             XCTAssertTrue(
                 continueWithEmail.waitForExistence(timeout: LaunchSmokeTiming.interaction),
-                "Sign-in sheet did not present. \(LaunchSmokeTiming.visibleText(in: app))"
+                "Sign-in sheet did not present. \(LaunchSmokeSystemBanner.describe(app: app)) "
+                    + LaunchSmokeTiming.visibleText(in: app)
             )
             continueWithEmail.tap()
 
@@ -109,6 +110,8 @@
             }
             wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
             XCTAssertNotNil(button)
+            // A SpringBoard banner would receive this tap instead of the button under it.
+            LaunchSmokeSystemBanner.waitUntilClear(in: self, timeout: timeout)
             button?.tap()
             return button ?? app.buttons[label]
         }
