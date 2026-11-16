@@ -322,7 +322,7 @@ if contains ast-grep; then
     fi
   fi
   if [[ -n "${AST_GREP_BIN:-}" ]]; then
-    run_check "ast-grep" run_in_directory "$ROOT_DIR" "$AST_GREP_BIN" scan --error --no-ignore hidden -- dotnet-clients/
+    run_check "ast-grep" run_in_directory "$ROOT_DIR" env AST_GREP_BIN="$AST_GREP_BIN" node "$ROOT_DIR/scripts/ast-grep-scan.mjs" --error --no-ignore hidden -- dotnet-clients/
   else
     echo "  ast-grep     - (skipped: repo-local ast-grep not found; run pnpm install at repo root)"
     SKIPPED=$((SKIPPED + 1))

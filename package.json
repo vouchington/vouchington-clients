@@ -23,7 +23,7 @@
     "coverage:swift": "node scripts/swift-coverage.mjs",
     "coverage:swift:local": "coverage-check check --rules .coverage-rules.yml --artifacts coverage --aggregate-artifacts --advisory --base \"${COVERAGE_BASE:-origin/main}\" --head \"${COVERAGE_HEAD:-HEAD}\"",
     "lint": "pnpm run lint:portable && pnpm run lint:gitleaks && pnpm run lint:swift && pnpm run lint:dotnet",
-    "lint:ast-grep": "vouchington ast-grep-examples --rules ast-grep-rules --config sgconfig.yml && ast-grep scan --error --no-ignore hidden -- swift-clients/ dotnet-clients/",
+    "lint:ast-grep": "vouchington ast-grep-examples --rules ast-grep-rules --config sgconfig.yml && node scripts/ast-grep-scan.mjs --error --no-ignore hidden -- swift-clients/ dotnet-clients/",
     "lint:dependencies": "knip --treat-config-hints-as-errors && depcruise --config dependency-cruiser.mjs scripts tests",
     "lint:diff": "git diff --check && git diff --cached --check",
     "lint:dotnet": "bash dotnet-clients/tooling/harness.sh --checks fmt",
@@ -45,15 +45,15 @@
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='scripts/*.mjs' --test-coverage-include-all --test-coverage-lines=70 --test-coverage-branches=70 --test-coverage-functions=80 tests/*.test.mjs"
   },
   "devDependencies": {
-    "@ast-grep/cli": "0.45.2",
-    "coverage-check": "0.17.0",
-    "dependency-cruiser": "18.2.0",
+    "@ast-grep/cli": "0.51.1",
+    "coverage-check": "0.18.0",
+    "dependency-cruiser": "18.7.2",
     "husky": "9.1.7",
-    "knip": "6.32.3",
-    "no-mistakes": "0.94.0",
-    "oxfmt": "0.67.0",
-    "oxlint": "1.80.0",
-    "vouchington-tooling": "0.48.0"
+    "knip": "6.44.2",
+    "no-mistakes": "0.109.57",
+    "oxfmt": "0.77.0",
+    "oxlint": "1.92.0",
+    "vouchington-tooling": "2.0.2"
   },
   "engines": {
     "node": ">=24.0.0"
