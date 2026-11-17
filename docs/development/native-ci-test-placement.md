@@ -124,8 +124,8 @@ former 9-minute job cap after the test had already passed. A launch that returns
 still fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
 failure: the test's launch window ended before the app process existed.
 Just before the launch step, each iPhone leg and the iPad job run
-`time xcrun lldb --batch --one-line version` with a 3-minute cap. A failed warm logs a warning and the job
-continues. This warms LLDB and is a mitigation, not a confirmed root cause. In both launch timeouts seen
+`time xcrun lldb --batch --one-line version` under a 120-second `perl` alarm inside a 3-minute step cap. A failed or
+slow warm logs a warning and the launch still runs. This warms LLDB and is a mitigation, not a confirmed root cause. In both launch timeouts seen
 after the spawn gate passed (runs 43787557062 and 44046270155), `xcodebuild` sat 40 to 60 seconds
 on its debugger-version snapshot (`IDELaunchParametersSnapshot`) right after "Launch". Passing runs
 take about 3 seconds there. The stall spent the `XCUIApplication` launch budget before the app was

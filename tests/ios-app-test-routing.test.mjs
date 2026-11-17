@@ -118,9 +118,11 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       const warm = stepBlock(job, 'Warm LLDB for the Xcode launch')
       assert.match(warm, /timeout-minutes: 3\n/u)
       assert.doesNotMatch(warm, /continue-on-error/u)
+      // The 120s command deadline stays under the 3-minute step cap, so a slow warm only warns
+      // instead of failing the step and skipping the launch.
       assert.match(
         warm,
-        /run: time xcrun lldb --batch --one-line version \|\| echo "::warning::LLDB warm failed/u,
+        /run: time perl -e 'alarm shift; exec @ARGV' 120 xcrun lldb --batch --one-line version \|\| echo "::warning::LLDB warm failed or passed 120s/u,
       )
       assert.ok(job.includes(`continuing to the launch"\n      ${launchName}\n`))
       const launch = job.slice(job.indexOf(launchName))

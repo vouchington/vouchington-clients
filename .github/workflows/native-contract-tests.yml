@@ -1741,7 +1741,7 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
       - name: Warm LLDB for the Xcode launch
         timeout-minutes: 3
-        run: time xcrun lldb --batch --one-line version || echo "::warning::LLDB warm failed; continuing to the launch"
+        run: time perl -e 'alarm shift; exec @ARGV' 120 xcrun lldb --batch --one-line version || echo "::warning::LLDB warm failed or passed 120s; continuing to the launch"
       - name: Launch iOS app on Simulator
         timeout-minutes: 7
         run: |
@@ -1932,7 +1932,7 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
       - name: Warm LLDB for the Xcode launch
         timeout-minutes: 3
-        run: time xcrun lldb --batch --one-line version || echo "::warning::LLDB warm failed; continuing to the launch"
+        run: time perl -e 'alarm shift; exec @ARGV' 120 xcrun lldb --batch --one-line version || echo "::warning::LLDB warm failed or passed 120s; continuing to the launch"
       - name: Launch iPad root shell on Simulator
         timeout-minutes: 9
         run: |
