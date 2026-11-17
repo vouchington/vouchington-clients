@@ -1,6 +1,6 @@
 import XCTest
 
-final class LaunchSmokeTests: XCTestCase {
+final class LaunchSmokeTests: LaunchSmokeTestCase {
     private static let isolatedUITestingArgument = "--ui-testing-launch-smoke"
     private static let isolatedAPIBaseURL = "https://ui-testing.voucha.invalid"
     private static let disabledAppAttestEnvironmentKey = "VOUCHA_DISABLE_APP_ATTEST"
@@ -24,7 +24,7 @@ final class LaunchSmokeTests: XCTestCase {
         app.launch()
 
         let rootShell = app.descendants(matching: .any)[Self.rootShellAccessibilityIdentifier]
-        XCTAssertTrue(rootShell.waitForExistence(timeout: LaunchSmokeTiming.launchReadiness))
+        waitForLaunchReadiness(of: rootShell)
         let signIn = app.buttons.matching(identifier: "signed-out-sign-in").firstMatch
         XCTAssertTrue(signIn.waitForExistence(timeout: 20))
         XCTAssertTrue(signIn.isHittable)

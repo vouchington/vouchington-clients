@@ -2,7 +2,7 @@
     import UIKit
     import XCTest
 
-    final class SignInFlowTests: XCTestCase {
+    final class SignInFlowTests: LaunchSmokeTestCase {
         private let email = "ui-test@example.com"
         private let code = "ABCDEFGH23"
         private let turnstileToken = "ui-testing-turnstile-token"
@@ -26,9 +26,8 @@
             try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
-            XCTAssertTrue(
-                app.descendants(matching: .any)["root-shell"]
-                    .waitForExistence(timeout: LaunchSmokeTiming.launchReadiness),
+            waitForLaunchReadiness(
+                of: app.descendants(matching: .any)["root-shell"],
                 "Sign-in launch did not mount the native root"
             )
             dismissSidebarIfPresented(in: app)
@@ -127,7 +126,9 @@
             wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
             XCTAssertNotNil(button)
             // A SpringBoard banner would receive this tap instead of the button under it.
-            LaunchSmokeSystemBanner.waitUntilClear(in: self, timeout: timeout)
+            toleratingSnapshotTimeouts("SpringBoard banner wait") {
+                LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)
+            }
             button?.tap()
             return button ?? app.buttons[label]
         }
