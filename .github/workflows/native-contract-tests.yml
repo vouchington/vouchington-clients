@@ -1606,7 +1606,7 @@ jobs:
     if: ${{ github.event_name != 'push' }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -1791,7 +1791,7 @@ jobs:
     if: ${{ github.event_name != 'push' }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:

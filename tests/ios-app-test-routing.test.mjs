@@ -121,10 +121,10 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       assert.ok(gateAt >= 0 && testAt > gateAt)
       assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
     }
-    assert.match(iosJob, /\n    timeout-minutes: 12\n/u)
+    assert.match(iosJob, /\n    timeout-minutes: 15\n/u)
     assert.match(buildJob, /\n    timeout-minutes: 13\n/u)
     assert.match(x86Job, /\n    timeout-minutes: 12\n/u)
-    assert.match(ipadJob, /\n    timeout-minutes: 12\n/u)
+    assert.match(ipadJob, /\n    timeout-minutes: 15\n/u)
     const ipadPrepare = ipadJob.indexOf('uses: ./.github/actions/prepare-native-contract')
     const ipadBoot = ipadJob.indexOf('- name: Start iPad Simulator for root-shell launch')
     const ipadDownload = ipadJob.indexOf('- name: Download iOS test products')
