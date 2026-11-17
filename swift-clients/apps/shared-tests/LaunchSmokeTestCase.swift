@@ -46,6 +46,13 @@ class LaunchSmokeTestCase: XCTestCase {
             appeared = element.waitForExistence(timeout: deadline.timeIntervalSinceNow)
         }
         isWaitingForLaunchReadiness = false
+        if appeared, deferredSnapshotTimeouts > 0 {
+            // A passing run must still show that a snapshot stalled, or the CI log cannot tell
+            // whether this tolerance is what kept the launch green.
+            XCTContext.runActivity(
+                named: "Launch readiness tolerated \(deferredSnapshotTimeouts) UI snapshot timeouts"
+            ) { _ in }
+        }
         XCTAssertTrue(
             appeared,
             "\(message()) within \(Int(LaunchSmokeTiming.launchReadiness)) s "
