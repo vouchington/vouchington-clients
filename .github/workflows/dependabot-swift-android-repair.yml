@@ -1,9 +1,11 @@
 name: Dependabot Swift Android repair
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, ready_for_review, synchronize]
 
+# Dependabot-triggered pull_request runs read Dependabot secrets, never Actions
+# secrets. Only same-repository Dependabot PRs reach the write path.
 permissions:
   contents: read
   pull-requests: read
@@ -15,6 +17,7 @@ concurrency:
 jobs:
   prepare:
     if: >-
+      github.actor == 'dependabot[bot]' &&
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.base.ref == github.event.repository.default_branch &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -68,9 +71,20 @@ jobs:
             .author.login == "dependabot[bot]" and .committer.login == "web-flow" and
             .commit.verification.verified
           ) == true' "$RUNNER_TEMP/head-commit.json")"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" \
+            --jq '.[] | {filename, previous_filename}' > "$RUNNER_TEMP/changed-paths.jsonl"
+          # Fail closed on a truncated listing, then refuse any change under .github/.
+          jq -es --slurpfile pr "$RUNNER_TEMP/live-pr.json" 'length == $pr[0].changed_files' \
+            "$RUNNER_TEMP/changed-paths.jsonl" > /dev/null
+          github_paths="$(jq -s '[.[] | (.filename, (.previous_filename // empty)) | select(startswith(".github/"))] | length' \
+            "$RUNNER_TEMP/changed-paths.jsonl")"
+          if [ "$github_paths" != 0 ]; then
+            eligible=false
+            echo 'PR changes files under .github/; repair is refused so no PR-supplied action runs with the write token.'
+          fi
           printf 'eligible=%s\n' "$eligible" >> "$GITHUB_OUTPUT"
           if [ "$eligible" != true ]; then
-            echo 'Head is not a verified Dependabot commit; use the ordinary reviewed PR path.'
+            echo 'Head is not an eligible verified Dependabot commit; use the ordinary reviewed PR path.'
           fi
       - name: Fetch trusted Dependabot metadata
         if: steps.live.outputs.eligible == 'true'
@@ -183,11 +197,18 @@ jobs:
           retention-days: 1
   publish-swift-android:
     needs: prepare
-    if: needs.prepare.outputs.repair-kind == 'swift-android'
+    if: >-
+      needs.prepare.outputs.eligible == 'true' &&
+      needs.prepare.outputs.repair-kind == 'swift-android' &&
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       actions: read
+      # The push uses DEPENDABOT_AUTOMERGE_TOKEN (a Dependabot secret), not
+      # GITHUB_TOKEN, so the repaired head triggers CI. GITHUB_TOKEN stays read-only.
       contents: read
       pull-requests: read
     outputs:

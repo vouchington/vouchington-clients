@@ -44,7 +44,7 @@ The helper requires the exact SDK and workload from `global.json`, resolves only
 repository NuGet configuration, and verifies all twelve regular lock files. Do not regenerate a
 subset of locks or use an ambient SDK, package cache, or workload installation as evidence.
 
-Dependabot may propose literal central NuGet version updates. Its trusted repair path regenerates
+Dependabot may propose literal central NuGet version updates. Its trusted repair path (a same-repository Dependabot `pull_request` run that reads the Dependabot copy of `DEPENDABOT_AUTOMERGE_TOKEN`) regenerates
 all twelve locks from the validated manifest delta and publishes only those locks with provenance
 and hashes. NuGet updates still require manual merge; SDK, workload, and `MauiVersion` changes are
 manual-only.

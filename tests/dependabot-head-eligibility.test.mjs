@@ -22,7 +22,13 @@ const sha = 'b'.repeat(40)
 
 function invoke(
   commit,
-  { failCommitFetch = false, failPullRequestFetch = false, pullRequestChanges = {} } = {},
+  {
+    failCommitFetch = false,
+    failPullRequestFetch = false,
+    failFilesFetch = false,
+    pullRequestChanges = {},
+    files = [{ filename: 'swift-clients/apps/android/Package.resolved', previous_filename: null }],
+  } = {},
 ) {
   const root = mkdtempSync(join(tmpdir(), 'native-dependabot-head-'))
   try {
@@ -34,10 +40,12 @@ function invoke(
         user: { login: 'dependabot[bot]' },
         base: { ref: 'main', sha: 'a'.repeat(40) },
         head: { ref: 'dependabot/swift/crypto', sha, repo: { full_name: 'test/native' } },
+        changed_files: files.length,
         ...pullRequestChanges,
       }),
     )
     writeFileSync(join(root, 'commit.json'), JSON.stringify(commit))
+    writeFileSync(join(root, 'files.jsonl'), files.map(file => JSON.stringify(file)).join('\n'))
     writeFileSync(join(root, 'output'), '')
     const stub = `gh() {
       case "$2" in
@@ -47,6 +55,13 @@ function invoke(
         repos/test/native/commits/${sha})
           [ "$FAIL_COMMIT_FETCH" = false ] || return 22
           cat "$RUNNER_TEMP/commit.json" ;;
+        --paginate)
+          case "$3" in
+            repos/test/native/pulls/402/files*)
+              [ "$FAIL_FILES_FETCH" = false ] || return 23
+              cat "$RUNNER_TEMP/files.jsonl" ;;
+            *) return 99 ;;
+          esac ;;
         *) return 99 ;;
       esac
     }
@@ -62,6 +77,7 @@ function invoke(
         PR_NUMBER: '402',
         FAIL_COMMIT_FETCH: String(failCommitFetch),
         FAIL_PR_FETCH: String(failPullRequestFetch),
+        FAIL_FILES_FETCH: String(failFilesFetch),
       },
     })
     return { ...result, output: readFileSync(join(root, 'output'), 'utf8') }
@@ -114,6 +130,30 @@ describe('trusted Dependabot head eligibility', () => {
       assert.equal(result.output.trim().split('\n').at(-1), 'eligible=false')
     })
   }
+
+  for (const [label, files] of [
+    ['a changed workflow file', [{ filename: '.github/workflows/validate.yml' }]],
+    ['a changed action file', [{ filename: '.github/actions/x/action.yml' }]],
+    [
+      'a file renamed away from .github',
+      [{ filename: 'docs/moved.yml', previous_filename: '.github/workflows/old.yml' }],
+    ],
+  ]) {
+    it(`refuses repair when the pull request has ${label}`, () => {
+      const result = invoke(commit(), { files })
+      assert.equal(result.status, 0, result.stderr)
+      assert.equal(result.output.trim().split('\n').at(-1), 'eligible=false')
+    })
+  }
+
+  it('fails closed when the changed-file listing errors or is truncated', () => {
+    const failed = invoke(commit(), { failFilesFetch: true })
+    assert.notEqual(failed.status, 0)
+    assert.equal(failed.output.trim().split('\n').at(-1), 'eligible=false')
+    const truncated = invoke(commit(), { pullRequestChanges: { changed_files: 5 } })
+    assert.notEqual(truncated.status, 0)
+    assert.equal(truncated.output.trim().split('\n').at(-1), 'eligible=false')
+  })
 
   it('exposes conservative cleanup identity before a failed commit lookup without passing prepare', () => {
     const result = invoke(commit(), { failCommitFetch: true })

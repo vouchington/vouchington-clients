@@ -5,6 +5,7 @@ import { access, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
+import { jobBlock, stepBlock } from './workflow-job-block.mjs'
 import { NUGET_LOCK_PATHS } from '../scripts/validate-dependabot-dotnet-repair.mjs'
 
 const swiftAndroid = await readFile(
@@ -20,6 +21,19 @@ const swiftAndroidClassifier = await readFile(
   'utf8',
 )
 
+// Read one job's `if:` value (folded or inline) from its own block, independent of key order.
+function jobIf(workflow, job) {
+  const match = /^ {4}if: (?:>-\n((?: {6}.+\n?)+)|(.+))$/mu.exec(jobBlock(workflow, job))
+  assert.ok(match, `job ${job} has no if`)
+  return (match[1] ?? match[2]).replace(/\s+/gu, ' ').trim()
+}
+
+// Declared top-level job names: two-space-indent keys inside the `jobs:` section.
+function jobNames(workflow) {
+  const section = workflow.slice(workflow.search(/^jobs:/mu)).split(/\n(?=\S)/u)[0]
+  return [...section.matchAll(/^ {2}([A-Za-z0-9_-]+):/gmu)].map(match => match[1])
+}
+
 function count(source, pattern) {
   return [...source.matchAll(pattern)].length
 }
@@ -31,6 +45,70 @@ describe('Dependabot repair workflow contracts', () => {
     )
     assert.match(swiftAndroidClassifier, /dependencyName === 'source\.skip\.tools\/skip'/u)
     assert.doesNotMatch(swiftAndroid, /outputs\.dependency-names/u)
+  })
+
+  it('runs on pull_request with read-only token permissions and a same-repo Dependabot gate', () => {
+    for (const workflow of [swiftAndroid, dotnet]) {
+      assert.match(workflow, /\non:\n {2}pull_request:\n {4}types: \[/u)
+      assert.doesNotMatch(workflow, /pull_request_target/u)
+      assert.doesNotMatch(workflow, /contents: write|pull-requests: write/u)
+    }
+    const identity = [
+      "github.actor == 'dependabot[bot]'",
+      "github.event.pull_request.user.login == 'dependabot[bot]'",
+      'github.event.pull_request.head.repo.full_name == github.repository',
+    ]
+    const gated = [
+      [swiftAndroid, 'prepare'],
+      [swiftAndroid, 'publish-swift-android'],
+      [dotnet, 'gate'],
+      [dotnet, 'prepare'],
+      [dotnet, 'publish'],
+    ]
+    // A newly added job must be added to the gated list above, or this fails.
+    for (const workflow of [swiftAndroid, dotnet]) {
+      assert.deepEqual(
+        jobNames(workflow),
+        gated.filter(([candidate]) => candidate === workflow).map(([, job]) => job),
+      )
+    }
+    for (const [workflow, job] of gated) {
+      const condition = jobIf(workflow, job)
+      for (const term of identity) {
+        assert.ok(condition.includes(term), `${job} must require ${term}`)
+      }
+    }
+  })
+
+  it('refuses repair for any pull request that changes .github and gates every write path on it', () => {
+    for (const [workflow, step] of [
+      [swiftAndroid, 'Capture live Dependabot identity'],
+      [dotnet, 'Refuse pull requests that change .github'],
+    ]) {
+      const block = stepBlock(workflow, step)
+      assert.match(
+        block,
+        /gh api --paginate "repos\/\$GITHUB_REPOSITORY\/pulls\/\$PR_NUMBER\/files/u,
+      )
+      assert.match(block, /length == \$pr\[0\]\.changed_files/u)
+      assert.match(block, /startswith\("\.github\/"\)/u)
+      assert.match(block, /set -euo pipefail/u)
+    }
+    assert.match(jobIf(dotnet, 'prepare'), /needs\.gate\.outputs\.eligible == 'true'/u)
+    assert.match(jobIf(dotnet, 'publish'), /needs\.gate\.outputs\.eligible == 'true'/u)
+    assert.match(
+      jobIf(swiftAndroid, 'publish-swift-android'),
+      /needs\.prepare\.outputs\.eligible == 'true'/u,
+    )
+    assert.doesNotMatch(swiftAndroid + dotnet, /paths-ignore|paths:\n\s+- '!/u)
+    for (const [workflow, job] of [
+      [swiftAndroid, 'publish-swift-android'],
+      [dotnet, 'publish'],
+    ]) {
+      const uses = [...jobBlock(workflow, job).matchAll(/^\s+(?:- )?uses: (\S+)/gmu)]
+      assert.ok(uses.length > 0)
+      for (const [, ref] of uses) assert.match(ref, /^[^@\s]+@[a-f0-9]{40}$/u)
+    }
   })
 
   it('never checks out or executes a pull-request tree', () => {
