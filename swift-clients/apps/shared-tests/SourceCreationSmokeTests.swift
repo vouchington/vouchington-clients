@@ -2,7 +2,7 @@
     import Foundation
     import XCTest
 
-    final class SourceCreationSmokeTests: XCTestCase {
+    final class SourceCreationSmokeTests: LaunchSmokeTestCase {
         override func setUp() {
             super.setUp()
             continueAfterFailure = false
@@ -22,8 +22,7 @@
                 try LaunchSmokeFixtures.configureSession(in: app)
                 app.launch()
                 app.activate()
-                XCTAssertTrue(app.descendants(matching: .any)["root-shell"]
-                    .waitForExistence(timeout: LaunchSmokeTiming.launchReadiness))
+                waitForLaunchReadiness(of: app.descendants(matching: .any)["root-shell"])
                 LaunchSmokeSidebar.click(section, in: app)
                 let sources = LaunchSmokeSidebar.visibleText(sourcesTitle, in: app)
                 XCTAssertTrue(sources.waitForExistence(timeout: 10))

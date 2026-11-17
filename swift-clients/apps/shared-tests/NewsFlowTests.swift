@@ -2,7 +2,7 @@
     import Foundation
     import XCTest
 
-    final class NewsFlowTests: XCTestCase {
+    final class NewsFlowTests: LaunchSmokeTestCase {
         private struct Fixtures {
             let feed: Data
             let identity: Data
@@ -29,9 +29,8 @@
 
             // Fixture identity restoration precedes mounting RootView and loading its feed.
             // Keep launch readiness separate from the per-action deadline.
-            XCTAssertTrue(
-                app.descendants(matching: .any)["root-shell"]
-                    .waitForExistence(timeout: LaunchSmokeTiming.launchReadiness),
+            waitForLaunchReadiness(
+                of: app.descendants(matching: .any)["root-shell"],
                 "News fixture did not finish identity restoration and mount the native root"
             )
             let primary = app.staticTexts[fixture.primaryTitle].firstMatch

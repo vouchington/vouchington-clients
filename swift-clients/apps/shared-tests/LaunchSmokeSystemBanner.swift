@@ -25,9 +25,17 @@
 
         /// Blocks until no banner is on screen, so the next tap cannot land on one.
         /// Banners dismiss themselves, so this is bounded by one banner lifetime.
-        static func waitUntilClear(in testCase: XCTestCase, timeout: TimeInterval) {
-            let clear = NSPredicate { _, _ in !banners.firstMatch.exists }
-            testCase.wait(for: [testCase.expectation(for: clear, evaluatedWith: nil)], timeout: timeout)
+        ///
+        /// Running out of time here is not a failure: on a starved runner one SpringBoard snapshot
+        /// can take about 30 seconds (CI run 44105473901), which exhausts the wait with no banner
+        /// on screen. The caller's next assertion still fails, with `describe(app:)`, if the tap
+        /// then landed on a banner.
+        static func waitUntilClear(timeout: TimeInterval) {
+            let clear = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !banners.firstMatch.exists },
+                object: nil
+            )
+            _ = XCTWaiter().wait(for: [clear], timeout: timeout)
         }
 
         /// App state and SpringBoard banner text, for failure messages after a tap whose result
