@@ -115,7 +115,9 @@ passed and was then cancelled during job cleanup at 12 minutes 5 seconds. Its te
 the rest went to Simulator readiness, the artifact download, and about three minutes of cold
 `xcodebuild` startup before the first test ran. The iPhone sign-in leg had reached 11.8 minutes. Each leg boots the manifest's simulator before contract
 setup, then waits for `bootstatus` before unpacking, so the bundle extract does not compete with
-CoreSimulator.
+CoreSimulator. The verify-and-unpack step has a 6-minute cap on the iPhone legs and the iPad job:
+passing unpacks took 8 to 176 seconds across seven recent runs, and the former 3-minute cap failed
+the iPhone News leg of run 44121822954 on a starved runner.
 After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
 `simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
 That spawn gate stops after 150 seconds and still runs `xcodebuild`; every passing gate observed

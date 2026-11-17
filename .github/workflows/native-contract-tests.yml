@@ -1681,7 +1681,7 @@ jobs:
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
       - name: Verify and unpack iOS test products
-        timeout-minutes: 3
+        timeout-minutes: 6
         env:
           EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-ios-tests.outputs.artifact-attempt }}
           EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
@@ -1867,7 +1867,7 @@ jobs:
           simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
           xcrun simctl bootstatus "$simulator_id" -b
       - name: Verify and unpack iOS test products
-        timeout-minutes: 3
+        timeout-minutes: 6
         env:
           EXPECTED_ARTIFACT_RUN_ATTEMPT: ${{ needs.build-ios-tests.outputs.artifact-attempt }}
           EXPECTED_REVISION: ${{ needs.verify.outputs.revision-sha }}
