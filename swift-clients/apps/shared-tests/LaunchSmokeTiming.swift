@@ -9,7 +9,9 @@ import XCTest
 /// ("App event loop idle notification not received"), automation-session setup took up to 22
 /// seconds, and one tap took 8 seconds to synthesize. XCUITest evaluates each existence poll
 /// through the starved app, so a nominal 20 second wait is also stretched (a CPU-saturated local
-/// run spent 31 seconds inside a 20 second `waitForExistence`).
+/// run spent 31 seconds inside a 20 second `waitForExistence`). One snapshot can also time out
+/// outright, which ends a plain `waitForExistence` early; launch readiness therefore goes through
+/// `LaunchSmokeTestCase.waitForLaunchReadiness`.
 ///
 /// These budgets are therefore not margin for slow assertions. They bound how long a starved
 /// host may take to launch and to render the result of one user action. A fixture that is

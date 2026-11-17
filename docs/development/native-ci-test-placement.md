@@ -131,6 +131,16 @@ on its debugger-version snapshot (`IDELaunchParametersSnapshot`) right after "La
 take about 3 seconds there. The stall spent the `XCUIApplication` launch budget before the app was
 reinstalled. The logged warm duration tests the idea: if the warm stays at a few seconds and the
 timeout recurs, drop the warm and look elsewhere. Neither the test nor the workflow retries a launch.
+A different failure starts after the app is up: XCTest reports "Failed to get matching snapshots:
+Timed out while evaluating UI query" during the first `root-shell` check. `waitForExistence`
+polls with `existsNoRetry`, so one accessibility snapshot that does not return ends the wait
+inside its 90-second budget (71.8 seconds in run 44105473901 on the iPhone root shell, 44.4
+seconds in run 43794940647 on the iPad News flow, and both attempts of run 43794082897).
+`LaunchSmokeTestCase.waitForLaunchReadiness` keeps polling through that one issue until the
+budget runs out, then asserts with the number of snapshot timeouts. It retries the query, not the
+launch or the test. The SpringBoard banner wait before a sign-in tap ends without failing the test,
+because one SpringBoard snapshot took about 30 seconds in that same run; the assertion after the
+tap still reports any banner that took the tap.
 The launch jobs skip the candidate pnpm install, and a passing launch shuts its simulator down
 before job cleanup.
 Neither the iPhone legs nor the iPad job collect xcodebuild's verbose diagnostics. Each result

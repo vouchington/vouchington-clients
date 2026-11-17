@@ -2,7 +2,7 @@
     import Foundation
     import XCTest
 
-    final class FeedFlowTests: XCTestCase {
+    final class FeedFlowTests: LaunchSmokeTestCase {
         private struct Fixtures {
             let feed: Data
             let identity: Data
@@ -19,7 +19,7 @@
             try LaunchSmokeFixtures.configureSession(in: app)
             app.launch()
 
-            XCTAssertTrue(app.otherElements["root-shell"].waitForExistence(timeout: LaunchSmokeTiming.launchReadiness))
+            waitForLaunchReadiness(of: app.otherElements["root-shell"])
             let videos = app.tabBars.buttons["Videos"]
             XCTAssertTrue(videos.waitForExistence(timeout: 10))
             videos.tap()

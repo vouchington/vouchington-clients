@@ -30,7 +30,10 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         let banner = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeSystemBanner.swift")
 
         // Issue #713: a SpringBoard notification banner over the nav bar swallowed the tap.
-        XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.waitUntilClear(in: self"))
+        // A slow SpringBoard snapshot ends the wait without failing; the post-tap check still reports a banner.
+        XCTAssertTrue(flow.contains("toleratingSnapshotTimeouts(\"SpringBoard banner wait\")"))
+        XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)"))
+        XCTAssertTrue(banner.contains("XCTWaiter().wait(for: [clear], timeout: timeout)"))
         XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.describe(app: app)"))
         XCTAssertTrue(banner.contains("com.apple.springboard"))
     }
