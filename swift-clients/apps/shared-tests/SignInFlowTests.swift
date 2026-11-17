@@ -78,8 +78,24 @@
             }
             wait(for: [expectation(for: sidebarReady, evaluatedWith: nil)], timeout: LaunchSmokeTiming.interaction)
             guard hideSidebar.exists, hideSidebar.isHittable, hideSidebar.isEnabled else { return }
-            tapHittableButton("Hide Sidebar", in: app, timeout: LaunchSmokeTiming.interaction)
-            XCTAssertTrue(hideSidebar.waitForNonExistence(timeout: LaunchSmokeTiming.interaction))
+            // Hiding the sidebar is idempotent, so one lost tap is retried. On a starved runner
+            // XCUITest can spend 30 s between the banner check and synthesizing the tap (run
+            // 44126670756), long enough for a SpringBoard banner to take it.
+            for attempt in 1 ... 2 {
+                if app.state != .runningForeground {
+                    app.activate()
+                }
+                tapHittableButton("Hide Sidebar", in: app, timeout: LaunchSmokeTiming.interaction)
+                if hideSidebar.waitForNonExistence(timeout: LaunchSmokeTiming.interaction) {
+                    return
+                }
+                let state = LaunchSmokeSystemBanner.describe(app: app)
+                XCTContext.runActivity(named: "Hide Sidebar tap \(attempt) left the sidebar. \(state)") { _ in }
+            }
+            XCTFail(
+                "Sidebar stayed after two Hide Sidebar taps. \(LaunchSmokeSystemBanner.describe(app: app)) "
+                    + LaunchSmokeTiming.visibleText(in: app)
+            )
         }
 
         @discardableResult
