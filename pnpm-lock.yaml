@@ -21,8 +21,8 @@ importers:
         specifier: 9.1.7
         version: 9.1.7
       knip:
-        specifier: 6.44.2
-        version: 6.44.2
+        specifier: 6.45.0
+        version: 6.45.0
       no-mistakes:
         specifier: 0.109.72
         version: 0.109.72
@@ -1629,8 +1629,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  knip@6.44.2:
-    resolution: {integrity: sha512-6URO7pnqtOnyvSsXfW6+8C9j1lfcicxUCysXO0RgMtHTZ96HqCXh29op8iabeQW5JeIc8dJWwzSdJVWDokeScQ==}
+  knip@6.45.0:
+    resolution: {integrity: sha512-ywPAhxiJGPWD/1V5dVYawA6el74q4vgX8omkeyl0MbA1CCkdjxrvWXXVqM20a5wQWcl1NbC9ImLHYsbFEbD0Xg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -2100,8 +2100,8 @@ packages:
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
-  smol-toml@1.9.0:
-    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
     engines: {node: '>= 18'}
 
   spdx-exceptions@2.5.0:
@@ -3783,7 +3783,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  knip@6.44.2:
+  knip@6.45.0:
     dependencies:
       formatly: 0.11.4
       get-tsconfig: 4.14.3
@@ -3791,12 +3791,11 @@ snapshots:
       oxc-parser: 0.156.0
       oxc-resolver: 11.24.2
       picomatch: 4.0.7
-      smol-toml: 1.9.0
+      smol-toml: 1.9.1
       strip-json-comments: 5.0.3
       tinyglobby: 0.2.17
       unbash: 6.0.4
       yaml: 2.9.1
-      zod: 4.6.7
 
   levn@0.4.1:
     dependencies:
@@ -4531,7 +4530,7 @@ snapshots:
 
   sisteransi@1.0.5: {}
 
-  smol-toml@1.9.0: {}
+  smol-toml@1.9.1: {}
 
   spdx-exceptions@2.5.0: {}
 
