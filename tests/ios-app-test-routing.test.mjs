@@ -88,6 +88,11 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.ok(startupIndex < prepareIndex)
     assert.ok(prepareIndex < waitIndex)
     assert.ok(waitIndex < unpackIndex)
+    // Passing unpacks took 8 to 176 s on starved runners; a 3-minute cap failed run 44121822954.
+    for (const job of [iosJob, ipadJob]) {
+      const unpack = stepBlock(job, 'Verify and unpack iOS test products')
+      assert.match(unpack, /\n        timeout-minutes: 6\n/u)
+    }
     assert.ok(
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iOS app on Simulator'),
