@@ -110,7 +110,9 @@
             wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
             XCTAssertNotNil(button)
             // A SpringBoard banner would receive this tap instead of the button under it.
-            LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)
+            toleratingSnapshotTimeouts("SpringBoard banner wait") {
+                LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)
+            }
             button?.tap()
             return button ?? app.buttons[label]
         }

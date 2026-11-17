@@ -10,20 +10,39 @@ import XCTest
 /// helped, because nothing polled again after the stalled snapshot.
 ///
 /// `waitForLaunchReadiness` keeps polling through such snapshot timeouts until the launch budget
-/// runs out. Only that one issue is set aside, only during the readiness wait, and the count is
-/// reported if the element never appears, so a launch that never mounts still fails at the budget.
+/// runs out. Only that one issue is set aside, only inside `toleratingSnapshotTimeouts`, and the
+/// count is reported if the element never appears, so a launch that never mounts still fails at the
+/// budget.
 class LaunchSmokeTestCase: XCTestCase {
     static let snapshotTimeoutMessage = "Timed out while evaluating UI query"
 
-    private var isWaitingForLaunchReadiness = false
+    private var isToleratingSnapshotTimeouts = false
     private var deferredSnapshotTimeouts = 0
 
     override func record(_ issue: XCTIssue) {
-        if isWaitingForLaunchReadiness, Self.isSnapshotTimeout(issue) {
+        if isToleratingSnapshotTimeouts, Self.isSnapshotTimeout(issue) {
             deferredSnapshotTimeouts += 1
             return
         }
         super.record(issue)
+    }
+
+    /// Runs `body` with snapshot timeouts set aside, for waits whose own result already decides
+    /// pass or fail. Returns how many snapshot timeouts `body` hit; a passing run logs them.
+    @discardableResult
+    func toleratingSnapshotTimeouts(_ label: String, _ body: () -> Void) -> Int {
+        deferredSnapshotTimeouts = 0
+        isToleratingSnapshotTimeouts = true
+        body()
+        isToleratingSnapshotTimeouts = false
+        if deferredSnapshotTimeouts > 0 {
+            // A passing run must still show that a snapshot stalled, or the CI log cannot tell
+            // whether this tolerance is what kept the test green.
+            XCTContext.runActivity(
+                named: "\(label) tolerated \(deferredSnapshotTimeouts) UI snapshot timeouts"
+            ) { _ in }
+        }
+        return deferredSnapshotTimeouts
     }
 
     static func isSnapshotTimeout(_ issue: XCTIssue) -> Bool {
@@ -39,24 +58,16 @@ class LaunchSmokeTestCase: XCTestCase {
         line: UInt = #line
     ) {
         let deadline = Date().addingTimeInterval(LaunchSmokeTiming.launchReadiness)
-        deferredSnapshotTimeouts = 0
-        isWaitingForLaunchReadiness = true
         var appeared = false
-        while !appeared, deadline.timeIntervalSinceNow > 0 {
-            appeared = element.waitForExistence(timeout: deadline.timeIntervalSinceNow)
-        }
-        isWaitingForLaunchReadiness = false
-        if appeared, deferredSnapshotTimeouts > 0 {
-            // A passing run must still show that a snapshot stalled, or the CI log cannot tell
-            // whether this tolerance is what kept the launch green.
-            XCTContext.runActivity(
-                named: "Launch readiness tolerated \(deferredSnapshotTimeouts) UI snapshot timeouts"
-            ) { _ in }
+        let stalls = toleratingSnapshotTimeouts("Launch readiness") {
+            while !appeared, deadline.timeIntervalSinceNow > 0 {
+                appeared = element.waitForExistence(timeout: deadline.timeIntervalSinceNow)
+            }
         }
         XCTAssertTrue(
             appeared,
             "\(message()) within \(Int(LaunchSmokeTiming.launchReadiness)) s "
-                + "(\(deferredSnapshotTimeouts) UI snapshot timeouts while waiting)",
+                + "(\(stalls) UI snapshot timeouts while waiting)",
             file: file,
             line: line
         )
