@@ -23,10 +23,13 @@ enum LaunchSmokeFieldTyping {
     ) {
         var deadline: Date?
         var readBack: [String] = []
+        let expired = { deadline.map { Date() >= $0 } ?? false }
         for attempt in 1 ... maximumAttempts {
-            if let deadline, Date() >= deadline { break }
+            if expired() { break }
             guard focus(field) else { continue }
+            if expired() { break }
             clear(field, until: deadline)
+            if expired() { break }
             field.typeText(text)
             let value = rawValue(in: field)
             if value == text {
@@ -72,8 +75,8 @@ enum LaunchSmokeFieldTyping {
     /// Select all, then move to the end. A center tap can leave the caret in the
     /// middle of a doubled value, so Delete would keep the trailing copy.
     private static func clear(_ field: XCUIElement, until deadline: Date?) {
-        guard !enteredText(in: field).isEmpty else { return }
         let expired = { deadline.map { Date() >= $0 } ?? false }
+        guard !enteredText(in: field).isEmpty, !expired() else { return }
         field.typeKey("a", modifierFlags: .command)
         guard !expired() else { return }
         field.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
