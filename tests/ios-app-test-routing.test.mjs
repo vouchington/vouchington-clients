@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { jobBlock as readJobBlock } from './workflow-job-block.mjs'
+import { jobBlock as readJobBlock, stepBlock } from './workflow-job-block.mjs'
 
 const jobBlock = (workflow, job) => readJobBlock(workflow, job, `missing workflow job ${job}`)
 
@@ -113,6 +113,16 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       [iosJob, '- name: Launch iOS app on Simulator'],
       [ipadJob, '- name: Launch iPad root shell on Simulator'],
     ]) {
+      // Xcode's debugger-version snapshot stalled ~40-60s on cold runners and spent the
+      // XCUIApplication launch budget; warming LLDB just before the launch step keeps it short.
+      const warm = stepBlock(job, 'Warm LLDB for the Xcode launch')
+      assert.match(warm, /timeout-minutes: 3\n/u)
+      assert.doesNotMatch(warm, /continue-on-error/u)
+      assert.match(
+        warm,
+        /run: time xcrun lldb --batch --one-line version \|\| echo "::warning::LLDB warm failed/u,
+      )
+      assert.ok(job.includes(`continuing to the launch"\n      ${launchName}\n`))
       const launch = job.slice(job.indexOf(launchName))
       const gateAt = launch.indexOf(
         'python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"',
