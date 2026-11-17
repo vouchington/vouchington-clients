@@ -109,8 +109,11 @@ app slice in parallel on `macos-latest`. The arm64 build has a 13-minute job cap
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
 `test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs
-of one job id: the root shell, the Videos tab, and the email OTP sign-in. Each leg has a 12-minute
-job cap and a 7-minute launch step cap. Each leg boots the manifest's simulator before contract
+of one job id: the root shell, the Videos tab, and the email OTP sign-in. Each leg has a 15-minute
+job cap and a 7-minute launch step cap. The job caps were 12 minutes until the iPad sign-in leg
+passed and was then cancelled during job cleanup at 12 minutes 5 seconds. Its test took 94 seconds;
+the rest went to Simulator readiness, the artifact download, and about three minutes of cold
+`xcodebuild` startup before the first test ran. The iPhone sign-in leg had reached 11.8 minutes. Each leg boots the manifest's simulator before contract
 setup, then waits for `bootstatus` before unpacking, so the bundle extract does not compete with
 CoreSimulator.
 After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
@@ -131,8 +134,8 @@ complete. The sign-in leg taps the hittable `signed-out-sign-in` control, the le
 toolbar button rather than a grouped trailing action or another Sign In label, and still requires
 Continue with Email within the existing 20 second wait.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
-Simulator. Its job cap is 12 minutes and its launch step cap is 9 minutes, raised with user
-approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
+Simulator. Its job cap is 15 minutes, like the iPhone legs, and its launch step cap is 9 minutes,
+raised with user approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
 artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
 The iPad launch then installs the same verified app, requires the same process id, and stops
 that process before `xcodebuild`, with the same 150-second gate.
