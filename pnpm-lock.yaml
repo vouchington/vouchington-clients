@@ -24,8 +24,8 @@ importers:
         specifier: 6.44.2
         version: 6.44.2
       no-mistakes:
-        specifier: 0.109.63
-        version: 0.109.63
+        specifier: 0.109.67
+        version: 0.109.67
       oxfmt:
         specifier: 0.78.0
         version: 0.78.0
@@ -34,7 +34,7 @@ importers:
         version: 1.93.0
       vouchington-tooling:
         specifier: 3.4.0
-        version: 3.4.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.63)(supports-color@7.2.0)(zod@4.6.7)
+        version: 3.4.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.67)(supports-color@7.2.0)(zod@4.6.7)
 
 packages:
 
@@ -1831,30 +1831,30 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  no-mistakes-darwin-arm64@0.109.63:
-    resolution: {integrity: sha512-hX8U+TsiVfYH9130cJnjnbaMc2cmfPRYQBM2WeAtHnkQQU3TDNwCN3KefJxbHFrZoExfit3MXWFHrgFzIwarFQ==}
+  no-mistakes-darwin-arm64@0.109.67:
+    resolution: {integrity: sha512-pWevi2jaKtPSwQpTKjdL4qn6+YgsILpyCiNrXUXr4OLWMgsxnhI44uQM88tptl4QagLiN1Evdk4ZETSF7lgAPw==}
     cpu: [arm64]
     os: [darwin]
 
-  no-mistakes-linux-arm64-gnu@0.109.63:
-    resolution: {integrity: sha512-bSzmq27kyXTZl8OwHKrsmE6Tuw0H8LOt2fioqjozE11dNW2iY7Tw8OaKGztAEAMwGB9Kr/RRUOJTO/r5cRIARw==}
+  no-mistakes-linux-arm64-gnu@0.109.67:
+    resolution: {integrity: sha512-D85UTW/3cPmg0OV/AIsrWJolD1VN7rPZlEHfmEa9mOGGxocguFOOAVC8/qfkvnfBDW8FR4cGGcLowgTIkhGkIw==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  no-mistakes-linux-x64-gnu@0.109.63:
-    resolution: {integrity: sha512-k6bxkWxLUdk9fmhqeFzTuXe7dMffHq7EVkK9rwaqCGfQxkByBs2d5LLuazJ6ZYlQP8HbVWhZbAf+sCUJ4IOiSQ==}
+  no-mistakes-linux-x64-gnu@0.109.67:
+    resolution: {integrity: sha512-a7Ai3S4HzC04EPpqXobolcdE6WHJxYVwIfbHb/Q+MiXJJb6x7rJLbuTyWgyk3A3aQn28q0Y0MlBM8j2GPCRf4g==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  no-mistakes-win32-x64-msvc@0.109.63:
-    resolution: {integrity: sha512-HuuuPHxX3pVma+RqTnUBy6vpz+risbn3TKrY/PtSvw3EdmSEopVLaM1bFC+zeEWgjVtjLleghbhhbod7KeTSeg==}
+  no-mistakes-win32-x64-msvc@0.109.67:
+    resolution: {integrity: sha512-WB3j9UeWJ8JNnX120m9fLtdWqlM3fp3TytkENAkqjpBcRQww8s3ou7lpqHB/ibWiINVqiYnljojt9FeEHL5Xvg==}
     cpu: [x64]
     os: [win32]
 
-  no-mistakes@0.109.63:
-    resolution: {integrity: sha512-/qQ34o2d9hhyWZGoe9a7oJFrRLicpIiPAGOj2zm9EwoUzAfDrwe5J8E43o+TZaoRHgnyBetGWUNsDvtZByQkHw==}
+  no-mistakes@0.109.67:
+    resolution: {integrity: sha512-YsCqoK5on+taa469zsueXX/MA6OW96mE/4b3uzMxwG8cgo9+8tRs3mQENzJYpDtbt28sLMr2OQc1lBpbS93gjQ==}
     hasBin: true
     peerDependencies:
       vitest: ^5.0.3
@@ -4191,24 +4191,24 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  no-mistakes-darwin-arm64@0.109.63:
+  no-mistakes-darwin-arm64@0.109.67:
     optional: true
 
-  no-mistakes-linux-arm64-gnu@0.109.63:
+  no-mistakes-linux-arm64-gnu@0.109.67:
     optional: true
 
-  no-mistakes-linux-x64-gnu@0.109.63:
+  no-mistakes-linux-x64-gnu@0.109.67:
     optional: true
 
-  no-mistakes-win32-x64-msvc@0.109.63:
+  no-mistakes-win32-x64-msvc@0.109.67:
     optional: true
 
-  no-mistakes@0.109.63:
+  no-mistakes@0.109.67:
     optionalDependencies:
-      no-mistakes-darwin-arm64: 0.109.63
-      no-mistakes-linux-arm64-gnu: 0.109.63
-      no-mistakes-linux-x64-gnu: 0.109.63
-      no-mistakes-win32-x64-msvc: 0.109.63
+      no-mistakes-darwin-arm64: 0.109.67
+      no-mistakes-linux-arm64-gnu: 0.109.67
+      no-mistakes-linux-x64-gnu: 0.109.67
+      no-mistakes-win32-x64-msvc: 0.109.67
 
   node-stream-zip@1.16.0: {}
 
@@ -4651,7 +4651,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@3.4.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.63)(supports-color@7.2.0)(zod@4.6.7):
+  vouchington-tooling@3.4.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.67)(supports-color@7.2.0)(zod@4.6.7):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
@@ -4671,7 +4671,7 @@ snapshots:
       '@libpg-query/parser': 18.0.0
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.6.7)
       '@typescript/typescript6': 6.0.2
-      no-mistakes: 0.109.63
+      no-mistakes: 0.109.67
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - '@vitest/coverage-v8'
