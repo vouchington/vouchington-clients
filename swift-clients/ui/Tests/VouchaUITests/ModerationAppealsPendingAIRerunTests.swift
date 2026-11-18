@@ -19,7 +19,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
 
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -27,7 +27,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         XCTAssertFalse(viewModel.canRerun(appeal))
         XCTAssertTrue(viewModel.canRefreshAIRerun(appeal))
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -50,7 +50,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
             aiPublicResponse: "New draft", aiDraftedAt: "2026-07-01T10:01:00Z",
             lifecycleChangeId: "change-2",
-            completedRunId: "appeal_resolution_00000000-0000-7000-8000-000000000202"
+            completedRunId: "00000000-0000-7000-8000-000000000202"
         )), 200)
         await viewModel.refreshPendingAIRerun(for: appeal)
         XCTAssertNil(viewModel.pendingAIReruns[appeal.id])
@@ -73,7 +73,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
             JSONSerialization.data(withJSONObject: declined), 200
         )
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -83,7 +83,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
         CannedFeedURLProtocol.errors["\(path)/resolution-drafts"] = URLError(.networkConnectionLost)
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -107,7 +107,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers[path] = (Data(#"{"error":"rejected"}"#.utf8), 400)
 
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -128,13 +128,13 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers[path] = (Data(#"{"error":"timeout"}"#.utf8), 408)
 
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
         await viewModel.rerunAI(for: appeal)
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -155,13 +155,13 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers[path] = (Data("{}".utf8), 202)
 
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
         await viewModel.rerunAI(for: appeal)
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -183,7 +183,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         await Support.openDetails(in: first)
         let appeal = try XCTUnwrap(first.appeals.first)
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -204,7 +204,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         XCTAssertTrue(otherOwner.canRerun(otherAppeal))
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2",
-            completedRunId: "appeal_resolution_00000000-0000-7000-8000-000000000202"
+            completedRunId: "00000000-0000-7000-8000-000000000202"
         )), 200)
         await reopened.refreshPendingAIRerun(for: reopenedAppeal)
         let completedAppeal = try XCTUnwrap(reopened.appeals.first)
@@ -239,10 +239,10 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         let first = try XCTUnwrap(store.admit(appeal, for: owner))
         let advanced = try decodedAppeal(
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2",
-            completedRunId: "appeal_resolution_00000000-0000-7000-8000-000000000202"
+            completedRunId: "00000000-0000-7000-8000-000000000202"
         )
         _ = store.recordRun(
-            "appeal_resolution_00000000-0000-7000-8000-000000000202",
+            "00000000-0000-7000-8000-000000000202",
             appealId: appeal.id,
             owner: owner,
             token: first.token
@@ -265,7 +265,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         await Support.openDetails(in: viewModel)
         let appeal = try XCTUnwrap(viewModel.appeals.first)
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -282,7 +282,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
         CannedFeedURLProtocol.handlers["/api/v1/appeals"] = (Support.staffList([Support.appeal(
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2",
-            completedRunId: "appeal_resolution_00000000-0000-7000-8000-000000000202"
+            completedRunId: "00000000-0000-7000-8000-000000000202"
         )]), 200)
         await viewModel.load()
         XCTAssertNotNil(viewModel.pendingAIReruns[appeal.id])
@@ -303,7 +303,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = (Support.queued, 202)
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal()), 200)
         CannedFeedURLProtocol
-            .handlers["\(path)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"] = (
+            .handlers["\(path)/resolution-drafts/00000000-0000-7000-8000-000000000202"] = (
                 Support.succeededRun,
                 200
             )
@@ -311,7 +311,7 @@ final class ModerationAppealsPendingAIRerunTests: NativeRouteSurfaceViewModelTes
 
         CannedFeedURLProtocol.handlers[path] = (Support.envelope(Support.appeal(
             aiDraftedAt: "2026-07-01T10:01:00Z", lifecycleChangeId: "change-2",
-            completedRunId: "appeal_resolution_00000000-0000-7000-8000-000000000202"
+            completedRunId: "00000000-0000-7000-8000-000000000202"
         )), 200)
         CannedFeedURLProtocol.suspendResponse(path: path)
         defer { CannedFeedURLProtocol.releaseResponse(path: path) }

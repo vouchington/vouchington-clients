@@ -43,19 +43,19 @@ let moderationAppealEndpointRegistry: [String: Endpoint] = [
     ),
     "native.moderation.appeals.resolution-draft-run.active": Endpoint.appealResolutionDraftRun(
         id: pendingAppealId,
-        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+        runId: "00000000-0000-7000-8000-000000000306"
     ),
     "native.moderation.appeals.resolution-draft-run.succeeded": Endpoint.appealResolutionDraftRun(
         id: pendingAppealId,
-        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+        runId: "00000000-0000-7000-8000-000000000306"
     ),
     "native.moderation.appeals.resolution-draft-run.failed": Endpoint.appealResolutionDraftRun(
         id: pendingAppealId,
-        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+        runId: "00000000-0000-7000-8000-000000000306"
     ),
     "native.moderation.appeals.resolution-draft-run.expired": Endpoint.appealResolutionDraftRun(
         id: pendingAppealId,
-        runId: "appeal_resolution_00000000-0000-7000-8000-000000000303"
+        runId: "00000000-0000-7000-8000-000000000306"
     ),
     "native.moderation.appeals.resolution-drafts.default": Endpoint.appealResolutionDrafts(id: pendingAppealId)
 ]

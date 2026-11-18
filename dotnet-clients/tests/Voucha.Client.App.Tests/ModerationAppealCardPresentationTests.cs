@@ -133,7 +133,8 @@ public sealed class ModerationAppealCardPresentationTests
     var appeal = Appeal(null) with
     {
       AiDraftedAt = Instant,
-      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
+      AiDraftRequestedRunId = "00000000-0000-7000-8000-000000000201",
+      IsStaffDetail = true,
       LatestLifecycleChangeId = "initial-change",
     };
     var service = new PendingAIRerunService(appeal);
@@ -173,7 +174,8 @@ public sealed class ModerationAppealCardPresentationTests
     } };
     var appeal = Appeal(null) with
     {
-      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
+      AiDraftRequestedRunId = "00000000-0000-7000-8000-000000000201",
+      IsStaffDetail = true,
     };
     using var viewModel = new ModerationAppealsViewModel(
         new PendingAIRerunService(appeal, runStatus: ModerationRunStatus.Failed),
@@ -204,7 +206,8 @@ public sealed class ModerationAppealCardPresentationTests
     } };
     var appeal = Appeal(null) with
     {
-      AiDraftRequestedRunId = "appeal_resolution_00000000-0000-7000-8000-000000000201",
+      AiDraftRequestedRunId = "00000000-0000-7000-8000-000000000201",
+      IsStaffDetail = true,
       PublicResponse = "Approved reply", ApprovedAt = Instant,
     };
     using var viewModel = new ModerationAppealsViewModel(new PendingAIRerunService(appeal, ambiguousDelivery: true),
@@ -336,7 +339,7 @@ public sealed class ModerationAppealCardPresentationTests
     public Task<ModerationAppealQueueResponse> RerunResolutionDraftAsync(
         string id, CancellationToken cancellationToken = default) =>
         Task.FromResult(new ModerationAppealQueueResponse(
-            true, "staff-1", "appeal_resolution_00000000-0000-7000-8000-000000000202"));
+            true, "staff-1", "00000000-0000-7000-8000-000000000202"));
 
     public Task<ModerationAppealResponse> UpdatePublicResponseAsync(
         string id, string response, CancellationToken cancellationToken = default) =>

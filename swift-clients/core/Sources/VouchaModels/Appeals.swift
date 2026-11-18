@@ -56,7 +56,8 @@ public struct ModerationAppealSubmissionRequest: Sendable {
 }
 
 public struct ModerationAppeal: Codable, Identifiable, Sendable {
-    public let aiDraftRequestedRunId: String
+    @RequiredNullable
+    public var aiDraftRequestedRunId: String?
     @RequiredNullable
     public var aiDraftRequestedRunStatus: ModerationAIRunStatus?
     @RequiredNullable

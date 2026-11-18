@@ -37,7 +37,7 @@ final class ModerationCurrentRunContractTests: XCTestCase {
 
     func testStaffAppealRequiresRequestedAndSavedRunIdentities() throws {
         let object = try fixtureObject("native.moderation.appeals.detail.default", key: "appeal")
-        try assertStaffIdentities(ModerationAppeal.self, object: object)
+        try assertStaffIdentities(ModerationAppeal.self, object: object, requestedNullable: true)
     }
 
     func testReportAdmissionRetainsRequiredRunIdentity() throws {
@@ -72,7 +72,9 @@ final class ModerationCurrentRunContractTests: XCTestCase {
         XCTAssertThrowsError(try decode(ReviewDisputeQueueResponse.self, object: dispute))
     }
 
-    private func assertStaffIdentities(_ type: (some Codable).Type, object: [String: Any]) throws {
+    private func assertStaffIdentities(
+        _ type: (some Codable).Type, object: [String: Any], requestedNullable: Bool = false
+    ) throws {
         let encoded = try roundTrip(type, object: object)
         for field in ["ai_draft_requested_run_id", "ai_draft_run_id"] {
             XCTAssertNotNil(object[field], field)
@@ -81,9 +83,13 @@ final class ModerationCurrentRunContractTests: XCTestCase {
             missing.removeValue(forKey: field)
             XCTAssertThrowsError(try decode(type, object: missing), field)
         }
-        var invalidRequested = object
-        invalidRequested["ai_draft_requested_run_id"] = NSNull()
-        XCTAssertThrowsError(try decode(type, object: invalidRequested))
+        var nullRequested = object
+        nullRequested["ai_draft_requested_run_id"] = NSNull()
+        if requestedNullable {
+            XCTAssertTrue(try roundTrip(type, object: nullRequested)["ai_draft_requested_run_id"] is NSNull)
+        } else {
+            XCTAssertThrowsError(try decode(type, object: nullRequested))
+        }
         var nullableSaved = object
         nullableSaved["ai_draft_run_id"] = NSNull()
         XCTAssertTrue(try roundTrip(type, object: nullableSaved)["ai_draft_run_id"] is NSNull)

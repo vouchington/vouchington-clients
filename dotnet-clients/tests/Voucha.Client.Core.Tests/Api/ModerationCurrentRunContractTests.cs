@@ -9,11 +9,25 @@ public sealed class ModerationCurrentRunContractTests
 {
   [Fact]
   public void StaffDisputeRequiresRequestedAndSavedRunIdentities() =>
-      AssertStaffIdentities<ModerationDispute>(FixtureObject("native.moderation.disputes.detail.default", "dispute"));
+      AssertStaffIdentities<ModerationDispute>(
+          FixtureObject("native.moderation.disputes.detail.default", "dispute"), requestedNullable: false);
 
   [Fact]
   public void StaffAppealRequiresRequestedAndSavedRunIdentities() =>
-      AssertStaffIdentities<ModerationAppeal>(FixtureObject("native.moderation.appeals.detail.default", "appeal"));
+      AssertStaffIdentities<ModerationAppeal>(
+          FixtureObject("native.moderation.appeals.detail.default", "appeal"), requestedNullable: true);
+
+  [Fact]
+  public void StaffAppealWithoutAnAdmittedRunStaysStaffDetail()
+  {
+    var staff = FixtureObject("native.moderation.appeals.detail.default", "appeal");
+    staff["ai_draft_requested_run_id"] = null;
+    var appeal = Deserialize<ModerationAppeal>(staff);
+    Assert.True(appeal.IsStaffDetail);
+    Assert.Null(appeal.AiDraftRequestedRunId);
+    var member = FixtureObject("native.moderation.appeals.detail.member.default", "appeal");
+    Assert.False(Deserialize<ModerationAppeal>(member).IsStaffDetail);
+  }
 
   [Fact]
   public void ReportAdmissionRetainsRequiredRunIdentity()
@@ -62,7 +76,7 @@ public sealed class ModerationCurrentRunContractTests
     }
   }
 
-  private static void AssertStaffIdentities<T>(JsonObject staff)
+  private static void AssertStaffIdentities<T>(JsonObject staff, bool requestedNullable)
   {
     var encoded = RoundTrip<T>(staff);
     foreach (var field in new[] { "ai_draft_requested_run_id", "ai_draft_run_id" })
@@ -73,9 +87,18 @@ public sealed class ModerationCurrentRunContractTests
       missing.Remove(field);
       Assert.Throws<JsonException>(() => Deserialize<T>(missing));
     }
-    var invalidRequested = staff.DeepClone().AsObject();
-    invalidRequested["ai_draft_requested_run_id"] = null;
-    Assert.Throws<JsonException>(() => Deserialize<T>(invalidRequested));
+    var nullRequested = staff.DeepClone().AsObject();
+    nullRequested["ai_draft_requested_run_id"] = null;
+    if (requestedNullable)
+    {
+      var encodedNull = RoundTrip<T>(nullRequested);
+      Assert.True(encodedNull.ContainsKey("ai_draft_requested_run_id"));
+      Assert.Null(encodedNull["ai_draft_requested_run_id"]);
+    }
+    else
+    {
+      Assert.Throws<JsonException>(() => Deserialize<T>(nullRequested));
+    }
     var nullableSaved = staff.DeepClone().AsObject();
     nullableSaved["ai_draft_run_id"] = null;
     var nullableEncoded = RoundTrip<T>(nullableSaved);

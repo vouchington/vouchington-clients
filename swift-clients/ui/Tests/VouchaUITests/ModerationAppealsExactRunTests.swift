@@ -9,7 +9,7 @@ import XCTest
 final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase {
     private typealias Support = ModerationAppealsTestSupport
     private let path = "/api/v1/appeals/appeal-1"
-    private let runId = "appeal_resolution_00000000-0000-7000-8000-000000000202"
+    private let runId = "00000000-0000-7000-8000-000000000202"
     private var runPath: String {
         "\(path)/resolution-drafts/\(runId)"
     }
@@ -51,7 +51,7 @@ final class ModerationAppealsExactRunTests: NativeRouteSurfaceViewModelTestCase 
         CannedFeedURLProtocol.handlers[runPath] = (run("succeeded"), 200)
         await model.rerunAI(for: appeal)
         let completed = try XCTUnwrap(model.appeals.first)
-        let secondRun = "appeal_resolution_00000000-0000-7000-8000-000000000203"
+        let secondRun = "00000000-0000-7000-8000-000000000203"
         var admission = try XCTUnwrap(JSONSerialization.jsonObject(with: Support.queued) as? [String: Any])
         admission["run_id"] = secondRun
         CannedFeedURLProtocol.handlers["\(path)/resolution-drafts"] = try (

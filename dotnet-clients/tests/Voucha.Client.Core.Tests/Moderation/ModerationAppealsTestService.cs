@@ -26,7 +26,7 @@ internal sealed class ModerationAppealsTestService : IModerationAppealsService
   public TaskCompletionSource<StaffModerationAppealListResponse>? PendingFetch { get; set; }
   public ModerationAppeal Current { get; set; }
   public bool QueueAccepted { get; set; } = true;
-  public string RunId { get; set; } = "appeal_resolution_00000000-0000-7000-8000-000000000305";
+  public string RunId { get; set; } = "00000000-0000-7000-8000-000000000305";
 
   public ModerationAppealsTestService() => Current = fixtureAppeal;
 

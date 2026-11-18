@@ -13,7 +13,7 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
         guard case let .staff(appeal) = projection else {
             return XCTFail("Staff data must not downgrade to the member projection")
         }
-        XCTAssertFalse(appeal.aiDraftRequestedRunId.isEmpty)
+        XCTAssertEqual(appeal.aiDraftRequestedRunId?.isEmpty, false)
         XCTAssertNotNil(appeal.caseId)
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -43,12 +43,25 @@ final class PublicAppealStaffProjectionTests: XCTestCase {
                 from: JSONSerialization.data(withJSONObject: malformed)
             ), key)
         }
-        var nullRequested = appeal
-        nullRequested["ai_draft_requested_run_id"] = NSNull()
-        XCTAssertThrowsError(try makeVouchaDecoder().decode(
+    }
+
+    func testStaffAppealWithoutAnAdmittedRunStaysStaff() throws {
+        let data = ApiFixtureLoader.data("native.moderation.appeals.detail.default")
+        let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var appeal = try XCTUnwrap(envelope["appeal"] as? [String: Any])
+        appeal["ai_draft_requested_run_id"] = NSNull()
+        let projection = try makeVouchaDecoder().decode(
             ModerationAppealReadProjection.self,
-            from: JSONSerialization.data(withJSONObject: nullRequested)
-        ))
+            from: JSONSerialization.data(withJSONObject: appeal)
+        )
+        guard case let .staff(staff) = projection else {
+            return XCTFail("A null requested run must not downgrade staff data to the member projection")
+        }
+        XCTAssertNil(staff.aiDraftRequestedRunId)
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(projection)) as? [String: Any])
+        XCTAssertTrue(object["ai_draft_requested_run_id"] is NSNull)
     }
 
 }

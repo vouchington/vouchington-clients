@@ -74,7 +74,7 @@ internal sealed class ModerationModalAppealsService : ModerationModalActionServi
           : RespondAsync(new ModerationAppealResponse(Current), cancellationToken);
 
   public Task<ModerationAppealQueueResponse> RerunResolutionDraftAsync(string id, CancellationToken cancellationToken = default) =>
-      RespondAsync(new ModerationAppealQueueResponse(true, "staff-1", "appeal_resolution_00000000-0000-7000-8000-000000000299"), cancellationToken);
+      RespondAsync(new ModerationAppealQueueResponse(true, "staff-1", "00000000-0000-7000-8000-000000000299"), cancellationToken);
 
   public Task<ModerationAppealResponse> ResolveAsync(string id, ModerationAppealAction action, CancellationToken cancellationToken = default) =>
       RespondAsync(new ModerationAppealResponse(Current), cancellationToken);

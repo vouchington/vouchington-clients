@@ -30,7 +30,7 @@ enum ModerationAppealsTestSupport {
         resolutionAction: String? = nil,
         lifecycleChangeId: String? = "change-1",
         completedRunId: String? = "previous-run",
-        requestedRunId: String = "appeal_resolution_00000000-0000-7000-8000-000000000202",
+        requestedRunId: String = "00000000-0000-7000-8000-000000000202",
         requestedRunStatus: String? = nil
     ) -> String {
         """
@@ -118,7 +118,7 @@ enum ModerationAppealsTestSupport {
 
     static var succeededRun: Data {
         Data("""
-        {"run_id":"appeal_resolution_00000000-0000-7000-8000-000000000202","status":"succeeded",
+        {"run_id":"00000000-0000-7000-8000-000000000202","status":"succeeded",
         "ai_drafted_at":null,"latest_lifecycle_change_id":null}
         """.utf8)
     }

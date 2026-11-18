@@ -103,7 +103,7 @@ public sealed partial class ModerationAppealsViewModel :
   public void SetDraft(ModerationAppeal appeal, string value)
   {
     ArgumentNullException.ThrowIfNull(appeal);
-    if (appeal.AiDraftRequestedRunId is null) return;
+    if (!appeal.IsStaffDetail) return;
     var draft = value ?? string.Empty;
     drafts[appeal.Id] = draft;
     if (string.Equals(draft, ServerDraftFor(appeal), StringComparison.Ordinal))
@@ -142,7 +142,7 @@ public sealed partial class ModerationAppealsViewModel :
         (action != ModerationAppealAction.Accept || IsAdministrator || appeal.UserSuspensionId is null);
   }
 
-  private bool CanMutate(ModerationAppeal appeal) => CanAccess && appeal.AiDraftRequestedRunId is not null && appeal.Status == ModerationAppealStatus.Pending && !IsMutating;
+  private bool CanMutate(ModerationAppeal appeal) => CanAccess && appeal.IsStaffDetail && appeal.Status == ModerationAppealStatus.Pending && !IsMutating;
 
   private static string ServerDraftFor(ModerationAppeal appeal) =>
       appeal.PublicResponse ?? appeal.AiPublicResponse ?? string.Empty;

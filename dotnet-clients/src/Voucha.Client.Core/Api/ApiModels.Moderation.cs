@@ -88,9 +88,17 @@ public sealed record ModerationAppeal(
     [property: JsonPropertyName("user_suspension_id")] string? UserSuspensionId = null,
     [property: JsonPropertyName("target_context")] ModerationAppealTargetContext? TargetContext = null,
     [property: JsonPropertyName("staff_context")] ModerationAppealStaffContext? StaffContext = null,
-    [property: JsonPropertyName("ai_draft_requested_run_id")] string? AiDraftRequestedRunId = null,
+    [property: JsonPropertyName("ai_draft_requested_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRequestedRunId = null,
     [property: JsonPropertyName("ai_draft_run_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)] string? AiDraftRunId = null,
-    [property: JsonPropertyName("ai_draft_requested_run_status")] ModerationRunStatus? AiDraftRequestedRunStatus = null);
+    [property: JsonPropertyName("ai_draft_requested_run_status")] ModerationRunStatus? AiDraftRequestedRunStatus = null)
+{
+  /// <summary>
+  /// True when the appeal was read from the staff projection. The requested run id cannot mark
+  /// staff detail because it is null until an AI draft run is admitted.
+  /// </summary>
+  [JsonIgnore]
+  public bool IsStaffDetail { get; init; }
+}
 
 public sealed record ModerationAppealListResponse(
     [property: JsonPropertyName("appeals")] IReadOnlyList<ModerationAppealSummary> Appeals,

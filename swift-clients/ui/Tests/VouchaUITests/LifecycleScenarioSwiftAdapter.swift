@@ -53,7 +53,7 @@ private enum LifecycleScenarioSwiftModerationAdapter {
                 200
             )
             CannedFeedURLProtocol.handlers[
-                "/api/v1/appeals/\(id)/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"
+                "/api/v1/appeals/\(id)/resolution-drafts/00000000-0000-7000-8000-000000000202"
             ] = (ModerationAppealsTestSupport.succeededRun, 200)
             await viewModel.rerunAI(for: before)
         case "approve":
@@ -117,7 +117,7 @@ private enum LifecycleScenarioSwiftModerationAdapter {
             aiDraftedAt: changed ? "2026-01-01T00:01:00Z" : "2026-01-01T00:00:00Z",
             approvedAt: approved, sentAt: sent, resolutionAction: resolution,
             lifecycleChangeId: changed ? "change-2" : "change-1",
-            completedRunId: changed ? "appeal_resolution_00000000-0000-7000-8000-000000000202" : "previous-run"
+            completedRunId: changed ? "00000000-0000-7000-8000-000000000202" : "previous-run"
         )
     }
 
