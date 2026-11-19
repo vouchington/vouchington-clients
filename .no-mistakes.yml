@@ -84,7 +84,6 @@ rules:
     rule: lockfile-allowlist
     scope: repository
     options:
-      allowed: [pnpm-lock.yaml]
       bannedBasenames:
         - package-lock.json
         - npm-shrinkwrap.json

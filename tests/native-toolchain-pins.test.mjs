@@ -104,7 +104,10 @@ test('Swift 6.4.0 and its Android SDK and NDK archives stay aligned', () => {
   assert.match(uiJob, /select-xcode\.sh 26\.6[\s\S]*?xcrun swift test/u)
   const qualityAction = read('.github/actions/setup-swift-native/action.yml')
   assert.doesNotMatch(qualityAction, /mise install swift/u)
-  assert.match(qualityAction, /mise install aqua:peripheryapp\/periphery@3\.7\.4/u)
+  const peripheryRef = qualityAction.match(/mise install (aqua:peripheryapp\/periphery@\S+)/u)?.[1]
+  assert.ok(peripheryRef, 'setup-swift-native must install an explicitly versioned periphery')
+  const nativeWorkflow = read('.github/workflows/native-contract-tests.yml')
+  assert.ok(nativeWorkflow.includes(`mise exec ${peripheryRef} --`))
   const setupAction = read('.github/actions/setup-mise-toolchain/action.yml')
   assert.match(setupAction, /case "\$MISE_TOOL" in[\s\S]*?dotnet\)[\s\S]*?swift\)/u)
   assert.match(setupAction, /mise_data_dir="\$RUNNER_TEMP\/mise-data"/u)
