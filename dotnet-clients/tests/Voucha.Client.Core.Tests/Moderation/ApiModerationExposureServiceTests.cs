@@ -40,15 +40,15 @@ public sealed class ApiModerationExposureServiceTests
     var appeals = Assert.IsAssignableFrom<IModerationAppealsService>(service);
 
     var run = await appeals.FetchAIRerunAsync(
-        "appeal-1", "appeal_resolution_00000000-0000-7000-8000-000000000303",
+        "appeal-1", "00000000-0000-7000-8000-000000000306",
         TestContext.Current.CancellationToken);
 
     Assert.Equal(ModerationRunStatus.Active, run.Status);
-    Assert.Equal("appeal_resolution_00000000-0000-7000-8000-000000000303", run.RunId);
+    Assert.Equal("00000000-0000-7000-8000-000000000306", run.RunId);
     var request = Assert.Single(handler.Requests);
     Assert.Equal(HttpMethod.Get, request.Method);
     Assert.Equal(
-        "/api/v1/appeals/appeal-1/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000303",
+        "/api/v1/appeals/appeal-1/resolution-drafts/00000000-0000-7000-8000-000000000306",
         request.PathAndQuery);
     Assert.Null(request.Body);
   }

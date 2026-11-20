@@ -28,15 +28,13 @@ public sealed partial class NotificationsViewModel
         locallyReadIds.Contains(notification.Id);
     return new(
         notification.Id,
-        string.IsNullOrWhiteSpace(notification.Title)
-            ? UiText.Localized(UiMessageKey.NativeTaxonomyNotificationGenericTitle)
-            : UiText.UserContent(notification.Title),
-        notification.Body ?? "",
+        NotificationRenderer.Render(notification, response, webBaseUrl),
         notification.CreatedAt,
         StructuredTargetPath(notification, response) ?? notification.TargetPath,
         notification.EntityType,
         isRead,
-        localization);
+        localization,
+        notification.Kind);
   }
 
   private static string? StructuredTargetPath(Notification notification, NotificationsResponse response)

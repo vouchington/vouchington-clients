@@ -10,6 +10,15 @@ internal abstract class ModerationRunIdentityConverter<T> : JsonConverter<T> whe
 
   protected abstract IReadOnlySet<string> ProtectedFields { get; }
 
+  /// <summary>Whether a staff projection may carry a null requested run (no admitted run yet).</summary>
+  protected virtual bool AllowsNullRequestedRun => false;
+
+  /// <summary>Records that the decoded value came from a staff projection.</summary>
+  protected virtual T MarkStaff(T value) => value;
+
+  /// <summary>Whether a value is known to be a staff projection even when every protected field is null.</summary>
+  protected virtual bool IsStaff(T value) => false;
+
   public override bool HandleNull => true;
 
   public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -20,12 +29,14 @@ internal abstract class ModerationRunIdentityConverter<T> : JsonConverter<T> whe
     {
       throw new JsonException("A moderation projection must be an object.");
     }
-    if (HasCanonicalStaffFields(value))
+    var isStaff = HasCanonicalStaffFields(value);
+    if (isStaff)
     {
       ValidateStaffIdentities(value);
     }
-    return value.Deserialize<T>(WithoutThisConverter(options))
+    var decoded = value.Deserialize<T>(WithoutThisConverter(options))
         ?? throw new JsonException("A moderation projection cannot be null.");
+    return isStaff ? MarkStaff(decoded) : decoded;
   }
 
   public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
@@ -35,7 +46,7 @@ internal abstract class ModerationRunIdentityConverter<T> : JsonConverter<T> whe
       throw new JsonException("A moderation projection cannot be null.");
     }
     var projection = JsonSerializer.SerializeToElement(value, WithoutThisConverter(options));
-    var isStaff = projection.EnumerateObject().Any(property =>
+    var isStaff = IsStaff(value) || projection.EnumerateObject().Any(property =>
         ProtectedFields.Contains(property.Name) &&
         property.Value.ValueKind != JsonValueKind.Null);
     if (isStaff)
@@ -73,9 +84,11 @@ internal abstract class ModerationRunIdentityConverter<T> : JsonConverter<T> whe
     return seen.Count != 0;
   }
 
-  private static void ValidateStaffIdentities(JsonElement value)
+  private void ValidateStaffIdentities(JsonElement value)
   {
-    if (!value.TryGetProperty(RequestedRun, out var requested) || requested.ValueKind != JsonValueKind.String)
+    if (!value.TryGetProperty(RequestedRun, out var requested) ||
+        !(requested.ValueKind == JsonValueKind.String ||
+          (AllowsNullRequestedRun && requested.ValueKind == JsonValueKind.Null)))
     {
       throw new JsonException("The staff projection requires a requested run identity.");
     }

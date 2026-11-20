@@ -13,8 +13,8 @@ public sealed class NotificationsViewModelTests
   {
     var service = new RecordingNotificationsService();
     var model = new NotificationsViewModel(service);
-    var row = new NotificationRow("invitation", UiText.UserContent("Invitation"), "", null,
-        "/my/household", "household_invitation", true);
+    var row = new NotificationRow("invitation", NotificationText.Generic, null,
+        "/my/household", "household_invitation", true, Kind: "household_invitation");
     Assert.Equal("/my/household-invitations", await model.ActivateAsync(row, TestContext.Current.CancellationToken));
   }
 
@@ -280,16 +280,16 @@ public sealed class NotificationsViewModelTests
   }
 
   [Theory]
-  [InlineData("en", "Notification")]
-  [InlineData("es", "Notificación")]
-  [InlineData("fr", "Notification")]
-  [InlineData("pt", "Notificação")]
-  public async Task BlankNotificationTitlesUseLocalizedFallback(string locale, string expected)
+  [InlineData("en", "New notification")]
+  [InlineData("es", "Nueva notificación")]
+  [InlineData("fr", "Nouvelle notification")]
+  [InlineData("pt", "Nova notificação")]
+  public async Task UnknownKindUsesLocalizedGenericTitle(string locale, string expected)
   {
     var controller = new UiLocaleController(new StubDeviceLanguageProvider(locale));
     var localization = new UiLocalization(controller);
     var viewModel = new NotificationsViewModel(
-        new RecordingNotificationsService(Page(["n1"], false, titleOverride: " ")),
+        new RecordingNotificationsService(Page(["n1"], false, kind: "from_the_future")),
         localization,
         controller);
 
@@ -299,19 +299,19 @@ public sealed class NotificationsViewModelTests
   }
 
   [Fact]
-  public async Task BlankNotificationTitleRefreshesWhileAlreadyVisible()
+  public async Task UnknownKindTitleRefreshesWhileAlreadyVisible()
   {
     var controller = new UiLocaleController(new StubDeviceLanguageProvider("en"));
     var localization = new UiLocalization(controller);
     var viewModel = new NotificationsViewModel(
-        new RecordingNotificationsService(Page(["n1"], false, titleOverride: " ")),
+        new RecordingNotificationsService(Page(["n1"], false, kind: "from_the_future")),
         localization,
         controller);
     await viewModel.LoadAsync(TestContext.Current.CancellationToken);
 
     controller.ApplySavedLocale("es");
 
-    Assert.Equal("Notificación", viewModel.Items[0].LocalizedTitle);
+    Assert.Equal("Nueva notificación", viewModel.Items[0].LocalizedTitle);
   }
 
   private static NotificationsResponse Page(
@@ -321,15 +321,13 @@ public sealed class NotificationsViewModelTests
       IReadOnlySet<string>? readIds = null,
       string? targetPathOverride = null,
       NotificationTargetEntity? targetEntity = null,
-      string? titleOverride = null)
+      string? kind = null)
   {
     var notifications = ids.ToDictionary(
         id => id,
         id => new Notification(
             id,
             "post",
-            titleOverride ?? $"Notification {id}",
-            $"Body {id}",
             new DateTimeOffset(2026, 7, 1, 10, 0, 0, TimeSpan.Zero),
             readIds?.Contains(id) == true ? new DateTimeOffset(2026, 7, 1, 11, 0, 0, TimeSpan.Zero) : null,
             targetPathOverride ?? $"/notifications/{id}",
@@ -339,7 +337,8 @@ public sealed class NotificationsViewModelTests
             null,
             null,
             targetEntity,
-            null),
+            null,
+            Kind: kind),
         StringComparer.Ordinal);
     var results = ids
         .Select(id => new EntityReference(null, id, id, null, null, null, null, null, null, null, null))

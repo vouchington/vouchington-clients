@@ -11,4 +11,10 @@ internal sealed class ModerationAppealRunIdentityConverter : ModerationRunIdenti
   };
 
   protected override IReadOnlySet<string> ProtectedFields => StaffFields;
+
+  protected override bool AllowsNullRequestedRun => true;
+
+  protected override ModerationAppeal MarkStaff(ModerationAppeal value) => value with { IsStaffDetail = true };
+
+  protected override bool IsStaff(ModerationAppeal value) => value.IsStaffDetail;
 }

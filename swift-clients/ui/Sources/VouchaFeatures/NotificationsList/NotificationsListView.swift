@@ -67,19 +67,25 @@ public struct NotificationsListView: View {
         List {
             ForEach(viewModel.items) { notification in
                 let isRead = viewModel.isRead(notification)
-                NotificationCard(notification: notification, isRead: isRead)
-                    .opacity(isRead ? 0.6 : 1.0)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        guard !isNavigating else { return }
-                        isNavigating = true
-                        Task {
-                            defer { isNavigating = false }
-                            if let targetPath = await viewModel.activate(notification: notification) {
-                                onNavigateToTargetPath(targetPath)
-                            }
+                let content = viewModel.content(for: notification)
+                NotificationCard(
+                    notification: notification,
+                    title: content.title,
+                    detail: content.body,
+                    isRead: isRead
+                )
+                .opacity(isRead ? 0.6 : 1.0)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    guard !isNavigating else { return }
+                    isNavigating = true
+                    Task {
+                        defer { isNavigating = false }
+                        if let targetPath = await viewModel.activate(notification: notification) {
+                            onNavigateToTargetPath(targetPath)
                         }
                     }
+                }
             }
             HybridPaginationControl(
                 hasMore: viewModel.hasMore,

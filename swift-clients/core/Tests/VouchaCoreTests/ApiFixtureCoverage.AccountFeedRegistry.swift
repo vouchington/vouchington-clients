@@ -72,6 +72,8 @@ let accountFeedFixtureCoverage: [RegisteredFixture] = [
                 "notifications.00000000-0000-7000-8000-000000000101.read_at",
                 "notifications.00000000-0000-7000-8000-000000000101.rss_feed_item_id",
                 "notifications.00000000-0000-7000-8000-000000000101.target_path",
+                "notifications.00000000-0000-7000-8000-000000000102.actor_user_id",
+                "notifications.00000000-0000-7000-8000-000000000102.post_id",
                 "notifications.00000000-0000-7000-8000-000000000102.read_at",
                 "notifications.00000000-0000-7000-8000-000000000102.rss_feed_item_id",
                 "notifications.00000000-0000-7000-8000-000000000102.target_path",

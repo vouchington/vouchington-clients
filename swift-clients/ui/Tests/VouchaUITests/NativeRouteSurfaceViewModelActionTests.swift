@@ -22,10 +22,8 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
                   "moderation_report_id": null,
                   "review_dispute_id": null,
                   "user_warning_id": null,"copyright_notice_id":null,"household_id":null,
-                  "actor_label": null,
+                  "kind":"post_reply","params":{},"sent_by_id":null,"moderation_appeal_id":null,"community_application_id":null,"copyright_notice_delivery_work_item_id":null,"top_post_id":null,
                   "event_key": null,
-                  "title": "Native notification",
-                  "body": "Someone replied.",
                   "target_path": "/discussion/post-1",
                   "target_entity": null,
                   "target_intent": null,
@@ -33,6 +31,13 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
                   "created_at": "2026-01-01T00:00:00Z",
                   "updated_at": "2026-01-01T00:00:00Z",
                   "pushed_at": null
+                }
+              },
+              "actors": { "user-2": { "id": "user-2", "username": "alice" } },
+              "posts": {
+                "post-1": {
+                  "id": "post-1", "post_type": "discussion", "snippet": "Someone replied.",
+                  "actor_user_id": "user-2", "community_id": null
                 }
               }
             }
@@ -44,10 +49,10 @@ final class NativeRouteSurfaceViewModelActionTests: NativeRouteSurfaceViewModelT
         await viewModel.load()
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.first?.path, "/api/v1/my/notifications")
-        XCTAssertEqual(
-            viewModel.rows.first,
-            verbatimRow(icon: "bell", title: "Native notification", detail: "Someone replied.")
-        )
+        let row = try XCTUnwrap(viewModel.rows.first)
+        XCTAssertEqual(row.icon, "bell")
+        XCTAssertEqual(row.title, "New reply from @alice")
+        XCTAssertEqual(row.detail, "Someone replied.")
     }
 
     func testCompareDestinationExposesNativeActionsAndLoadsTopics() async throws {

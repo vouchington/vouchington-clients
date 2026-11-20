@@ -4,22 +4,6 @@ import VouchaAPI
 import VouchaCore
 import VouchaModels
 
-private struct NotificationsPage: Decodable {
-    struct ResultItem: Decodable {
-        let id: String
-    }
-
-    struct PageInfo: Decodable {
-        let hasNextPage: Bool
-        let endCursor: String?
-    }
-
-    let results: [ResultItem]
-    let pageInfo: PageInfo
-    let notifications: [String: VouchaNotification]
-    let communities: [String: NotificationCommunity]?
-}
-
 private struct NotificationRedirectTargetResponse: Decodable {
     let targetUrl: String
 }
@@ -60,9 +44,10 @@ public final class NotificationsListViewModel {
         notification.readAt != nil || locallyReadIds.contains(notification.id)
     }
 
-    private var communities: [String: NotificationCommunity] = [:]
+    /// Each row's facts come from the page that delivered it, since a later page omits facts that are gone.
+    private(set) var hydrationByNotificationId: [String: NotificationHydration] = [:]
 
-    private let client: APIClient
+    let client: APIClient
 
     public init(client: APIClient) {
         self.client = client
@@ -88,7 +73,9 @@ public final class NotificationsListViewModel {
             let newItems = page.results.compactMap { result in
                 page.notifications[result.id]
             }
-            communities.merge(page.communities ?? [:]) { _, newer in newer }
+            for item in newItems {
+                hydrationByNotificationId[item.id] = page.hydration
+            }
             pagination.complete(
                 request,
                 items: newItems,
@@ -114,7 +101,7 @@ public final class NotificationsListViewModel {
     public func reset() {
         pagination.reset()
         locallyReadIds = []
-        communities = [:]
+        hydrationByNotificationId = [:]
     }
 
     /// Clear and reload from the first page.
@@ -140,7 +127,7 @@ public final class NotificationsListViewModel {
         }
         guard isRead(notification) else { return nil }
         let structuredTargetPath: String? = if notification.targetEntity?.entityType == "community" {
-            if let communityId = notification.targetEntity?.id, let community = communities[communityId] {
+            if let id = notification.targetEntity?.id, let community = hydration(for: notification).communities[id] {
                 "/communities/\(community.slug)"
             } else {
                 "/my/notifications"

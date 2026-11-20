@@ -95,8 +95,6 @@ public sealed class NotificationsMutationGuardTests
         id => new Notification(
             id,
             "post",
-            $"Notification {id}",
-            "Body",
             new DateTimeOffset(2026, 7, 1, 10, 0, 0, TimeSpan.Zero),
             readIds?.Contains(id) == true ? new DateTimeOffset(2026, 7, 1, 11, 0, 0, TimeSpan.Zero) : null,
             targetPath,

@@ -164,6 +164,20 @@ public sealed partial class ModerationAppealsViewModelTests
   }
 
   [Fact]
+  public async Task StaffAppealWithoutAnAdmittedRunRemainsEditable()
+  {
+    var service = new ModerationAppealsTestService();
+    service.Current = service.Current with { AiDraftRequestedRunId = null, AiDraftRequestedRunStatus = null };
+    var viewModel = StaffViewModel(service);
+    await viewModel.LoadWithDetailAsync(TestContext.Current.CancellationToken);
+    var appeal = viewModel.Appeals.Single();
+
+    Assert.Null(appeal.AiDraftRequestedRunId);
+    Assert.True(viewModel.CanEdit(appeal));
+    Assert.False(viewModel.CanEdit(appeal with { IsStaffDetail = false }));
+  }
+
+  [Fact]
   public async Task ReloadReseedsCleanDraftsPreservesDirtyDraftsAndClearsDirtyAfterSave()
   {
     var service = new ModerationAppealsTestService

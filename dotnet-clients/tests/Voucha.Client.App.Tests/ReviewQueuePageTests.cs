@@ -390,7 +390,7 @@ public sealed class ReviewQueuePageTests
 
     public Task<ModerationExposureResponse> FetchExposureAsync(
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(new ModerationExposureResponse(new(1, 10, false, null)));
+        Task.FromResult(new ModerationExposureResponse(new(1, false, 10, false, null)));
 
     public async Task<ModerationExposureResponse> RecordReviewQueueRevealAsync(
         string postId,
@@ -400,7 +400,7 @@ public sealed class ReviewQueuePageTests
       RevealStarted.TrySetResult();
       if (HoldReveal) await revealRelease.Task.WaitAsync(cancellationToken);
       if (RevealFailure is not null) throw RevealFailure;
-      return new ModerationExposureResponse(new(2, 10, false, null));
+      return new ModerationExposureResponse(new(2, false, 10, false, null));
     }
 
     public void ReleaseReveal() => revealRelease.TrySetResult();

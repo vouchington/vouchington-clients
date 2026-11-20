@@ -4,19 +4,26 @@ namespace Voucha.Client.Core.Notifications;
 
 public sealed record NotificationRow(
     string Id,
-    UiText TitleText,
-    string UserContentBody,
+    NotificationText Text,
     DateTimeOffset? CreatedAt,
     string? TargetPath,
     string? EntityType,
     bool IsRead,
-    IUiLocalization? Localization = null)
+    IUiLocalization? Localization = null,
+    string? Kind = null)
 {
   public bool IsUnread => !IsRead;
 
   private IUiLocalization L => Localization ?? UiLocalization.English;
 
-  public string LocalizedTitle => L.Resolve(TitleText);
+  public string LocalizedTitle => L.Resolve(Text.Title);
+
+  /// <summary>The body paragraphs joined by a blank line; empty for a title-only row.</summary>
+  public string LocalizedBody => string.Join(
+      "\n\n",
+      Text.Body.Select(L.Resolve).Where(paragraph => paragraph.Length > 0));
+
+  public bool HasBody => LocalizedBody.Length > 0;
 
   public string ReadStateLabel => L.Localize(IsRead ? UiMessageKey.NativeDotnetDynamicRead : UiMessageKey.NativeDotnetDynamicUnread);
 

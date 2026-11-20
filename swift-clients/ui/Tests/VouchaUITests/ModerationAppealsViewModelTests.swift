@@ -186,7 +186,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-ai/resolution-drafts"] = (Support.queued, 202)
         CannedFeedURLProtocol
             .handlers[
-                "/api/v1/appeals/appeal-ai/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"
+                "/api/v1/appeals/appeal-ai/resolution-drafts/00000000-0000-7000-8000-000000000202"
             ] =
             (
                 Support.succeededRun,
@@ -198,7 +198,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
                 aiPublicResponse: "Fresh AI draft",
                 aiDraftedAt: "2026-07-01T10:01:00Z",
                 lifecycleChangeId: "change-2",
-                completedRunId: "appeal_resolution_00000000-0000-7000-8000-000000000202"
+                completedRunId: "00000000-0000-7000-8000-000000000202"
             )), 200, 0)
         ]
         let pollingViewModel = try staffViewModel(rerunPollDelay: {})
@@ -228,11 +228,11 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
 
         CannedFeedURLProtocol
             .handlers[
-                "/api/v1/appeals/appeal-1/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"
+                "/api/v1/appeals/appeal-1/resolution-drafts/00000000-0000-7000-8000-000000000202"
             ] =
             (
                 Data(
-                    "{\"run_id\":\"appeal_resolution_00000000-0000-7000-8000-000000000202\",\"status\":\"active\",\"ai_drafted_at\":null,\"latest_lifecycle_change_id\":null}"
+                    "{\"run_id\":\"00000000-0000-7000-8000-000000000202\",\"status\":\"active\",\"ai_drafted_at\":null,\"latest_lifecycle_change_id\":null}"
                         .utf8
                 ),
                 200
@@ -256,7 +256,7 @@ final class ModerationAppealsViewModelTests: NativeRouteSurfaceViewModelTestCase
         CannedFeedURLProtocol.handlers["/api/v1/appeals/appeal-1/resolution-drafts"] = (
             Support.queued, 202
         )
-        let pollPath = "/api/v1/appeals/appeal-1/resolution-drafts/appeal_resolution_00000000-0000-7000-8000-000000000202"
+        let pollPath = "/api/v1/appeals/appeal-1/resolution-drafts/00000000-0000-7000-8000-000000000202"
         CannedFeedURLProtocol.handlers[pollPath] = (Support.succeededRun, 200)
         let firstPollCaptured = expectation(description: "First AI rerun poll captured")
         CannedFeedURLProtocol.suspendResponse(path: pollPath) { firstPollCaptured.fulfill() }

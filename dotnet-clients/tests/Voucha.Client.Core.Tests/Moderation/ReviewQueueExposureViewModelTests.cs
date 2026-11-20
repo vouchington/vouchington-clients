@@ -320,7 +320,7 @@ public sealed partial class ReviewQueueExposureViewModelTests
   private static ModerationExposureState Exposure(
       bool inCooldown = false,
       DateTimeOffset? cooldownEndsAt = null) =>
-      new(1, 10, inCooldown, cooldownEndsAt);
+      new(1, false, 10, inCooldown, cooldownEndsAt);
 
   private static AdminReviewQueueImage Image(string id) =>
       new(id, $"placement-{id}", 0, 0, $"Caption {id}");

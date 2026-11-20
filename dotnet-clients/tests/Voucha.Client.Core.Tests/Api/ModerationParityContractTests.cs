@@ -61,16 +61,18 @@ public sealed class ModerationParityContractTests
         ApiFixtureLoader.LoadResponse("native.moderation.exposure.default"),
         VouchaApiJson.Options);
     Assert.Equal(1, exposure?.Exposure.Count);
+    Assert.False(exposure?.Exposure.CountCapped);
     Assert.Equal(10, exposure?.Exposure.Threshold);
     Assert.False(exposure?.Exposure.InCooldown);
     Assert.Null(exposure?.Exposure.CooldownEndsAt);
 
     const string cooldownJson =
-        """{"exposure":{"count":10,"threshold":10,"in_cooldown":true,"cooldown_ends_at":"2026-07-29T20:00:00.000Z"}}""";
+        """{"exposure":{"count":10,"count_capped":true,"threshold":10,"in_cooldown":true,"cooldown_ends_at":"2026-07-29T20:00:00.000Z"}}""";
     var cooldown = JsonSerializer.Deserialize<ModerationExposureResponse>(
         cooldownJson,
         VouchaApiJson.Options);
     Assert.Equal(new DateTimeOffset(2026, 7, 29, 20, 0, 0, TimeSpan.Zero), cooldown?.Exposure.CooldownEndsAt);
+    Assert.True(cooldown?.Exposure.CountCapped);
   }
 
 }

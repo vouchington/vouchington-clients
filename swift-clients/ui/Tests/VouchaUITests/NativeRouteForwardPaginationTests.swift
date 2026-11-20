@@ -14,7 +14,10 @@ final class NativeRouteForwardPaginationTests: NativeRouteSurfaceViewModelTestCa
         await viewModel.load()
         await viewModel.loadMoreForwardRows()
 
-        XCTAssertEqual(viewModel.rows.map(\.title), ["Notification one", "Notification two"])
+        XCTAssertEqual(
+            viewModel.rows.map(\.title),
+            ["New item from Notification one", "New item from Notification two"]
+        )
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.last?.query, "limit=25&after=next")
     }
 
@@ -28,11 +31,14 @@ final class NativeRouteForwardPaginationTests: NativeRouteSurfaceViewModelTestCa
 
         await viewModel.load()
         await viewModel.loadMoreForwardRows()
-        XCTAssertEqual(viewModel.rows.map(\.title), ["Notification one"])
+        XCTAssertEqual(viewModel.rows.map(\.title), ["New item from Notification one"])
         XCTAssertNotNil(viewModel.forwardPagination.lastError)
 
         await viewModel.loadMoreForwardRows()
-        XCTAssertEqual(viewModel.rows.map(\.title), ["Notification one", "Notification two"])
+        XCTAssertEqual(
+            viewModel.rows.map(\.title),
+            ["New item from Notification one", "New item from Notification two"]
+        )
         XCTAssertEqual(CannedFeedURLProtocol.capturedURLs.suffix(2).map(\.query), [
             "limit=25&after=retry-me",
             "limit=25&after=retry-me"
@@ -42,11 +48,14 @@ final class NativeRouteForwardPaginationTests: NativeRouteSurfaceViewModelTestCa
     private func notificationPage(ids: [String], cursor: String?, hasMore: Bool) -> Data {
         let results = ids.map { #"{"id":"\#($0)"}"# }.joined(separator: ",")
         let notifications = ids.map { id in
-            #""\#(id)":{"id":"\#(id)","user_id":"user","entity_type":"follow","post_id":null,"rss_feed_item_id":null,"actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"household_id":null,"actor_label":null,"event_key":null,"title":"Notification \#(id)","body":"Body","target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","pushed_at":null}"#
+            #""\#(id)":{"id":"\#(id)","user_id":"user","entity_type":"follow","post_id":null,"rss_feed_item_id":"\#(id)","actor_user_id":null,"community_id":null,"conversation_id":null,"moderation_report_id":null,"review_dispute_id":null,"user_warning_id":null,"copyright_notice_id":null,"household_id":null,"kind":"rss_item_new","params":{},"sent_by_id":null,"moderation_appeal_id":null,"community_application_id":null,"copyright_notice_delivery_work_item_id":null,"top_post_id":null,"event_key":null,"target_path":null,"target_entity":null,"target_intent":null,"read_at":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","pushed_at":null}"#
+        }.joined(separator: ",")
+        let feeds = ids.map { id in
+            #""\#(id)":{"id":"\#(id)","feed_name":"Notification \#(id)","snippet":"Body \#(id)"}"#
         }.joined(separator: ",")
         let endCursor = cursor.map { #""\#($0)""# } ?? "null"
         return Data(
-            #"{"results":[\#(results)],"notifications":{\#(notifications)},"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(endCursor)}}"#
+            #"{"results":[\#(results)],"notifications":{\#(notifications)},"rss_feed_items":{\#(feeds)},"page_info":{"has_next_page":\#(hasMore),"end_cursor":\#(endCursor)}}"#
                 .utf8
         )
     }

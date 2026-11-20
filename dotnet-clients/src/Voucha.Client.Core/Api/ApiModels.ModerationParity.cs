@@ -120,6 +120,7 @@ public enum ModerationRevealSurface
 
 public sealed record ModerationExposureState(
     [property: JsonPropertyName("count")] int Count,
+    [property: JsonPropertyName("count_capped")] bool CountCapped,
     [property: JsonPropertyName("threshold")] int Threshold,
     [property: JsonPropertyName("in_cooldown")] bool InCooldown,
     [property: JsonPropertyName("cooldown_ends_at")] DateTimeOffset? CooldownEndsAt);
