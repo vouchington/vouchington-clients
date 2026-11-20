@@ -16,15 +16,18 @@ public sealed partial class NotificationsViewModel : ObservableObject, IDisposab
   private bool inFlight;
   private int requestId;
   private readonly IUiLocalization localization;
+  private readonly Uri webBaseUrl;
   private readonly IDisposable? localeSubscription;
 
   public NotificationsViewModel(
       INotificationsService notificationsService,
       IUiLocalization? localization = null,
-      IUiLocaleController? localeController = null)
+      IUiLocaleController? localeController = null,
+      AppConfig? appConfig = null)
   {
     this.notificationsService = notificationsService ?? throw new ArgumentNullException(nameof(notificationsService));
     this.localization = localization ?? UiLocalization.English;
+    webBaseUrl = appConfig?.WebBaseUrl ?? new Uri(AppConfig.DefaultWebBaseUrl);
     localeSubscription = localeController?.SubscribeLocaleChanges(this);
   }
 

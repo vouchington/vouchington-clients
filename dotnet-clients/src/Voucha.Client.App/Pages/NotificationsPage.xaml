@@ -62,7 +62,7 @@
                                 <VerticalStackLayout Grid.Column="1" Spacing="6">
                                     <Label Text="{Binding ReadStateLabel}" Style="{StaticResource Eyebrow}" />
                                     <Label Text="{Binding LocalizedTitle}" Style="{StaticResource Headline}" />
-                                    <Label Text="{Binding UserContentBody}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" MaxLines="3" />
+                                    <Label Text="{Binding LocalizedBody}" IsVisible="{Binding HasBody}" Style="{StaticResource Body}" LineBreakMode="TailTruncation" MaxLines="3" />
                                     <Label Text="{app:UiLocalizedValue Path=CreatedAt, Format=dateTime}" Style="{StaticResource Metadata}" />
                                     <Button
                                         Text="{Binding MarkReadActionLabel}"

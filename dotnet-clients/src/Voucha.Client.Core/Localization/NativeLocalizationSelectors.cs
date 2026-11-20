@@ -14,6 +14,7 @@ public static class NativeLocalizationSelectors
       "moderation.communityBans.*",
       "moderation.penaltyReviews.*",
       "nav.*",
+      "notifications.kind.*",
       "settings.*",
       "shared.*",
       "native.common.*",
