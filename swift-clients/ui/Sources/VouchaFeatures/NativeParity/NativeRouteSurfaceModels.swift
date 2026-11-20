@@ -13,6 +13,19 @@ struct NativeNotificationsResponse: Decodable {
     let results: [NativeIdentifiedResult]
     let pageInfo: Page<FixtureReference>.PageInfo?
     let notifications: [String: VouchaNotification]
+    let hydration: NotificationHydration
+
+    private enum CodingKeys: String, CodingKey {
+        case results, pageInfo, notifications
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        results = try container.decode([NativeIdentifiedResult].self, forKey: .results)
+        pageInfo = try container.decodeIfPresent(Page<FixtureReference>.PageInfo.self, forKey: .pageInfo)
+        notifications = try container.decode([String: VouchaNotification].self, forKey: .notifications)
+        hydration = try NotificationHydration(from: decoder)
+    }
 }
 
 struct NativePostFeedResponse: Decodable {

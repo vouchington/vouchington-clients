@@ -14,6 +14,7 @@ final class HouseholdInvitationNotificationTests: NativeRouteSurfaceViewModelTes
         let notifications = try XCTUnwrap(object["notifications"] as? [String: [String: Any]])
         var value = try XCTUnwrap(notifications.values.first)
         value["entity_type"] = "household_invitation"
+        value["kind"] = "household_invitation"
         value["target_entity"] = ["__entity_type": "household", "id": "private-household-id"]
         value["target_path"] = NSNull()
         value["target_intent"] = NSNull()
@@ -84,7 +85,7 @@ final class HouseholdInvitationNotificationTests: NativeRouteSurfaceViewModelTes
         await model.load()
         var target: String?
         let surface = NativeListSurface(viewModel: model) { target = $0 }
-        try surface.inspect().find(button: notification.title).tap()
+        try surface.inspect().find(button: uiEnglish(.notificationsKindHouseholdInvitationTitle)).tap()
         XCTAssertEqual(target, "/my/household")
         let route = try XCTUnwrap(NativeRouteCatalog.matchingRoute(for: XCTUnwrap(target)))
         let destination = NativeRouteDestinationView(entry: route.entry, client: client(), currentUserId: "invitee")

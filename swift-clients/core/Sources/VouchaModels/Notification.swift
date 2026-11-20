@@ -32,9 +32,13 @@ public struct VouchaNotification: Codable, Identifiable, Sendable {
     public let id: String
     public let userId: String
     public let entityType: NotificationEntityType
+    public let kind: NotificationKind
+    public let params: NotificationParams
     public let postId: String?
     public let rssFeedItemId: String?
     public let actorUserId: String?
+    @RequiredNullable
+    public var sentById: String?
     @RequiredNullable
     public var communityId: String?
     @RequiredNullable
@@ -50,11 +54,15 @@ public struct VouchaNotification: Codable, Identifiable, Sendable {
     @RequiredNullable
     public var copyrightNoticeId: String?
     @RequiredNullable
-    public var actorLabel: String?
+    public var moderationAppealId: String?
+    @RequiredNullable
+    public var communityApplicationId: String?
+    @RequiredNullable
+    public var copyrightNoticeDeliveryWorkItemId: String?
+    @RequiredNullable
+    public var topPostId: String?
     @RequiredNullable
     public var eventKey: String?
-    public let title: String
-    public let body: String
     public let targetPath: String?
     @RequiredNullable
     public var targetEntity: NotificationTargetEntity?
@@ -69,9 +77,10 @@ public struct VouchaNotification: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case recordEntityType = "__entityType"
-        case id, userId, entityType, postId, rssFeedItemId, actorUserId, communityId, householdId
-        case conversationId, moderationReportId, reviewDisputeId, userWarningId, copyrightNoticeId, actorLabel
-        case eventKey, title, body, targetPath, targetEntity, targetIntent, readAt, createdAt, updatedAt, pushedAt
+        case id, userId, entityType, kind, params, postId, rssFeedItemId, actorUserId, sentById, communityId
+        case householdId, conversationId, moderationReportId, reviewDisputeId, userWarningId, copyrightNoticeId
+        case moderationAppealId, communityApplicationId, copyrightNoticeDeliveryWorkItemId, topPostId
+        case eventKey, targetPath, targetEntity, targetIntent, readAt, createdAt, updatedAt, pushedAt
     }
 }
 

@@ -74,8 +74,28 @@ public struct HostnameTopUrl: Codable, Identifiable, Sendable {
 public struct NotificationsResponse: Codable, Sendable {
     public let notifications: [String: VouchaNotification]
     public let results: [NotificationResult]
-    public let communities: [String: NotificationCommunity]?
     public let pageInfo: Page<FixtureReference>.PageInfo
+    public let hydration: NotificationHydration
+
+    private enum CodingKeys: String, CodingKey {
+        case notifications, results, pageInfo
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        notifications = try container.decode([String: VouchaNotification].self, forKey: .notifications)
+        results = try container.decode([NotificationResult].self, forKey: .results)
+        pageInfo = try container.decode(Page<FixtureReference>.PageInfo.self, forKey: .pageInfo)
+        hydration = try NotificationHydration(from: decoder)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(notifications, forKey: .notifications)
+        try container.encode(results, forKey: .results)
+        try container.encode(pageInfo, forKey: .pageInfo)
+        try hydration.encode(to: encoder)
+    }
 }
 
 public struct PostFeedResponse: Codable, Sendable {

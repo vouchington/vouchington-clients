@@ -152,11 +152,16 @@ extension NativeRouteSurfaceViewModel {
         let response: NativeNotificationsResponse = try await client.send(.notifications(after: after, limit: 25))
         let rows = response.results.compactMap { result -> NativeForwardRow? in
             guard let notification = response.notifications[result.id] else { return nil }
+            let content = NotificationTextRenderer.render(
+                notification,
+                hydration: response.hydration,
+                webOrigin: client.baseURL
+            )
             return forwardRow(
                 id: result.id,
                 icon: "bell",
-                title: .verbatim(notification.title),
-                detail: .verbatim(notification.body),
+                title: content.title,
+                detail: content.body ?? .verbatim(""),
                 targetPath: notification.targetEntity?.entityType == "household" ? "/my/household" : nil
             )
         }
