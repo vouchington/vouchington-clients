@@ -48,20 +48,31 @@ final class NotificationRowContentTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(rendered[2].body).hasPrefix("1 community: 2 joined, 0 departed (net 2)"))
     }
 
-    func testHydrationFromEarlierPagesStillRendersLaterPagesAndResetClearsIt() async throws {
-        let page = Support.pageJSON(
-            kind: "follow",
-            id: "n-follow",
-            hasNext: true,
-            hydration: ["actors": Support.actors("u2", "alice")]
-        )
-        CannedFeedURLProtocol.handlers["/api/v1/my/notifications"] = (page, 200)
+    func testEachRowRendersFromItsOwnPageHydrationAndResetClearsIt() async {
+        let path = "/api/v1/my/notifications"
+        CannedFeedURLProtocol.queuedHandlers[path] = [
+            (
+                Support.pageJSON(
+                    kind: "follow",
+                    id: "n-first",
+                    hasNext: true,
+                    hydration: ["actors": Support.actors("u2", "alice")]
+                ),
+                200,
+                0
+            ),
+            (Support.pageJSON(kind: "follow", id: "n-later"), 200, 0)
+        ]
         let viewModel = makeViewModel()
         await viewModel.load()
-        let row = try XCTUnwrap(viewModel.items.first)
-        XCTAssertEqual(uiEnglish(viewModel.content(for: row).title), "@alice started following you")
+        await viewModel.loadNextPage()
+        XCTAssertEqual(viewModel.items.map(\.id), ["n-first", "n-later"])
+        let first = viewModel.items[0]
+        XCTAssertEqual(uiEnglish(viewModel.content(for: first).title), "@alice started following you")
+        // The later page references u2 but omits it from `actors`, so that actor is gone for that row.
+        XCTAssertEqual(uiEnglish(viewModel.content(for: viewModel.items[1]).title), "Someone started following you")
         viewModel.reset()
-        XCTAssertEqual(uiEnglish(viewModel.content(for: row).title), "Someone started following you")
+        XCTAssertEqual(uiEnglish(viewModel.content(for: first).title), "Someone started following you")
     }
 
     func testCardShowsTitleAndBodyForRowsWithBody() throws {

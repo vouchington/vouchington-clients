@@ -461,7 +461,7 @@ final class NativeReviewQueueExposureTests: NativeRouteSurfaceViewModelTestCase 
     ) -> Data {
         let end = cooldownEndsAt.map { "\"\($0)\"" } ?? "null"
         return Data(
-            #"{"exposure":{"count":\#(count),"threshold":\#(threshold),"in_cooldown":\#(inCooldown),"cooldown_ends_at":\#(end)}}"#
+            #"{"exposure":{"count":\#(count),"count_capped":false,"threshold":\#(threshold),"in_cooldown":\#(inCooldown),"cooldown_ends_at":\#(end)}}"#
                 .utf8
         )
     }

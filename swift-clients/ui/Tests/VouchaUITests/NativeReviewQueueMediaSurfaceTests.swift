@@ -169,7 +169,7 @@ final class NativeReviewQueueMediaSurfaceTests: NativeRouteSurfaceViewModelTestC
 
     private func decodedExposure(inCooldown: Bool) throws -> ModerationExposureState {
         let data = Data(
-            #"{"count":1,"threshold":10,"in_cooldown":\#(inCooldown),"cooldown_ends_at":"2099-07-29T20:00:00.000Z"}"#
+            #"{"count":1,"count_capped":false,"threshold":10,"in_cooldown":\#(inCooldown),"cooldown_ends_at":"2099-07-29T20:00:00.000Z"}"#
                 .utf8
         )
         return try JSONDecoder.vouchaFixtureDecoder.decode(ModerationExposureState.self, from: data)

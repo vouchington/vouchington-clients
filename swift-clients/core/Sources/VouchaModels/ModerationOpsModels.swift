@@ -84,6 +84,7 @@ public enum ModerationRevealSurface: String, Codable, Sendable {
 
 public struct ModerationExposureState: Codable, Sendable {
     public let count: Int
+    public let countCapped: Bool
     public let threshold: Int
     public let inCooldown: Bool
     @RequiredNullable

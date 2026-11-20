@@ -75,14 +75,4 @@ public struct NotificationHydration: Codable, Sendable {
         ) ?? [:]
         publicTexts = try container.decodeIfPresent([String: String].self, forKey: .publicTexts) ?? [:]
     }
-
-    /// Folds a later page's facts over this one; newer facts win.
-    public mutating func merge(_ other: NotificationHydration) {
-        communities.merge(other.communities) { _, newer in newer }
-        actors.merge(other.actors) { _, newer in newer }
-        posts.merge(other.posts) { _, newer in newer }
-        rssFeedItems.merge(other.rssFeedItems) { _, newer in newer }
-        copyrightNotices.merge(other.copyrightNotices) { _, newer in newer }
-        publicTexts.merge(other.publicTexts) { _, newer in newer }
-    }
 }

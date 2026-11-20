@@ -141,7 +141,7 @@ final class NotificationHydrationTests: XCTestCase {
         XCTAssertTrue(hydration.publicTexts.isEmpty)
     }
 
-    func testDecodesEveryMapAndMergesNewerFactsOver() throws {
+    func testDecodesEveryHydrationMap() throws {
         let first = try decoder.decode(NotificationHydration.self, from: Data("""
         {"actors":{"u1":{"id":"u1","username":"old"}},
          "communities":{"c1":{"id":"c1","slug":"s","name":"Old"}},
@@ -154,15 +154,8 @@ final class NotificationHydrationTests: XCTestCase {
         XCTAssertNil(first.posts["p1"]?.actorUserId)
         XCTAssertEqual(first.rssFeedItems["r1"]?.feedName, "Feed")
         XCTAssertEqual(first.copyrightNotices["k1"]?.jurisdiction, "eu_dsa")
-        var merged = first
-        merged.merge(NotificationHydration(
-            communities: ["c1": NotificationCommunity(id: "c1", slug: "s", name: "New")],
-            actors: ["u1": NotificationActor(id: "u1", username: "new")],
-            publicTexts: ["t2": "more"]
-        ))
-        XCTAssertEqual(merged.actors["u1"]?.username, "new")
-        XCTAssertEqual(merged.communities["c1"]?.name, "New")
-        XCTAssertEqual(merged.publicTexts, ["t1": "text", "t2": "more"])
-        XCTAssertEqual(merged.posts.count, 1)
+        XCTAssertEqual(first.actors["u1"]?.username, "old")
+        XCTAssertEqual(first.communities["c1"]?.name, "Old")
+        XCTAssertEqual(first.publicTexts, ["t1": "text"])
     }
 }

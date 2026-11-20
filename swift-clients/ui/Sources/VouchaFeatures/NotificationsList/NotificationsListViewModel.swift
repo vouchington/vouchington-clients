@@ -44,9 +44,10 @@ public final class NotificationsListViewModel {
         notification.readAt != nil || locallyReadIds.contains(notification.id)
     }
 
-    private var hydration = NotificationHydration()
+    /// Each row's facts come from the page that delivered it, since a later page omits facts that are gone.
+    private(set) var hydrationByNotificationId: [String: NotificationHydration] = [:]
 
-    private let client: APIClient
+    let client: APIClient
 
     public init(client: APIClient) {
         self.client = client
@@ -72,7 +73,9 @@ public final class NotificationsListViewModel {
             let newItems = page.results.compactMap { result in
                 page.notifications[result.id]
             }
-            hydration.merge(page.hydration)
+            for item in newItems {
+                hydrationByNotificationId[item.id] = page.hydration
+            }
             pagination.complete(
                 request,
                 items: newItems,
@@ -98,18 +101,13 @@ public final class NotificationsListViewModel {
     public func reset() {
         pagination.reset()
         locallyReadIds = []
-        hydration = NotificationHydration()
+        hydrationByNotificationId = [:]
     }
 
     /// Clear and reload from the first page.
     public func reload() async {
         reset()
         await loadNextPage()
-    }
-
-    /// The localized title and optional body for a loaded notification row.
-    public func content(for notification: VouchaNotification) -> NotificationContent {
-        NotificationTextRenderer.render(notification, hydration: hydration, webOrigin: client.baseURL)
     }
 
     /// Mark a single notification as read optimistically.
@@ -129,7 +127,7 @@ public final class NotificationsListViewModel {
         }
         guard isRead(notification) else { return nil }
         let structuredTargetPath: String? = if notification.targetEntity?.entityType == "community" {
-            if let communityId = notification.targetEntity?.id, let community = hydration.communities[communityId] {
+            if let id = notification.targetEntity?.id, let community = hydration(for: notification).communities[id] {
                 "/communities/\(community.slug)"
             } else {
                 "/my/notifications"

@@ -26,6 +26,7 @@ final class ModerationExposureContractTests: XCTestCase {
             from: ApiFixtureLoader.data("native.moderation.exposure.default")
         )
         XCTAssertEqual(response.exposure.count, 1)
+        XCTAssertFalse(response.exposure.countCapped)
         XCTAssertEqual(response.exposure.threshold, 10)
         XCTAssertFalse(response.exposure.inCooldown)
         XCTAssertNil(response.exposure.cooldownEndsAt)
@@ -33,11 +34,12 @@ final class ModerationExposureContractTests: XCTestCase {
         let dateResponse = try makeVouchaDecoder().decode(
             ModerationExposureResponse.self,
             from: Data("""
-            {"exposure":{"count":10,"threshold":10,"in_cooldown":true,\
+            {"exposure":{"count":10,"count_capped":true,"threshold":10,"in_cooldown":true,\
             "cooldown_ends_at":"2026-07-29T20:00:00.000Z"}}
             """.utf8)
         )
         XCTAssertNotNil(dateResponse.exposure.cooldownEndsAt)
+        XCTAssertTrue(dateResponse.exposure.countCapped)
     }
 
     func testExposureEndpointsUseCamelCaseRevealIdentifiers() {
