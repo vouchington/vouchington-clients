@@ -50,7 +50,7 @@
     "dependency-cruiser": "18.7.2",
     "husky": "9.1.7",
     "knip": "6.45.1",
-    "no-mistakes": "0.109.105",
+    "no-mistakes": "0.109.107",
     "oxfmt": "0.78.0",
     "oxlint": "1.93.0",
     "vouchington-tooling": "3.5.0"
