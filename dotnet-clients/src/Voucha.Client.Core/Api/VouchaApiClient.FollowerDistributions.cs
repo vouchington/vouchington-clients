@@ -2,6 +2,9 @@ namespace Voucha.Client.Core.Api;
 
 public sealed partial class VouchaApiClient
 {
+  public Task<ContentLimitsResponse> GetContentLimitsAsync(CancellationToken cancellationToken = default) =>
+      SendAsync<ContentLimitsResponse>(VouchaApiEndpoints.ContentLimits(), cancellationToken);
+
   public Task<FollowerDistributionAcceptedResponse> SharePostWithFollowersAsync(
       string postIdOrSlug,
       CancellationToken cancellationToken = default) =>

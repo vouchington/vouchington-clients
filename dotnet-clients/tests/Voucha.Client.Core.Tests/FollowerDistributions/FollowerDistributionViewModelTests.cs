@@ -9,15 +9,49 @@ namespace Voucha.Client.Core.Tests.FollowerDistributions;
 public sealed class FollowerDistributionViewModelTests
 {
   [Fact]
-  public void SelectionLimitsToOneHundredAndResetClearsContext()
+  public async Task SelectionCapsAtTheFetchedRecipientLimitAndResetClearsContext()
   {
-    using var viewModel = new FollowerDistributionViewModel(new Friends(), Client(HttpStatusCode.OK), FollowerDistributionTargetKind.Post, "post-1");
+    var handler = new RoutingHandler(new()
+    {
+      ["/api/v1/content-limits"] = (HttpStatusCode.OK, ContentLimits(recipientsMax: 3))
+    });
+    using var viewModel = new FollowerDistributionViewModel(new Friends(), Client(handler), FollowerDistributionTargetKind.Post, "post-1");
     viewModel.SetAudience(true);
-    foreach (var index in Enumerable.Range(0, 100)) Assert.True(viewModel.ToggleSelection($"user-{index}"));
+    await viewModel.LoadRecipientLimitAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(3, viewModel.RecipientLimit);
+
+    foreach (var index in Enumerable.Range(0, 3)) Assert.True(viewModel.ToggleSelection($"user-{index}"));
+    Assert.False(viewModel.CanSelectMore);
     Assert.False(viewModel.ToggleSelection("one-too-many"));
+    Assert.True(viewModel.ToggleSelection("user-0"));
+    Assert.True(viewModel.ToggleSelection("one-more"));
+
     viewModel.Reset("post-2");
     Assert.Empty(viewModel.SelectedIds);
     Assert.False(viewModel.IsSelectedAudience);
+    Assert.Null(viewModel.RecipientLimit);
+  }
+
+  [Fact]
+  public async Task SelectionIsUncappedWhenTheLimitFetchFailsAndTheServerRejectionSurfaces()
+  {
+    var handler = new RoutingHandler(new()
+    {
+      ["/api/v1/content-limits"] = (HttpStatusCode.InternalServerError, "{}"),
+      ["/api/v1/posts/post-1/sends"] = (HttpStatusCode.BadRequest, """{"message":"recipient_user_ids can include at most 100 followers"}""")
+    });
+    using var viewModel = new FollowerDistributionViewModel(new Friends(), Client(handler), FollowerDistributionTargetKind.Post, "post-1");
+    viewModel.SetAudience(true);
+    await viewModel.LoadRecipientLimitAsync(TestContext.Current.CancellationToken);
+    Assert.Null(viewModel.RecipientLimit);
+
+    foreach (var index in Enumerable.Range(0, 101)) Assert.True(viewModel.ToggleSelection($"01900000-0000-7000-8000-{index:D12}"));
+    Assert.True(viewModel.CanSelectMore);
+
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    var rejection = Assert.IsType<VouchaApiException>(viewModel.Error);
+    Assert.Equal(HttpStatusCode.BadRequest, rejection.StatusCode);
+    Assert.Equal(101, viewModel.SelectedIds.Count);
   }
 
   [Fact]
@@ -109,7 +143,7 @@ public sealed class FollowerDistributionViewModelTests
       Assert.Equal(expected, FollowerDistributionEligibility.IsPublicTopLevelPost(postType, parentId, privacy, broadcast));
 
   private static VouchaApiClient Client(HttpStatusCode status) => Client(new RecordingHandler(status));
-  private static VouchaApiClient Client(RecordingHandler handler) => new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
+  private static VouchaApiClient Client(HttpMessageHandler handler) => new(new HttpClient(handler) { BaseAddress = new Uri("https://api.test") });
 
   private sealed class Friends(UserFollowersResponse? response = null) : IFriendsService
   {
@@ -130,6 +164,18 @@ public sealed class FollowerDistributionViewModelTests
         responses.Dequeue();
     public Task<UserFollowingResponse> FetchFollowingAsync(string userId, string? after = null, CancellationToken cancellationToken = default) => Task.FromResult(new UserFollowingResponse([], new PageInfo(null, false, null)));
     public Task SetFollowAsync(string userId, bool following, CancellationToken cancellationToken = default) => Task.CompletedTask;
+  }
+
+  private static string ContentLimits(int recipientsMax) =>
+      $$"""{"post_images_max":20,"copyright_claimant_targets_max":20,"follower_distribution_recipients_max":{{recipientsMax}}}""";
+
+  private sealed class RoutingHandler(Dictionary<string, (HttpStatusCode Status, string Body)> routes) : HttpMessageHandler
+  {
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+      var (status, body) = routes[request.RequestUri!.AbsolutePath];
+      return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
+    }
   }
 
   private sealed class RecordingHandler(HttpStatusCode status) : HttpMessageHandler

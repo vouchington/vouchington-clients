@@ -6,6 +6,9 @@ namespace Voucha.Client.Core.Agent;
 internal static partial class MemberMcpInputSchema
 {
   private const int MaxDepth = 32;
+  // Bounds the pairwise uniqueItems comparison. The producer advertises up to 500 follower
+  // recipients (the DynamicConfig hard max), so the bound sits just above it.
+  internal const int MaximumUniqueItems = 512;
   private static readonly HashSet<string> Types = ["object", "array", "string", "integer", "number", "boolean", "null"];
   private static readonly HashSet<string> Annotations =
       ["title", "description", "default", "examples", "deprecated", "readOnly", "writeOnly"];
@@ -51,7 +54,7 @@ internal static partial class MemberMcpInputSchema
     if (depth >= MaxDepth || schema.ValueKind != JsonValueKind.Object)
       throw new InvalidDataException("Unsupported MCP input schema.");
     if (schema.TryGetProperty("uniqueItems", out var unique) && unique.ValueKind == JsonValueKind.True &&
-        (!schema.TryGetProperty("maxItems", out var maximum) || !Count(maximum, out var count) || count > 256))
+        (!schema.TryGetProperty("maxItems", out var maximum) || !Count(maximum, out var count) || count > MaximumUniqueItems))
       throw new InvalidDataException("Unbounded MCP uniqueItems schema.");
     foreach (var field in schema.EnumerateObject())
     {

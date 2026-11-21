@@ -90,7 +90,7 @@ internal static partial class MemberMcpInputSchema
     if (!Within(items.Length, schema, "minItems", "maxItems")) return false;
     if (schema.TryGetProperty("uniqueItems", out var unique) && unique.ValueKind == JsonValueKind.True)
     {
-      if (items.Length > 256) return false;
+      if (items.Length > MaximumUniqueItems) return false;
       for (var i = 0; i < items.Length; i++)
         for (var j = i + 1; j < items.Length; j++)
           if (output ? SameOutput(items[i], items[j], ref remainingWork) : Same(items[i], items[j])) return false;

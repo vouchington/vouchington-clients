@@ -44,7 +44,7 @@ final class FollowerDistributionEndpointTests: XCTestCase {
         )
     }
 
-    func testSelectedRecipientsRejectEmptyDuplicatesAndMoreThanOneHundred() throws {
+    func testSelectedRecipientsRejectEmptyDuplicatesAndInvalidIdsButNotCount() throws {
         XCTAssertThrowsError(try FollowerDistributionRequest(selectedRecipientIds: [])) {
             XCTAssertEqual($0 as? FollowerDistributionRequestError, .emptySelectedRecipients)
         }
@@ -52,11 +52,10 @@ final class FollowerDistributionEndpointTests: XCTestCase {
         XCTAssertThrowsError(try FollowerDistributionRequest(selectedRecipientIds: [recipientId, recipientId])) {
             XCTAssertEqual($0 as? FollowerDistributionRequestError, .duplicateSelectedRecipients)
         }
-        XCTAssertThrowsError(try FollowerDistributionRequest(selectedRecipientIds: (0 ... 100).map {
+        // The recipient cap is server-configured, so the request itself does not cap the count.
+        XCTAssertNoThrow(try FollowerDistributionRequest(selectedRecipientIds: (0 ... 100).map {
             String(format: "01900000-0000-7000-8000-%012d", $0)
-        })) {
-            XCTAssertEqual($0 as? FollowerDistributionRequestError, .tooManySelectedRecipients)
-        }
+        }))
         XCTAssertThrowsError(try FollowerDistributionRequest(selectedRecipientIds: ["not-a-uuid"])) {
             XCTAssertEqual($0 as? FollowerDistributionRequestError, .invalidRecipientId)
         }

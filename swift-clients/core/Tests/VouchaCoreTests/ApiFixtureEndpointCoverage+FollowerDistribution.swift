@@ -1,6 +1,7 @@
 @testable import VouchaAPI
 
 let followerDistributionFixtureEndpoints: [String: Endpoint] = [
+    "native.content-limits.default": Endpoint.contentLimits(),
     "native.users.followers.search": Endpoint.userFollowers(
         userId: "user-abc",
         query: "al",

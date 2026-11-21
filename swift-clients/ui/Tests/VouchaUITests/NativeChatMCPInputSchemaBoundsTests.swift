@@ -43,17 +43,17 @@ final class NativeChatMCPInputSchemaBoundsTests: XCTestCase {
 
     func testUniqueItemsValidationHasAnIndependentWorkBound() throws {
         let unique: DecodedJSONValue = .object([
-            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(256)
+            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(512)
         ])
-        let values: [DecodedJSONValue] = (0 ... 256).map { .string(String($0)) }
+        let values: [DecodedJSONValue] = (0 ... 512).map { .string(String($0)) }
         try NativeChatMCPInputSchema.validateSchema(unique)
-        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array(Array(values.prefix(256))), schema: unique))
+        XCTAssertTrue(try NativeChatMCPInputSchema.accepts(.array(Array(values.prefix(512))), schema: unique))
         XCTAssertFalse(try NativeChatMCPInputSchema.accepts(.array(values), schema: unique))
         XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
             "type": .string("array"), "uniqueItems": .bool(true)
         ])))
         XCTAssertThrowsError(try NativeChatMCPInputSchema.validateSchema(.object([
-            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(257)
+            "type": .string("array"), "uniqueItems": .bool(true), "maxItems": .integer(513)
         ])))
     }
 
