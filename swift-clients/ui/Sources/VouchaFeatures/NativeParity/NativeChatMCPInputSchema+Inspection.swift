@@ -8,7 +8,7 @@ extension NativeChatMCPInputSchema {
             try inspectKeyword(key, item: item, root: root, depth: depth, output: output)
         }
         if case .bool(true)? = fields["uniqueItems"] {
-            guard let maximum = integer(fields["maxItems"]), maximum <= 256 else {
+            guard let maximum = integer(fields["maxItems"]), maximum <= maximumUniqueItems else {
                 throw Failure.unsupportedSchema
             }
         }

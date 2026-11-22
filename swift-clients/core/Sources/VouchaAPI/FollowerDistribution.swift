@@ -7,13 +7,11 @@ public enum FollowerDistributionAudience: String, Codable, Sendable {
 
 public enum FollowerDistributionRequestError: Error, Equatable, Sendable {
     case emptySelectedRecipients
-    case tooManySelectedRecipients
     case duplicateSelectedRecipients
     case invalidRecipientId
 }
 
 public struct FollowerDistributionRequest: Encodable, Sendable {
-    public static let maximumSelectedRecipients = 100
     public static let allFollowers = Self(audience: .allFollowers, recipientUserIds: nil)
     private let audience: FollowerDistributionAudience
     private let recipientUserIds: [String]?
@@ -21,9 +19,6 @@ public struct FollowerDistributionRequest: Encodable, Sendable {
     public init(selectedRecipientIds: [String]) throws {
         guard !selectedRecipientIds.isEmpty else {
             throw FollowerDistributionRequestError.emptySelectedRecipients
-        }
-        guard selectedRecipientIds.count <= Self.maximumSelectedRecipients else {
-            throw FollowerDistributionRequestError.tooManySelectedRecipients
         }
         guard Set(selectedRecipientIds).count == selectedRecipientIds.count else {
             throw FollowerDistributionRequestError.duplicateSelectedRecipients

@@ -38,6 +38,8 @@ public final class FollowerDistributionViewModel {
     public internal(set) var isSending = false
     public internal(set) var isSharing = false
     public private(set) var canLoadMoreRecipients = false
+    /// The server-configured selection cap; `nil` until fetched, so only server validation applies.
+    public internal(set) var recipientLimit: Int?
     public internal(set) var error: VouchaError?
     public var sendsToAllFollowers = true
 
@@ -47,6 +49,7 @@ public final class FollowerDistributionViewModel {
     private var nextRecipientCursor: String?
     private var searchGeneration = 0
     var contextGeneration = 0
+    var recipientLimitGeneration = 0
     private var searchTask: Task<Void, Never>?
 
     public init(client: APIClient, currentUserId: String?, target: FollowerDistributionTarget) {
@@ -56,7 +59,7 @@ public final class FollowerDistributionViewModel {
     }
 
     public var canSend: Bool {
-        sendsToAllFollowers || !selectedRecipientIds.isEmpty
+        sendsToAllFollowers || (!selectedRecipientIds.isEmpty && selectionFitsRecipientLimit)
     }
 
     public func replaceContext(currentUserId: String?, target: FollowerDistributionTarget) {
@@ -81,6 +84,8 @@ public final class FollowerDistributionViewModel {
         isSearching = false
         nextRecipientCursor = nil
         canLoadMoreRecipients = false
+        recipientLimitGeneration += 1
+        recipientLimit = nil
         error = nil
     }
 
@@ -89,7 +94,7 @@ public final class FollowerDistributionViewModel {
         if selectedRecipientIds.contains(id) {
             selectedRecipientIds.remove(id)
             selectedRecipients.removeAll { $0.id == id }
-        } else if selectedRecipientIds.count < FollowerDistributionRequest.maximumSelectedRecipients {
+        } else if hasRecipientCapacity {
             selectedRecipientIds.insert(id)
             if let recipient = recipients.first(where: { $0.id == id }) {
                 retainSelectedRecipient(recipient)
@@ -98,8 +103,7 @@ public final class FollowerDistributionViewModel {
     }
 
     public func canToggleRecipient(_ id: String) -> Bool {
-        selectedRecipientIds.contains(id) ||
-            selectedRecipientIds.count < FollowerDistributionRequest.maximumSelectedRecipients
+        selectedRecipientIds.contains(id) || hasRecipientCapacity
     }
 
     public func searchRecipients(query: String) async {

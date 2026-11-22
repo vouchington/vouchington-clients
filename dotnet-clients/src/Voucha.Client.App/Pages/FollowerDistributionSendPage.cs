@@ -106,6 +106,13 @@ internal sealed partial class FollowerDistributionSendPage : ContentPage
   {
     base.OnAppearing();
     AttachSessionChanged();
+    _ = LoadRecipientLimitAsync();
+  }
+
+  private async Task LoadRecipientLimitAsync()
+  {
+    await state.LoadRecipientLimitAsync().ConfigureAwait(true);
+    Refresh();
   }
 
   protected override void OnDisappearing()

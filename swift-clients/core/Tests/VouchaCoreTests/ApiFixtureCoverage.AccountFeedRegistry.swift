@@ -137,6 +137,9 @@ let accountFeedFixtureCoverage: [RegisteredFixture] = [
             ]
         )
     },
+    RegisteredFixture(id: "native.content-limits.default") {
+        try assertFixtureCoversDTO($0, as: ContentLimitsResponse.self)
+    },
     RegisteredFixture(id: "native.posts.followers.share") {
         try assertFixtureCoversDTO($0, as: FollowerDistributionAcceptedResponse.self)
     },

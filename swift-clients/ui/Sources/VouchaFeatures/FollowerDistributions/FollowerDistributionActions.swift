@@ -123,6 +123,7 @@ struct FollowerDistributionSendSheet: View {
                 }
             }
             .navigationTitle(message(.sendToFollowers))
+            .task { await viewModel.loadRecipientLimit() }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(UiMessages.string(.commonCancel, locale: nativeUiLocale)) { dismiss() }

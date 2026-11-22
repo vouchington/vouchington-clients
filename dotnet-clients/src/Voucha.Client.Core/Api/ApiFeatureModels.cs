@@ -89,8 +89,6 @@ public sealed record ReferralProgramValidationInfo(
 
 public sealed record FollowerDistributionBody
 {
-  public const int MaximumRecipients = 100;
-
   private FollowerDistributionBody(string audience, IReadOnlyList<string>? recipientUserIds)
   {
     Audience = audience;
@@ -109,7 +107,8 @@ public sealed record FollowerDistributionBody
   public static FollowerDistributionBody Selected(IReadOnlyList<string> recipientUserIds)
   {
     ArgumentNullException.ThrowIfNull(recipientUserIds);
-    if (recipientUserIds.Count is < 1 or > MaximumRecipients)
+    // The recipient cap is server-configured (GET /api/v1/content-limits); the server enforces it.
+    if (recipientUserIds.Count < 1)
       throw new ArgumentOutOfRangeException(nameof(recipientUserIds));
     if (recipientUserIds.Any(id => !Guid.TryParseExact(id, "D", out _)) || recipientUserIds.Distinct(StringComparer.Ordinal).Count() != recipientUserIds.Count)
       throw new ArgumentException("Recipients must be unique UUID identifiers.", nameof(recipientUserIds));

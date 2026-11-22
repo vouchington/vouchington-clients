@@ -30,6 +30,7 @@ internal static partial class ApiFixtureCoverage
     ["native.stories.get.default"] = typeof(StoryPageResponse),
     ["native.stories.get.after"] = typeof(StoryPageResponse),
     ["native.users.followers.search"] = typeof(UserFollowersResponse),
+    ["native.content-limits.default"] = typeof(ContentLimitsResponse),
     ["native.posts.followers.share"] = typeof(FollowerDistributionAcceptedResponse),
     ["native.posts.followers.send-selected"] = typeof(FollowerDistributionAcceptedResponse),
     ["native.rss-feed-items.followers.share"] = typeof(FollowerDistributionAcceptedResponse),

@@ -244,15 +244,15 @@ public sealed class MemberMcpInputSchemaTests
     foreach (var schema in new[]
     {
       """{"type":"array","uniqueItems":true}""",
-      """{"type":"array","uniqueItems":true,"maxItems":257}""",
+      """{"type":"array","uniqueItems":true,"maxItems":513}""",
     })
     {
       using var document = JsonDocument.Parse(schema);
       Assert.Throws<InvalidDataException>(() => MemberMcpInputSchema.Inspect(document.RootElement));
     }
-    using var bounded = JsonDocument.Parse("""{"type":"array","uniqueItems":true,"maxItems":256}""");
-    using var accepted = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 256)));
-    using var rejected = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 257)));
+    using var bounded = JsonDocument.Parse("""{"type":"array","uniqueItems":true,"maxItems":512}""");
+    using var accepted = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 512)));
+    using var rejected = JsonDocument.Parse(JsonSerializer.Serialize(Enumerable.Range(0, 513)));
     Assert.True(MemberMcpInputSchema.Accepts(accepted.RootElement, bounded.RootElement));
     Assert.False(MemberMcpInputSchema.Accepts(rejected.RootElement, bounded.RootElement));
     Assert.False(Accepts("[1e100,10e99]", bounded));

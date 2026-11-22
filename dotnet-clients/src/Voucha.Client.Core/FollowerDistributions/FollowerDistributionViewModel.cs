@@ -6,7 +6,7 @@ namespace Voucha.Client.Core.FollowerDistributions;
 
 public enum FollowerDistributionTargetKind { Post, RssFeedItem }
 
-public sealed class FollowerDistributionViewModel : ObservableObject, IDisposable
+public sealed partial class FollowerDistributionViewModel : ObservableObject, IDisposable
 {
   private static readonly TimeSpan SearchDebounce = TimeSpan.FromMilliseconds(250);
   private readonly IFriendsService friends;
@@ -26,6 +26,7 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
   private string currentUserId = string.Empty;
   private string? query;
   private Exception? error;
+  private int? recipientLimit;
 
   public FollowerDistributionViewModel(
       IFriendsService friends,
@@ -47,7 +48,7 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
   public bool IsSearching { get => isSearching; private set => SetProperty(ref isSearching, value); }
   public bool HasMore { get => hasMore; private set => SetProperty(ref hasMore, value); }
   public Exception? Error { get => error; private set => SetProperty(ref error, value); }
-  public bool CanSubmit => !IsSending && (!IsSelectedAudience || selectedIds.Count > 0);
+  public bool CanSubmit => !IsSending && (!IsSelectedAudience || (selectedIds.Count > 0 && SelectionFitsRecipientLimit));
   public bool IsSelectedAudience { get; private set; }
 
   public void SetAudience(bool selected)
@@ -61,7 +62,7 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
   {
     if (!IsSelectedAudience) return false;
     if (selectedIds.Remove(userId)) { selectedRecipients.Remove(userId); ChangedSelection(); return true; }
-    if (selectedIds.Count == FollowerDistributionBody.MaximumRecipients) return false;
+    if (!CanSelectMore) return false;
     selectedIds.Add(userId);
     ChangedSelection();
     return true;
@@ -71,7 +72,7 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
   {
     ArgumentNullException.ThrowIfNull(user);
     if (!IsSelectedAudience || selectedIds.Contains(user.Id)) return ToggleSelection(user.Id);
-    if (selectedIds.Count == FollowerDistributionBody.MaximumRecipients) return false;
+    if (!CanSelectMore) return false;
     selectedIds.Add(user.Id);
     selectedRecipients[user.Id] = user;
     ChangedSelection();
@@ -102,7 +103,7 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
 
   public async Task<bool> SubmitAsync(CancellationToken cancellationToken = default)
   {
-    if (IsSending || (IsSelectedAudience && selectedIds.Count == 0)) return false;
+    if (!CanSubmit) return false;
     IsSending = true; Error = null;
     try
     {
@@ -142,6 +143,8 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
     HasMore = false;
     selectedIds.Clear();
     selectedRecipients.Clear();
+    recipientLimitGeneration++;
+    RecipientLimit = null;
     IsSelectedAudience = false;
     OnPropertyChanged(nameof(SelectedIds));
     OnPropertyChanged(nameof(IsSelectedAudience));
@@ -173,7 +176,7 @@ public sealed class FollowerDistributionViewModel : ObservableObject, IDisposabl
     finally { if (generation == searchGeneration) IsSearching = false; }
   }
 
-  private void ChangedSelection() { OnPropertyChanged(nameof(SelectedIds)); OnPropertyChanged(nameof(SelectedRecipients)); OnPropertyChanged(nameof(CanSubmit)); }
+  private void ChangedSelection() { OnPropertyChanged(nameof(SelectedIds)); OnPropertyChanged(nameof(SelectedRecipients)); OnPropertyChanged(nameof(CanSubmit)); OnPropertyChanged(nameof(CanSelectMore)); }
 
   public void Dispose()
   {

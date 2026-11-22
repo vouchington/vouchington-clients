@@ -18,30 +18,86 @@ final class FollowerDistributionViewModelTests: XCTestCase {
         super.tearDown()
     }
 
-    func testSelectedRecipientsCapAtOneHundredAndCanBeDeselected() {
-        let viewModel = makeViewModel()
+    func testSelectionCapsAtTheFetchedRecipientLimitAndAllowsRemoval() async {
+        CannedFeedURLProtocol.handlers["/api/v1/content-limits"] = (contentLimits(recipientsMax: 3), 200)
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
         viewModel.sendsToAllFollowers = false
+        await viewModel.loadRecipientLimit()
+        XCTAssertEqual(viewModel.recipientLimit, 3)
 
-        for index in 0 ..< FollowerDistributionRequest.maximumSelectedRecipients {
-            viewModel.toggleRecipient(String(format: "01900000-0000-7000-8000-%012d", index))
-        }
-        viewModel.toggleRecipient("01900000-0000-7000-8000-000000009999")
-
-        XCTAssertEqual(viewModel.selectedRecipientIds.count, FollowerDistributionRequest.maximumSelectedRecipients)
-        XCTAssertFalse(viewModel.selectedRecipientIds.contains("01900000-0000-7000-8000-000000009999"))
-        viewModel.toggleRecipient("01900000-0000-7000-8000-000000000000")
-        XCTAssertEqual(viewModel.selectedRecipientIds.count, FollowerDistributionRequest.maximumSelectedRecipients - 1)
-    }
-
-    func testRecipientAtSelectionLimitRemainsSelectableOnlyForRemoval() {
-        let viewModel = makeViewModel()
-        viewModel.sendsToAllFollowers = false
-        for index in 0 ..< FollowerDistributionRequest.maximumSelectedRecipients {
+        for index in 0 ... 3 {
             viewModel.toggleRecipient(recipientId(index))
         }
 
+        XCTAssertEqual(viewModel.selectedRecipientIds, Set((0 ..< 3).map(recipientId)))
+        XCTAssertFalse(viewModel.canToggleRecipient(recipientId(3)))
         XCTAssertTrue(viewModel.canToggleRecipient(recipientId(0)))
-        XCTAssertFalse(viewModel.canToggleRecipient(recipientId(101)))
+        viewModel.toggleRecipient(recipientId(0))
+        XCTAssertEqual(viewModel.selectedRecipientIds.count, 2)
+        XCTAssertTrue(viewModel.canToggleRecipient(recipientId(3)))
+    }
+
+    func testSelectionIsUncappedWhenTheLimitFetchFailsAndTheServerRejectionSurfaces() async {
+        CannedFeedURLProtocol.handlers["/api/v1/content-limits"] = (Data("{}".utf8), 500)
+        CannedFeedURLProtocol.handlers["/api/v1/posts/post-1/sends"] = (
+            Data(#"{"message":"recipient_user_ids can include at most 100 followers"}"#.utf8),
+            400
+        )
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        viewModel.sendsToAllFollowers = false
+        await viewModel.loadRecipientLimit()
+        XCTAssertNil(viewModel.recipientLimit)
+
+        for index in 0 ... 100 {
+            viewModel.toggleRecipient(recipientId(index))
+        }
+        XCTAssertEqual(viewModel.selectedRecipientIds.count, 101)
+        XCTAssertTrue(viewModel.canToggleRecipient(recipientId(101)))
+
+        let didSend = await viewModel.send()
+        XCTAssertFalse(didSend)
+        XCTAssertEqual(statusCode(of: viewModel.error), 400)
+    }
+
+    func testSendStaysDisabledWhileAnEarlierSelectionExceedsTheFetchedLimit() async {
+        CannedFeedURLProtocol.handlers["/api/v1/content-limits"] = (contentLimits(recipientsMax: 3), 200)
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        viewModel.sendsToAllFollowers = false
+        for index in 0 ..< 5 {
+            viewModel.toggleRecipient(recipientId(index))
+        }
+        XCTAssertTrue(viewModel.canSend)
+
+        await viewModel.loadRecipientLimit()
+
+        XCTAssertEqual(viewModel.selectedRecipientIds.count, 5)
+        XCTAssertFalse(viewModel.canSend)
+        let didSend = await viewModel.send()
+        XCTAssertFalse(didSend)
+        viewModel.toggleRecipient(recipientId(0))
+        viewModel.toggleRecipient(recipientId(1))
+        XCTAssertTrue(viewModel.canSend)
+    }
+
+    func testLimitResponseFromBeforeASheetResetIsIgnored() async {
+        let path = "/api/v1/content-limits"
+        CannedFeedURLProtocol.handlers[path] = (contentLimits(recipientsMax: 1), 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        let staleLoad = Task { await viewModel.loadRecipientLimit() }
+        guard await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: path) else {
+            XCTFail("The limit request never reached the canned protocol")
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await staleLoad.value
+            return
+        }
+
+        viewModel.resetSendSheet()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await staleLoad.value
+
+        XCTAssertNil(viewModel.recipientLimit)
     }
 
     func testContextChangeResetsSelectionAndSearchState() async {
@@ -72,8 +128,10 @@ final class FollowerDistributionViewModelTests: XCTestCase {
         let didSend = await viewModel.send()
         XCTAssertFalse(didSend)
         XCTAssertNotNil(viewModel.error)
+        viewModel.recipientLimit = 5
         viewModel.resetSendSheet()
 
+        XCTAssertNil(viewModel.recipientLimit)
         XCTAssertTrue(viewModel.sendsToAllFollowers)
         XCTAssertTrue(viewModel.selectedRecipientIds.isEmpty)
         XCTAssertTrue(viewModel.selectedRecipients.isEmpty)
@@ -380,6 +438,20 @@ final class FollowerDistributionViewModelTests: XCTestCase {
 
     private func acceptedResponse() -> Data {
         Data(#"{"status":"accepted","distribution_id":"distribution-1"}"#.utf8)
+    }
+
+    private func contentLimits(recipientsMax: Int) -> Data {
+        Data("""
+        {"post_images_max":20,"copyright_claimant_targets_max":20,\
+        "follower_distribution_recipients_max":\(recipientsMax)}
+        """.utf8)
+    }
+
+    private func statusCode(of error: VouchaError?) -> Int? {
+        switch error {
+        case let .api(statusCode, _), let .apiMessage(statusCode, _, _): statusCode
+        default: nil
+        }
     }
 
     private func recipientId(_ number: Int) -> String {

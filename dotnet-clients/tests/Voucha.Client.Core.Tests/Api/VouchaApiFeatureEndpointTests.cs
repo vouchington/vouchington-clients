@@ -52,7 +52,8 @@ public sealed class VouchaApiFeatureEndpointTests
   public void FollowerDistributionRejectsInvalidSelectedRecipients()
   {
     Assert.Throws<ArgumentOutOfRangeException>(() => FollowerDistributionBody.Selected([]));
-    Assert.Throws<ArgumentOutOfRangeException>(() => FollowerDistributionBody.Selected(Enumerable.Repeat("user", 101).ToArray()));
+    var overDefaultCap = Enumerable.Range(0, 101).Select(index => $"01900000-0000-7000-8000-{index:D12}").ToArray();
+    Assert.Equal(101, FollowerDistributionBody.Selected(overDefaultCap).RecipientUserIds!.Count);
     Assert.Throws<ArgumentException>(() => FollowerDistributionBody.Selected(["not-a-uuid"]));
     Assert.Throws<ArgumentException>(() => FollowerDistributionBody.Selected(["00000000000070008000000000000001"]));
     Assert.Throws<ArgumentException>(() => FollowerDistributionBody.Selected(["{00000000-0000-7000-8000-000000000001}"]));
