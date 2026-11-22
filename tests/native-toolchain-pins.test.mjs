@@ -211,7 +211,7 @@ test('native mise setup selects only its requested SDK and Swift runtime librari
   const validation = read('.github/workflows/validate.yml')
   assert.match(
     action,
-    /if: runner\.os == 'Linux' && inputs\.tool == 'swift'[\s\S]*?apt-get install --yes --no-install-recommends libncurses6[\s\S]*?mise-action/u,
+    /if: runner\.os == 'Linux' && inputs\.tool == 'swift'[\s\S]*?apt-get install --yes --no-install-recommends libncurses6[\s\S]*?jdx\/mise-action@/u,
   )
   const configuredTools = [...read('.mise.toml').matchAll(/^(?:"([^"]+)"|([a-z-]+))\s*=/gmu)].map(
     match => match[1] ?? match[2],

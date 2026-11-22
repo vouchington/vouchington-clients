@@ -676,7 +676,7 @@ jobs:
         with:
           lookup-only: true
           path: ~/.cache/voucha/android-warm-marker
-          key: ${{ runner.os }}-${{ runner.arch }}-android-app-warm-v1-${{ hashFiles('candidate-clients/swift-clients/apps/android/**', 'candidate-clients/swift-clients/core/**', 'candidate-clients/swift-clients/ui/**', 'candidate-clients/swift-clients/test-support/**', 'candidate-clients/swift-clients/tooling/**', 'candidate-clients/contracts/vouchington.json', 'candidate-clients/.mise.toml', 'candidate-clients/.github/actions/prepare-android-archives/**', 'candidate-clients/.github/actions/setup-mise-toolchain/**', 'candidate-clients/.github/workflows/native-contract-tests.yml', '!candidate-clients/swift-clients/core/Tests/**', '!candidate-clients/swift-clients/ui/Tests/**') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-android-app-warm-v1-${{ hashFiles('candidate-clients/swift-clients/apps/android/**', 'candidate-clients/swift-clients/core/**', 'candidate-clients/swift-clients/ui/**', 'candidate-clients/swift-clients/test-support/**', 'candidate-clients/swift-clients/tooling/**', 'candidate-clients/contracts/vouchington.json', 'candidate-clients/.mise.toml', 'candidate-clients/.github/actions/prepare-android-archives/**', 'candidate-clients/.github/actions/setup-mise-toolchain/**', 'candidate-clients/.github/actions/setup-mise/**', 'candidate-clients/.github/workflows/native-contract-tests.yml', '!candidate-clients/swift-clients/core/Tests/**', '!candidate-clients/swift-clients/ui/Tests/**') }}
       - name: Resolve Java for Android SDK setup
         if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         shell: bash
@@ -939,10 +939,7 @@ jobs:
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
       - name: Install mise for the pinned host compiler
-        uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
-        with:
-          cache: false
-          install: false
+        uses: ./.github/actions/setup-mise
       - name: Configure isolated host compiler installation
         working-directory: candidate-clients
         run: |
