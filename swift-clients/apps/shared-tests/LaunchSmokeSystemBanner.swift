@@ -17,6 +17,15 @@
             XCUIApplication(bundleIdentifier: springboardBundleIdentifier)
         }
 
+        /// Distance from the top of the screen a banner can reach: the status-bar inset (59 pt on
+        /// the largest iPhone) plus a banner of up to about 130 pt at large text sizes.
+        static let topBand: CGFloat = 200
+
+        /// Whether a banner could receive a tap on `frame`.
+        static func canCover(_ frame: CGRect) -> Bool {
+            frame.minY < topBand
+        }
+
         /// Notification banners (`NotificationShortLookView` and its siblings) in SpringBoard.
         private static var banners: XCUIElementQuery {
             springboard.descendants(matching: .any)

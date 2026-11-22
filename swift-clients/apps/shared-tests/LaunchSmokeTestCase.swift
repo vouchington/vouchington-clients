@@ -129,4 +129,15 @@ extension XCUIElement {
     var isHittableAndEnabled: Bool {
         exists && isEnabled && isHittable
     }
+
+    /// Frame of an existing, enabled, hittable element whose label is `label`, from one snapshot
+    /// plus one hittability read, or nil. Skips an empty frame first, because probing `isHittable`
+    /// on a frameless duplicate (an offscreen copy) fails the test outright. Evaluate it only
+    /// inside `pollThroughSnapshotStalls`.
+    func hittableFrame(labeled label: String) -> CGRect? {
+        guard let snapshot = try? snapshot(),
+              snapshot.label == label, !snapshot.frame.isEmpty, snapshot.isEnabled,
+              isHittable else { return nil }
+        return snapshot.frame
+    }
 }

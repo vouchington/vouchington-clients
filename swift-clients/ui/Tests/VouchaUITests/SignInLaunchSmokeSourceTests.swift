@@ -82,6 +82,20 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertTrue(banner.contains("com.apple.springboard"))
     }
 
+    func testTapPreparationTakesOneSnapshotAndSkipsSpringBoardBelowTheBannerBand() throws {
+        let flow = try repoSource("swift-clients/apps/shared-tests/SignInFlowTests.swift")
+        let banner = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeSystemBanner.swift")
+
+        // CI run 45048449007: each XCUIElement property read was a separate 8 s snapshot on a cold
+        // Simulator, and every tap added a whole-tree SpringBoard snapshot that once stalled 29 s.
+        let base = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTestCase.swift")
+        XCTAssertTrue(base.contains("guard let snapshot = try? snapshot()"))
+        XCTAssertTrue(flow.contains("candidate.hittableFrame(labeled: label)"))
+        XCTAssertFalse(flow.contains("$0.frame.isEmpty"))
+        XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.canCover(buttonFrame)"))
+        XCTAssertTrue(banner.contains("frame.minY < topBand"))
+    }
+
     func testSignedOutSubsectionControlDoesNotUseTheFixedSizePicker() throws {
         let navigation = try repoSource("swift-clients/apps/shared-app/SectionDetailView+Navigation.swift")
         let picker = try repoSource("swift-clients/apps/shared-app/SectionDetailView+SubsectionToolbar.swift")

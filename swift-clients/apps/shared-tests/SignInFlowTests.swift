@@ -109,34 +109,44 @@
             let matches = identifier.map { app.buttons.matching(identifier: $0) }
                 ?? app.buttons.matching(NSPredicate(format: "label == %@", label))
             var button: XCUIElement?
-            // Probing isHittable on a frameless duplicate (e.g. an offscreen copy) fails the test
-            // outright, so skip empty frames and only inspect every match when uniqueness matters.
-            let actionable: (XCUIElement) -> Bool = {
-                $0.label == label && !$0.frame.isEmpty && $0.isHittableAndEnabled
-            }
+            var buttonFrame = CGRect.zero
+            // Each XCUIElement property read is its own accessibility snapshot, and on a cold CI
+            // Simulator one snapshot took about 8 s (run 45048449007: four reads of
+            // signed-out-sign-in took 41 s to 70 s). `hittableFrame` reads label, frame and enabled
+            // state from one snapshot and `isHittable` once, only for a candidate that passed.
+            // Every match is inspected only when uniqueness matters.
             // One stalled snapshot must not use up the wait (CI run 45042621815).
             let ready = pollThroughSnapshotStalls("Hittable \(label) button wait") {
-                let candidates = matches.allElementsBoundByIndex
-                if requireUnique {
-                    let hittable = candidates.filter(actionable)
-                    button = hittable.count == 1 ? hittable.first : nil
-                } else {
-                    button = candidates.first(where: actionable)
+                var found: [(XCUIElement, CGRect)] = []
+                for candidate in matches.allElementsBoundByIndex {
+                    guard let frame = candidate.hittableFrame(labeled: label) else { continue }
+                    found.append((candidate, frame))
+                    if !requireUnique { break }
                 }
+                let chosen = found.count == 1 || (!requireUnique && !found.isEmpty) ? found.first : nil
+                button = chosen?.0
+                buttonFrame = chosen?.1 ?? .zero
                 return button != nil
             }
             XCTAssertNotNil(
                 button, "No hittable \(label) in \(Int(LaunchSmokeTiming.hittability)) s (\(ready.stalls) stalls)"
             )
-            // A SpringBoard banner would receive this tap instead of the button under it.
-            toleratingSnapshotTimeouts("SpringBoard banner wait") {
-                LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)
+            // A SpringBoard banner would receive this tap instead of the button under it. A banner
+            // only covers the top of the screen, and each check snapshots SpringBoard's whole tree
+            // (about 1.2 s, and one 29 s stall in run 45048449007), so lower buttons skip it.
+            if LaunchSmokeSystemBanner.canCover(buttonFrame) {
+                toleratingSnapshotTimeouts("SpringBoard banner wait") {
+                    LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)
+                }
             }
             button?.tap()
             return button ?? app.buttons[label]
         }
 
-        private func loadFixtures() throws -> (identity: String, providers: String) {
+    }
+
+    private extension SignInFlowTests {
+        func loadFixtures() throws -> (identity: String, providers: String) {
             let path = try XCTUnwrap(ProcessInfo.processInfo.environment["VOUCHA_CONTRACT_ROOT"])
             _ = try XCTUnwrap(path.hasPrefix("/") && !path.contains("$(") ? path : nil)
             let root = URL(fileURLWithPath: path, isDirectory: true)
@@ -160,7 +170,7 @@
             return (identity.base64EncodedString(), providers.base64EncodedString())
         }
 
-        private func fixtureData(
+        func fixtureData(
             id: String, path: String, root: URL, fixtures: [[String: Any]]
         ) throws -> Data {
             let fixture = try XCTUnwrap(fixtures.first { $0["id"] as? String == id })
