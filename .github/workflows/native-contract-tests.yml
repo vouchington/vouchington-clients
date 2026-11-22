@@ -598,14 +598,11 @@ jobs:
         with:
           client-root: candidate-clients
           tool: swift
-      - name: Create shadow test results directory
-        run: mkdir -p "$RUNNER_TEMP/shadow-results/swift-core"
       - name: Test core package with coverage
         working-directory: candidate-clients
         run: >-
           mise exec -- swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache --enable-code-coverage
-          --xunit-output "$RUNNER_TEMP/shadow-results/swift-core/xunit.xml"
           --skip 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
       - name: Export deterministic core LCOV
         working-directory: candidate-clients
@@ -639,7 +636,6 @@ jobs:
           scope: swift-clients/core/Tests
           base-sha: ${{ needs.verify.outputs.base-sha }}
           head-sha: ${{ needs.verify.outputs.revision-sha }}
-          results-dir: ${{ runner.temp }}/shadow-results/swift-core
   build-swift-android:
     name: Swift Android app
     needs: verify
@@ -1216,15 +1212,12 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP"
           touch "$RUNNER_TEMP/swift-ui-test-start-marker"
-      - name: Create shadow test results directory
-        run: mkdir -p "$RUNNER_TEMP/shadow-results/swift-ui"
       - name: Test UI package with coverage
         timeout-minutes: 8
         working-directory: candidate-clients
         run: >-
           xcrun swift test --package-path swift-clients/ui
           --skip-build --force-resolved-versions --disable-dependency-cache --enable-code-coverage
-          --xunit-output "$RUNNER_TEMP/shadow-results/swift-ui/xunit.xml"
       - name: Collect xctest crash reports
         if: ${{ failure() }}
         timeout-minutes: 3
@@ -1275,7 +1268,6 @@ jobs:
           scope: swift-clients/ui/Tests
           base-sha: ${{ needs.verify.outputs.base-sha }}
           head-sha: ${{ needs.verify.outputs.revision-sha }}
-          results-dir: ${{ runner.temp }}/shadow-results/swift-ui
   swift-patch-coverage:
     name: Swift patch coverage
     if: ${{ github.event_name != 'push' }}

@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 
 const sha256 = text => createHash('sha256').update(text).digest('hex')
 export const run = (cmd, args) =>
@@ -89,5 +89,29 @@ export function audit(opt, plan, observed) {
     missedObservedTests: report.missed_observed_tests.length,
     selectedWithIncompleteTraces: report.selected_with_incomplete_traces.length,
     selectedWithoutObservedExecution: report.selected_without_observed_execution.length,
+  }
+}
+
+/**
+ * True when the planned command would execute this test class. Selected files are not enough: a
+ * target such as `swift test --filter VouchaCoreTests` or `dotnet test <project>` runs a whole
+ * target or project. Match the class against the target's `--filter` regex, or accept any class
+ * under a planned project that has no filter.
+ */
+export function runsUnderPlan(plan, file, className) {
+  const target = plan.execution_targets.find(
+    t =>
+      t.test_files.includes(file) ||
+      (t.config && (file.startsWith(`${t.config}/`) || file.startsWith(`${dirname(t.config)}/`))),
+  )
+  if (!target) return false
+  const args = target.runner_args ?? []
+  const at = args.indexOf('--filter')
+  if (at === -1) return true
+  try {
+    const module = file.split('/Tests/')[1]?.split('/')[0]
+    return new RegExp(args[at + 1], 'u').test(module ? `${module}.${className}` : className)
+  } catch {
+    return true
   }
 }

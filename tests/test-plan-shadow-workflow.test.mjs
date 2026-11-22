@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
+import { runsUnderPlan } from '../scripts/test-plan-shadow-audit.mjs'
 import { readResults, shortClassName } from '../scripts/test-plan-shadow-results.mjs'
 import { jobBlock } from './workflow-job-block.mjs'
 
@@ -57,5 +58,20 @@ describe('shadow test planning', () => {
     assert.deepEqual(results.get('BadTests'), { failed: true })
     assert.deepEqual(results.get('TrxTests'), { failed: true })
     assert.equal(shortClassName('Ns.Class, Asm'), 'Class')
+  })
+
+  it('judges misses by execution target, not by selected files', () => {
+    const swift = {
+      execution_targets: [
+        { config: 'pkg', test_files: ['pkg/Tests/A.swift'], runner_args: ['--filter', 'ModTests'] },
+      ],
+    }
+    assert.equal(runsUnderPlan(swift, 'pkg/Tests/ModTests/B.swift', 'B'), true)
+    assert.equal(runsUnderPlan(swift, 'pkg/Tests/B.swift', 'B'), false)
+    assert.equal(runsUnderPlan(swift, 'elsewhere/C.swift', 'C'), false)
+    const dotnet = {
+      execution_targets: [{ config: 'p/P.csproj', test_files: [], runner_args: ['--no-restore'] }],
+    }
+    assert.equal(runsUnderPlan(dotnet, 'p/X.cs', 'X'), true)
   })
 })
