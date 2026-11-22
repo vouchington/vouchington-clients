@@ -102,7 +102,7 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         let tap = codeLines(of: tapBody)
         let helperCalls = try occurrences(of: #"hittableFrame\(labeled:"#, in: tap)
         let directReads = try occurrences(
-            of: #"\b(candidate|\$0|button)\.(label|frame|isEnabled|isHittable|snapshot)\b"#,
+            of: #"(?:\b(?:candidate|button)|\$0)\.(label|frame|isEnabled|isHittable|snapshot)\b"#,
             in: tap
         )
         XCTAssertEqual(helperCalls, 1)
