@@ -185,6 +185,33 @@ Run `pnpm test` when changing native workflow routing or selected app tests. The
 and native test planners do not execute the Node contract assertions that check those selectors,
 result predicates and fixture-root wiring.
 
+## Shadow test planning on pull requests
+
+Pull request runs also compute `no-mistakes tests plan` for the PR diff and compare it with the
+full suite that already ran. This is advisory: the full suite still runs everywhere, every shadow
+step uses `continue-on-error`, and `merge_group` and `push` runs never execute the step. The
+`.github/actions/test-plan-shadow` action calls `scripts/test-plan-shadow.mjs`, which writes the
+counts to the job summary and to a `test-plan-shadow-<label>` artifact, and reuses the
+`pnpm install` that `prepare-native-contract` already ran.
+
+| Label         | Job                 | Suites compared            | Results read           |
+| ------------- | ------------------- | -------------------------- | ---------------------- |
+| `swift-core`  | `test-swift-core`   | `swift-clients/core/Tests` | `swift test` JUnit XML |
+| `swift-ui`    | `test-swift-ui`     | `swift-clients/ui/Tests`   | `swift test` JUnit XML |
+| `dotnet-core` | `dotnet-portable`   | `Voucha.Client.Core.Tests` | `dotnet test` TRX      |
+| `dotnet-app`  | `dotnet-maui-tests` | `Voucha.Client.App.Tests`  | none (plan size only)  |
+
+`test-swift-core-linux` and `test-swift-android-host` are not shadowed: the first runs inside a
+container with a tmpfs workspace, the second skips the candidate `pnpm install`, and the shadow step
+must not add install time. The Swift and portable .NET steps pass `--xunit-output` or
+`--logger trx`, which only add a results file and select no tests.
+
+`no-mistakes tests audit` needs per-test-file execution traces (`executed_files`) that these suites
+do not collect, so the script marks every observation `trace_complete: false`. The audit then reports
+selection overlap but cannot prove a changed-code miss. The usable miss signal is
+`failedMissedByPlan`: failed test classes whose test file the plan did not select. A plan that falls
+back to the full suite (for example when `contracts/**` changes) selects everything and reports zero.
+
 ## Required dual-OS
 
 Swift core portable tests run on Linux **and** macOS. That is not duplicate work:

@@ -1,0 +1,56 @@
+name: Shadow test plan
+description: >-
+  Advisory only. Computes the no-mistakes test plan for the pull request diff, compares it with the
+  results of the full suite that already ran, and writes the counts to the job summary. It never
+  changes which tests run and never fails the job.
+
+inputs:
+  framework:
+    description: no-mistakes test framework (swift or dotnet)
+    required: true
+  label:
+    description: Short job label used in the summary and artifact name
+    required: true
+  scope:
+    description: Repository path prefix of the test files this job runs
+    required: true
+  base-sha:
+    description: Pull request base revision
+    required: true
+  head-sha:
+    description: Candidate revision the suite ran against
+    required: true
+  results-dir:
+    description: Directory holding the JUnit XML or TRX files the suite wrote, if any
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Compute shadow test plan and audit
+      # Shadow mode: the script already exits 0, and continue-on-error covers a crash or timeout.
+      continue-on-error: true
+      shell: bash
+      working-directory: candidate-clients
+      env:
+        SHADOW_FRAMEWORK: ${{ inputs.framework }}
+        SHADOW_LABEL: ${{ inputs.label }}
+        SHADOW_SCOPE: ${{ inputs.scope }}
+        SHADOW_BASE: ${{ inputs.base-sha }}
+        SHADOW_HEAD: ${{ inputs.head-sha }}
+        SHADOW_RESULTS: ${{ inputs.results-dir }}
+        SHADOW_OUT: ${{ runner.temp }}/test-plan-shadow
+      run: >-
+        node scripts/test-plan-shadow.mjs
+        --framework "$SHADOW_FRAMEWORK" --label "$SHADOW_LABEL" --scope "$SHADOW_SCOPE"
+        --base "$SHADOW_BASE" --head "$SHADOW_HEAD"
+        --results-dir "$SHADOW_RESULTS" --out-dir "$SHADOW_OUT"
+    - name: Upload shadow test plan counts
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+      with:
+        name: test-plan-shadow-${{ inputs.label }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/test-plan-shadow/test-plan-shadow-${{ inputs.label }}.json
+        retention-days: 7
+        if-no-files-found: ignore
