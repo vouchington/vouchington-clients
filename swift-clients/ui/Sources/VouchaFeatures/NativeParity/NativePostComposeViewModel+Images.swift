@@ -9,7 +9,8 @@ extension NativePostComposeViewModel {
     }
 
     var canAddMoreImages: Bool {
-        images.count < 20
+        guard let imageLimit else { return true }
+        return images.count < imageLimit
     }
 
     var imageInputs: [CreatePostImageInput] {
@@ -33,6 +34,7 @@ extension NativePostComposeViewModel {
     }
 
     func clearImagePreviewsForNavigation() {
+        imageLimitGeneration += 1
         imageUploadGeneration += 1
         imageUploadTask?.cancel()
         for index in images.indices {
@@ -110,7 +112,7 @@ extension NativePostComposeViewModel {
         for url in urls {
             guard !Task.isCancelled, generation == imageUploadGeneration else { break }
             guard canAddMoreImages else {
-                reportImageUploadError(.app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
+                reportImageUploadError(imageLimitReachedMessage)
                 break
             }
             guard await uploadImage(from: url, generation: generation, service: service) else { break }
@@ -136,7 +138,7 @@ extension NativePostComposeViewModel {
             }
             guard !images.contains(where: { $0.imageId == state.id }) else { return true }
             guard canAddMoreImages else {
-                reportImageUploadError(.app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
+                reportImageUploadError(imageLimitReachedMessage)
                 return false
             }
             images.append(.init(imageId: state.id, localPreviewData: thumbnail))

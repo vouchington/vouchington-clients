@@ -18,6 +18,7 @@ final class NativePostComposeImageTests: XCTestCase {
 
     func testAddingImagesUploadsAndLimitsToTwenty() async throws {
         let vm = try makeViewModel()
+        vm.imageLimit = 20
         let urls = try makeImageFiles(count: 21, extension: "jpg")
         for index in 0 ..< 20 {
             try registerImageUploadFlow(
@@ -32,7 +33,10 @@ final class NativePostComposeImageTests: XCTestCase {
 
         XCTAssertEqual(vm.images.count, 20)
         XCTAssertTrue(vm.images.allSatisfy { $0.localPreviewData == nil })
-        XCTAssertEqual(vm.imageUploadErrorMessage, .app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
+        XCTAssertEqual(
+            vm.imageUploadErrorMessage,
+            .app(UiMessage(.sharedPostImageLimitMax, numberParameters: ["max": 20]))
+        )
         XCTAssertEqual(vm.canAddMoreImages, false)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count, 40)
     }
@@ -197,6 +201,7 @@ final class NativePostComposeImageTests: XCTestCase {
 
     func testUploadImagesRechecksCapAfterAsyncUploadBeforeAppending() async throws {
         let vm = try makeViewModel()
+        vm.imageLimit = 20
         vm.images = (0 ..< 19).map { NativePostComposeImageDraft(imageId: "existing-\($0)") }
         let url = try makeImageFile(name: "racing-cap", extension: "png", data: Data("racing-cap".utf8))
         try registerImageUploadFlow(
@@ -223,7 +228,10 @@ final class NativePostComposeImageTests: XCTestCase {
 
         XCTAssertEqual(vm.images.count, 20)
         XCTAssertFalse(vm.images.contains(where: { $0.imageId == "racing-image" }))
-        XCTAssertEqual(vm.imageUploadErrorMessage, .app(UiMessage(.nativeSwiftPostComposeImageMaximumReached)))
+        XCTAssertEqual(
+            vm.imageUploadErrorMessage,
+            .app(UiMessage(.sharedPostImageLimitMax, numberParameters: ["max": 20]))
+        )
     }
 
     func testImageCaptionReorderAndRemovalUpdateDraftOrder() async throws {

@@ -14,6 +14,16 @@ enum ImagePlacementErrorPresentation {
     }
 }
 
+enum NativePostLimitErrorPresentation {
+    static func message(for error: Error) -> UiVerbatimText? {
+        switch (error as? VouchaError)?.apiCode {
+        case "POST_IMAGE_LIMIT_REACHED": .app(UiMessage(.sharedPostImageLimit))
+        case "POST_CATEGORY_LIMIT_REACHED": .app(UiMessage(.sharedPostCategoryLimit))
+        default: nil
+        }
+    }
+}
+
 enum NativeContributionAdmissionPresentation {
     static func messageKey(_ code: String?) -> UiMessageKey? {
         switch code {
