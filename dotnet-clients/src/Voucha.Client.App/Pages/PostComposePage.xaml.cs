@@ -28,6 +28,12 @@ public partial class PostComposePage : ContentPage
     BindingContext = viewModel;
   }
 
+  protected override void OnAppearing()
+  {
+    base.OnAppearing();
+    _ = viewModel.LoadImageLimitAsync();
+  }
+
   protected override void OnDisappearing()
   {
     imageSelectionBatchCancellationSource?.Cancel();

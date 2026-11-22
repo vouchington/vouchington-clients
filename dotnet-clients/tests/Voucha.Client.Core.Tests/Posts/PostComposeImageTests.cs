@@ -13,9 +13,10 @@ public sealed partial class PostComposeImageTests
   private const long MaxImageUploadBytes = 50L * 1024 * 1024;
 
   [Fact]
-  public void ImageListOperationsRespectMaxCapReorderAndCaptionChanges()
+  public async Task ImageListOperationsRespectMaxCapReorderAndCaptionChanges()
   {
-    var viewModel = NewViewModel();
+    var viewModel = NewViewModel(new RecordingPostsService { ImageLimit = 20 });
+    await viewModel.LoadImageLimitAsync(TestContext.Current.CancellationToken);
 
     Assert.False(viewModel.CanAddImages);
 
@@ -411,6 +412,10 @@ public sealed partial class PostComposeImageTests
   {
     public CreatePostBody? Body { get; private set; }
     public Exception? Failure { get; set; }
+    public int? ImageLimit { get; init; }
+
+    public Task<int?> FetchPostImageLimitAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(ImageLimit);
 
     public Task<PostsFeedResponse> FetchFeedAsync(
         FetchPostsFeedRequest request,

@@ -45,7 +45,11 @@ public sealed partial class PostComposeViewModel
         CompleteError(localization.Localize(UiMessageKey.NativeDotnetCsharpImageUploadsUnavailable));
         return false;
       }
-      if (Images.Count >= MaxImages) return false;
+      if (!HasImageCapacity)
+      {
+        ReportImageLimitReached();
+        return false;
+      }
       if (contentLength is < 0 or > MaxImageUploadBytes)
       {
         CompleteError(localization.Localize(UiMessageKey.NativeDotnetCsharpImageTooLarge));

@@ -19,6 +19,9 @@ public sealed partial class ApiPostsService : IPostsService, ICommentThreadServi
       CancellationToken cancellationToken = default) =>
       client.FetchPostsAsync(request, cancellationToken);
 
+  public async Task<int?> FetchPostImageLimitAsync(CancellationToken cancellationToken = default) =>
+      (await client.GetContentLimitsAsync(cancellationToken).ConfigureAwait(false)).PostImagesMax;
+
   public Task<PostResponse> FetchPostAsync(
       string postIdOrSlug,
       CancellationToken cancellationToken = default) =>

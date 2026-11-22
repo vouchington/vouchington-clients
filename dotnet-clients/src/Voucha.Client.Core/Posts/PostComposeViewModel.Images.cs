@@ -5,13 +5,12 @@ namespace Voucha.Client.Core.Posts;
 
 public sealed partial class PostComposeViewModel
 {
-  private const int MaxImages = 20;
   private const int MaxImageCaptionLength = 1000;
 
   public bool TryAddImageDraft(PostComposeImageDraft image)
   {
     ArgumentNullException.ThrowIfNull(image);
-    if (Images.Count >= MaxImages || string.IsNullOrWhiteSpace(image.ImageId))
+    if (!HasImageCapacity || string.IsNullOrWhiteSpace(image.ImageId))
     {
       return false;
     }
@@ -77,7 +76,7 @@ public sealed partial class PostComposeViewModel
 
   private PostComposeImageDraft[] NormalizeImages(IReadOnlyList<PostComposeImageDraft> images) =>
       images
-          .Take(MaxImages)
+          .Take(ImageLimit ?? int.MaxValue)
           .Select((image, index) => NormalizeImage(image, index))
           .ToArray();
 

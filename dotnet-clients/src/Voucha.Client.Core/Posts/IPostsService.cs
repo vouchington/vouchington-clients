@@ -27,6 +27,10 @@ public interface IPostsService
       Task.FromException<PostMutationResponse>(new NotSupportedException(
           "Community post creation test doubles must implement the idempotency-aware operation."));
 
+  /// <summary>The server's per-post image cap; null leaves the composer uncapped so server validation decides.</summary>
+  Task<int?> FetchPostImageLimitAsync(CancellationToken cancellationToken = default) =>
+      Task.FromResult<int?>(null);
+
   Task<PostMutationResponse> UpdatePostAsync(
       string postIdOrSlug,
       UpdatePostBody body,
