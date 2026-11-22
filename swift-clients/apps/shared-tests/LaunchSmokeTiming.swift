@@ -19,6 +19,12 @@ import XCTest
 enum LaunchSmokeTiming {
     /// First launch of the app, through identity restoration, until the native root is mounted.
     static let launchReadiness: TimeInterval = 90
+    /// One `isHittable` check on an element that already exists. A single call resolves the element
+    /// again, and on a starved runner one call made three resolve attempts about 30 s apart and
+    /// returned false after about 96 s (CI run 44980841268: attempts at 36.9, 68.0 and 99.5 s,
+    /// failure at 133 s). 150 s covers one such stall (about 100 s) plus a re-check that can
+    /// stall again briefly. A job that never becomes hittable still fails when this runs out.
+    static let hittability: TimeInterval = 150
     /// One user action (tap, typed field, sheet presentation) until its visible result.
     static let interaction: TimeInterval = 30
 
