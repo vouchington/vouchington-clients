@@ -43,7 +43,10 @@ test('mise-action is only used by the three mise setup composites, at one pin an
     const action = miseSteps(file)
     assert.equal(action.match(/jdx\/mise-action@/gu)?.length, 1, file)
     pins.add(action.match(/uses: (jdx\/mise-action@[0-9a-f]{40} # v\d+\.\d+\.\d+)/u)?.[1])
-    versions.add(action.match(/version: '(\d{4}\.\d+\.\d+)'/u)?.[1] ?? read(file).match(/default: '(\d{4}\.\d+\.\d+)'/u)?.[1])
+    versions.add(
+      action.match(/version: '(\d{4}\.\d+\.\d+)'/u)?.[1] ??
+        read(file).match(/default: '(\d{4}\.\d+\.\d+)'/u)?.[1],
+    )
     const restore = action.indexOf('actions/cache/restore@')
     assert.ok(restore > 0 && restore < action.indexOf('jdx/mise-action@'), file)
     assert.match(action, /cache: false\n\s+install: false/u, file)
@@ -57,7 +60,10 @@ test('mise-action is only used by the three mise setup composites, at one pin an
   for (const file of miseComposites) {
     assert.match(
       miseSteps(file),
-      new RegExp(`key: mise-bin-v1-\\$\\{\\{ runner\\.os \\}\\}-\\$\\{\\{ runner\\.arch \\}\\}-(\\$\\{\\{ inputs\\.version \\}\\}|${version.replaceAll('.', '\\.')})`, 'u'),
+      new RegExp(
+        `key: mise-bin-v1-\\$\\{\\{ runner\\.os \\}\\}-\\$\\{\\{ runner\\.arch \\}\\}-(\\$\\{\\{ inputs\\.version \\}\\}|${version.replaceAll('.', '\\.')})`,
+        'u',
+      ),
       file,
     )
   }
