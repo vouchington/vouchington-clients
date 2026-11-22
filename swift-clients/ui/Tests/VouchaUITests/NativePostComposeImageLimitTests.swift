@@ -148,3 +148,10 @@ final class NativePostComposeImageLimitTests: XCTestCase {
         }
     }
 }
+
+extension UiVerbatimText {
+    /// The `{max}` message the composer shows when the fetched image cap blocks an upload.
+    static func postImageLimitReached(_ max: Int) -> UiVerbatimText {
+        .app(UiMessage(.sharedPostImageLimitMax, numberParameters: ["max": Double(max)]))
+    }
+}

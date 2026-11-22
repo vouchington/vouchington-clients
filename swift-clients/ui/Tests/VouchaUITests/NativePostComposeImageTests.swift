@@ -33,10 +33,7 @@ final class NativePostComposeImageTests: XCTestCase {
 
         XCTAssertEqual(vm.images.count, 20)
         XCTAssertTrue(vm.images.allSatisfy { $0.localPreviewData == nil })
-        XCTAssertEqual(
-            vm.imageUploadErrorMessage,
-            .app(UiMessage(.sharedPostImageLimitMax, numberParameters: ["max": 20]))
-        )
+        XCTAssertEqual(vm.imageUploadErrorMessage, .postImageLimitReached(20))
         XCTAssertEqual(vm.canAddMoreImages, false)
         XCTAssertEqual(CannedFeedURLProtocol.capturedMethods.filter { $0 == "POST" }.count, 40)
     }
@@ -228,10 +225,7 @@ final class NativePostComposeImageTests: XCTestCase {
 
         XCTAssertEqual(vm.images.count, 20)
         XCTAssertFalse(vm.images.contains(where: { $0.imageId == "racing-image" }))
-        XCTAssertEqual(
-            vm.imageUploadErrorMessage,
-            .app(UiMessage(.sharedPostImageLimitMax, numberParameters: ["max": 20]))
-        )
+        XCTAssertEqual(vm.imageUploadErrorMessage, .postImageLimitReached(20))
     }
 
     func testImageCaptionReorderAndRemovalUpdateDraftOrder() async throws {
