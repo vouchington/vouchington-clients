@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Voucha.Client.Core.Tests.Chat;
 
-public sealed class ChatTitleGenerationTests
+public sealed partial class ChatTitleGenerationTests
 {
   private static readonly ChatProviderStatus Ready =
       new(ChatProviderKind.Local, "Local", true, "Ready.", "openai_compatible", "model-1");
@@ -108,61 +108,6 @@ public sealed class ChatTitleGenerationTests
 
     Assert.Equal([("conversation-1", "Mine")], service.UpdatedTitles);
     Assert.Equal("Updated", viewModel.Title);
-  }
-
-  [Fact]
-  public async Task UserRenameDuringPatchIsRepairedAfterTheGeneratedTitleLands()
-  {
-    var (viewModel, service, _) = await LoadAsync("Generated", ("user", "hello"));
-    var patch = new TaskCompletionSource<ChatConversationResponse>();
-    service.UpdateConversationTitleResult = service.UpdateConversationTitleResult with
-    {
-      Conversation = service.UpdateConversationTitleResult.Conversation with { Title = "Mine" },
-    };
-    service.UpdateConversationTitleAsyncOverride = (_, title) =>
-        title == "Generated" ? patch.Task : Task.FromResult(service.UpdateConversationTitleResult);
-
-    var pending = viewModel.GenerateTitleAsync(TestContext.Current.CancellationToken);
-    await viewModel.RenameAsync("Mine", TestContext.Current.CancellationToken);
-    patch.SetResult(service.UpdateConversationTitleResult);
-    await pending;
-
-    Assert.Equal(["Generated", "Mine", "Mine"], service.UpdatedTitles.Select(item => item.Title));
-  }
-
-  [Fact]
-  public async Task RaceRepairFailureIsSwallowed()
-  {
-    var (viewModel, service, _) = await LoadAsync("Generated", ("user", "hello"));
-    var patch = new TaskCompletionSource<ChatConversationResponse>();
-    service.UpdateConversationTitleAsyncOverride = (_, title) => title switch
-    {
-      "Generated" => patch.Task,
-      "Mine" when service.UpdatedTitles.Count > 2 => Task.FromException<ChatConversationResponse>(new HttpRequestException("x")),
-      _ => Task.FromResult(service.UpdateConversationTitleResult),
-    };
-
-    var pending = viewModel.GenerateTitleAsync(TestContext.Current.CancellationToken);
-    await viewModel.RenameAsync("Mine", TestContext.Current.CancellationToken);
-    patch.SetResult(service.UpdateConversationTitleResult);
-    await pending;
-
-    Assert.Equal(3, service.UpdatedTitles.Count);
-  }
-
-  [Fact]
-  public async Task DeleteDuringPatchSkipsTheRepair()
-  {
-    var (viewModel, service, _) = await LoadAsync("Generated", ("user", "hello"));
-    var patch = new TaskCompletionSource<ChatConversationResponse>();
-    service.UpdateConversationTitleAsyncOverride = (_, _) => patch.Task;
-
-    var pending = viewModel.GenerateTitleAsync(TestContext.Current.CancellationToken);
-    await viewModel.DeleteAsync(TestContext.Current.CancellationToken);
-    patch.SetResult(service.UpdateConversationTitleResult);
-    await pending;
-
-    Assert.Single(service.UpdatedTitles);
   }
 
   [Fact]

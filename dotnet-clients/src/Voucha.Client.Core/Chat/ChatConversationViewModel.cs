@@ -128,7 +128,7 @@ public sealed partial class ChatConversationViewModel :
     private set => SetPropertyAndNotify(
         ref state,
         value,
-        [nameof(IsLoading), nameof(HasError), nameof(CanSend)]);
+        [nameof(IsLoading), nameof(HasError), nameof(CanSend), nameof(CanGenerateTitle)]);
   }
 
   public bool HasMoreMessages

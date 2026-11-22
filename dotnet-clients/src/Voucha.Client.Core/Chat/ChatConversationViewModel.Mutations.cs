@@ -16,10 +16,7 @@ public sealed partial class ChatConversationViewModel
     var currentRequest = BeginMutation();
     try
     {
-      var updated = await chatService.UpdateConversationTitleAsync(
-          ConversationId,
-          trimmed,
-          cancellationToken).ConfigureAwait(true);
+      var updated = await WriteTitleAsync(ConversationId, trimmed, cancellationToken).ConfigureAwait(true);
       if (currentRequest != Volatile.Read(ref requestId)) return;
       Title = updated.Conversation.Title;
       State = LoadState.Loaded;

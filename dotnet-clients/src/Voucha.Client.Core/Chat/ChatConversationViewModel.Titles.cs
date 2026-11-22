@@ -11,7 +11,9 @@ public sealed partial class ChatConversationViewModel
 
   /// <summary>Titles are only generated for an untitled conversation, when a local provider is ready.</summary>
   public bool CanGenerateTitle =>
-      CanRename && string.IsNullOrWhiteSpace(Title) && ReadyTitleProvider() is not null;
+      CanRename && !IsLoading && string.IsNullOrWhiteSpace(Title) && ReadyTitleProvider() is not null;
+
+  private readonly SemaphoreSlim titleWriteGate = new(1, 1);
 
   /// <summary>
   /// Generates a title on this device with the provider the conversation replies with, then saves it
@@ -35,16 +37,21 @@ public sealed partial class ChatConversationViewModel
       }
 
       Title = generated;
-      var updated = await chatService.UpdateConversationTitleAsync(id, generated, cancellationToken)
+      var updated = await SaveGeneratedTitleAsync(id, generated, currentRequest, cancellationToken)
           .ConfigureAwait(true);
-      if (currentRequest != Volatile.Read(ref requestId))
-      {
-        await RepairTitleRaceAsync(id, generated, cancellationToken).ConfigureAwait(true);
-        return;
-      }
+      if (updated is null) return;
 
       Title = updated.Conversation.Title;
       State = LoadState.Loaded;
+    }
+    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+    {
+      if (currentRequest == Volatile.Read(ref requestId))
+      {
+        Title = previous;
+        State = LoadState.Loaded;
+      }
+      throw;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException
         || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
@@ -71,18 +78,57 @@ public sealed partial class ChatConversationViewModel
     return ChatTitleText.Sanitize(result.AssistantContent);
   }
 
-  private async Task RepairTitleRaceAsync(string id, string generated, CancellationToken cancellationToken)
+  /// <summary>Every title write for the conversation, rename or generated, goes through one gate.</summary>
+  private async Task<ChatConversationResponse> WriteTitleAsync(
+      string id, string title, CancellationToken cancellationToken)
   {
-    if (ConversationId != id || IsDeleted) return;
-    var current = Title;
-    if (string.IsNullOrWhiteSpace(current) || current == generated) return;
+    await titleWriteGate.WaitAsync(cancellationToken).ConfigureAwait(true);
     try
     {
-      _ = await chatService.UpdateConversationTitleAsync(id, current, cancellationToken).ConfigureAwait(true);
+      return await chatService.UpdateConversationTitleAsync(id, title, cancellationToken).ConfigureAwait(true);
     }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
+    finally
     {
-      System.Diagnostics.Debug.WriteLine(ex);
+      _ = titleWriteGate.Release();
+    }
+  }
+
+  private async Task<ChatConversationResponse?> SaveGeneratedTitleAsync(
+      string id, string generated, int currentRequest, CancellationToken cancellationToken)
+  {
+    await titleWriteGate.WaitAsync(cancellationToken).ConfigureAwait(true);
+    try
+    {
+      var updated = await chatService.UpdateConversationTitleAsync(id, generated, cancellationToken)
+          .ConfigureAwait(true);
+      if (currentRequest == Volatile.Read(ref requestId)) return updated;
+      await RepairTitleRaceAsync(id, generated, cancellationToken).ConfigureAwait(true);
+      return null;
+    }
+    finally
+    {
+      _ = titleWriteGate.Release();
+    }
+  }
+
+  /// <summary>Re-sends the user's title until the saved title equals the current one; never retries an error.</summary>
+  private async Task RepairTitleRaceAsync(string id, string saved, CancellationToken cancellationToken)
+  {
+    while (ConversationId == id && !IsDeleted)
+    {
+      var current = Title;
+      if (string.IsNullOrWhiteSpace(current) || current == saved) return;
+      try
+      {
+        _ = await chatService.UpdateConversationTitleAsync(id, current, cancellationToken).ConfigureAwait(true);
+      }
+      catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
+      {
+        ErrorMessage = ex.Message;
+        State = LoadState.Error;
+        return;
+      }
+      saved = current;
     }
   }
 
