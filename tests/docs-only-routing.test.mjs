@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
-import { isDocsOnly } from '../scripts/docs-only-routing.mjs'
+import { isDocsOnly, mergeGroupChangedPaths } from '../scripts/docs-only-routing.mjs'
 import { jobBlock } from './workflow-job-block.mjs'
 
 const native = await readFile(
@@ -73,6 +73,59 @@ describe('docs-only routing', () => {
     assert.equal(readFileSync(output, 'utf8'), 'docs-only=false\n')
   })
 
+  it('routes a merge group on the whole queued ref over main, not one entry', () => {
+    const root = mkdtempSync(join(tmpdir(), 'docs-only-queue-'))
+    const env = {
+      ...process.env,
+      GIT_AUTHOR_NAME: 't',
+      GIT_AUTHOR_EMAIL: 't@example.com',
+      GIT_COMMITTER_NAME: 't',
+      GIT_COMMITTER_EMAIL: 't@example.com',
+    }
+    const run = (cwd, ...args) =>
+      execFileSync('git', args, {
+        cwd,
+        env,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim()
+    const origin = join(root, 'origin.git')
+    const work = join(root, 'work')
+    run(root, 'init', '-q', '--bare', '-b', 'main', origin)
+    run(root, 'clone', '-q', origin, work)
+    const commit = (file, message) => {
+      writeFileSync(join(work, file), message)
+      run(work, 'add', file)
+      run(work, 'commit', '-q', '-m', message)
+      return run(work, 'rev-parse', 'HEAD')
+    }
+    commit('README.md', 'base')
+    run(work, 'push', '-q', 'origin', 'HEAD:main')
+    run(work, 'checkout', '-q', '-b', 'queue')
+    const codeEntry = commit('App.swift', 'code entry')
+    // The docs entry's merge_group.base_sha is the code entry's group commit.
+    const docsEntry = commit('NOTES.md', 'docs entry')
+    run(work, 'push', '-q', 'origin', 'queue')
+    const consumer = join(root, 'consumer')
+    run(root, 'clone', '-q', '--depth=1', `file://${origin}`, consumer)
+    const route = revision =>
+      isDocsOnly(mergeGroupChangedPaths({ repositoryRoot: consumer, revision }))
+    assert.deepEqual(
+      mergeGroupChangedPaths({ repositoryRoot: consumer, revision: docsEntry }).sort(),
+      ['App.swift', 'NOTES.md'],
+    )
+    assert.equal(route(docsEntry), false, 'docs entry on top of a code entry must run native jobs')
+    assert.equal(isDocsOnly(['NOTES.md']), true, 'entry-only diff would have skipped them')
+    assert.equal(route(codeEntry), false)
+    assert.throws(() =>
+      mergeGroupChangedPaths({ repositoryRoot: consumer, revision: 'b'.repeat(40) }),
+    )
+    run(work, 'checkout', '-q', '-b', 'docs-queue', 'main')
+    const docsOnly = commit('docs-note.md', 'docs only')
+    run(work, 'push', '-q', 'origin', 'docs-queue')
+    assert.equal(route(docsOnly), true)
+  })
+
   it('computes the route from the verified candidate range and never on a push', () => {
     const verify = jobBlock(native, 'verify')
     assert.ok(
@@ -84,6 +137,7 @@ describe('docs-only routing', () => {
     const body = step.split(/\n {6}- name:/u)[0]
     assert.ok(body.includes('BASE_SHA: ${{ steps.identity.outputs.base_sha }}'))
     assert.ok(body.includes('REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}'))
+    assert.ok(body.includes('EVENT_NAME: ${{ github.event_name }}'))
     assert.ok(body.includes('node scripts/docs-only-routing.mjs "$BASE_SHA" "$REVISION_SHA"'))
     assert.ok(verify.includes('${{ github.event.merge_group.base_sha }}'))
   })

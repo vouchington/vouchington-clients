@@ -345,6 +345,7 @@ jobs:
         working-directory: candidate-clients
         env:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/docs-only-routing.mjs "$BASE_SHA" "$REVISION_SHA"
       - name: Route Windows image preview tests from the exact candidate diff

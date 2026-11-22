@@ -241,9 +241,12 @@ The Windows MAUI app compiles on `windows-latest` when .NET source, dependency o
 ## Docs-only changes
 
 A pull request or merge group whose diff touches only `*.md` files or paths under `docs/` skips every
-native build, test, and smoke job. `verify` computes a `docs-only` output from the exact candidate
-range (for a merge group, `merge_group.base_sha..head_sha`), and `scripts/docs-only-routing.mjs`
-fails safe to the full suite when the diff cannot be computed. `produce`, `verify`, and the `Tests`
-aggregate still run; `Tests` accepts skipped jobs only when `docs-only` is `true`. A main push never
-skips. No native job reads Markdown or `docs/`, so keep it that way: a job that reads one must be
-excluded in `isDocsOnly`. `validate.yml` is unchanged and always runs.
+native build, test, and smoke job. `verify` computes a `docs-only` output with
+`scripts/docs-only-routing.mjs`. A pull request routes on its verified `base_sha..revision_sha`
+range. A merge group routes on `merge-base(origin/main, head)..head`, so an entry queued behind a
+code entry still sees that code. `merge_group.base_sha..head_sha` is not used, because it is only
+that entry's diff. The script fails safe to the full suite when the diff cannot be computed (a
+failed fetch, a missing ref, no merge base). `produce`, `verify`, and the `Tests` aggregate still
+run; `Tests` accepts skipped jobs only when `docs-only` is `true`. A main push never skips. No
+native job reads Markdown or `docs/`, so keep it that way: a job that reads one must be excluded in
+`isDocsOnly`. `validate.yml` is unchanged and always runs.
