@@ -92,6 +92,9 @@ it('fails the aggregate when a selected Windows build fails or is skipped', () =
           '--arg',
           'surface',
           'false',
+          '--arg',
+          'docs',
+          'false',
           expression,
         ],
         {

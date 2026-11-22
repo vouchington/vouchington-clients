@@ -229,6 +229,7 @@ jobs:
       windows-image-preview: ${{ steps.windows-image-preview-route.outputs.windows-image-preview }}
       windows-language-model-surface: ${{ steps.windows-language-model-surface-route.outputs.windows-language-model-surface }}
       windows-maui: ${{ steps.windows-maui-route.outputs.windows-maui }}
+      docs-only: ${{ contains(fromJSON('["pull_request","merge_group"]'), github.event_name) && steps.docs-only-route.outputs.docs-only == 'true' }}
     steps:
       - name: Check out consumer tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -339,6 +340,14 @@ jobs:
           pinned="$(jq -r .commit candidate-clients/contracts/vouchington.json)"
           jq -e --arg sha "$pinned" '.vouchington.sha == $sha' "$ARTIFACT_ROOT/manifest.json"
           node candidate-clients/scripts/contracts.mjs verify
+      - name: Route docs-only changes from the exact candidate diff
+        id: docs-only-route
+        working-directory: candidate-clients
+        env:
+          BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
+        run: node scripts/docs-only-routing.mjs "$BASE_SHA" "$REVISION_SHA"
       - name: Route Windows image preview tests from the exact candidate diff
         id: windows-image-preview-route
         working-directory: candidate-clients
@@ -363,6 +372,7 @@ jobs:
   dotnet-portable:
     name: .NET portable
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -451,7 +461,7 @@ jobs:
         run: pnpm run coverage:dotnet-core
   periphery-swift-core:
     name: Swift Periphery (core)
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 15
@@ -488,7 +498,7 @@ jobs:
           bash swift-clients/tooling/periphery-scan.sh core
   periphery-swift-ui:
     name: Swift Periphery (UI)
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 20
@@ -521,7 +531,7 @@ jobs:
           bash swift-clients/tooling/periphery-scan.sh ui
   test-swift-core-linux:
     name: Swift core tests (Linux)
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -557,7 +567,7 @@ jobs:
           --skip "VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO"'
   test-swift-core:
     name: Swift core tests
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 22
@@ -615,6 +625,7 @@ jobs:
   build-swift-android:
     name: Swift Android app
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
@@ -781,6 +792,7 @@ jobs:
   test-swift-android-libs:
     name: Swift Android test-libs
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
@@ -836,7 +848,7 @@ jobs:
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
   test-swift-android-host:
     name: Swift Android host tests
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 20
@@ -1003,7 +1015,7 @@ jobs:
   test-swift-android-cookie:
     name: Swift Android Skip
     needs: [verify, build-swift-android, test-swift-android-libs, test-swift-android-host]
-    if: ${{ github.event_name != 'push' && !cancelled() }}
+    if: ${{ github.event_name != 'push' && !cancelled() && needs.verify.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -1087,7 +1099,7 @@ jobs:
           retention-days: 1
   build-swift-ui-tests:
     name: Swift UI build for testing
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
@@ -1270,6 +1282,7 @@ jobs:
   build-android-core:
     name: Swift Android core build
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -1310,6 +1323,7 @@ jobs:
   build-macos-app:
     name: Swift macOS app smoke
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     runs-on: macos-latest
     timeout-minutes: 40
     env:
@@ -1440,6 +1454,7 @@ jobs:
   build-ios-tests:
     name: Swift iOS Simulator build for testing
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
@@ -1540,7 +1555,7 @@ jobs:
 
   build-ios-x86:
     name: Swift iOS Simulator x86_64 build
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 12
@@ -2041,7 +2056,7 @@ jobs:
 
   dotnet-maui-tests:
     name: .NET MAUI rendered pages
-    if: ${{ github.event_name != 'push' }}
+    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
     needs: verify
     runs-on: macos-latest
     timeout-minutes: 10
@@ -2169,6 +2184,7 @@ jobs:
   dotnet-maui:
     name: .NET MAUI Mac Catalyst
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
     runs-on: macos-latest
@@ -2330,6 +2346,7 @@ jobs:
   dotnet-catalyst-gui:
     name: Mac Catalyst GUI preflight
     needs: verify
+    if: ${{ needs.verify.outputs.docs-only != 'true' }}
     runs-on: macos-latest
     timeout-minutes: 15
     permissions:
@@ -2554,7 +2571,7 @@ jobs:
   dotnet-windows-image-preview:
     name: .NET Windows image preview
     needs: verify
-    if: needs.verify.outputs.windows-image-preview == 'true'
+    if: ${{ needs.verify.outputs.windows-image-preview == 'true' && needs.verify.outputs.docs-only != 'true' }}
     runs-on: windows-latest
     timeout-minutes: 15
     permissions:
@@ -2617,7 +2634,7 @@ jobs:
   dotnet-windows-maui:
     name: .NET MAUI Windows
     needs: verify
-    if: needs.verify.outputs.windows-maui == 'true'
+    if: ${{ needs.verify.outputs.windows-maui == 'true' && needs.verify.outputs.docs-only != 'true' }}
     outputs:
       artifact-attempt: ${{ github.run_attempt }}
     runs-on: windows-latest
@@ -2746,7 +2763,7 @@ jobs:
   dotnet-windows-language-model-surface:
     name: .NET Windows language-model surface
     needs: verify
-    if: needs.verify.outputs.windows-language-model-surface == 'true'
+    if: ${{ needs.verify.outputs.windows-language-model-surface == 'true' && needs.verify.outputs.docs-only != 'true' }}
     runs-on: windows-latest
     timeout-minutes: 30
     permissions:
@@ -2808,8 +2825,9 @@ jobs:
           key: ${{ steps.windows-language-model-surface-nuget-cache.outputs.cache-primary-key }}
   native-dto-fixture-parity:
     name: Native DTO fixture parity (advisory)
-    if: ${{ github.event_name != 'push' && !cancelled() }}
+    if: ${{ github.event_name != 'push' && !cancelled() && needs.verify.outputs.docs-only != 'true' }}
     needs:
+      - verify
       - dotnet-portable
       - test-swift-core
     runs-on: ubuntu-slim
@@ -2859,13 +2877,18 @@ jobs:
     steps:
       - name: Require every native test job to succeed
         env:
+          DOCS_ONLY_ROUTE: ${{ needs.verify.outputs.docs-only }}
           NEEDS_JSON: ${{ toJSON(needs) }}
           WINDOWS_IMAGE_PREVIEW_ROUTE: ${{ needs.verify.outputs.windows-image-preview }}
           WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: ${{ needs.verify.outputs.windows-language-model-surface }}
           WINDOWS_MAUI_ROUTE: ${{ needs.verify.outputs.windows-maui }}
         run: |
           set -euo pipefail
-          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" --arg surface "$WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE" '
+          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" --arg surface "$WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE" --arg docs "$DOCS_ONLY_ROUTE" '
+            if $docs == "true" then
+              (.produce.result == "success") and (.verify.result == "success") and
+              all(to_entries[]; .value.result == "success" or .value.result == "skipped")
+            else
             all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-language-model-surface" and .key != "dotnet-windows-maui"); .value.result == "success") and
             ((."dotnet-windows-image-preview".result == "success") or
              ($route == "false" and ."dotnet-windows-image-preview".result == "skipped")) and
@@ -2873,4 +2896,5 @@ jobs:
              ($surface == "false" and ."dotnet-windows-language-model-surface".result == "skipped")) and
             ((."dotnet-windows-maui".result == "success") or
              ($maui == "false" and ."dotnet-windows-maui".result == "skipped"))
+            end
           ' <<<"$NEEDS_JSON"

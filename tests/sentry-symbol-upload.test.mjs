@@ -172,7 +172,10 @@ test('Windows symbols come from the existing unsigned Release build with isolate
   const upload = source
     .split('  sentry-dotnet-windows-symbols:\n')[1]
     .split('  dotnet-windows-language-model-surface:')[0]
-  assert.match(windows, /if: needs\.verify\.outputs\.windows-maui == 'true'/)
+  assert.match(
+    windows,
+    /if: \$\{\{ needs\.verify\.outputs\.windows-maui == 'true' && needs\.verify\.outputs\.docs-only != 'true' \}\}/,
+  )
   assert.match(
     windows,
     /--configuration Release --framework net10\.0-windows10\.0\.26100\.0 --no-restore/,
