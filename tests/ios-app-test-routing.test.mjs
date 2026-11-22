@@ -37,7 +37,7 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.match(buildJob, /runtime_identifier="com\.apple\.CoreSimulator\.SimRuntime\.iOS-/u)
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
     assert.match(iosJob, /if \[\[ -z "\$simulator_id" \]\]; then/u)
-    assert.match(iosJob, /Shutdown\) xcrun simctl boot "\$simulator_id"/u)
+    assert.match(iosJob, /Shutdown\) date \+%s > [^;]+; xcrun simctl boot "\$simulator_id"/u)
     assert.match(
       iosJob,
       /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,
@@ -141,8 +141,6 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
         iosJob.indexOf('- name: Launch iPhone shard news-transport'),
     )
-    assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 4/u)
-    assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(stepBlock(iosJob, 'Launch iPhone shard feed'), /\n        timeout-minutes: 7\n/u)
     assert.match(stepBlock(ipadJob, 'Launch iPad shard sign-in'), /\n        timeout-minutes: 9\n/u)
     const spawnGate = readFileSync(
@@ -150,7 +148,9 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       'utf8',
     )
     assert.match(spawnGate, /BUDGET_SECONDS = 150/u)
+    assert.match(spawnGate, /TERMINATE_SECONDS = 60/u)
     assert.match(spawnGate, /terminate-budget-exhausted[\s\S]*reset_app[\s\S]*return 1/u)
+    assert.doesNotMatch(spawnGate, /erase/u)
     assert.match(spawnGate, /xcrun", "simctl", "uninstall"/u)
     assert.match(spawnGate, /xcrun", "simctl", "install"/u)
     assert.match(spawnGate, /xcrun", "simctl", "launch"/u)

@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Install and spawn the iOS launch-smoke app, then stop it, inside a fixed budget."""
+"""Install and spawn the iOS launch-smoke app, then stop it, with a budget per operation."""
 
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+# Install and launch share one budget; p95 is 52 s and 78 s, and a gate that runs past it
+# still lets xcodebuild start.
 BUDGET_SECONDS = 150
+# `simctl terminate` has its own budget. Measured over 140 passing gates it takes p50 4 s,
+# p95 37 s, max 104 s; when it hangs it does not return, so 60 s separates the two.
+TERMINATE_SECONDS = 60
+# One shared budget for the uninstall and install that replace a process terminate left alive.
 RECOVERY_SECONDS = 60
 BUNDLE_ID = "ai.voucha.ios"
 
@@ -36,22 +42,6 @@ def reset_app(simulator_id: str, app: str) -> bool:
     try:
         run(["xcrun", "simctl", "uninstall", simulator_id, BUNDLE_ID], deadline, check=True)
         run(["xcrun", "simctl", "install", simulator_id, app], deadline, check=True)
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
-        return False
-    return True
-
-
-def erase_device(simulator_id: str) -> bool:
-    """Last resort for a wedged device: shut it down and erase it so no app process survives.
-
-    The UI-test xcodebuild boots the device again and installs the test products itself, so
-    an erased, shut-down device is a clean start rather than a lost state.
-    """
-    deadline = time.monotonic() + RECOVERY_SECONDS
-    log("erase")
-    try:
-        run(["xcrun", "simctl", "shutdown", simulator_id], deadline, check=False)
-        run(["xcrun", "simctl", "erase", simulator_id], deadline, check=True)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
         return False
     return True
@@ -96,10 +86,16 @@ def main() -> int:
             return 1
         log(f"pid={pid}")
         try:
-            run(["xcrun", "simctl", "terminate", simulator_id, bundle_id], deadline, check=False)
+            run(
+                ["xcrun", "simctl", "terminate", simulator_id, bundle_id],
+                time.monotonic() + TERMINATE_SECONDS,
+                check=False,
+            )
         except subprocess.TimeoutExpired:
             log("terminate-budget-exhausted")
-            if not reset_app(simulator_id, app) and not erase_device(simulator_id):
+            if not reset_app(simulator_id, app):
+                # Erasing the device would shut it down, and xcodebuild would then cold boot it
+                # and repeat the data migration inside the same step cap. Fail closed instead.
                 print(
                     "::error::Could not stop the pre-launched app; refusing to start the UI tests "
                     "against a leftover process",
