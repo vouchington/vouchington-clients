@@ -67,7 +67,7 @@ describe('Mac Catalyst GUI preflight', () => {
     assert.doesNotMatch(job, /uses: actions\/cache@/u)
     assert.match(
       job,
-      /Save Appium Mac2 from main\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.catalyst-appium-cache\.outputs\.cache-hit != 'true' \}\}/u,
+      /Save Appium Mac2 from main\n\s+if: \$\{\{ \(github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.catalyst-appium-cache\.outputs\.cache-hit != 'true'\) && steps\.warm\.outputs\.cache-hit != 'true' \}\}/u,
     )
     assert.match(job, /catalyst-gui-preflight\.mjs --stage-fixture/u)
     assert.match(job, /-p:CodesignEntitlements=/u)
