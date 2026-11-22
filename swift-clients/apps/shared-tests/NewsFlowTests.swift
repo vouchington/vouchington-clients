@@ -42,7 +42,7 @@
             XCTAssertFalse(related.exists, "Related articles must start collapsed")
             let expand = app.buttons["story-related-\(fixture.primaryID)"]
             XCTAssertTrue(expand.waitForExistence(timeout: LaunchSmokeTiming.interaction))
-            XCTAssertTrue(expand.isHittable)
+            waitForHittable(expand, "Related articles toggle was not hittable")
             expand.tap()
             XCTAssertTrue(
                 related.waitForExistence(timeout: LaunchSmokeTiming.interaction),
@@ -50,7 +50,7 @@
             )
             XCTAssertTrue(primary.exists)
 
-            XCTAssertTrue(expand.isHittable)
+            waitForHittable(expand, "Related articles toggle was not hittable")
             expand.tap()
             XCTAssertTrue(
                 related.waitForNonExistence(timeout: LaunchSmokeTiming.interaction),

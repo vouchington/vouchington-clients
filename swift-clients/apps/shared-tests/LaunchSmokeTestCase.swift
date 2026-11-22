@@ -73,6 +73,28 @@ class LaunchSmokeTestCase: XCTestCase {
         )
     }
 
+    /// Re-evaluates `condition` until it holds or `timeout` has elapsed, setting aside UI snapshot
+    /// timeouts the way `waitForLaunchReadiness` does. Every hittability poll in the launch smokes
+    /// goes through here (or `waitForHittable`): a bare `isHittable` inside `expectation(for:)`
+    /// lets one stalled snapshot use up the whole wait. CI run 45042621815 (`tapHittableButton`)
+    /// blocked 29 s in one query inside a 30 s wait. The default deadline is
+    /// `LaunchSmokeTiming.hittability`.
+    func pollThroughSnapshotStalls(
+        _ label: String,
+        timeout: TimeInterval = LaunchSmokeTiming.hittability,
+        until condition: () -> Bool
+    ) -> (satisfied: Bool, stalls: Int) {
+        let deadline = Date().addingTimeInterval(timeout)
+        var satisfied = false
+        let stalls = toleratingSnapshotTimeouts(label) {
+            while !satisfied, deadline.timeIntervalSinceNow > 0 {
+                satisfied = condition()
+                if !satisfied { Thread.sleep(forTimeInterval: 0.5) }
+            }
+        }
+        return (satisfied, stalls)
+    }
+
     /// Waits until `element` is hittable or `LaunchSmokeTiming.hittability` has elapsed.
     ///
     /// A bare `isHittable` resolves the element with a fresh snapshot, and on a starved runner that
@@ -80,28 +102,31 @@ class LaunchSmokeTestCase: XCTestCase {
     /// about 96 s in one `isHittable` call, three attempts, on `signed-out-sign-in`, which existed,
     /// and then failed `XCTAssertTrue(signIn.isHittable)` with nothing logged about the stall. The
     /// budget is `LaunchSmokeTiming.hittability`, sized for one such stall plus a re-check. This polls
-    /// through snapshot timeouts the way `waitForLaunchReadiness` does, so an element that is
-    /// really not hittable still fails when the budget runs out.
+    /// through snapshot timeouts, so an element that is really not hittable still fails when the
+    /// budget runs out.
     func waitForHittable(
         _ element: XCUIElement,
         _ message: @autoclosure () -> String = "Element was not hittable",
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let deadline = Date().addingTimeInterval(LaunchSmokeTiming.hittability)
-        var hittable = false
-        let stalls = toleratingSnapshotTimeouts("Hittability wait") {
-            while !hittable, deadline.timeIntervalSinceNow > 0 {
-                hittable = element.exists && element.isHittable
-                if !hittable { Thread.sleep(forTimeInterval: 0.5) }
-            }
+        let result = pollThroughSnapshotStalls("Hittability wait") {
+            element.exists && element.isHittable
         }
         XCTAssertTrue(
-            hittable,
+            result.satisfied,
             "\(message()) within \(Int(LaunchSmokeTiming.hittability)) s "
-                + "(\(stalls) UI snapshot timeouts while waiting)",
+                + "(\(result.stalls) UI snapshot timeouts while waiting)",
             file: file,
             line: line
         )
+    }
+}
+
+extension XCUIElement {
+    /// Existing, enabled and hittable. Evaluate it only inside `pollThroughSnapshotStalls`; the
+    /// source tests keep every other `isHittable` read out of the launch smokes.
+    var isHittableAndEnabled: Bool {
+        exists && isEnabled && isHittable
     }
 }

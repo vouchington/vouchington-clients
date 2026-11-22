@@ -72,11 +72,12 @@
             let hideSidebar = app.buttons["Hide Sidebar"]
             let showSidebar = app.buttons["Show Sidebar"]
             // Settle split navigation before using its detail-column sign-in control.
-            let sidebarReady = NSPredicate { _, _ in
-                [hideSidebar, showSidebar].contains { $0.exists && $0.isHittable && $0.isEnabled }
+            var canHide = false
+            let sidebarReady = pollThroughSnapshotStalls("Sidebar toggle wait") {
+                canHide = hideSidebar.isHittableAndEnabled
+                return canHide || showSidebar.isHittableAndEnabled
             }
-            wait(for: [expectation(for: sidebarReady, evaluatedWith: nil)], timeout: LaunchSmokeTiming.interaction)
-            guard hideSidebar.exists, hideSidebar.isHittable, hideSidebar.isEnabled else { return }
+            guard sidebarReady.satisfied, canHide else { return }
             // Hiding the sidebar is idempotent, so one lost tap is retried. On a starved runner
             // XCUITest can spend 30 s between the banner check and synthesizing the tap (run
             // 44126670756), long enough for a SpringBoard banner to take it.
@@ -111,9 +112,10 @@
             // Probing isHittable on a frameless duplicate (e.g. an offscreen copy) fails the test
             // outright, so skip empty frames and only inspect every match when uniqueness matters.
             let actionable: (XCUIElement) -> Bool = {
-                $0.label == label && !$0.frame.isEmpty && $0.isEnabled && $0.isHittable
+                $0.label == label && !$0.frame.isEmpty && $0.isHittableAndEnabled
             }
-            let ready = NSPredicate { _, _ in
+            // One stalled snapshot must not use up the wait (CI run 45042621815).
+            let ready = pollThroughSnapshotStalls("Hittable \(label) button wait") {
                 let candidates = matches.allElementsBoundByIndex
                 if requireUnique {
                     let hittable = candidates.filter(actionable)
@@ -123,8 +125,9 @@
                 }
                 return button != nil
             }
-            wait(for: [expectation(for: ready, evaluatedWith: nil)], timeout: timeout)
-            XCTAssertNotNil(button)
+            XCTAssertNotNil(
+                button, "No hittable \(label) in \(Int(LaunchSmokeTiming.hittability)) s (\(ready.stalls) stalls)"
+            )
             // A SpringBoard banner would receive this tap instead of the button under it.
             toleratingSnapshotTimeouts("SpringBoard banner wait") {
                 LaunchSmokeSystemBanner.waitUntilClear(timeout: timeout)
