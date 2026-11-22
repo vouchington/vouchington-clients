@@ -94,8 +94,6 @@ public sealed class ChatConversationPageTests
 
     public Task<ChatConversationResponse> UpdateConversationTitleAsync(string conversationId, string title, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-    public Task<ChatConversationResponse> GenerateConversationTitleAsync(string conversationId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
     public Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
     public Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(string conversationId, CreateClientGeneratedChatBody body, CancellationToken cancellationToken = default) => throw new NotImplementedException();

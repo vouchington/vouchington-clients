@@ -261,9 +261,6 @@ public sealed partial class ChatConversationPagePendingRetryTests
     public Task<ChatConversationResponse> UpdateConversationTitleAsync(
         string conversationId, string title, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-    public Task<ChatConversationResponse> GenerateConversationTitleAsync(
-        string conversationId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
     public Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
   }
 }

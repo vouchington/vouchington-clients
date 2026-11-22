@@ -39,13 +39,6 @@ public sealed partial class VouchaApiClient
           VouchaApiEndpoints.UpdateChatConversationTitle(conversationId, new UpdateChatConversationTitleBody(title)),
           cancellationToken);
 
-  public Task<ChatConversationResponse> GenerateChatConversationTitleAsync(
-      string conversationId,
-      CancellationToken cancellationToken = default) =>
-      SendAsync<ChatConversationResponse>(
-          VouchaApiEndpoints.GenerateChatConversationTitle(conversationId),
-          cancellationToken);
-
   public Task DeleteChatConversationAsync(string conversationId, CancellationToken cancellationToken = default) =>
       SendAsync(VouchaApiEndpoints.DeleteChatConversation(conversationId), cancellationToken);
 

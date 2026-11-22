@@ -24,7 +24,6 @@ public sealed partial class VouchaApiEndpointParityTests
     yield return Case("createChatConversation", VouchaApiEndpoints.CreateChatConversation(new CreateChatConversationBody("Title")), HttpMethod.Post, "/api/v1/conversations", Query(), hasBody: true);
     yield return Case("myChatConversationMessages", VouchaApiEndpoints.MyChatConversationMessages("conversation-1"), HttpMethod.Get, "/api/v1/my/conversations/conversation-1/messages", Query());
     yield return Case("updateChatConversationTitle", VouchaApiEndpoints.UpdateChatConversationTitle("conversation-1", new UpdateChatConversationTitleBody("Updated")), HttpMethod.Patch, "/api/v1/my/conversations/conversation-1", Query(), hasBody: true);
-    yield return Case("generateChatConversationTitle", VouchaApiEndpoints.GenerateChatConversationTitle("conversation-1"), HttpMethod.Post, "/api/v1/my/conversations/conversation-1/title", Query());
     yield return Case("deleteChatConversation", VouchaApiEndpoints.DeleteChatConversation("conversation-1"), HttpMethod.Delete, "/api/v1/my/conversations/conversation-1", Query());
     yield return Case(
       "createClientGeneratedChat",

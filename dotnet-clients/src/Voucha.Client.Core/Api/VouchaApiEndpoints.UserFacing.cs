@@ -172,9 +172,6 @@ public static partial class VouchaApiEndpoints
   public static ApiRequest UpdateChatConversationTitle(string conversationId, UpdateChatConversationTitleBody body) =>
       new(HttpMethod.Patch, $"/api/v1/my/conversations/{Path(conversationId)}") { Body = body };
 
-  public static ApiRequest GenerateChatConversationTitle(string conversationId) =>
-      new(HttpMethod.Post, $"/api/v1/my/conversations/{Path(conversationId)}/title");
-
   public static ApiRequest DeleteChatConversation(string conversationId) =>
       new(HttpMethod.Delete, $"/api/v1/my/conversations/{Path(conversationId)}");
 

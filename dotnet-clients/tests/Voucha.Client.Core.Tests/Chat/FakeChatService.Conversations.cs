@@ -18,13 +18,6 @@ internal sealed partial class FakeChatService
 
   public int FetchConversationMessagesPageCount { get; private set; }
 
-  public Func<string, CancellationToken, Task<ChatConversationResponse>>? GenerateConversationTitleAsyncOverride { get; set; }
-
-  public int GenerateConversationTitleCount { get; private set; }
-
-  public ChatConversationResponse GenerateConversationTitleResult { get; set; } =
-      new(new ChatConversation("conversation-1", "Generated", DateTimeOffset.UtcNow, "user-1", DateTimeOffset.UtcNow, null, null, null));
-
   public Task<ChatMessagesResponse> FetchConversationMessagesAsync(
       string conversationId,
       CancellationToken cancellationToken = default)
@@ -52,18 +45,5 @@ internal sealed partial class FakeChatService
     }
 
     return FetchConversationMessagesAsync(conversationId, cancellationToken);
-  }
-
-  public Task<ChatConversationResponse> GenerateConversationTitleAsync(
-      string conversationId,
-      CancellationToken cancellationToken = default)
-  {
-    GenerateConversationTitleCount += 1;
-    if (GenerateConversationTitleAsyncOverride is not null)
-    {
-      return GenerateConversationTitleAsyncOverride(conversationId, cancellationToken);
-    }
-
-    return Task.FromResult(GenerateConversationTitleResult);
   }
 }

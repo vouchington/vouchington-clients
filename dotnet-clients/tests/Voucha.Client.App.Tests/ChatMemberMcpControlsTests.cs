@@ -206,8 +206,6 @@ public sealed class ChatMemberMcpControlsTests
         CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ChatConversationResponse> UpdateConversationTitleAsync(string conversationId, string title,
         CancellationToken cancellationToken = default) => throw new NotSupportedException();
-    public Task<ChatConversationResponse> GenerateConversationTitleAsync(string conversationId,
-        CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task DeleteConversationAsync(string conversationId,
         CancellationToken cancellationToken = default) => throw new NotSupportedException();
     public Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(string conversationId,
