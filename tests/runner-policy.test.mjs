@@ -92,7 +92,7 @@ describe('GitHub-hosted runner policy', () => {
         const mauiJob = jobBlock(workflow, 'dotnet-windows-maui')
         assert.match(
           mauiJob,
-          /if: \$\{\{ needs\.verify\.outputs\.windows-maui == 'true' && needs\.verify\.outputs\.docs-only != 'true' \}\}/u,
+          /if: \$\{\{ github\.event_name != 'push' && needs\.verify\.outputs\.windows-maui == 'true' && needs\.verify\.outputs\.docs-only != 'true' \}\}/u,
         )
         assert.match(mauiJob, /timeout-minutes: 30/u)
       }

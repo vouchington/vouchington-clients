@@ -31,12 +31,7 @@ const needsOf = name => {
 }
 const gate = "needs.verify.outputs.docs-only != 'true'"
 // produce and verify must keep running; push-only jobs never see a docs-only route.
-const exempt = new Set([
-  'produce',
-  'verify',
-  'sentry-dotnet-symbols',
-  'sentry-dotnet-windows-symbols',
-])
+const exempt = new Set(['produce', 'verify'])
 
 describe('docs-only routing', () => {
   it('is docs-only only when every path is Markdown or under docs/', () => {

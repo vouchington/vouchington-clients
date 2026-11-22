@@ -81,7 +81,8 @@ MAUI page test suite. The app job restores the locked graph and pinned SDK, work
 host RID, then runs the unchanged full Release app build, including managed compilation, trimming,
 AOT, native linking, and bundle creation. Each job checks out and restores its own exact candidate;
 no compiled state or source timestamps are transferred between them. The aggregate Tests gate
-requires both jobs to succeed. Hosted measurements must establish each job's duration and the full
+requires both jobs to succeed. The app job runs on pull requests and merge groups only, never on a
+`main` push. Hosted measurements must establish each job's duration and the full
 run's critical path.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
@@ -252,7 +253,7 @@ filter) unless the new OS compiles different source or links a different network
 
 See [CI runners](ci-runners.md) for the hosted label allowlist.
 
-The Windows MAUI app compiles on `windows-latest` when .NET source, dependency or toolchain files change. This checks the actual `#if WINDOWS` and WinUI build graph; portable Core tests remain Linux-only. It uses committed Windows RID locks and the mise-managed SDK/workload set, with signing and packaging disabled.
+The Windows MAUI app compiles on `windows-latest` when .NET source, dependency or toolchain files change. This checks the actual `#if WINDOWS` and WinUI build graph; portable Core tests remain Linux-only. It uses committed Windows RID locks and the mise-managed SDK/workload set, with signing and packaging disabled. It runs on pull requests and merge groups only, never on a `main` push.
 
 ## Docs-only changes
 

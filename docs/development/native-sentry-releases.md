@@ -32,22 +32,18 @@ rules to admit only `main` and approved iOS release tags, with required reviewer
 PR builds never enter the upload job or receive the upload token. A missing token or project
 configuration skips upload; configured uploads fail visibly if symbols are absent or rejected.
 
-Apple jobs retain the dSYMs from the exact archive. The .NET uploads use symbols from the existing
-Release Mac Catalyst build and the changed-file-routed unsigned Windows MAUI build on `main`.
-Windows explicitly emits portable PDBs and retains each app/Core PDB with its matching DLL from
-that build's Release output. Missing files or conflicting duplicate outputs fail collection.
-Windows and Mac Catalyst use separate artifacts so their same-named assemblies cannot overwrite
-each other. Both use the existing .NET Sentry project and public DSN configuration below.
+Apple jobs retain the dSYMs from the exact archive.
 
-PR Windows builds retain their existing compilation coverage with reporting disabled; they cannot
-collect or upload Sentry symbols. The Windows upload remains conditional on the existing Windows
-build route. Uploader and collector changes are routing inputs so those paths receive build coverage.
-This extends an existing unsigned compiler job and adds no Windows packaging or signing pipeline.
+.NET debug-file upload is not wired. The Mac Catalyst and Windows MAUI jobs in
+`native-contract-tests.yml` build unsigned CI binaries that nothing ships, so their PDBs match no
+installed application, and they no longer run on a `main` push. Add the upload to the build that
+produces the shipping .NET artifact once one exists: retain each app and Core PDB with its matching
+DLL from that exact build, then call the reusable `sentry-symbols.yml` workflow in a separate job
+under the protected environment. Keep Windows and Mac Catalyst symbols in separate artifacts so
+their same-named assemblies cannot overwrite each other.
 
-Preserve matching binaries and symbols for each shipping artifact. The retained Windows pairs prove
-which unsigned CI binaries produced those symbols; they do not establish symbolication for a
-separately rebuilt, signed or store-delivered application. Repeat the acceptance checks below against
-the artifact that actually ships.
+Preserve matching binaries and symbols for each shipping artifact. Repeat the acceptance checks
+below against the artifact that actually ships.
 
 ## Owner configuration and acceptance
 
@@ -58,13 +54,14 @@ the following configuration, and ensure the public DSNs point to the projects us
 | ----------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
 | `sentry-release` environment secret | `SENTRY_AUTH_TOKEN`                                                            | Debug-file upload only                       |
 | Repository or environment variable  | `SENTRY_ORG`                                                                   | Sentry organization slug                     |
-| Repository variables                | `SENTRY_PROJECT_IOS`, `SENTRY_PROJECT_MACOS`, `SENTRY_PROJECT_DOTNET`          | Project slugs for symbol uploads             |
+| Repository variables                | `SENTRY_PROJECT_IOS`, `SENTRY_PROJECT_MACOS`                                   | Project slugs for symbol uploads             |
 | Repository variables                | `VOUCHA_SENTRY_DSN_IOS`, `VOUCHA_SENTRY_DSN_MACOS`, `VOUCHA_SENTRY_DSN_DOTNET` | Public SDK DSNs packaged into trusted builds |
 
-Trusted builds package `voucha-ios@<commit>`, `voucha-macos@<commit>`, or
-`voucha-dotnet@<commit>` as the release and `production` as the environment. The upload credential needs only the
+Trusted Apple builds package `voucha-ios@<commit>` or `voucha-macos@<commit>` as the release and `production` as the environment. The upload credential needs only the
 organization/project permissions required for debug-file upload. This change does not create,
 inspect, or request any credential.
+
+`VOUCHA_SENTRY_DSN_DOTNET` is not read by any workflow until a shipping .NET build packages it.
 
 After configuration, run a trusted archive/build, confirm successful debug-file processing in the
 selected Sentry project, and verify a controlled crash resolves to the matching application stack.

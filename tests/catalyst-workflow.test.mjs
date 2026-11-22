@@ -91,7 +91,7 @@ test('the app shard retains the original full Release Build, pinned tools and lo
   assert.doesNotMatch(build, /-t:|Skip|BuildProjectReferences=false|continue-on-error|\|\| true/u)
 })
 
-test('each shard independently verifies its candidate and tools, with NuGet writes restricted to main app success', () => {
+test('each shard independently verifies its candidate and tools, with no NuGet writes', () => {
   for (const job of [rendered, app]) {
     assert.ok(job.includes('uses: ./.github/actions/prepare-native-contract'))
     assert.ok(job.includes('candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}'))
@@ -107,7 +107,6 @@ test('each shard independently verifies its candidate and tools, with NuGet writ
     assert.doesNotMatch(job, /consumer-tooling\/|compile-state|source-state/u)
   }
   assert.doesNotMatch(rendered, /actions\/cache\/save@/u)
-  const save = step(app, 'Save NuGet packages from main')
-  assert.ok(save.includes("github.event_name == 'push' && github.ref == 'refs/heads/main'"))
-  assert.ok(save.includes("steps.maui-nuget-cache.outputs.cache-hit != 'true'"))
+  assert.doesNotMatch(app, /actions\/cache\/save@/u)
+  assert.match(app, /uses: actions\/cache\/restore@/u)
 })

@@ -24,8 +24,6 @@ describe('Windows MAUI compile routing', () => {
       '.mise.toml',
       'dotnet-clients/NuGet.config',
       '.github/workflows/native-contract-tests.yml',
-      '.github/workflows/sentry-symbols.yml',
-      'scripts/sentry-windows-symbols.mjs',
     ])
       assert.equal(shouldRunWindowsMauiBuild([path]), true, path)
   })

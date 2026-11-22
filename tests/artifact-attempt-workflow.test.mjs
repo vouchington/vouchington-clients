@@ -36,8 +36,6 @@ describe('cross-job artifact attempts survive failed-job reruns', () => {
       'test-swift-core',
       'test-swift-ui',
       'build-ios-tests',
-      'dotnet-maui',
-      'dotnet-windows-maui',
     ]) {
       assert.match(jobBlock(workflow, name), /artifact-attempt: \$\{\{ github\.run_attempt \}\}/u)
     }
