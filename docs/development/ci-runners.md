@@ -40,17 +40,18 @@ are not cached. Shared pnpm stores restore on every run. A missing primary key i
 the frozen install on a `push` to `refs/heads/main`. Pull requests and merge-queue runs restore and
 install, and they do not save. Another job may reserve that key first; the lost save does not fail the run.
 
-The Mac Catalyst NuGet package cache restores on every run but saves a missing key only from a
-`main` push after the locked restores, rendered page tests, and app build succeed. Pull requests
-still perform the same locked restore and tests on a cache miss; they do not upload a separate
-multi-gigabyte cache copy. The bounded save is best-effort package reuse, not build-output or
-toolchain reuse.
+The Mac Catalyst app job (`dotnet-maui`) and the Windows MAUI app job (`dotnet-windows-maui`) do
+not run on a `main` push, so nothing saves the `nuget-maui-*` or `nuget-windows-maui-*` package
+caches. Pull requests and merge groups still restore them, and still run the locked restores and
+the app builds on a miss. The rendered-page job and the Mac Catalyst GUI preflight restore the same
+`nuget-maui-*` key, so they also start cold once the existing entry is evicted. That costs one NuGet
+download per run; it is accepted rather than rebuilding the app on `main` only to save a cache.
 
-The three Windows NuGet caches use the same main-only save policy, after each job's tests or app
-build succeeds. Their exact keys, package paths, and workload-specific restore prefixes stay the
-same. A PR with new dependencies may restore a main prefix and download the missing packages,
-but it does not save a branch-local cache copy. This reduces competing cache writes; it does not
-guarantee that a cache remains available or that a job gets faster.
+The Windows image decoder NuGet cache keeps the main-only save policy, after the job's tests succeed.
+Its exact key, package paths, and workload-specific restore prefix stay the same. A PR with new
+dependencies may restore a main prefix and download the missing packages, but it does not save a
+branch-local cache copy. This reduces competing cache writes; it does not guarantee that a cache
+remains available or that a job gets faster.
 
 ## Merge queue and main pushes
 
@@ -63,12 +64,12 @@ semantically, as a duplicate Swift declaration once did; the queue catches that 
 `merge_group.head_sha`), uses `merge_group.base_sha` where a pull request uses its base SHA, and has
 no `pull_request` or `before` payload.
 
-A push to `main` no longer runs tests. It is a build-and-warm path: it keeps every cache save, the
-Sentry symbol collection and upload jobs, and production DSN injection, and it skips the test jobs,
+A push to `main` no longer runs tests. It is a build-and-warm path: it keeps the
+remaining cache saves, and it skips the test jobs, the MAUI app builds,
 the test steps inside warm jobs, and the `Tests` aggregate. Caches saved by a `merge_group` run are
 scoped to its `gh-readonly-queue/...` ref and cannot be restored by pull requests or `main`, while
-`merge_group` runs can restore `main` caches. So cache saves and Sentry uploads stay on the `main`
-push; an ejected queue group must not create a Sentry release or a cache entry.
+`merge_group` runs can restore `main` caches. So cache saves stay on the `main` push; an ejected
+queue group must not create a cache entry.
 
 A warm job is a no-op when its cache already exists. Three jobs probe first, on a main push only,
 with `actions/cache/restore` and `lookup-only: true`, and guard every later step with
@@ -90,13 +91,14 @@ changes for them):
 - `build-macos-app` and `build-ios-tests` pass `warm-only` to `resolve-swift-packages`, which only
   looks the clones cache up and fetches packages on a miss. Their build steps already skip on a push.
 
-`dotnet-maui` and `dotnet-windows-maui` still build on every push. `VOUCHA_SENTRY_RELEASE` embeds
-`github.sha` in the assembly, so each commit has new PDB debug ids that `sentry-dotnet-symbols` and
-`sentry-dotnet-windows-symbols` upload. Skipping them needs a decision that per-commit debug files
-are not wanted; the build output is not shipped from this run.
+`dotnet-maui` and `dotnet-windows-maui` skip a `main` push. They only compiled unsigned CI binaries
+that nothing ships, saved a NuGet cache, and uploaded `voucha-dotnet@<sha>` debug files that match
+only those binaries (measured on main push run 45042094835: 437 s on macOS and 284 s on Windows).
+Pull requests and merge groups keep both builds. See
+[native Sentry releases](native-sentry-releases.md#trusted-uploads) for the .NET upload.
 
 Add a new required test to a `merge_group`-capable job without a `github.event_name != 'push'`
-condition only if it also warms a cache or uploads symbols. `tests/merge-queue-workflow.test.mjs`
+condition only if it also warms a cache or uploads symbols; do not build only to warm a cache. `tests/merge-queue-workflow.test.mjs`
 pins the job list that remains on a `main` push.
 
 ## pnpm

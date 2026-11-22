@@ -22,6 +22,7 @@ const stepBlock = (job, step) => {
 }
 
 // Jobs that stay on a main push because they warm a cache or upload Sentry symbols.
+// The MAUI app builds do not: nothing ships from them and they warm no cache.
 const warmOnPush = [
   'produce',
   'verify',
@@ -31,12 +32,8 @@ const warmOnPush = [
   'build-android-core',
   'build-macos-app',
   'build-ios-tests',
-  'dotnet-maui',
-  'sentry-dotnet-symbols',
   'dotnet-catalyst-gui',
   'dotnet-windows-image-preview',
-  'dotnet-windows-maui',
-  'sentry-dotnet-windows-symbols',
   'dotnet-windows-language-model-surface',
 ]
 
@@ -137,7 +134,17 @@ describe('merge queue CI (#705)', () => {
     }
   })
 
-  it('saves caches and uploads Sentry symbols only from a main push, never a merge group', () => {
+  it('runs the MAUI app builds on pull requests and merge groups only, with no main warm or symbols', () => {
+    assert.equal(jobs.filter(name => name.startsWith('sentry-dotnet')).length, 0)
+    for (const name of ['dotnet-maui', 'dotnet-windows-maui']) {
+      const block = jobBlock(native, name)
+      assert.ok(header(name).includes("github.event_name != 'push'"), name)
+      assert.doesNotMatch(block, /actions\/cache\/save|VOUCHA_SENTRY_|artifact-attempt/u, name)
+      assert.doesNotMatch(block, /event_name == 'push'/u, name)
+    }
+  })
+
+  it('saves caches only from a main push, never a merge group', () => {
     const saves = native.split(/\n(?= {6}- )/u).filter(step => step.includes('actions/cache/save'))
     assert.ok(saves.length >= 7)
     for (const step of saves) {
@@ -145,9 +152,6 @@ describe('merge queue CI (#705)', () => {
         step.includes(pushOnlyMain) || step.includes('android-task-cache-save.outputs.save'),
         step,
       )
-    }
-    for (const name of ['sentry-dotnet-symbols', 'sentry-dotnet-windows-symbols']) {
-      assert.ok(header(name).includes(`if: ${pushOnlyMain}`), name)
     }
     assert.doesNotMatch(native, /VOUCHA_SENTRY_[A-Z_]+: .*merge_group/u)
   })

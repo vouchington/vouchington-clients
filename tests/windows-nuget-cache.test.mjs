@@ -10,11 +10,6 @@ const jobs = [
     'candidate-clients/dotnet-clients/tests/Voucha.Client.WindowsImagePreview.Tests/packages.lock.json',
   ],
   [
-    'maui',
-    'Compile the actual Windows MAUI app',
-    'candidate-clients/dotnet-clients/src/**/*.lock.json',
-  ],
-  [
     'language-model-surface',
     'Probe the pinned Windows language-model surface',
     'candidate-clients/dotnet-clients/tests/Voucha.Client.WindowsLanguageModelSurface.Tests/packages.lock.json',
