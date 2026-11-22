@@ -201,6 +201,32 @@ Run `pnpm test` when changing native workflow routing or selected app tests. The
 and native test planners do not execute the Node contract assertions that check those selectors,
 result predicates and fixture-root wiring.
 
+## Shadow test planning on pull requests
+
+Pull request runs also compute `no-mistakes tests plan` for the PR diff and compare it with the
+full suite that already ran. This is advisory: the full suite still runs everywhere, every shadow
+step uses `continue-on-error`, and `merge_group` and `push` runs never execute the step. The
+`.github/actions/test-plan-shadow` action calls `scripts/test-plan-shadow.mjs`, which writes the
+counts to the job summary and to a `test-plan-shadow-<label>` artifact, and reuses the
+`pnpm install` that `prepare-native-contract` already ran.
+
+| Label         | Job                 | Suites compared            | Results read          |
+| ------------- | ------------------- | -------------------------- | --------------------- |
+| `swift-core`  | `test-swift-core`   | `swift-clients/core/Tests` | none (plan size only) |
+| `swift-ui`    | `test-swift-ui`     | `swift-clients/ui/Tests`   | none (plan size only) |
+| `dotnet-core` | `dotnet-portable`   | `Voucha.Client.Core.Tests` | `dotnet test` TRX     |
+| `dotnet-app`  | `dotnet-maui-tests` | `Voucha.Client.App.Tests`  | none (plan size only) |
+
+`test-swift-core-linux` and `test-swift-android-host` are not shadowed: the first runs inside a
+container with a tmpfs workspace, the second skips the candidate `pnpm install`, and the shadow step
+must not add install time. The Swift jobs are plan-only because SwiftPM writes XCTest xunit output only for parallel runs and `--parallel` would change what runs. The portable .NET step passes `--logger trx`, which only adds a results file and selects no tests.
+
+`no-mistakes tests audit` needs per-test-file execution traces (`executed_files`) that these suites
+do not collect, so the script marks every observation `trace_complete: false`. The audit then reports
+selection overlap but cannot prove a changed-code miss. The usable miss signal is
+`failedMissedByPlan`: failed test classes that the planned command would not run. That is judged from the plan's `execution_targets` (a project or a `--filter` regex), not from the selected file list, because `--filter VouchaCoreTests` or `dotnet test <project>` runs more than the selected files. `unselectedTestFiles` is a file-selection statistic only. A plan that falls
+back to the full suite (for example when `contracts/**` changes) selects everything and reports zero.
+
 ## Required dual-OS
 
 Swift core portable tests run on Linux **and** macOS. That is not duplicate work:

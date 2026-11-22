@@ -418,6 +418,7 @@ jobs:
           dotnet test Voucha.DotNet.sln
           --configuration Release --no-build
           --filter "FullyQualifiedName!~ApiFixtureCoverageTests.FixtureFieldsRoundTripThroughTheDto"
+          --logger trx
           --collect:"XPlat Code Coverage"
           --results-directory TestResults/core --
           DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=lcov
@@ -437,7 +438,7 @@ jobs:
         working-directory: candidate-clients/dotnet-clients
         run: |
           set -euo pipefail
-          reports="$(find TestResults/core -type f -name coverage.info -print)"
+          reports="$(find TestResults/core -type f -name coverage.info -not -path '*/In/*' -print)"
           [ "$(printf '%s\n' "$reports" | sed '/^$/d' | wc -l | tr -d ' ')" = 1 ] || {
             echo '::error::Expected exactly one coverage.info under TestResults/core.'
             exit 1
@@ -459,6 +460,18 @@ jobs:
           COVERAGE_BASE: ${{ needs.verify.outputs.base-sha }}
           COVERAGE_HEAD: ${{ needs.verify.outputs.revision-sha }}
         run: pnpm run coverage:dotnet-core
+      - name: Shadow test plan (advisory)
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: ./.github/actions/test-plan-shadow
+        with:
+          framework: dotnet
+          label: dotnet-core
+          scope: dotnet-clients/tests/Voucha.Client.Core.Tests
+          base-sha: ${{ needs.verify.outputs.base-sha }}
+          head-sha: ${{ needs.verify.outputs.revision-sha }}
+          results-dir: ${{ github.workspace }}/candidate-clients/dotnet-clients/TestResults/core
   periphery-swift-core:
     name: Swift Periphery (core)
     if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
@@ -622,6 +635,17 @@ jobs:
           mise exec -- swift test --package-path swift-clients/core
           --force-resolved-versions --disable-dependency-cache
           --filter 'VouchaCoreTests.ApiFixtureCoverageTests/testRegisteredFixturesRoundTripThroughTheirDTO'
+      - name: Shadow test plan (advisory)
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: ./.github/actions/test-plan-shadow
+        with:
+          framework: swift
+          label: swift-core
+          scope: swift-clients/core/Tests
+          base-sha: ${{ needs.verify.outputs.base-sha }}
+          head-sha: ${{ needs.verify.outputs.revision-sha }}
   build-swift-android:
     name: Swift Android app
     needs: verify
@@ -1292,6 +1316,17 @@ jobs:
           path: candidate-clients/coverage/ui/lcov.info
           retention-days: 1
           if-no-files-found: error
+      - name: Shadow test plan (advisory)
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: ./.github/actions/test-plan-shadow
+        with:
+          framework: swift
+          label: swift-ui
+          scope: swift-clients/ui/Tests
+          base-sha: ${{ needs.verify.outputs.base-sha }}
+          head-sha: ${{ needs.verify.outputs.revision-sha }}
   swift-patch-coverage:
     name: Swift patch coverage
     if: ${{ github.event_name != 'push' }}
@@ -2230,6 +2265,17 @@ jobs:
           path: ${{ runner.temp }}/voucha-maui-test-results
           retention-days: 1
           if-no-files-found: warn
+      - name: Shadow test plan (advisory)
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: ./.github/actions/test-plan-shadow
+        with:
+          framework: dotnet
+          label: dotnet-app
+          scope: dotnet-clients/tests/Voucha.Client.App.Tests
+          base-sha: ${{ needs.verify.outputs.base-sha }}
+          head-sha: ${{ needs.verify.outputs.revision-sha }}
   dotnet-maui:
     name: .NET MAUI Mac Catalyst
     needs: verify
