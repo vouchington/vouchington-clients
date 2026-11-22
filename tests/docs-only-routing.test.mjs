@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { isDocsOnly, mergeGroupChangedPaths } from '../scripts/docs-only-routing.mjs'
 import { jobBlock } from './workflow-job-block.mjs'
 
@@ -12,7 +13,7 @@ const native = await readFile(
   new URL('../.github/workflows/native-contract-tests.yml', import.meta.url),
   'utf8',
 )
-const script = new URL('../scripts/docs-only-routing.mjs', import.meta.url).pathname
+const script = fileURLToPath(new URL('../scripts/docs-only-routing.mjs', import.meta.url))
 const jobs = [...native.slice(native.search(/^jobs:/mu)).matchAll(/^ {2}([a-z0-9-]+):$/gmu)].map(
   match => match[1],
 )
