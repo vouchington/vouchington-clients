@@ -89,11 +89,11 @@ test('Android caches restore on all runs and save only completed trusted main ph
   assert.doesNotMatch(app, /VOUCHA_ANDROID_STATE_VERIFIED|android-state-cli|android-kotlin-cache/u)
   assert.match(
     app,
-    /name: Bound Gradle task-output cache save\n\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' \}\}/u,
+    /name: Bound Gradle task-output cache save\n\s+if: \$\{\{ \(github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true'\) && steps\.warm\.outputs\.cache-hit != 'true' \}\}/u,
   )
   assert.match(
     app,
-    /name: Save Gradle task-output cache from successful main APK build\n\s+if: \$\{\{ steps\.android-task-cache-save\.outputs\.save == 'true' \}\}\n\s+uses: actions\/cache\/save@[0-9a-f]{40}/u,
+    /name: Save Gradle task-output cache from successful main APK build\n\s+uses: actions\/cache\/save@[0-9a-f]{40}[^\n]*\n\s+if: \$\{\{ steps\.android-task-cache-save\.outputs\.save == 'true' && steps\.warm\.outputs\.cache-hit != 'true' \}\}/u,
   )
   assert.match(app, /key: \$\{\{ steps\.android-task-cache\.outputs\.cache-primary-key \}\}/u)
   assert.ok(
@@ -112,10 +112,13 @@ test('Android caches restore on all runs and save only completed trusted main ph
     assert.ok(job.indexOf(completed) < job.indexOf('Bound Gradle task-output cache save'))
     assert.match(
       job,
-      /name: Bound Gradle task-output cache save\n(?:\s+timeout-minutes: 1\n)?\s+if: \$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true' \}\}/u,
+      /name: Bound Gradle task-output cache save\n(?:\s+timeout-minutes: 1\n)?\s+if: \$\{\{ \(github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && steps\.android-task-cache\.outputs\.cache-hit != 'true'\) && steps\.warm\.outputs\.cache-hit != 'true' \}\}/u,
     )
     assert.ok(job.includes(`Save Gradle task-output cache from successful main ${kind} build`))
-    assert.match(job, /if: \$\{\{ steps\.android-task-cache-save\.outputs\.save == 'true' \}\}/u)
+    assert.match(
+      job,
+      /if: \$\{\{ steps\.android-task-cache-save\.outputs\.save == 'true' && steps\.warm\.outputs\.cache-hit != 'true' \}\}/u,
+    )
     assert.match(job, /check-gradle-build-cache\.mjs/u)
     assert.match(job, /key: \$\{\{ steps\.android-task-cache\.outputs\.cache-primary-key \}\}/u)
   }

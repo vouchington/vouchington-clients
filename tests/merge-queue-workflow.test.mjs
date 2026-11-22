@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { describe, it } from 'node:test'
 import { jobBlock } from './workflow-job-block.mjs'
@@ -142,5 +143,81 @@ describe('merge queue CI (#705)', () => {
       assert.ok(header(name).includes(`if: ${pushOnlyMain}`), name)
     }
     assert.doesNotMatch(native, /VOUCHA_SENTRY_[A-Z_]+: .*merge_group/u)
+  })
+})
+
+describe('warm jobs are a no-op when their cache is already warm', () => {
+  const afterProbe = job => {
+    const steps = jobBlock(native, job).split(/\n(?= {6}- )/u)
+    const probe = steps.findIndex(step => /\n {8}id: warm\n/u.test(step))
+    assert.ok(probe > 0, `${job} needs a warm probe step`)
+    return { probe: steps[probe], later: steps.slice(probe + 1) }
+  }
+
+  it('probes only on a main push with lookup-only and guards every later step', () => {
+    for (const job of ['build-swift-android', 'test-swift-android-libs', 'dotnet-catalyst-gui']) {
+      const { probe, later } = afterProbe(job)
+      assert.ok(probe.includes(`if: \${{ ${pushOnlyMain} }}`), job)
+      assert.match(probe, /uses: actions\/cache\/restore@[0-9a-f]{40}/u)
+      assert.ok(probe.includes('lookup-only: true'), job)
+      assert.ok(later.length > 0)
+      for (const step of later) {
+        const guarded =
+          step.includes("steps.warm.outputs.cache-hit != 'true'") ||
+          step.includes("if: ${{ github.event_name != 'push'")
+        assert.ok(guarded, `${job}: ${step}`)
+      }
+    }
+  })
+
+  it('keys the Android app warm marker on the sources the build reads', () => {
+    const { probe, later } = afterProbe('build-swift-android')
+    for (const input of [
+      'swift-clients/apps/android/**',
+      'swift-clients/core/**',
+      'swift-clients/ui/**',
+      'contracts/vouchington.json',
+      '.mise.toml',
+      '!candidate-clients/swift-clients/core/Tests/**',
+    ]) {
+      assert.ok(probe.includes(input), input)
+    }
+    assert.doesNotMatch(probe, /github\.sha|run_id|CANDIDATE_REVISION/u)
+    const save = later.find(step => step.includes('Save the built-source marker from main'))
+    assert.ok(save.includes(pushOnlyMain))
+    assert.ok(save.includes('key: ${{ steps.warm.outputs.cache-primary-key }}'))
+    assert.ok(save.includes('path: ~/.cache/voucha/android-warm-marker'))
+    assert.ok(probe.includes('path: ~/.cache/voucha/android-warm-marker'))
+    const taskSave = later.findIndex(step => step.includes('Save Gradle task-output cache'))
+    assert.ok(later.indexOf(save) > taskSave)
+  })
+
+  it('probes the exact archive and Appium keys the jobs restore', () => {
+    const archives = native.match(
+      /path: ~\/\.cache\/voucha\/swift-android\/downloads\n\s+key: (.*)/u,
+    )[1]
+    const action = readFileSync(
+      new URL('../.github/actions/prepare-android-archives/action.yml', import.meta.url),
+      'utf8',
+    )
+    assert.ok(action.includes(`key: ${archives}`))
+    const appium = native.match(/path: \$\{\{ runner\.temp \}\}\/catalyst-appium\n\s+key: (.*)/u)[1]
+    assert.equal(native.split(`key: ${appium}`).length - 1, 2, 'probe and restore share one key')
+  })
+
+  it('lets the SwiftPM clones action skip the download on a warm main push only', () => {
+    const action = readFileSync(
+      new URL('../.github/actions/resolve-swift-packages/action.yml', import.meta.url),
+      'utf8',
+    )
+    assert.ok(action.includes("lookup-only: ${{ inputs.warm-only == 'true' }}"))
+    assert.ok(
+      action.includes(
+        "if: ${{ inputs.warm-only != 'true' || steps.clones.outputs.cache-hit != 'true' }}",
+      ),
+    )
+    const warmOnly = `warm-only: \${{ ${pushOnlyMain} }}`
+    const users = jobs.filter(name => jobBlock(native, name).includes(warmOnly))
+    assert.deepEqual(users, ['build-macos-app', 'build-ios-tests'])
   })
 })

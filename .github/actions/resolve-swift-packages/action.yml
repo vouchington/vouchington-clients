@@ -14,6 +14,9 @@ inputs:
   save-cache:
     description: Whether this job saves the clones cache after a miss
     default: 'false'
+  warm-only:
+    description: Only check for the cache and fetch packages on a miss, for a main-push job that builds nothing
+    default: 'false'
 
 runs:
   using: composite
@@ -22,6 +25,7 @@ runs:
       id: clones
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
+        lookup-only: ${{ inputs.warm-only == 'true' }}
         path: |
           ${{ inputs.clones-dir }}/repositories
           ${{ inputs.clones-dir }}/checkouts
@@ -29,6 +33,7 @@ runs:
           ${{ inputs.clones-dir }}/workspace-state.json
         key: ${{ runner.os }}-swiftpm-${{ inputs.platform }}-xcode-26.6-${{ hashFiles(format('{0}/swift-clients/ui/Package.resolved', inputs.source-root), format('{0}/swift-clients/core/Package.resolved', inputs.source-root), format('{0}/swift-clients/tooling/generate.sh', inputs.source-root), format('{0}/swift-clients/apps/{1}/project.yml', inputs.source-root, inputs.platform), format('{0}/scripts/resolve-swift-packages.sh', inputs.source-root)) }}
     - name: Resolve packages from the pinned versions
+      if: ${{ inputs.warm-only != 'true' || steps.clones.outputs.cache-hit != 'true' }}
       shell: bash
       working-directory: ${{ inputs.source-root }}
       env:

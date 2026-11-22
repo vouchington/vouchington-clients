@@ -634,7 +634,16 @@ jobs:
           producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
+      - name: Skip the main warm build when this source set already built
+        id: warm
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          lookup-only: true
+          path: ~/.cache/voucha/android-warm-marker
+          key: ${{ runner.os }}-${{ runner.arch }}-android-app-warm-v1-${{ hashFiles('candidate-clients/swift-clients/apps/android/**', 'candidate-clients/swift-clients/core/**', 'candidate-clients/swift-clients/ui/**', 'candidate-clients/swift-clients/test-support/**', 'candidate-clients/swift-clients/tooling/**', 'candidate-clients/contracts/vouchington.json', 'candidate-clients/.mise.toml', 'candidate-clients/.github/actions/prepare-android-archives/**', 'candidate-clients/.github/actions/setup-mise-toolchain/**', 'candidate-clients/.github/workflows/native-contract-tests.yml', '!candidate-clients/swift-clients/core/Tests/**', '!candidate-clients/swift-clients/ui/Tests/**') }}
       - name: Resolve Java for Android SDK setup
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -650,6 +659,7 @@ jobs:
           echo "JAVA_HOME=$java_home" >> "$GITHUB_ENV"
           echo "$java_home/bin" >> "$GITHUB_PATH"
       - name: Select job-scoped Android SDK location
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
           android_sdk="$RUNNER_TEMP/android-sdk"
@@ -658,6 +668,7 @@ jobs:
           echo "ANDROID_SDK_ROOT=$android_sdk" >> "$GITHUB_ENV"
       - name: Setup Android SDK
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           packages: >-
             platform-tools
@@ -665,15 +676,19 @@ jobs:
             build-tools;36.0.0
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           client-root: candidate-clients
           tool: swift
       - name: Select Xcode 26.6 for Android host SwiftPM tests
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Configure Skip Swift home
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         run: |
           cache_root="$HOME/.cache/voucha/swift-android"
           for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
@@ -682,10 +697,12 @@ jobs:
           rm -rf -- "$cache_root/extracted"
       - name: Prepare checksummed Swift Android SDK and archives
         uses: ./.github/actions/prepare-android-archives
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         timeout-minutes: 14
         with:
           save-cache: false
       - name: Resolve Android Swift package with shared artifact cache
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
@@ -694,11 +711,13 @@ jobs:
       - name: Restore Gradle user home
         id: android-gradle-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('candidate-clients/swift-clients/apps/android/Package.resolved', 'candidate-clients/swift-clients/apps/android/Android/**/*.gradle.kts', 'candidate-clients/swift-clients/apps/android/Android/gradle/wrapper/gradle-wrapper.properties', 'candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh', 'candidate-clients/swift-clients/apps/android/Sources/VouchaAndroid/Skip/skip.yml') }}
       - name: Select Gradle task-output cache path
         id: android-task-cache-path
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         shell: bash
         env:
           TASK_CACHE_KIND: app
@@ -714,6 +733,7 @@ jobs:
       - name: Restore Gradle task-output cache
         id: android-task-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache-path.outputs.cache-key }}
@@ -721,6 +741,7 @@ jobs:
             ${{ steps.android-task-cache-path.outputs.previous-key }}
             ${{ steps.android-task-cache-path.outputs.compatible-prefix }}
       - name: Build the selected Android validation phase
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         working-directory: candidate-clients
         env:
           VOUCHA_SKIP_SWIFT_HOME: ${{ runner.temp }}/skip-swift-home
@@ -731,6 +752,7 @@ jobs:
           export VOUCHA_SWIFT_ANDROID_DOWNLOAD_DIR="$HOME/.cache/voucha/swift-android/downloads"
           mise exec -- bash swift-clients/apps/android/tooling/pre-push.sh --phase "$ANDROID_BUILD_PHASE"
       - name: Package exact candidate Android app and instrumentation APKs
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         env:
           CANDIDATE_REVISION: ${{ needs.verify.outputs.revision-sha }}
         run: |
@@ -749,19 +771,20 @@ jobs:
           (cd "$proof_root" && shasum -a 256 app-debug.apk app-debug-androidTest.apk > sha256sums.txt)
       - name: Upload candidate Android APKs for runtime proof
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           name: android-cookie-apks-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/android-cookie-apks
           if-no-files-found: error
           retention-days: 1
       - name: Save Gradle user home from main
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-gradle-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-gradle-cache.outputs.cache-hit != 'true') && steps.warm.outputs.cache-hit != 'true' }}
         with:
           path: ~/.cache/voucha/gradle
           key: ${{ steps.android-gradle-cache.outputs.cache-primary-key }}
       - name: Bound Gradle task-output cache save
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true' }}
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-task-cache.outputs.cache-hit != 'true') && steps.warm.outputs.cache-hit != 'true' }}
         id: android-task-cache-save
         shell: bash
         env:
@@ -773,11 +796,22 @@ jobs:
           node candidate-clients/swift-clients/apps/android/tooling/check-gradle-build-cache.mjs \
             "$selected" "$GITHUB_OUTPUT"
       - name: Save Gradle task-output cache from successful main APK build
-        if: ${{ steps.android-task-cache-save.outputs.save == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.android-task-cache-save.outputs.save == 'true' && steps.warm.outputs.cache-hit != 'true' }}
         with:
           path: ${{ steps.android-task-cache-path.outputs.path }}
           key: ${{ steps.android-task-cache.outputs.cache-primary-key }}
+      - name: Record the built source set for main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.warm.outputs.cache-hit != 'true' }}
+        run: |
+          mkdir -p ~/.cache/voucha/android-warm-marker
+          printf '%s\n' "$GITHUB_SHA" > ~/.cache/voucha/android-warm-marker/built-at
+      - name: Save the built-source marker from main
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.warm.outputs.cache-hit != 'true' }}
+        with:
+          path: ~/.cache/voucha/android-warm-marker
+          key: ${{ steps.warm.outputs.cache-primary-key }}
   test-swift-android-libs:
     name: Swift Android test-libs
     needs: verify
@@ -798,14 +832,25 @@ jobs:
           producer-run-attempt: ${{ needs.verify.outputs.contract-run-attempt }}
           producer-run-id: ${{ github.run_id }}
           skip-candidate-install: true
+      - name: Skip the main archive warm when the archives are cached
+        id: warm
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          lookup-only: true
+          path: ~/.cache/voucha/swift-android/downloads
+          key: ${{ runner.os }}-swift-android-archives-${{ hashFiles('candidate-clients/swift-clients/apps/android/tooling/materialize-skip-sdk.sh') }}
       - name: Set up mise-managed Swift compiler
         uses: ./.github/actions/setup-mise-toolchain
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           client-root: candidate-clients
           tool: swift
       - name: Configure Skip Swift home
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         run: mkdir -p "$RUNNER_TEMP/skip-swift-home" && echo "VOUCHA_SKIP_SWIFT_HOME=$RUNNER_TEMP/skip-swift-home" >> "$GITHUB_ENV"
       - name: Remove obsolete Swift Android executable cache
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         run: |
           cache_root="$HOME/.cache/voucha/swift-android"
           for cache_path in "$HOME/.cache" "$HOME/.cache/voucha" "$cache_root"; do
@@ -814,10 +859,12 @@ jobs:
           rm -rf -- "$cache_root/extracted"
       - name: Prepare checksummed Swift Android SDK and archives
         uses: ./.github/actions/prepare-android-archives
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         timeout-minutes: 14
         with:
           save-cache: true
       - name: Resolve Android Swift package with shared artifact cache
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         working-directory: candidate-clients
         run: |
           resolve_log="$RUNNER_TEMP/android-swift-resolve.log"
@@ -1365,6 +1412,7 @@ jobs:
           source-root: candidate-clients
           clones-dir: ${{ runner.temp }}/swift-package-clones
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          warm-only: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build macOS app shell
         if: ${{ github.event_name != 'push' }}
         working-directory: candidate-clients
@@ -1484,6 +1532,7 @@ jobs:
           source-root: candidate-clients
           clones-dir: ${{ runner.temp }}/swift-ios-package-clones
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          warm-only: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build selected iPhone test products
         if: ${{ github.event_name != 'push' }}
         timeout-minutes: 10
@@ -2288,8 +2337,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Skip the main warm when Appium Mac2 is cached
+        id: warm
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          lookup-only: true
+          path: ${{ runner.temp }}/catalyst-appium
+          key: ${{ runner.os }}-appium-3.8.0-mac2-4.5.0
       - name: Prepare verified candidate
         uses: ./.github/actions/prepare-native-contract
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           candidate-revision-sha: ${{ needs.verify.outputs.revision-sha }}
           expected-contract-repository: vouchington/vouchington
@@ -2298,6 +2356,7 @@ jobs:
           producer-run-id: ${{ github.run_id }}
       - name: Restore NuGet packages
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           path: |
             ${{ runner.temp }}/voucha-dotnet-cache
@@ -2310,16 +2369,19 @@ jobs:
       - name: Restore Appium Mac2
         id: catalyst-appium-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           path: ${{ runner.temp }}/catalyst-appium
           key: ${{ runner.os }}-appium-3.8.0-mac2-4.5.0
       - name: Set up mise-managed .NET SDK
         uses: ./.github/actions/setup-mise-toolchain
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         with:
           client-root: candidate-clients
           tool: dotnet
       - name: Detect pinned MAUI workload
         id: workload
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         working-directory: candidate-clients
         run: |
           set -euo pipefail
@@ -2331,17 +2393,19 @@ jobs:
             echo 'install=true' >>"$GITHUB_OUTPUT"
           fi
       - name: Install pinned MAUI workload
-        if: steps.workload.outputs.install == 'true'
+        if: ${{ steps.workload.outputs.install == 'true' && steps.warm.outputs.cache-hit != 'true' }}
         timeout-minutes: 3
         working-directory: candidate-clients
         run: >-
           dotnet workload install maui-maccatalyst
           --configfile dotnet-clients/NuGet.config
       - name: Select compatible Xcode
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         working-directory: candidate-clients
         run: bash dotnet-clients/tooling/select-xcode.sh 26.6
       - name: Detect host Mac Catalyst RID
         id: rid
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
           case "$(uname -m)" in
@@ -2351,6 +2415,7 @@ jobs:
           esac
           echo "runtime_identifier=$rid" >>"$GITHUB_OUTPUT"
       - name: Install Appium Mac2
+        if: ${{ steps.warm.outputs.cache-hit != 'true' }}
         timeout-minutes: 2
         env:
           CATALYST_APPIUM_PREFIX: ${{ runner.temp }}/catalyst-appium
@@ -2462,7 +2527,7 @@ jobs:
           node dotnet-clients/tooling/catalyst-gui-auth-news.mjs --session
           node scripts/catalyst-auth-news-evidence.mjs "$CATALYST_FLOWS_RESULT" "$CATALYST_NATIVE_REVISION"
       - name: Save Appium Mac2 from main
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true' }}
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.catalyst-appium-cache.outputs.cache-hit != 'true') && steps.warm.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

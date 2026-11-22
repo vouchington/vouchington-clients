@@ -70,6 +70,31 @@ scoped to its `gh-readonly-queue/...` ref and cannot be restored by pull request
 `merge_group` runs can restore `main` caches. So cache saves and Sentry uploads stay on the `main`
 push; an ejected queue group must not create a Sentry release or a cache entry.
 
+A warm job is a no-op when its cache already exists. Three jobs probe first, on a main push only,
+with `actions/cache/restore` and `lookup-only: true`, and guard every later step with
+`steps.warm.outputs.cache-hit != 'true'` (pull requests and merge groups skip the probe, so nothing
+changes for them):
+
+- `test-swift-android-libs` probes the checksummed-archive key (a hash of `materialize-skip-sdk.sh`,
+  the same key `prepare-android-archives` restores) and `dotnet-catalyst-gui` probes the static
+  Appium Mac2 key. Both keys already depend only on real inputs, so a hit skips the whole job after
+  the checkout.
+- `build-swift-android` saves its Gradle task-output cache under a per-revision chain key, so that
+  key can never hit on a new merge. The probe instead looks up a small marker cache keyed on the
+  inputs the app build reads: the Android app, the core and UI sources (not their tests), the shared
+  tooling, `contracts/vouchington.json`, `.mise.toml`, the Android and mise composite actions, and
+  this workflow file. A hit means the same source set already built on `main` and saved its caches,
+  so the build is skipped and no cache is saved under a new key. A miss builds as before, then saves
+  the marker last, so a failed build never records one. Merges that only touch tooling
+  dependencies, such as the `no-mistakes` bumps, hit.
+- `build-macos-app` and `build-ios-tests` pass `warm-only` to `resolve-swift-packages`, which only
+  looks the clones cache up and fetches packages on a miss. Their build steps already skip on a push.
+
+`dotnet-maui` and `dotnet-windows-maui` still build on every push. `VOUCHA_SENTRY_RELEASE` embeds
+`github.sha` in the assembly, so each commit has new PDB debug ids that `sentry-dotnet-symbols` and
+`sentry-dotnet-windows-symbols` upload. Skipping them needs a decision that per-commit debug files
+are not wanted; the build output is not shipped from this run.
+
 Add a new required test to a `merge_group`-capable job without a `github.event_name != 'push'`
 condition only if it also warms a cache or uploads symbols. `tests/merge-queue-workflow.test.mjs`
 pins the job list that remains on a `main` push.
