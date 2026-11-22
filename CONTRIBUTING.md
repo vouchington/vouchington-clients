@@ -33,7 +33,8 @@ Swift/.NET quality rules, changed-file test planning, and native test authoring 
 Vouchington producer boundaries.
 
 `pnpm run lint:portable` is the portable gate; `pnpm run lint` also runs gitleaks and the native
-harnesses under `swift-clients/tooling/` and `dotnet-clients/tooling/`. CI uses GitHub-hosted
+harnesses under `swift-clients/tooling/` and `dotnet-clients/tooling/`. The pre-push hook runs
+`pnpm run lint:pre-push`, which is `lint` without `no-mistakes check`; CI's `validate` job runs it. CI uses GitHub-hosted
 ephemeral runners; the closed label set and the prohibition on persistent-workspace cleanup are
 documented in [`docs/development/ci-runners.md`](docs/development/ci-runners.md), and the
 Linux-vs-macOS test placement rules in

@@ -55,8 +55,8 @@ container and .NET `Voucha.DotNet.sln` Core tests on the host. The Linux Swift C
 excludes the fixture round-trip method that uses Darwin-only `XCTContext`; the macOS job runs that
 method. `linux-quality` invokes the canonical `pnpm run quality:check`. On Linux, the Swift harness
 runs pinned SwiftFormat and SwiftLint containers without network or checkout write access; on macOS,
-it keeps native tooling. The pre-push hook uses this same lint path, so a host SwiftLint installation
-is not required.
+it keeps native tooling. The pre-push hook uses this same native lint path, so a host SwiftLint
+installation is not required.
 
 For changed-file planning, use `pnpm run test:plan:swift --base origin/main --head HEAD` and
 `pnpm run test:plan:dotnet --base origin/main --head HEAD`. For uncommitted changes, pass one or

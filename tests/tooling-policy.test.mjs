@@ -19,9 +19,19 @@ describe('repository tooling policy', () => {
 
     assert.deepEqual(commands, [
       'pnpm exec vouchington require-up-to-date --remote origin --branch main',
-      'pnpm run lint',
+      'pnpm run lint:pre-push',
     ])
     assert.doesNotMatch(hook, /\b(?:build|test|coverage|periphery|rebase|merge)\b/u)
+  })
+
+  it('leaves no-mistakes out of pre-push and in the CI lint gates', async () => {
+    const { scripts } = JSON.parse(await text('package.json'))
+    for (const script of ['lint:pre-push', 'lint:portable:quick']) {
+      assert.doesNotMatch(scripts[script], /no-mistakes/u, script)
+    }
+    for (const script of ['lint', 'lint:portable']) {
+      assert.match(scripts[script], /\blint:no-mistakes\b/u, script)
+    }
   })
 
   it('defines one complete lint aggregate without tests or builds', async () => {
@@ -29,6 +39,8 @@ describe('repository tooling policy', () => {
     for (const script of [
       'lint',
       'lint:portable',
+      'lint:portable:quick',
+      'lint:pre-push',
       'lint:ast-grep',
       'lint:complexity',
       'lint:dependencies',
