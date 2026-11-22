@@ -89,9 +89,24 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         // CI run 45048449007: each XCUIElement property read was a separate 8 s snapshot on a cold
         // Simulator, and every tap added a whole-tree SpringBoard snapshot that once stalled 29 s.
         let base = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTestCase.swift")
-        XCTAssertTrue(base.contains("guard let snapshot = try? snapshot()"))
-        XCTAssertTrue(flow.contains("candidate.hittableFrame(labeled: label)"))
-        XCTAssertFalse(flow.contains("$0.frame.isEmpty"))
+        let frameBody = try functionBody("func hittableFrame(", in: base)
+        let frameRead = codeLines(of: frameBody)
+        let snapshotReads = try occurrences(of: #"\bsnapshot\(\)"#, in: frameRead)
+        let hittableReads = try occurrences(of: #"\bisHittable\b"#, in: frameRead)
+        // The one place that resolves a candidate: exactly one snapshot and one hittability read.
+        XCTAssertEqual(snapshotReads, 1)
+        XCTAssertEqual(hittableReads, 1)
+
+        // The tap flow must not read candidate properties itself; each read is another snapshot.
+        let tapBody = try functionBody("func tapHittableButton(", in: flow)
+        let tap = codeLines(of: tapBody)
+        let helperCalls = try occurrences(of: #"hittableFrame\(labeled:"#, in: tap)
+        let directReads = try occurrences(
+            of: #"\b(candidate|\$0|button)\.(label|frame|isEnabled|isHittable|snapshot)\b"#,
+            in: tap
+        )
+        XCTAssertEqual(helperCalls, 1)
+        XCTAssertEqual(directReads, 0)
         XCTAssertTrue(flow.contains("LaunchSmokeSystemBanner.canCover(buttonFrame)"))
         XCTAssertTrue(banner.contains("frame.minY < topBand"))
     }
@@ -119,6 +134,31 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertTrue(branches[1].contains("signedOutSubsectionMenu"))
         XCTAssertFalse(branches[1].contains("signedInSubsectionPicker"))
         XCTAssertFalse(toolbarItem.contains(".fixedSize()"))
+    }
+
+    /// Text between the braces of the function whose declaration contains `signature`.
+    private func functionBody(_ signature: String, in source: String) throws -> String {
+        let declaration = try XCTUnwrap(source.range(of: signature))
+        let open = try XCTUnwrap(source.range(of: "{\n", range: declaration.upperBound ..< source.endIndex))
+        var depth = 1
+        var index = open.upperBound
+        while index < source.endIndex, depth > 0 {
+            if source[index] == "{" { depth += 1 }
+            if source[index] == "}" { depth -= 1 }
+            index = source.index(after: index)
+        }
+        return String(source[open.upperBound ..< source.index(before: index)])
+    }
+
+    private func codeLines(of source: String) -> String {
+        source.split(separator: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+    }
+
+    private func occurrences(of pattern: String, in source: String) throws -> Int {
+        try NSRegularExpression(pattern: pattern)
+            .numberOfMatches(in: source, range: NSRange(source.startIndex..., in: source))
     }
 
     private func repoSource(_ relative: String, filePath: StaticString = #filePath) throws -> String {
