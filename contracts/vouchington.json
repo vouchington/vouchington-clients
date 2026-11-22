@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "vouchington/vouchington",
-  "commit": "e716427bacca75d23d5b49a5dbc4e5b5898f59d2",
+  "commit": "1fc49d8f4734b6a8facb511dc9a0438cd377f0d1",
   "paths": [
     "api-fixtures/v1",
     "api-contracts/v1",
