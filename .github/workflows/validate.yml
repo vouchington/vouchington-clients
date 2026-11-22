@@ -93,10 +93,7 @@ jobs:
           NPM_CONFIG_AUDIT: 'false'
         with:
           version: latest-12
-      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
-        with:
-          cache: false
-          install: false
+      - uses: ./.github/actions/setup-mise
       - name: Install the pinned portable lint tools
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -121,10 +118,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
-        with:
-          cache: false
-          install: false
+      - uses: ./.github/actions/setup-mise
       - name: Install the pinned secret scanner
         env:
           GITHUB_TOKEN: ${{ github.token }}

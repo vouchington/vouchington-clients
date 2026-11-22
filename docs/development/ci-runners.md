@@ -101,6 +101,21 @@ Add a new required test to a `merge_group`-capable job without a `github.event_n
 condition only if it also warms a cache or uploads symbols; do not build only to warm a cache. `tests/merge-queue-workflow.test.mjs`
 pins the job list that remains on a `main` push.
 
+## mise binary cache
+
+`jdx/mise-action` runs only in `.github/actions/setup-mise` and in the `setup-mise-toolchain` and `setup-swift-native` composites, which carry the same steps inline (a composite's `./` path resolves against `GITHUB_WORKSPACE`, so it cannot call a sibling from the `trusted-clients` checkout; a test pins the three copies together). A job that downloaded the
+mise binary from a github.com release asset failed on a 403 or a curl exit 56 and ejected an unrelated
+pull request from the merge queue (issue #766), and with `cache: false` mise-action never caches the
+binary. The action pins one mise release (its `version` input, so the cache key is stable), restores
+`bin/mise`, `bin/mise-version` and the signed `SHASUMS256-<version>.txt` files with `actions/cache`, and
+only then runs mise-action. mise-action finds the binary, checks it against the cached signed checksums
+without the network, and skips the download. Only a `push` to `main` saves the cache, keyed on the mise
+version, `runner.os` and `runner.arch`; pull requests and merge groups restore only. Tool installs stay
+uncached (`cache: false`). To bump mise, change the version in all three. The first `main` push per
+runner OS and architecture refills the cache, and the `build-swift-android` warm marker hashes the
+action, so that push rebuilds instead of skipping. Until then a key miss downloads as before. There are
+no retries.
+
 ## pnpm
 
 pnpm is not pinned. No `package.json` declares `packageManager`, `devEngines.packageManager`, or

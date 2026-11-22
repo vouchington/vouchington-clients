@@ -1,0 +1,74 @@
+name: Set up mise
+description: Install the pinned mise binary, restoring it from the Actions cache so a github.com release-asset outage cannot fail the job
+
+inputs:
+  version:
+    description: mise release to install, without the leading v. Bump it here only; the cache key follows it.
+    required: false
+    default: '2026.11.12'
+
+runs:
+  using: composite
+  steps:
+    - name: Locate the mise binary directory
+      id: dir
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Mirror mise-action's miseDir(): MISE_DATA_DIR, then XDG_DATA_HOME, then the platform default.
+        if [[ -n "${MISE_DATA_DIR:-}" ]]; then data="$MISE_DATA_DIR"
+        elif [[ -n "${XDG_DATA_HOME:-}" ]]; then data="$XDG_DATA_HOME/mise"
+        elif [[ "$RUNNER_OS" == Windows ]]; then data="$LOCALAPPDATA/mise"
+        else data="$HOME/.local/share/mise"
+        fi
+        echo "bin=$data/bin" >> "$GITHUB_OUTPUT"
+    - name: Restore the mise binary
+      id: mise-bin
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        # The binary, its version record, and the signed checksums mise-action verifies it against offline.
+        path: |
+          ${{ steps.dir.outputs.bin }}/mise
+          ${{ steps.dir.outputs.bin }}/mise.exe
+          ${{ steps.dir.outputs.bin }}/mise-shim.exe
+          ${{ steps.dir.outputs.bin }}/mise-version
+          ${{ steps.dir.outputs.bin }}/SHASUMS256-*
+        key: mise-bin-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}
+    - name: Install mise
+      uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+      with:
+        version: ${{ inputs.version }}
+        cache: false
+        install: false
+    - name: Check the mise binary cache is complete
+      id: mise-complete
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.mise-bin.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        MISE_BIN_DIR: ${{ steps.dir.outputs.bin }}
+        MISE_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        # mise-action tolerates a failed signed-checksum fetch; a binary-only cache would never be repaired.
+        missing=()
+        [[ -f "$MISE_BIN_DIR/mise" || -f "$MISE_BIN_DIR/mise.exe" ]] || missing+=(mise)
+        [[ -f "$MISE_BIN_DIR/SHASUMS256-$MISE_VERSION.txt" ]] || missing+=("SHASUMS256-$MISE_VERSION.txt")
+        [[ -f "$MISE_BIN_DIR/SHASUMS256-$MISE_VERSION.txt.minisig" ]] || missing+=("SHASUMS256-$MISE_VERSION.txt.minisig")
+        if (( ${#missing[@]} )); then
+          echo "::warning::Not saving the mise binary cache; missing ${missing[*]} in $MISE_BIN_DIR"
+          echo "complete=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "complete=true" >> "$GITHUB_OUTPUT"
+        fi
+    - name: Save the mise binary from main
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.mise-bin.outputs.cache-hit != 'true' && steps.mise-complete.outputs.complete == 'true'
+      continue-on-error: true
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ steps.dir.outputs.bin }}/mise
+          ${{ steps.dir.outputs.bin }}/mise.exe
+          ${{ steps.dir.outputs.bin }}/mise-shim.exe
+          ${{ steps.dir.outputs.bin }}/mise-version
+          ${{ steps.dir.outputs.bin }}/SHASUMS256-*
+        key: ${{ steps.mise-bin.outputs.cache-primary-key }}
