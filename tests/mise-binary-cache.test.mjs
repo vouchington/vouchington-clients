@@ -79,5 +79,14 @@ test('the mise binary cache is written only from main pushes', () => {
       file,
     )
     assert.doesNotMatch(action, /uses: actions\/cache@/u, file)
+    const check = action.indexOf('id: mise-complete')
+    assert.ok(check > 0 && check < action.indexOf('actions/cache/save@'), file)
+    assert.match(action, /SHASUMS256-\$MISE_VERSION\.txt\.minisig/u, file)
+    assert.match(action, /::warning::Not saving the mise binary cache/u, file)
+    assert.match(
+      action,
+      /steps\.mise-complete\.outputs\.complete == 'true'\n\s+continue-on-error: true\n\s+uses: actions\/cache\/save@/u,
+      file,
+    )
   }
 })

@@ -40,8 +40,28 @@ runs:
         version: ${{ inputs.version }}
         cache: false
         install: false
-    - name: Save the mise binary from main
+    - name: Check the mise binary cache is complete
+      id: mise-complete
       if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.mise-bin.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        MISE_BIN_DIR: ${{ steps.mise-dir.outputs.bin }}
+        MISE_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        # mise-action tolerates a failed signed-checksum fetch; a binary-only cache would never be repaired.
+        missing=()
+        [[ -f "$MISE_BIN_DIR/mise" || -f "$MISE_BIN_DIR/mise.exe" ]] || missing+=(mise)
+        [[ -f "$MISE_BIN_DIR/SHASUMS256-$MISE_VERSION.txt" ]] || missing+=("SHASUMS256-$MISE_VERSION.txt")
+        [[ -f "$MISE_BIN_DIR/SHASUMS256-$MISE_VERSION.txt.minisig" ]] || missing+=("SHASUMS256-$MISE_VERSION.txt.minisig")
+        if (( ${#missing[@]} )); then
+          echo "::warning::Not saving the mise binary cache; missing ${missing[*]} in $MISE_BIN_DIR"
+          echo "complete=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "complete=true" >> "$GITHUB_OUTPUT"
+        fi
+    - name: Save the mise binary from main
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.mise-bin.outputs.cache-hit != 'true' && steps.mise-complete.outputs.complete == 'true'
       continue-on-error: true
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
