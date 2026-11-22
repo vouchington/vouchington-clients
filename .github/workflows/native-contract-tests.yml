@@ -1602,30 +1602,19 @@ jobs:
           xcodebuild -project swift-clients/apps/iOS/Voucha.xcodeproj -scheme Voucha -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile -disablePackageRepositoryCache -clonedSourcePackagesDirPath "$SWIFT_PACKAGE_CLONES" -derivedDataPath "$XCODE_DERIVED_DATA" -destination "platform=iOS Simulator,name=$simulator_name,OS=$simulator_sdk,arch=x86_64" build SYMROOT="$XCODE_DERIVED_DATA/Build/Products" OBJROOT="$XCODE_DERIVED_DATA/Build/Intermediates.noindex" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
 
   build-ios-app:
-    name: Swift iOS Simulator launch smoke (${{ matrix.shard }})
+    name: Swift iOS Simulator launch smoke (${{ matrix.group }})
     if: ${{ github.event_name != 'push' }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         include:
-          - shard: root-shell
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaPresentationTests'
-            expected_count: 7
-          - shard: feed
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation'
-            expected_count: 1
-          - shard: sign-in
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
-            expected_count: 1
-          - shard: news
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
-            expected_count: 1
-          - shard: news-transport
-            only_testing: '-only-testing:VouchaFlowTransportTests/NewsFlowTransportTests'
-            expected_count: 3
+          - group: shell-feed-transport
+            shards: '|news-transport|root-shell|feed|'
+          - group: sign-in-news
+            shards: '|sign-in|news|'
     permissions:
       actions: read
       contents: read
@@ -1740,77 +1729,128 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
       - name: Warm LLDB for the Xcode launch
+        id: lldb
         timeout-minutes: 3
         run: time perl -e 'alarm shift; exec @ARGV' 120 xcrun lldb --batch --one-line version || echo "::warning::LLDB warm failed or passed 120s; continuing to the launch"
-      - name: Launch iOS app on Simulator
+      - name: Launch iPhone shard news-transport
+        id: shard-news-transport
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|news-transport|') }}
         timeout-minutes: 7
-        run: |
-          bundle="$(cat "$RUNNER_TEMP/ios-launch-test-products")"
-          destination="$(cat "$RUNNER_TEMP/ios-launch-destination")"
-          simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
-          case "$app" in
-            "$bundle"/*) ;;
-            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
-          esac
-          test -d "$app"
-          if [[ "${{ matrix.shard }}" != news-transport ]]; then
-          python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
-          fi
-          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ios-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ios-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
-          xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
-      - name: Collect failed iOS launch diagnostics
-        if: ${{ failure() }}
-        timeout-minutes: 2
-        continue-on-error: true
-        run: |
-          diagnostics="$RUNNER_TEMP/ios-launch-diagnostics"
-          mkdir -p "$diagnostics"
-          xcrun simctl list devices available -j > "$diagnostics/simulators.json" || true
-          if [ -f "$RUNNER_TEMP/ios-launch-simulator-id" ]; then
-            simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
-          fi
-          reports_dir="$HOME/Library/Logs/DiagnosticReports"
-          if [ -d "$reports_dir" ]; then
-            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
-          fi
-      - name: Upload failed iOS launch diagnostics
-        if: ${{ failure() }}
-        timeout-minutes: 2
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        uses: ./.github/actions/ios-launch-shard
         with:
-          name: ios-launch-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
-          path: |
-            ${{ runner.temp }}/ios-launch-smoke.xcresult
-            ${{ runner.temp }}/ios-launch-diagnostics
-          retention-days: 7
-          if-no-files-found: warn
+          shard: news-transport
+          prefix: ios-launch
+          only-testing: '-only-testing:VouchaFlowTransportTests/NewsFlowTransportTests'
+          expected-count: 3
+          spawn-gate: 'false'
+      - name: Collect iPhone diagnostics for shard news-transport
+        if: ${{ !cancelled() && steps.shard-news-transport.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: news-transport
+          prefix: ios-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Launch iPhone shard root-shell
+        id: shard-root-shell
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|root-shell|') }}
+        timeout-minutes: 7
+        uses: ./.github/actions/ios-launch-shard
+        with:
+          shard: root-shell
+          prefix: ios-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell -only-testing:VouchaPresentationTests'
+          expected-count: 7
+          spawn-gate: 'true'
+      - name: Collect iPhone diagnostics for shard root-shell
+        if: ${{ !cancelled() && steps.shard-root-shell.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: root-shell
+          prefix: ios-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Launch iPhone shard feed
+        id: shard-feed
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|feed|') }}
+        timeout-minutes: 7
+        uses: ./.github/actions/ios-launch-shard
+        with:
+          shard: feed
+          prefix: ios-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/FeedFlowTests/testVideoFeedLoadsCanonicalRowAndSurvivesTabNavigation'
+          expected-count: 1
+          spawn-gate: 'true'
+      - name: Collect iPhone diagnostics for shard feed
+        if: ${{ !cancelled() && steps.shard-feed.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: feed
+          prefix: ios-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Launch iPhone shard sign-in
+        id: shard-sign-in
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|sign-in|') }}
+        timeout-minutes: 7
+        uses: ./.github/actions/ios-launch-shard
+        with:
+          shard: sign-in
+          prefix: ios-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
+          expected-count: 1
+          spawn-gate: 'true'
+      - name: Collect iPhone diagnostics for shard sign-in
+        if: ${{ !cancelled() && steps.shard-sign-in.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: sign-in
+          prefix: ios-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Launch iPhone shard news
+        id: shard-news
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|news|') }}
+        timeout-minutes: 7
+        uses: ./.github/actions/ios-launch-shard
+        with:
+          shard: news
+          prefix: ios-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
+          expected-count: 1
+          spawn-gate: 'true'
+      - name: Collect iPhone diagnostics for shard news
+        if: ${{ !cancelled() && steps.shard-news.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: news
+          prefix: ios-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Shut down iPhone Simulator
+        if: ${{ !cancelled() }}
+        timeout-minutes: 2
+        run: xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ios-launch-simulator-id")" || true
 
   build-ios-ipad:
-    name: ${{ matrix.name }}
+    name: Swift iPad Simulator launch (${{ matrix.group }})
     if: ${{ github.event_name != 'push' }}
     needs: [verify, build-ios-tests]
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         include:
-          - shard: root-shell
-            name: Swift iPad Simulator root-shell launch
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell'
-            expected_count: 1
-          - shard: sign-in
-            name: Swift iPad Simulator sign-in flow
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
-            expected_count: 1
-          - shard: news
-            name: Swift iPad Simulator News flow
-            only_testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
-            expected_count: 1
+          - group: root-shell-news
+            shards: '|root-shell|news|'
+          - group: sign-in
+            shards: '|sign-in|'
     permissions:
       actions: read
       contents: read
@@ -1931,61 +1971,73 @@ jobs:
           test "$(find "$bundle" -type d -name VouchaLaunchSmokeTests.xctest -print -quit)" = "$(jq -r '.testBundle' "$manifest")"
           test "$(find "$bundle" -type d -name VouchaFlowTransportTests.xctest -print -quit)" = "$(jq -r '.flowTestBundle' "$manifest")"
       - name: Warm LLDB for the Xcode launch
+        id: lldb
         timeout-minutes: 3
         run: time perl -e 'alarm shift; exec @ARGV' 120 xcrun lldb --batch --one-line version || echo "::warning::LLDB warm failed or passed 120s; continuing to the launch"
-      - name: Launch iPad root shell on Simulator
+      - name: Launch iPad shard root-shell
+        id: shard-root-shell
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|root-shell|') }}
         timeout-minutes: 9
-        run: |
-          bundle="$(cat "$RUNNER_TEMP/ipad-launch-test-products")"
-          destination="$(cat "$RUNNER_TEMP/ipad-launch-destination")"
-          simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          app="$(jq -r '.app' "$RUNNER_TEMP/ios-test-artifact/ios-test-manifest.json")"
-          case "$app" in
-            "$bundle"/*) ;;
-            *) echo "::error::Refusing to install an app outside the unpacked test products" >&2; exit 1 ;;
-          esac
-          test -d "$app"
-          python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"
-          xcodebuild -testProductsPath "$bundle" -destination "$destination" -destination-timeout 120 -disableAutomaticPackageResolution -collect-test-diagnostics never -parallel-testing-enabled NO ${{ matrix.only_testing }} -resultBundlePath "$RUNNER_TEMP/ipad-launch-smoke.xcresult" test-without-building VOUCHA_CONTRACT_ROOT="$VOUCHA_CONTRACT_ROOT" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/ipad-launch-smoke.xcresult" | jq -e '.totalTestCount == ${{ matrix.expected_count }} and .passedTests == ${{ matrix.expected_count }} and .failedTests == 0 and .skippedTests == 0'
-          xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true
-          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-            {
-              echo "### iPad ${{ matrix.shard }}"
-              echo
-              echo "Simulator: $(cat "$RUNNER_TEMP/ipad-launch-simulator-name")"
-              echo
-              echo "Accepted one passed test and zero skipped tests."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Collect failed iPad launch diagnostics
-        if: ${{ failure() }}
-        timeout-minutes: 2
-        continue-on-error: true
-        run: |
-          diagnostics="$RUNNER_TEMP/ipad-launch-diagnostics"
-          mkdir -p "$diagnostics"
-          xcrun simctl list devices available -j > "$diagnostics/simulators.json" || true
-          if [ -f "$RUNNER_TEMP/ipad-launch-simulator-id" ]; then
-            simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-            xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "Voucha" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "ai.voucha.ios")' > "$diagnostics/launch.log" 2>&1 || true
-          fi
-          reports_dir="$HOME/Library/Logs/DiagnosticReports"
-          if [ -d "$reports_dir" ]; then
-            find "$reports_dir" -maxdepth 1 \( -name 'Voucha*.ips' -o -name 'Voucha*.crash' \) -mmin -15 -exec cp {} "$diagnostics"/ \; || true
-          fi
-      - name: Upload failed iPad launch diagnostics
-        if: ${{ failure() }}
-        timeout-minutes: 2
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.0
+        uses: ./.github/actions/ios-launch-shard
         with:
-          name: ipad-launch-diagnostics-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/ipad-launch-smoke.xcresult
-            ${{ runner.temp }}/ipad-launch-diagnostics
-          retention-days: 7
-          if-no-files-found: warn
+          shard: root-shell
+          prefix: ipad-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/LaunchSmokeTests/testLaunchRendersRootShell'
+          expected-count: 1
+          spawn-gate: 'true'
+      - name: Collect iPad diagnostics for shard root-shell
+        if: ${{ !cancelled() && steps.shard-root-shell.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: root-shell
+          prefix: ipad-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Launch iPad shard news
+        id: shard-news
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|news|') }}
+        timeout-minutes: 9
+        uses: ./.github/actions/ios-launch-shard
+        with:
+          shard: news
+          prefix: ipad-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/NewsFlowTests/testNewsRelatedArticlesExpandAndCollapse'
+          expected-count: 1
+          spawn-gate: 'true'
+      - name: Collect iPad diagnostics for shard news
+        if: ${{ !cancelled() && steps.shard-news.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: news
+          prefix: ipad-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Launch iPad shard sign-in
+        id: shard-sign-in
+        if: ${{ !cancelled() && steps.lldb.outcome == 'success' && contains(matrix.shards, '|sign-in|') }}
+        timeout-minutes: 9
+        uses: ./.github/actions/ios-launch-shard
+        with:
+          shard: sign-in
+          prefix: ipad-launch
+          only-testing: '-only-testing:VouchaLaunchSmokeTests/SignInFlowTests/testEmailOTPSignInReplacesTheSignedOutControl'
+          expected-count: 1
+          spawn-gate: 'true'
+      - name: Collect iPad diagnostics for shard sign-in
+        if: ${{ !cancelled() && steps.shard-sign-in.outcome == 'failure' }}
+        timeout-minutes: 3
+        continue-on-error: true
+        uses: ./.github/actions/ios-launch-diagnostics
+        with:
+          shard: sign-in
+          prefix: ipad-launch
+          artifact-suffix: ${{ matrix.group }}
+      - name: Shut down iPad Simulator
+        if: ${{ !cancelled() }}
+        timeout-minutes: 2
+        run: xcrun simctl shutdown "$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")" || true
 
   dotnet-maui-tests:
     name: .NET MAUI rendered pages
