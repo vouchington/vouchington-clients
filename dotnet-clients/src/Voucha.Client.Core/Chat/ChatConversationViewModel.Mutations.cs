@@ -16,12 +16,10 @@ public sealed partial class ChatConversationViewModel
     var currentRequest = BeginMutation();
     try
     {
-      var updated = await chatService.UpdateConversationTitleAsync(
-          ConversationId,
-          trimmed,
-          cancellationToken).ConfigureAwait(true);
+      var updated = await WriteTitleAsync(ConversationId, trimmed, cancellationToken).ConfigureAwait(true);
       if (currentRequest != Volatile.Read(ref requestId)) return;
       Title = updated.Conversation.Title;
+      ErrorMessage = null;
       State = LoadState.Loaded;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
@@ -33,16 +31,6 @@ public sealed partial class ChatConversationViewModel
         State = LoadState.Error;
       }
     }
-  }
-
-  public async Task GenerateTitleAsync(
-      bool suppressErrors = false,
-      CancellationToken cancellationToken = default)
-  {
-    if (ConversationId is null || IsDeleted) return;
-
-    var currentRequest = BeginMutation();
-    await GenerateTitleAsyncCore(currentRequest, suppressErrors, cancellationToken).ConfigureAwait(true);
   }
 
   public async Task DeleteAsync(CancellationToken cancellationToken = default)
@@ -143,36 +131,4 @@ public sealed partial class ChatConversationViewModel
     messages.RemoveAt(index);
     OnPropertyChanged(nameof(Messages));
   }
-
-  private async Task GenerateTitleAsyncCore(
-      int? currentRequest,
-      bool suppressErrors,
-      CancellationToken cancellationToken)
-  {
-    if (ConversationId is null || IsDeleted) return;
-
-    var previous = Title;
-    try
-    {
-      var updated = await chatService.GenerateConversationTitleAsync(
-          ConversationId,
-          cancellationToken).ConfigureAwait(true);
-      if (currentRequest is not null && currentRequest.Value != Volatile.Read(ref requestId)) return;
-      Title = updated.Conversation.Title;
-      State = LoadState.Loaded;
-    }
-    catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
-    {
-      if (currentRequest is null || currentRequest.Value == Volatile.Read(ref requestId))
-      {
-        Title = previous;
-        if (!suppressErrors)
-        {
-          ErrorMessage = ex.Message;
-          State = LoadState.Error;
-        }
-      }
-    }
-  }
-
 }

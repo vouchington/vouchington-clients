@@ -20,6 +20,10 @@ internal sealed partial class FakeChatService : IChatService
 
   public Exception? UpdateConversationTitleError { get; set; }
 
+  public Func<string, string, Task<ChatConversationResponse>>? UpdateConversationTitleAsyncOverride { get; set; }
+
+  public List<(string ConversationId, string Title)> UpdatedTitles { get; } = [];
+
   public Exception? CreateConversationError { get; set; }
 
   public Exception? FetchMyConversationsError { get; set; }
@@ -73,6 +77,8 @@ internal sealed partial class FakeChatService : IChatService
       string title,
       CancellationToken cancellationToken = default)
   {
+    UpdatedTitles.Add((conversationId, title));
+    if (UpdateConversationTitleAsyncOverride is not null) return UpdateConversationTitleAsyncOverride(conversationId, title);
     if (UpdateConversationTitleError is not null) throw UpdateConversationTitleError;
     return Task.FromResult(UpdateConversationTitleResult);
   }

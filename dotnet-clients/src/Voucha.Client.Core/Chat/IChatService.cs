@@ -29,10 +29,6 @@ public interface IChatService
       string title,
       CancellationToken cancellationToken = default);
 
-  Task<ChatConversationResponse> GenerateConversationTitleAsync(
-      string conversationId,
-      CancellationToken cancellationToken = default);
-
   Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default);
 
   Task<ClientGeneratedChatResponse> CreateClientGeneratedChatAsync(

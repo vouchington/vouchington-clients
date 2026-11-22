@@ -38,11 +38,6 @@ public sealed class ApiChatService : IChatService
       CancellationToken cancellationToken = default) =>
       client.UpdateChatConversationTitleAsync(conversationId, title, cancellationToken);
 
-  public Task<ChatConversationResponse> GenerateConversationTitleAsync(
-      string conversationId,
-      CancellationToken cancellationToken = default) =>
-      client.GenerateChatConversationTitleAsync(conversationId, cancellationToken);
-
   public Task DeleteConversationAsync(string conversationId, CancellationToken cancellationToken = default) =>
       client.DeleteChatConversationAsync(conversationId, cancellationToken);
 

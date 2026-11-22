@@ -16,5 +16,6 @@ public sealed partial class ChatConversationViewModel
   {
     localeSubscription?.Dispose();
     streamingCts?.Dispose();
+    titleWriteGate.Dispose();
   }
 }

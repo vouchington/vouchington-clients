@@ -63,6 +63,7 @@ public sealed partial class ChatConversationViewModel :
       if (SetProperty(ref conversationId, value))
       {
         OnPropertyChanged(nameof(CanRename));
+        OnPropertyChanged(nameof(CanGenerateTitle));
         OnPropertyChanged(nameof(CanDelete));
       }
     }
@@ -76,6 +77,7 @@ public sealed partial class ChatConversationViewModel :
       if (SetProperty(ref title, value))
       {
         OnPropertyChanged(nameof(DisplayTitle));
+        OnPropertyChanged(nameof(CanGenerateTitle));
       }
     }
   }
@@ -100,6 +102,7 @@ public sealed partial class ChatConversationViewModel :
           pendingLocalTurn = null;
         }
         OnPropertyChanged(nameof(ProviderStatusText));
+        OnPropertyChanged(nameof(CanGenerateTitle));
         OnPropertyChanged(nameof(CanSetUpSelectedWindowsSystemLanguageModel));
       }
     }
@@ -125,7 +128,7 @@ public sealed partial class ChatConversationViewModel :
     private set => SetPropertyAndNotify(
         ref state,
         value,
-        [nameof(IsLoading), nameof(HasError), nameof(CanSend)]);
+        [nameof(IsLoading), nameof(HasError), nameof(CanSend), nameof(CanGenerateTitle)]);
   }
 
   public bool HasMoreMessages
@@ -149,6 +152,7 @@ public sealed partial class ChatConversationViewModel :
       {
         OnPropertyChanged(nameof(CanSend));
         OnPropertyChanged(nameof(CanRename));
+        OnPropertyChanged(nameof(CanGenerateTitle));
         OnPropertyChanged(nameof(CanDelete));
       }
     }
@@ -163,6 +167,7 @@ public sealed partial class ChatConversationViewModel :
       {
         OnPropertyChanged(nameof(CanSend));
         OnPropertyChanged(nameof(CanRename));
+        OnPropertyChanged(nameof(CanGenerateTitle));
       }
     }
   }

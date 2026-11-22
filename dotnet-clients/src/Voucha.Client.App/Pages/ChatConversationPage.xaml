@@ -44,7 +44,7 @@
                 <Entry x:Name="TitleEntry" Text="{Binding Title}" Placeholder="{DynamicResource native.swift.chat.conversationTitle}" />
                 <HorizontalStackLayout Grid.Column="1" Spacing="8">
                     <Button Text="{DynamicResource native.swift.chat.rename}" Clicked="OnRenameClicked" IsEnabled="{Binding CanRename}" />
-                    <Button Text="{DynamicResource native.swift.landingPages.title}" Clicked="OnGenerateTitleClicked" IsEnabled="{Binding CanRename}" />
+                    <Button Text="{DynamicResource native.swift.landingPages.title}" Clicked="OnGenerateTitleClicked" IsEnabled="{Binding CanGenerateTitle}" />
                     <Button Text="{DynamicResource native.swift.common.delete}" Clicked="OnDeleteClicked" IsEnabled="{Binding CanDelete}" />
                 </HorizontalStackLayout>
             </Grid>
