@@ -339,6 +339,7 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     baseNeeds['dotnet-windows-language-model-surface'] = { result: 'skipped' }
     baseNeeds['dotnet-windows-maui'] = { result: 'skipped' }
 
+    const routeArgs = ['route', 'maui', 'surface', 'docs'].flatMap(name => ['--arg', name, 'false'])
     for (const [result, succeeds] of [
       ['success', true],
       ['failure', false],
@@ -352,29 +353,10 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       }
       let accepted = false
       try {
-        execFileSync(
-          'jq',
-          [
-            '-e',
-            '--arg',
-            'route',
-            'false',
-            '--arg',
-            'maui',
-            'false',
-            '--arg',
-            'surface',
-            'false',
-            '--arg',
-            'docs',
-            'false',
-            expression,
-          ],
-          {
-            input: JSON.stringify(needs),
-            stdio: ['pipe', 'pipe', 'pipe'],
-          },
-        )
+        execFileSync('jq', ['-e', ...routeArgs, expression], {
+          input: JSON.stringify(needs),
+          stdio: ['pipe', 'pipe', 'pipe'],
+        })
         accepted = true
       } catch (error) {
         assert.equal(error.status, 1)
@@ -390,26 +372,10 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       }
       assert.throws(
         () =>
-          execFileSync(
-            'jq',
-            [
-              '-e',
-              '--arg',
-              'route',
-              'false',
-              '--arg',
-              'maui',
-              'false',
-              '--arg',
-              'surface',
-              'false',
-              '--arg',
-              'docs',
-              'false',
-              expression,
-            ],
-            { input: JSON.stringify(needs), stdio: ['pipe', 'pipe', 'pipe'] },
-          ),
+          execFileSync('jq', ['-e', ...routeArgs, expression], {
+            input: JSON.stringify(needs),
+            stdio: ['pipe', 'pipe', 'pipe'],
+          }),
         error => {
           assert.equal(error.status, 1)
           assert.equal(error.stderr.toString(), '')
@@ -427,26 +393,10 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       }
       assert.throws(
         () =>
-          execFileSync(
-            'jq',
-            [
-              '-e',
-              '--arg',
-              'route',
-              'false',
-              '--arg',
-              'maui',
-              'false',
-              '--arg',
-              'surface',
-              'false',
-              '--arg',
-              'docs',
-              'false',
-              expression,
-            ],
-            { input: JSON.stringify(needs), stdio: ['pipe', 'pipe', 'pipe'] },
-          ),
+          execFileSync('jq', ['-e', ...routeArgs, expression], {
+            input: JSON.stringify(needs),
+            stdio: ['pipe', 'pipe', 'pipe'],
+          }),
         error => {
           assert.equal(error.status, 1)
           assert.equal(error.stderr.toString(), '')
