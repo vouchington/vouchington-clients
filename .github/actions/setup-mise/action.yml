@@ -45,7 +45,7 @@ runs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.mise-bin.outputs.cache-hit != 'true'
       shell: bash
       env:
-        MISE_BIN_DIR: ${{ steps.mise-dir.outputs.bin }}
+        MISE_BIN_DIR: ${{ steps.dir.outputs.bin }}
         MISE_VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail

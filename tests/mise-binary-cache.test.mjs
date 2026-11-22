@@ -90,3 +90,13 @@ test('the mise binary cache is written only from main pushes', () => {
     )
   }
 })
+
+test('every steps.<id> reference in a composite resolves to an earlier step id', () => {
+  for (const file of composites) {
+    const action = read(file)
+    for (const match of action.matchAll(/\bsteps\.([\w-]+)\./gu)) {
+      const defined = action.slice(0, match.index).match(new RegExp(`^\\s+id: ${match[1]}$`, 'mu'))
+      assert.ok(defined, `${file} references steps.${match[1]} before any step defines that id`)
+    }
+  }
+})
