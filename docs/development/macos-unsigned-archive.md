@@ -1,6 +1,12 @@
 # macOS unsigned archive and DMG check
 
-`release-macos-unsigned.yml` runs on macOS release-source pull requests and by manual dispatch.
+`release-macos-unsigned.yml` runs by manual dispatch and on pull requests that change a packaging input: the macOS
+`Info.plist`, `project.yml`, entitlements, privacy manifest, export options, or `Resources/`; the
+`core` and `ui` package manifests and `Package.resolved` files; `generate.sh`; the Turnstile
+release-key tooling; this workflow; or the Sentry symbol workflow. Ordinary Swift source changes
+skip it because the macOS app smoke build in `native-contract-tests.yml` covers them. It has no
+release-tag or merge-queue trigger, and the required checks are `validate` and `Tests`, so skipping
+it never blocks a merge.
 It generates the macOS project, archives a Release app with code signing disabled, exports
 the archive with Xcode's `mac-application` Copy App method, and assembles and verifies a DMG.
 The build number is `<GitHub run number>.<attempt>.0` in `CFBundleVersion`, checked in the
