@@ -27,7 +27,7 @@ final class LaunchSmokeTests: LaunchSmokeTestCase {
         waitForLaunchReadiness(of: rootShell)
         let signIn = app.buttons.matching(identifier: "signed-out-sign-in").firstMatch
         XCTAssertTrue(signIn.waitForExistence(timeout: 20))
-        XCTAssertTrue(signIn.isHittable)
+        waitForHittable(signIn, "Sign in button was not hittable")
     }
 
     #if os(macOS)
