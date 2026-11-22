@@ -93,14 +93,14 @@ public sealed partial class PostComposeViewModel : ObservableObject, IDisposable
 
   public IReadOnlyList<PostComposeImageDraft> Images { get; private set; } = [];
 
-  public bool CanAddImages => imageUploadService is not null && Images.Count < MaxImages && !IsUploadingImages;
+  public bool CanAddImages => imageUploadService is not null && HasImageCapacity && !IsUploadingImages;
 
   public bool IsUploadingImages =>
       imageUploadBatchInProgress != 0 ||
       imageUploadInProgress != 0 ||
       Images.Any(image => image.IsUploading);
 
-  public string ImageCountLabel => $"{Images.Count}/{MaxImages}";
+  public string ImageCountLabel => ImageLimit is { } limit ? $"{Images.Count}/{limit}" : $"{Images.Count}";
 
   public PostMutationResponse? LastResponse { get; private set; }
 

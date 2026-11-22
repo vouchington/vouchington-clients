@@ -173,6 +173,8 @@ public sealed partial class PostComposeViewModel
             UiMessageKey.NativeTaxonomyContributionAdmissionCapacityUnavailable),
         "IDEMPOTENCY_KEY_REUSED" => localization.Localize(
             UiMessageKey.NativeTaxonomyContributionAdmissionIdempotencyMismatch),
+        "POST_IMAGE_LIMIT_REACHED" => localization.Localize(UiMessageKey.SharedPostImageLimit),
+        "POST_CATEGORY_LIMIT_REACHED" => localization.Localize(UiMessageKey.SharedPostCategoryLimit),
         _ => ImagePlacementErrors.Message(exception, localization),
       };
 

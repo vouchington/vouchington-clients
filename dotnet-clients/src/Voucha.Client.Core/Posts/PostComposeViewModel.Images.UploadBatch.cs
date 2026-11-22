@@ -13,7 +13,7 @@ public sealed partial class PostComposeViewModel
     return new ImageUploadBatchScope(this);
   }
 
-  public bool CanUploadMoreImagesInBatch => imageUploadService is not null && Images.Count < MaxImages;
+  public bool CanUploadMoreImagesInBatch => imageUploadService is not null && HasImageCapacity;
 
   private void EndImageUploadBatch()
   {

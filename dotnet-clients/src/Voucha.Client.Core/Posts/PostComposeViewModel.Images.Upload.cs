@@ -45,7 +45,11 @@ public sealed partial class PostComposeViewModel
         CompleteError(localization.Localize(UiMessageKey.NativeDotnetCsharpImageUploadsUnavailable));
         return false;
       }
-      if (Images.Count >= MaxImages) return false;
+      if (!HasImageCapacity)
+      {
+        ReportImageLimitReached();
+        return false;
+      }
       if (contentLength is < 0 or > MaxImageUploadBytes)
       {
         CompleteError(localization.Localize(UiMessageKey.NativeDotnetCsharpImageTooLarge));
@@ -62,7 +66,7 @@ public sealed partial class PostComposeViewModel
             cancellationToken).ConfigureAwait(true);
         if (!IsCurrentImageDraftGeneration(imageDraftGeneration)) return false;
         uploadedImageId = upload.Upload.ImageId;
-        if (!TryAddImageDraft(new PostComposeImageDraft(
+        if (!TryAdmitUploadedImage(new PostComposeImageDraft(
                 uploadedImageId,
                 Images.Count,
                 TrimmedText.NonEmpty(caption),

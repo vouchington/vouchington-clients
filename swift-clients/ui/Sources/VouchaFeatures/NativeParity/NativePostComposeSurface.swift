@@ -107,6 +107,7 @@ struct NativePostComposeSurface: View {
             client: client,
             gate: viewModel.emailVerificationGate
         )
+        .task { await viewModel.loadImageLimit() }
         .onDisappear { viewModel.clearImagePreviewsForNavigation() }
     }
 
@@ -144,7 +145,8 @@ struct NativePostComposeSurface: View {
     @ViewBuilder
     private func composeStatus(viewModel: NativePostComposeViewModel) -> some View {
         if case let .error(error) = viewModel.state,
-           let message = ImagePlacementErrorPresentation.message(for: error) {
+           let message = ImagePlacementErrorPresentation.message(for: error)
+           ?? NativePostLimitErrorPresentation.message(for: error) {
             Text(UiMessages.string(message, locale: nativeUiLocale))
                 .foregroundStyle(Colors.negativeVote)
         }
@@ -173,7 +175,6 @@ struct NativePostComposeSurface: View {
             .foregroundStyle(Colors.secondaryLabel)
         }
     }
-
 }
 
 extension NativePostComposeSurface {
