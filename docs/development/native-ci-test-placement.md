@@ -121,10 +121,16 @@ passing unpacks took 8 to 176 seconds across seven recent runs, and the former 3
 the iPhone News leg of run 44121822954 on a starved runner.
 After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
 `simctl launch` to report a numeric process id, and stops that process before `xcodebuild`.
-That spawn gate stops after 150 seconds and still runs `xcodebuild`; every passing gate observed
-before the cap finished in under two minutes, and a longer gate pushed the sign-in leg past its
-former 9-minute job cap after the test had already passed. A launch that returns no process id
-still fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
+That spawn gate gives install and launch one 150-second budget and still runs `xcodebuild` when
+it runs out; every passing gate observed before the cap finished in under two minutes, and a longer
+gate pushed the sign-in leg past its former 9-minute job cap after the test had already passed.
+`simctl terminate` has its own 60-second budget, not what is left of the 150: across 140 passing
+gates it took p50 4 s, p95 37 s, max 104 s, and when it hangs it does not return. A hung terminate
+reinstalls the app (60 seconds shared by uninstall and install) and fails the step if that also
+hangs. The gate no longer erases the Simulator: erase shuts the device down, so `xcodebuild` boots
+it cold and repeats the data migration, which took the run 45036089782 iPad sign-in shard past its
+9-minute cap (the gate ran 245 s, then the test runner bootstrapped 5 minutes after `xcodebuild`
+started). A launch that returns no process id still fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
 failure: the test's launch window ended before the app process existed.
 Just before the launch step, each iPhone leg and the iPad job run
 `time xcrun lldb --batch --one-line version` under a 120-second `perl` alarm inside a 3-minute step cap. A failed or
@@ -159,7 +165,7 @@ Simulator. Its job cap is 25 minutes, like the iPhone jobs, and each launch step
 raised with user approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
 artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
 The iPad launch then installs the same verified app, requires the same process id, and stops
-that process before `xcodebuild`, with the same 150-second gate.
+that process before `xcodebuild`, with the same gate.
 The x86_64 job stays one `xcodebuild` compile with a 12-minute job cap and a 9-minute compile
 step cap. That step builds the whole app slice, so splitting it would not remove a second phase.
 The native `Tests` fan-in requires both device-family launches and the x86_64 compile.
@@ -168,6 +174,15 @@ Each launch receives the complete fixture checkout explicitly through the genera
 closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted
 as feed-flow or sign-in evidence. This is partial coverage of #77. The video-feed lane and the
 iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst remain outstanding.
+
+Readiness has one deadline, 600 seconds from the boot command (the `Start` step writes the epoch,
+the `Wait` step runs `bootstatus -b` under `perl` `alarm` for what remains, behind an 11-minute step
+cap). Boot to ready took p50 178 s, p95 285 s, p99 359 s and max 454 s over 1,217 passing launch
+jobs from 2026-11-15 to 2026-11-22; the slowest sat on `com.apple.locationd.migrator` for nearly
+four minutes and finished. The former 4-minute cap started after the artifact download, so a
+146-second download left run 45006025242 400 seconds and its iPad migration was still running at
+6:41. A new Simulator device does not skip the migration: a freshly created device runs migrators
+on its first boot as well. A stall past 600 seconds fails the job; nothing retries it.
 
 Boot is the setup cost. In run 45000131817, with every download and extract moved ahead of the
 boot, downloads fell to 2-15 s but the readiness wait took 85-142 s and setup stayed near 240 s per

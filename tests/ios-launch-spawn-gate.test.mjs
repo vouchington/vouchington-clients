@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { describe, it } from 'node:test'
 
-function run(terminateBehavior, uninstallExit, eraseExit = 1) {
+function run(terminateBehavior, uninstallExit, launchBehavior = 'true') {
   const dir = mkdtempSync(join(tmpdir(), 'spawn-gate-'))
   const bin = join(dir, 'bin')
   mkdirSync(bin)
@@ -18,10 +18,9 @@ function run(terminateBehavior, uninstallExit, eraseExit = 1) {
     `#!/bin/sh
 echo "$2" >> "${log}"
 case "$2" in
-  launch) echo "ai.voucha.ios: 4242" ;;
+  launch) ${launchBehavior}; echo "ai.voucha.ios: 4242" ;;
   terminate) ${terminateBehavior} ;;
   uninstall) exit ${uninstallExit} ;;
-  erase) exit ${eraseExit} ;;
 esac
 exit 0
 `,
@@ -37,6 +36,7 @@ exit 0
     `import runpy, sys, re
 text = open(${JSON.stringify(source)}).read()
 text = text.replace("BUDGET_SECONDS = 150", "BUDGET_SECONDS = 3")
+text = text.replace("TERMINATE_SECONDS = 60", "TERMINATE_SECONDS = 3")
 text = text.replace("RECOVERY_SECONDS = 60", "RECOVERY_SECONDS = 3")
 text = text.replace("/usr/libexec/PlistBuddy", ${JSON.stringify(join(bin, 'PlistBuddy'))})
 exec(compile(text, "gate", "exec"))
@@ -64,23 +64,18 @@ describe('ios launch spawn gate', () => {
     assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall', 'install'])
   })
 
-  it('erases the device when terminate hangs and the app reset fails', () => {
-    const result = run('sleep 30', 1, 0)
-    assert.equal(result.status, 0, result.stderr)
-    assert.match(result.stdout, /erase/u)
-    assert.deepEqual(result.calls, [
-      'install',
-      'launch',
-      'terminate',
-      'uninstall',
-      'shutdown',
-      'erase',
-    ])
-  })
-
-  it('fails closed when terminate hangs and both the reset and the erase fail', () => {
-    const result = run('sleep 30', 1, 1)
+  it('fails closed without erasing the device when terminate hangs and the app reset fails', () => {
+    const result = run('sleep 30', 1)
     assert.equal(result.status, 1)
     assert.match(result.stderr, /Could not stop the pre-launched app/u)
+    assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall'])
+    assert.doesNotMatch(result.stdout, /erase/u)
+  })
+
+  it('gives terminate its own budget when install and launch used the shared one', () => {
+    const result = run('sleep 2', 0, 'sleep 2')
+    assert.equal(result.status, 0, result.stderr)
+    assert.match(result.stdout, /stopped/u)
+    assert.doesNotMatch(result.stdout, /terminate-budget-exhausted/u)
   })
 })

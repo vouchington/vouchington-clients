@@ -1713,6 +1713,7 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
+          date +%s > "$RUNNER_TEMP/ios-launch-boot-epoch"
           simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
           case "$simulator_state" in
             Shutdown) xcrun simctl boot "$simulator_id" ;;
@@ -1729,10 +1730,18 @@ jobs:
           skip-candidate-install: true
           skip-candidate-checkout: true
       - name: Wait for iPhone Simulator readiness
-        timeout-minutes: 4
+        timeout-minutes: 11
         run: |
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
-          xcrun simctl bootstatus "$simulator_id" -b
+          boot_epoch="$(cat "$RUNNER_TEMP/ios-launch-boot-epoch")"
+          remaining=$((600 - ($(date +%s) - boot_epoch)))
+          if ((remaining < 10)); then remaining=10; fi
+          status=0
+          perl -e 'alarm shift; exec @ARGV' "$remaining" xcrun simctl bootstatus "$simulator_id" -b || status=$?
+          if ((status == 142)); then
+            echo "::error::Simulator was not ready 600s after boot; data migration outlasted the deadline" >&2
+          fi
+          exit "$status"
       - name: Verify and unpack iOS test products
         timeout-minutes: 6
         env:
@@ -1954,6 +1963,7 @@ jobs:
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
           printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
           printf '%s\n' "platform=iOS Simulator,id=$simulator_id" > "$RUNNER_TEMP/ipad-launch-destination"
+          date +%s > "$RUNNER_TEMP/ipad-launch-boot-epoch"
           simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
           case "$simulator_state" in
             Shutdown) xcrun simctl boot "$simulator_id" ;;
@@ -1966,10 +1976,18 @@ jobs:
           name: ios-test-products-${{ github.run_id }}-${{ needs.build-ios-tests.outputs.artifact-attempt }}
           path: ${{ runner.temp }}/ios-test-artifact
       - name: Wait for iPad Simulator readiness
-        timeout-minutes: 4
+        timeout-minutes: 11
         run: |
           simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
-          xcrun simctl bootstatus "$simulator_id" -b
+          boot_epoch="$(cat "$RUNNER_TEMP/ipad-launch-boot-epoch")"
+          remaining=$((600 - ($(date +%s) - boot_epoch)))
+          if ((remaining < 10)); then remaining=10; fi
+          status=0
+          perl -e 'alarm shift; exec @ARGV' "$remaining" xcrun simctl bootstatus "$simulator_id" -b || status=$?
+          if ((status == 142)); then
+            echo "::error::Simulator was not ready 600s after boot; data migration outlasted the deadline" >&2
+          fi
+          exit "$status"
       - name: Verify and unpack iOS test products
         timeout-minutes: 6
         env:
