@@ -76,7 +76,6 @@ public sealed partial class PostComposeViewModel
 
   private PostComposeImageDraft[] NormalizeImages(IReadOnlyList<PostComposeImageDraft> images) =>
       images
-          .Take(ImageLimit ?? int.MaxValue)
           .Select((image, index) => NormalizeImage(image, index))
           .ToArray();
 

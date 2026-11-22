@@ -83,6 +83,22 @@ public sealed class PostComposeLimitTests
   }
 
   [Fact]
+  public async Task LowerFetchedLimitKeepsExistingDraftsOnEdit()
+  {
+    var viewModel = NewViewModel(new LimitPostsService(Task.FromResult<int?>(2)));
+    for (var index = 0; index < 3; index++)
+    {
+      Assert.True(viewModel.TryAddImageDraft(new PostComposeImageDraft($"image-{index}", index)));
+    }
+    await viewModel.LoadImageLimitAsync(TestContext.Current.CancellationToken);
+
+    viewModel.SetImageCaption("image-0", "caption");
+
+    Assert.Equal(["image-0", "image-1", "image-2"], viewModel.Images.Select(image => image.ImageId));
+    Assert.False(viewModel.TryAddImageDraft(new PostComposeImageDraft("image-3", 3)));
+  }
+
+  [Fact]
   public async Task PublishMapsImageLimitCodeToItsMessage() =>
       await AssertPublishMapsCode("POST_IMAGE_LIMIT_REACHED", UiMessageKey.SharedPostImageLimit);
 
