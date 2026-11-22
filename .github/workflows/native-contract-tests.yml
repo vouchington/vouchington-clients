@@ -428,7 +428,7 @@ jobs:
         working-directory: candidate-clients/dotnet-clients
         run: |
           set -euo pipefail
-          reports="$(find TestResults/core -type f -name coverage.info -print)"
+          reports="$(find TestResults/core -type f -name coverage.info -not -path '*/In/*' -print)"
           [ "$(printf '%s\n' "$reports" | sed '/^$/d' | wc -l | tr -d ' ')" = 1 ] || {
             echo '::error::Expected exactly one coverage.info under TestResults/core.'
             exit 1
