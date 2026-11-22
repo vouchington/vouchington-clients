@@ -9,7 +9,12 @@ const workflow = readFileSync(
 
 describe('native CI failure diagnostics', () => {
   it('keeps failed launch xcresults long enough to investigate', () => {
-    for (const name of ['macos', 'ios', 'ipad']) {
+    const diagnostics = readFileSync(
+      new URL('../.github/actions/ios-launch-diagnostics/action.yml', import.meta.url),
+      'utf8',
+    )
+    assert.match(diagnostics, /retention-days: 7/u)
+    for (const name of ['macos']) {
       assert.match(
         workflow,
         new RegExp(

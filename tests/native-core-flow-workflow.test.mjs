@@ -8,6 +8,11 @@ const workflow = readFileSync(
   'utf8',
 )
 
+const shardAction = readFileSync(
+  new URL('../.github/actions/ios-launch-shard/action.yml', import.meta.url),
+  'utf8',
+)
+
 describe('native sign-in and News CI selection (not runtime evidence)', () => {
   it('builds and independently requires News UI and iOS-only transport cases', () => {
     const project = readFileSync(
@@ -26,15 +31,14 @@ describe('native sign-in and News CI selection (not runtime evidence)', () => {
     )
     assert.match(build, /-only-testing:VouchaFlowTransportTests\/NewsFlowTransportTests/u)
     assert.match(
-      run,
-      /shard: news\n\s+only_testing: '-only-testing:VouchaLaunchSmokeTests\/NewsFlowTests\/testNewsRelatedArticlesExpandAndCollapse'\n\s+expected_count: 1/u,
+      stepBlock(run, 'Launch iPhone shard news'),
+      /only-testing: '-only-testing:VouchaLaunchSmokeTests\/NewsFlowTests\/testNewsRelatedArticlesExpandAndCollapse'\n\s+expected-count: 1/u,
     )
     assert.match(
-      run,
-      /shard: news-transport\n\s+only_testing: '-only-testing:VouchaFlowTransportTests\/NewsFlowTransportTests'\n\s+expected_count: 3/u,
+      stepBlock(run, 'Launch iPhone shard news-transport'),
+      /only-testing: '-only-testing:VouchaFlowTransportTests\/NewsFlowTransportTests'\n\s+expected-count: 3\n\s+spawn-gate: 'false'/u,
     )
-    assert.match(run, /matrix\.shard.*!= news-transport/u)
-    assert.match(run, /\.failedTests == 0 and \.skippedTests == 0/u)
+    assert.match(shardAction, /\.failedTests == 0 and \.skippedTests == 0/u)
     assert.doesNotMatch(
       run,
       /-retry-tests-on-failure|-test-iterations|continue-on-error: true[\s\S]*test-without-building/u,
@@ -43,16 +47,22 @@ describe('native sign-in and News CI selection (not runtime evidence)', () => {
 
   it('runs independent iPad root, sign-in, and News shards from the same build', () => {
     const run = jobBlock(workflow, 'build-ios-ipad')
-    assert.match(run, /name: \$\{\{ matrix\.name \}\}/u)
-    assert.match(run, /name: Swift iPad Simulator root-shell launch/u)
+    assert.match(run, /name: Swift iPad Simulator launch \(\$\{\{ matrix\.group \}\}\)/u)
     assert.match(
-      run,
-      /shard: sign-in[\s\S]*?SignInFlowTests\/testEmailOTPSignInReplacesTheSignedOutControl/u,
+      stepBlock(run, 'Launch iPad shard sign-in'),
+      /SignInFlowTests\/testEmailOTPSignInReplacesTheSignedOutControl/u,
     )
-    assert.match(run, /shard: news[\s\S]*?NewsFlowTests\/testNewsRelatedArticlesExpandAndCollapse/u)
-    assert.equal(run.split('expected_count: 1').length - 1, 3)
-    assert.match(run, /parallel-testing-enabled NO \$\{\{ matrix\.only_testing \}\}/u)
-    assert.match(run, /name: ipad-launch-diagnostics-\$\{\{ matrix\.shard \}\}/u)
+    assert.match(
+      stepBlock(run, 'Launch iPad shard news'),
+      /NewsFlowTests\/testNewsRelatedArticlesExpandAndCollapse/u,
+    )
+    assert.match(
+      stepBlock(run, 'Launch iPad shard root-shell'),
+      /LaunchSmokeTests\/testLaunchRendersRootShell/u,
+    )
+    assert.equal(run.split('expected-count: 1').length - 1, 3)
+    assert.match(shardAction, /parallel-testing-enabled NO \$ONLY_TESTING/u)
+    assert.match(run, /prefix: ipad-launch/u)
     assert.doesNotMatch(run, /-retry-tests-on-failure|-test-iterations/u)
   })
 

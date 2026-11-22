@@ -108,15 +108,15 @@ app slice in parallel on `macos-latest`. The arm64 build has a 13-minute job cap
 10-minute compile step cap. Xcode exports the arm64 tests as a portable
 `.xctestproducts` bundle. Separate iPhone and iPad launch jobs download and verify that same
 run/attempt/candidate/Xcode/SDK-bound artifact and execute it using `-testProductsPath` and
-`test-without-building`; neither launch job recompiles. The iPhone smoke is three matrix legs
-of one job id: the root shell, the Videos tab, and the email OTP sign-in. Each leg has a 15-minute
-job cap and a 7-minute launch step cap. The job caps were 12 minutes until the iPad sign-in leg
+`test-without-building`; neither launch job recompiles. Each family boots one Simulator per job and runs its shards in turn
+(see the next paragraph). The iPhone shards are the root shell with presentation tests, the Videos
+tab, the email OTP sign-in, News, and the News transport tests. The job cap is 25 minutes, with a
+7-minute cap on each iPhone launch step. The job caps were 12 minutes until the iPad sign-in leg
 passed and was then cancelled during job cleanup at 12 minutes 5 seconds. Its test took 94 seconds;
 the rest went to Simulator readiness, the artifact download, and about three minutes of cold
-`xcodebuild` startup before the first test ran. The iPhone sign-in leg had reached 11.8 minutes. Each leg downloads, verifies the contract, and unpacks the bundle first, then boots the manifest's
-simulator and waits for `bootstatus`. Booting first made the next step 10 to 40 times slower
-(contract prepare 70 to 225 seconds instead of 3 to 5, iPad download up to 198 seconds) in runs
-44984864113, 44983402902 and 44984398496, so nothing else runs while CoreSimulator boots. The verify-and-unpack step has a 6-minute cap on the iPhone legs and the iPad job:
+`xcodebuild` startup before the first test ran. The iPhone sign-in leg had reached 11.8 minutes. Each leg boots the manifest's simulator before contract
+setup, then waits for `bootstatus` before unpacking, so the bundle extract does not compete with
+CoreSimulator. The verify-and-unpack step has a 6-minute cap on the iPhone legs and the iPad job:
 passing unpacks took 8 to 176 seconds across seven recent runs, and the former 3-minute cap failed
 the iPhone News leg of run 44121822954 on a starved runner.
 After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
@@ -155,9 +155,9 @@ complete. The sign-in leg taps the hittable `signed-out-sign-in` control, the le
 toolbar button rather than a grouped trailing action or another Sign In label, and still requires
 Continue with Email within the existing 20 second wait.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
-Simulator. Its job cap is 15 minutes, like the iPhone legs, and its launch step cap is 9 minutes,
-raised with user approval after a passing run still crossed 9 minutes. The iPad selects its simulator, downloads and
-unpacks the bundle, and only then boots and waits for readiness.
+Simulator. Its job cap is 25 minutes, like the iPhone jobs, and each launch step cap is 9 minutes,
+raised with user approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
+artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
 The iPad launch then installs the same verified app, requires the same process id, and stops
 that process before `xcodebuild`, with the same 150-second gate.
 The x86_64 job stays one `xcodebuild` compile with a 12-minute job cap and a 9-minute compile
@@ -168,6 +168,21 @@ Each launch receives the complete fixture checkout explicitly through the genera
 closed when a fixture or Simulator is unavailable. Skipped cases and test retries are not accepted
 as feed-flow or sign-in evidence. This is partial coverage of #77. The video-feed lane and the
 iPad root shell do not close the parent. iPad feed flow, sign-in, and Catalyst remain outstanding.
+
+Boot is the setup cost. In run 45000131817, with every download and extract moved ahead of the
+boot, downloads fell to 2-15 s but the readiness wait took 85-142 s and setup stayed near 240 s per
+job, against about 215 s before. Booting a Simulator takes about two minutes on these runners and
+contention with other steps is not the cause, so there is one boot per job instead of one per
+shard. The iPhone jobs are `shell-feed-transport` (News transport, root shell, feed) and
+`sign-in-news`; the iPad jobs are `root-shell-news` and `sign-in`. Measured launch steps average
+about 125 s for News transport, 175 s for feed, 230 s for the root shell, sign-in, and News, so the
+groups are balanced near 8-9 minutes and 8 minutes of launches. Each shard is its own step with
+`if: !cancelled()`, so every shard runs after an earlier failure, the failing step names the shard,
+and the job fails at the end. The `ios-launch-shard` action runs one shard against the booted
+Simulator, with a result bundle per shard. The spawn gate reinstalls the app for fresh state and the
+News transport shard runs first on the fresh Simulator. A failed shard uploads its own
+`ios-launch-diagnostics` or `ipad-launch-diagnostics` artifact, named by run, attempt, group, and
+shard through the `ios-launch-diagnostics` action. A final step shuts the Simulator down.
 
 The Mac Catalyst GUI preflight is a separate `macos-latest` job with a 10-minute limit. It builds
 the Debug MAUI app and opens one Appium Mac2 session with the shared `--ui-testing-launch-smoke`

@@ -20,6 +20,14 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       validation,
       /name: Require jq for workflow predicate tests\n\s+run: command -v jq/u,
     )
+    const shardAction = readFileSync(
+      new URL('../.github/actions/ios-launch-shard/action.yml', import.meta.url),
+      'utf8',
+    )
+    const diagnosticsAction = readFileSync(
+      new URL('../.github/actions/ios-launch-diagnostics/action.yml', import.meta.url),
+      'utf8',
+    )
     const testsJob = jobBlock(workflow, 'tests')
     const iosJob = jobBlock(workflow, 'build-ios-app')
     const ipadJob = jobBlock(workflow, 'build-ios-ipad')
@@ -57,24 +65,60 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     )
     assert.match(iosJob, /\.revision' "\$manifest"\)" = "\$EXPECTED_REVISION"/u)
     assert.match(iosJob, /\.destination' "\$manifest"/u)
-    assert.match(iosJob, /-collect-test-diagnostics never/u)
-    assert.equal(iosJob.split('-collect-test-diagnostics never').length - 1, 1)
-    assert.match(ipadJob, /-collect-test-diagnostics never/u)
-    assert.equal(ipadJob.split('-collect-test-diagnostics never').length - 1, 1)
+    assert.equal(shardAction.split('-collect-test-diagnostics never').length - 1, 1)
+    assert.doesNotMatch(iosJob + ipadJob, /xcodebuild -testProductsPath/u)
     assert.match(iosJob, /fail-fast: false/u)
-    assert.equal(iosJob.split('expected_count: 1').length - 1, 3)
-    assert.match(buildJob, /-only-testing:VouchaPresentationTests/u)
+    // Two iPhone jobs and two iPad jobs boot one Simulator each and run their shards in turn.
     assert.match(
       iosJob,
-      /shard: root-shell\n\s+only_testing: '[^'\n]*-only-testing:VouchaPresentationTests'\n\s+expected_count: 7/u,
+      /group: shell-feed-transport\n\s+shards: '\|news-transport\|root-shell\|feed\|'/u,
+    )
+    assert.match(iosJob, /group: sign-in-news\n\s+shards: '\|sign-in\|news\|'/u)
+    assert.match(ipadJob, /group: root-shell-news\n\s+shards: '\|root-shell\|news\|'/u)
+    assert.match(ipadJob, /group: sign-in\n\s+shards: '\|sign-in\|'/u)
+    assert.equal(iosJob.split('expected-count: 1').length - 1, 3)
+    assert.match(
+      stepBlock(iosJob, 'Launch iPhone shard root-shell'),
+      /only-testing: '[^'\n]*-only-testing:VouchaPresentationTests'\n\s+expected-count: 7/u,
+    )
+    assert.match(
+      stepBlock(iosJob, 'Launch iPhone shard news-transport'),
+      /expected-count: 3\n\s+spawn-gate: 'false'/u,
+    )
+    for (const [job, label, shards] of [
+      [iosJob, 'iPhone', ['news-transport', 'root-shell', 'feed', 'sign-in', 'news']],
+      [ipadJob, 'iPad', ['root-shell', 'news', 'sign-in']],
+    ]) {
+      for (const shard of shards) {
+        // Every shard runs even after an earlier shard failed, and names itself on failure.
+        const launch = stepBlock(job, `Launch ${label} shard ${shard}`)
+        assert.match(launch, new RegExp(`id: shard-${shard}\\n`, 'u'))
+        assert.match(
+          launch,
+          /if: \$\{\{ !cancelled\(\) && steps\.lldb\.outcome == 'success' && contains\(matrix\.shards, '\|[a-z-]+\|'\) \}\}/u,
+        )
+        assert.match(launch, /uses: \.\/\.github\/actions\/ios-launch-shard\n/u)
+        const diagnostics = stepBlock(job, `Collect ${label} diagnostics for shard ${shard}`)
+        assert.match(diagnostics, new RegExp(`steps\\.shard-${shard}\\.outcome == 'failure'`, 'u'))
+        assert.match(diagnostics, /artifact-suffix: \$\{\{ matrix\.group \}\}/u)
+      }
+      assert.match(
+        stepBlock(job, `Shut down ${label} Simulator`),
+        /if: \$\{\{ !cancelled\(\) \}\}/u,
+      )
+    }
+    assert.match(shardAction, /\$PREFIX-\$SHARD\.xcresult/u)
+    assert.match(
+      diagnosticsAction,
+      /inputs\.prefix \}\}-diagnostics-.*inputs\.artifact-suffix \}\}-\$\{\{ inputs\.shard/u,
     )
     assert.match(iosJob, /skip-candidate-install: true/u)
     assert.match(ipadJob, /skip-candidate-install: true/u)
     assert.equal(iosJob.split('simctl shutdown').length - 1, 1)
     assert.equal(ipadJob.split('simctl shutdown').length - 1, 1)
     assert.doesNotMatch(buildJob, /skip-candidate-install: true/u)
-    assert.match(iosJob, /test-without-building/u)
-    assert.match(iosJob, /-testProductsPath "\$bundle"/u)
+    assert.match(shardAction, /test-without-building/u)
+    assert.match(shardAction, /-testProductsPath "\$bundle"/u)
     assert.match(iosJob, /test -f "\$bundle\/Info\.plist"/u)
     assert.match(iosJob, /test ! -L "\$bundle"/u)
     const prepareIndex = iosJob.indexOf('uses: ./.github/actions/prepare-native-contract')
@@ -85,11 +129,9 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.ok(unpackIndex >= 0)
     assert.ok(startupIndex >= 0)
     assert.ok(waitIndex >= 0)
-    // The simulator boots after every download, verify, and extract step: boot-time CPU contention
-    // stretched the contract prepare to 70-225 s in runs 44984864113, 44983402902 and 44984398496.
-    assert.ok(prepareIndex < unpackIndex)
-    assert.ok(unpackIndex < startupIndex)
-    assert.ok(startupIndex < waitIndex)
+    assert.ok(startupIndex < prepareIndex)
+    assert.ok(prepareIndex < waitIndex)
+    assert.ok(waitIndex < unpackIndex)
     // Passing unpacks took 8 to 176 s on starved runners; a 3-minute cap failed run 44121822954.
     for (const job of [iosJob, ipadJob]) {
       const unpack = stepBlock(job, 'Verify and unpack iOS test products')
@@ -97,12 +139,12 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     }
     assert.ok(
       iosJob.indexOf('- name: Wait for iPhone Simulator readiness') <
-        iosJob.indexOf('- name: Launch iOS app on Simulator'),
+        iosJob.indexOf('- name: Launch iPhone shard news-transport'),
     )
     assert.match(iosJob, /- name: Wait for iPhone Simulator readiness\n\s+timeout-minutes: 4/u)
     assert.match(ipadJob, /- name: Wait for iPad Simulator readiness\n\s+timeout-minutes: 4/u)
-    assert.match(iosJob, /- name: Launch iOS app on Simulator\n\s+timeout-minutes: 7/u)
-    assert.match(ipadJob, /- name: Launch iPad root shell on Simulator\n\s+timeout-minutes: 9/u)
+    assert.match(stepBlock(iosJob, 'Launch iPhone shard feed'), /\n        timeout-minutes: 7\n/u)
+    assert.match(stepBlock(ipadJob, 'Launch iPad shard sign-in'), /\n        timeout-minutes: 9\n/u)
     const spawnGate = readFileSync(
       new URL('../scripts/ios-launch-spawn-gate.py', import.meta.url),
       'utf8',
@@ -117,8 +159,8 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.match(spawnGate, /Installed app did not start a process/u)
     assert.match(spawnGate, /Spawn gate exceeded 150s; continuing to xcodebuild/u)
     for (const [job, launchName] of [
-      [iosJob, '- name: Launch iOS app on Simulator'],
-      [ipadJob, '- name: Launch iPad root shell on Simulator'],
+      [iosJob, '- name: Launch iPhone shard news-transport'],
+      [ipadJob, '- name: Launch iPad shard root-shell'],
     ]) {
       // Xcode's debugger-version snapshot stalled ~40-60s on cold runners and spent the
       // XCUIApplication launch budget; warming LLDB just before the launch step keeps it short.
@@ -132,7 +174,7 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
         /run: time perl -e 'alarm shift; exec @ARGV' 120 xcrun lldb --batch --one-line version \|\| echo "::warning::LLDB warm failed or passed 120s/u,
       )
       assert.ok(job.includes(`continuing to the launch"\n      ${launchName}\n`))
-      const launch = job.slice(job.indexOf(launchName))
+      const launch = shardAction
       const gateAt = launch.indexOf(
         'python3 "$GITHUB_WORKSPACE/scripts/ios-launch-spawn-gate.py" "$simulator_id" "$app"',
       )
@@ -140,37 +182,30 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       assert.ok(gateAt >= 0 && testAt > gateAt)
       assert.match(launch, /case "\$app" in\n\s+"\$bundle"\/\*\) ;;/u)
     }
-    assert.match(iosJob, /\n    timeout-minutes: 15\n/u)
+    assert.match(iosJob, /\n    timeout-minutes: 25\n/u)
     assert.match(buildJob, /\n    timeout-minutes: 13\n/u)
     assert.match(x86Job, /\n    timeout-minutes: 12\n/u)
-    assert.match(ipadJob, /\n    timeout-minutes: 15\n/u)
+    assert.match(ipadJob, /\n    timeout-minutes: 25\n/u)
     const ipadPrepare = ipadJob.indexOf('uses: ./.github/actions/prepare-native-contract')
-    const ipadSelect = ipadJob.indexOf('- name: Select iPad Simulator for root-shell launch')
     const ipadBoot = ipadJob.indexOf('- name: Start iPad Simulator for root-shell launch')
     const ipadDownload = ipadJob.indexOf('- name: Download iOS test products')
     const ipadWait = ipadJob.indexOf('- name: Wait for iPad Simulator readiness')
     const ipadUnpack = ipadJob.indexOf('- name: Verify and unpack iOS test products')
-    const ipadLaunch = ipadJob.indexOf('- name: Launch iPad root shell on Simulator')
-    assert.ok(ipadPrepare >= 0 && ipadSelect > ipadPrepare)
-    assert.ok(ipadDownload > ipadSelect && ipadUnpack > ipadDownload)
-    assert.ok(ipadBoot > ipadUnpack && ipadWait > ipadBoot && ipadLaunch > ipadWait)
-    assert.doesNotMatch(
-      stepBlock(ipadJob, 'Select iPad Simulator for root-shell launch'),
-      /simctl boot/u,
-    )
+    const ipadLaunch = ipadJob.indexOf('- name: Launch iPad shard root-shell')
+    assert.ok(ipadPrepare >= 0 && ipadBoot > ipadPrepare)
+    assert.ok(ipadDownload > ipadBoot && ipadWait > ipadDownload)
+    assert.ok(ipadUnpack > ipadWait && ipadLaunch > ipadUnpack)
     assert.equal(ipadJob.split('- name: Start iPad Simulator for root-shell launch').length - 1, 1)
     assert.equal(ipadJob.split('- name: Wait for iPad Simulator readiness').length - 1, 1)
     assert.match(ipadJob, /needs: \[verify, build-ios-tests\]/u)
     assert.match(ipadJob, /actions\/download-artifact@[a-f0-9]{40}/u)
     assert.match(ipadJob, /verify-ios-test-tar\.py/u)
-    assert.match(ipadJob, /test-without-building/u)
-    assert.match(ipadJob, /-testProductsPath "\$bundle"/u)
-    assert.match(ipadJob, /ipad-launch-smoke\.xcresult/u)
+    assert.match(ipadJob, /prefix: ipad-launch/u)
     assert.match(ipadJob, /platform=iOS Simulator,id=\$simulator_id/u)
     assert.match(ipadJob, /test ! -L "\$bundle"/u)
     assert.match(
-      ipadJob,
-      /\.totalTestCount == \$\{\{ matrix\.expected_count \}\} and \.passedTests == \$\{\{ matrix\.expected_count \}\} and \.failedTests == 0 and \.skippedTests == 0/u,
+      shardAction,
+      /\.totalTestCount == \$count and \.passedTests == \$count and \.failedTests == 0 and \.skippedTests == 0/u,
     )
     assert.doesNotMatch(ipadJob, /-only-testing:VouchaLaunchSmokeTests\/FeedFlowTests/u)
     assert.match(
@@ -186,21 +221,21 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
       /-only-testing:VouchaLaunchSmokeTests\/SignInFlowTests\/testEmailOTPSignInReplacesTheSignedOutControl/u,
     )
     assert.match(
-      iosJob,
-      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == \$\{\{ matrix\.expected_count \}\} and \.passedTests == \$\{\{ matrix\.expected_count \}\} and \.failedTests == 0 and \.skippedTests == 0/u,
+      shardAction,
+      /xcresulttool get test-results summary[\s\S]*?\.totalTestCount == \$count and \.passedTests == \$count and \.failedTests == 0 and \.skippedTests == 0/u,
     )
-    assert.match(iosJob, /test-without-building VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u)
+    assert.match(
+      shardAction,
+      /test-without-building VOUCHA_CONTRACT_ROOT="\$VOUCHA_CONTRACT_ROOT"/u,
+    )
     const project = readFileSync(
       new URL('../swift-clients/apps/iOS/project.yml', import.meta.url),
       'utf8',
     )
     assert.match(project, /VOUCHA_CONTRACT_ROOT: '\$\(VOUCHA_CONTRACT_ROOT\)'/u)
     assert.match(buildJob, /CODE_SIGNING_ALLOWED=NO/u)
-    assert.match(
-      iosJob,
-      /if: \$\{\{ failure\(\) \}\}[\s\S]*?xcrun simctl spawn "\$simulator_id" log show/u,
-    )
-    assert.match(iosJob, /actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?ios-launch-smoke\.xcresult/u)
+    assert.match(diagnosticsAction, /xcrun simctl spawn "\$simulator_id" log show/u)
+    assert.match(diagnosticsAction, /actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?\.xcresult/u)
     const selector = iosJob.match(
       /simulator_id="\$\(xcrun simctl list devices available -j \| jq -r --arg runtime "\$runtime_identifier" --arg name "\$simulator_name" '([^']+)'\)"/u,
     )?.[1]
