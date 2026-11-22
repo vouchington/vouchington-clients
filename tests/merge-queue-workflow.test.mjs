@@ -104,9 +104,16 @@ describe('merge queue CI (#705)', () => {
   })
 
   it('does not run the Tests aggregate, DTO advisory, or Android cookie proof on a push', () => {
-    for (const name of ['tests', 'native-dto-fixture-parity', 'test-swift-android-cookie']) {
+    assert.ok(
+      header('tests').includes("if: ${{ github.event_name != 'push' && !cancelled() }}"),
+      'tests',
+    )
+    // These also skip on a docs-only change, because !cancelled() would otherwise run them after skipped needs.
+    for (const name of ['native-dto-fixture-parity', 'test-swift-android-cookie']) {
       assert.ok(
-        header(name).includes("if: ${{ github.event_name != 'push' && !cancelled() }}"),
+        header(name).includes(
+          "if: ${{ github.event_name != 'push' && !cancelled() && needs.verify.outputs.docs-only != 'true' }}",
+        ),
         name,
       )
     }

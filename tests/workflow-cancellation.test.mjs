@@ -36,6 +36,8 @@ const statusPredicate = (expression, cancelled, success) => {
     .replace(/\s+/gu, '')
     // Main pushes only warm caches; the status predicate that remains is what is under test.
     .replace(/^github\.event_name!='push'&&/u, '')
+    // A docs-only change skips the job outright; the status predicate is what is under test.
+    .replace(/&&needs\.verify\.outputs\.docs-only!='true'$/u, '')
   switch (predicate) {
     case '!cancelled()':
       return !cancelled
@@ -116,8 +118,9 @@ describe('cancellation-aware native reporting', () => {
     const keys = [...dependencies.matchAll(/^      - ([\w-]+)$/gmu)].map(m => m[1])
     assert.ok(keys.length > 0)
     const needs = Object.fromEntries(keys.map(key => [key, { result: 'success' }]))
-    const invoke = (results, preview = 'true', maui = 'true', surface = 'true') =>
+    const invoke = (results, preview = 'true', maui = 'true', surface = 'true', docs = 'false') =>
       execute(script, {
+        DOCS_ONLY_ROUTE: docs,
         NEEDS_JSON: JSON.stringify(results),
         WINDOWS_IMAGE_PREVIEW_ROUTE: preview,
         WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: surface,
@@ -139,5 +142,36 @@ describe('cancellation-aware native reporting', () => {
     assert.notEqual(invoke(optional, 'true', 'false', 'false'), 0)
     assert.notEqual(invoke(optional, 'false', 'true', 'false'), 0)
     assert.notEqual(invoke(optional, 'false', 'false', 'true'), 0)
+  })
+
+  it('Tests accepts skipped native jobs only for a docs-only route', () => {
+    const block = jobBlock(native, 'tests')
+    const script = command(block)
+    const dependencies = block.match(/ {4}needs:\n([\s\S]*?) {4}runs-on:/u)?.[1]
+    const keys = [...dependencies.matchAll(/^ {6}- ([\w-]+)$/gmu)].map(m => m[1])
+    const required = ['produce', 'verify']
+    const docs = Object.fromEntries(
+      keys.map(key => [key, { result: required.includes(key) ? 'success' : 'skipped' }]),
+    )
+    const invoke = (results, route) =>
+      execute(script, {
+        DOCS_ONLY_ROUTE: route,
+        NEEDS_JSON: JSON.stringify(results),
+        WINDOWS_IMAGE_PREVIEW_ROUTE: 'true',
+        WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: 'true',
+        WINDOWS_MAUI_ROUTE: 'true',
+      })
+    assert.equal(invoke(docs, 'true'), 0)
+    for (const route of ['false', '', 'True']) assert.notEqual(invoke(docs, route), 0, route)
+    for (const key of keys) {
+      for (const result of ['failure', 'cancelled', '']) {
+        assert.notEqual(invoke({ ...docs, [key]: { result } }, 'true'), 0, `${key} ${result}`)
+      }
+    }
+    for (const key of required) {
+      assert.notEqual(invoke({ ...docs, [key]: { result: 'skipped' } }, 'true'), 0, key)
+    }
+    const mixed = Object.fromEntries(keys.map(key => [key, { result: 'success' }]))
+    assert.equal(invoke(mixed, 'false'), 0)
   })
 })

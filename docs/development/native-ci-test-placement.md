@@ -237,3 +237,13 @@ filter) unless the new OS compiles different source or links a different network
 See [CI runners](ci-runners.md) for the hosted label allowlist.
 
 The Windows MAUI app compiles on `windows-latest` when .NET source, dependency or toolchain files change. This checks the actual `#if WINDOWS` and WinUI build graph; portable Core tests remain Linux-only. It uses committed Windows RID locks and the mise-managed SDK/workload set, with signing and packaging disabled.
+
+## Docs-only changes
+
+A pull request or merge group whose diff touches only `*.md` files or paths under `docs/` skips every
+native build, test, and smoke job. `verify` computes a `docs-only` output from the exact candidate
+range (for a merge group, `merge_group.base_sha..head_sha`), and `scripts/docs-only-routing.mjs`
+fails safe to the full suite when the diff cannot be computed. `produce`, `verify`, and the `Tests`
+aggregate still run; `Tests` accepts skipped jobs only when `docs-only` is `true`. A main push never
+skips. No native job reads Markdown or `docs/`, so keep it that way: a job that reads one must be
+excluded in `isDocsOnly`. `validate.yml` is unchanged and always runs.
