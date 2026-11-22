@@ -48,11 +48,8 @@ enum LaunchSmokeFieldTyping {
 
     private static func focus(_ field: XCUIElement) -> Bool {
         #if os(macOS)
-            if field.isHittable {
-                field.click()
-            } else {
-                field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-            }
+            // A centered coordinate click needs no `isHittable` snapshot, which can stall.
+            field.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
             return true
         #else
             let keyboardFocused = NSPredicate(format: "hasKeyboardFocus == true")

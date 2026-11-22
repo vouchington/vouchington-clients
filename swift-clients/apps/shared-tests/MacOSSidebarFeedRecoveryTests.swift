@@ -2,7 +2,7 @@
     import Foundation
     import XCTest
 
-    final class MacOSSidebarFeedRecoveryTests: XCTestCase {
+    final class MacOSSidebarFeedRecoveryTests: LaunchSmokeTestCase {
         override func setUp() {
             super.setUp()
             continueAfterFailure = false
@@ -16,7 +16,7 @@
             let retry = app.buttons["error-state-retry"]
             XCTAssertTrue(retry.waitForExistence(timeout: 20))
             XCTAssertTrue(retry.isEnabled)
-            XCTAssertTrue(retry.isHittable)
+            waitForHittable(retry, "Video feed retry button was not hittable")
             let title = LaunchSmokeSidebar.visibleText(fixture.title, in: app)
             XCTAssertFalse(title.exists)
             retry.click()

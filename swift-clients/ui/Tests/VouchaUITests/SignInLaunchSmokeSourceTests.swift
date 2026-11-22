@@ -32,12 +32,41 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         // CI run 44980841268: a bare isHittable stalled on snapshots for 99 s and failed unlogged.
         XCTAssertFalse(smoke.contains("XCTAssertTrue(signIn.isHittable)"))
         XCTAssertTrue(smoke.contains("waitForHittable(signIn"))
-        XCTAssertTrue(base.contains("toleratingSnapshotTimeouts(\"Hittability wait\")"))
+        XCTAssertTrue(base.contains("pollThroughSnapshotStalls(\"Hittability wait\")"))
         XCTAssertTrue(base.contains("element.exists && element.isHittable"))
         XCTAssertTrue(base.contains("LaunchSmokeTiming.hittability"))
         let timing = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTiming.swift")
         // Must exceed one observed ~100 s three-attempt stall so a recovered runner gets a re-check.
         XCTAssertTrue(timing.contains("static let hittability: TimeInterval = 150"))
+    }
+
+    func testNoLaunchSmokePollsBareIsHittable() throws {
+        let directory = try repoURL("swift-clients/apps/shared-tests")
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { $0.hasSuffix(".swift") && $0 != "LaunchSmokeTestCase.swift" }
+        XCTAssertFalse(files.isEmpty)
+        // CI run 45042621815: one isHittable snapshot blocked 29 s inside a 30 s expectation wait.
+        // Only LaunchSmokeTestCase may read isHittable; flows use waitForHittable,
+        // pollThroughSnapshotStalls and isHittableAndEnabled, which run under the tolerant helper.
+        for file in files {
+            let source = try String(contentsOf: directory.appendingPathComponent(file), encoding: .utf8)
+            let code = source.split(separator: "\n").filter {
+                !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+            }
+            XCTAssertFalse(
+                code.contains { $0.range(of: #"\bisHittable\b"#, options: .regularExpression) != nil },
+                "\(file) reads a bare isHittable outside LaunchSmokeTestCase"
+            )
+        }
+
+        let base = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTestCase.swift")
+        XCTAssertTrue(base.contains("func pollThroughSnapshotStalls("))
+        XCTAssertTrue(base.contains("let stalls = toleratingSnapshotTimeouts(label)"))
+        let flow = try repoSource("swift-clients/apps/shared-tests/SignInFlowTests.swift")
+        XCTAssertTrue(flow.contains("pollThroughSnapshotStalls(\"Hittable \\(label) button wait\")"))
+        XCTAssertTrue(flow.contains("pollThroughSnapshotStalls(\"Sidebar toggle wait\")"))
+        XCTAssertFalse(flow.contains("expectation(for: ready"))
+        XCTAssertFalse(flow.contains("expectation(for: sidebarReady"))
     }
 
     func testTopOfScreenTapWaitsForSystemBannerAndReportsItOnFailure() throws {
@@ -79,6 +108,10 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
     }
 
     private func repoSource(_ relative: String, filePath: StaticString = #filePath) throws -> String {
+        try String(contentsOf: repoURL(relative, filePath: filePath), encoding: .utf8)
+    }
+
+    private func repoURL(_ relative: String, filePath: StaticString = #filePath) throws -> URL {
         let current = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         var roots = [current, URL(fileURLWithPath: "\(filePath)").deletingLastPathComponent()]
         for _ in 0 ..< 16 {
@@ -87,7 +120,7 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         for root in roots {
             let candidate = root.appendingPathComponent(relative)
             if FileManager.default.fileExists(atPath: candidate.path) {
-                return try String(contentsOf: candidate, encoding: .utf8)
+                return candidate
             }
         }
         throw XCTSkip("Could not find \(relative)")

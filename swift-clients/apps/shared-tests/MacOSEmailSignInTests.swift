@@ -60,11 +60,8 @@
                 XCTFail("Missing enabled \(label)")
                 return
             }
-            if button.isHittable {
-                button.click()
-            } else {
-                button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-            }
+            // A centered coordinate click needs no `isHittable` snapshot, which can stall.
+            button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
 
         private func textField(_ label: String, in app: XCUIApplication) -> XCUIElement {
