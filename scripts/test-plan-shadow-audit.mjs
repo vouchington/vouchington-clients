@@ -115,3 +115,25 @@ export function runsUnderPlan(plan, file, className) {
     return true
   }
 }
+
+/**
+ * Tie result classes to files. A partial class spans several files and the results do not say which
+ * one holds the method, so every declaring file counts as observed.
+ */
+export function observeClasses(results, files, plan) {
+  const observed = new Set()
+  const failedMissed = []
+  let unmapped = 0
+  let failedClasses = 0
+  for (const [name, { failed }] of results) {
+    const owners = files.get(name)
+    if (!owners) {
+      unmapped += 1
+      continue
+    }
+    for (const file of owners) observed.add(file)
+    if (failed) failedClasses += 1
+    if (failed && !owners.some(f => runsUnderPlan(plan, f, name))) failedMissed.push(name)
+  }
+  return { observed, failedMissed, unmapped, failedClasses }
+}

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
-import { runsUnderPlan } from '../scripts/test-plan-shadow-audit.mjs'
+import { observeClasses, runsUnderPlan } from '../scripts/test-plan-shadow-audit.mjs'
 import { readResults, shortClassName } from '../scripts/test-plan-shadow-results.mjs'
 import { jobBlock } from './workflow-job-block.mjs'
 
@@ -73,5 +73,12 @@ describe('shadow test planning', () => {
       execution_targets: [{ config: 'p/P.csproj', test_files: [], runner_args: ['--no-restore'] }],
     }
     assert.equal(runsUnderPlan(dotnet, 'p/X.cs', 'X'), true)
+  })
+
+  it('observes every file of a partial class', () => {
+    const plan = { execution_targets: [{ config: 'p/P.csproj', test_files: [], runner_args: [] }] }
+    const files = new Map([['SplitTests', ['p/A.cs', 'p/B.cs']]])
+    const { observed } = observeClasses(new Map([['SplitTests', { failed: false }]]), files, plan)
+    assert.deepEqual([...observed], ['p/A.cs', 'p/B.cs'])
   })
 })

@@ -6,7 +6,7 @@ import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { audit, classFiles, nmRun, runsUnderPlan } from './test-plan-shadow-audit.mjs'
+import { audit, classFiles, nmRun, observeClasses } from './test-plan-shadow-audit.mjs'
 import { readResults } from './test-plan-shadow-results.mjs'
 
 const { values: opt } = parseArgs({
@@ -57,20 +57,11 @@ function analyze() {
   const dir = opt['results-dir']
   if (!dir || !existsSync(dir)) return { ...out, results: 'none collected' }
   const files = classFiles(opt.framework, opt.scope)
-  const observed = new Set()
-  const failedMissed = []
-  let unmapped = 0,
-    failedClasses = 0
-  for (const [name, { failed }] of readResults(dir)) {
-    const owners = files.get(name)
-    if (!owners) {
-      unmapped += 1
-      continue
-    }
-    observed.add(owners[0])
-    if (failed) failedClasses += 1
-    if (failed && !owners.some(f => runsUnderPlan(plan, f, name))) failedMissed.push(name)
-  }
+  const { observed, failedMissed, unmapped, failedClasses } = observeClasses(
+    readResults(dir),
+    files,
+    plan,
+  )
   // File-selection statistic only: the planned command may still run unselected files.
   const skipped = [...observed].filter(f => !planned.has(f)).length
   return {
