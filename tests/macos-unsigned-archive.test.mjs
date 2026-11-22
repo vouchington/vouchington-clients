@@ -43,3 +43,28 @@ test('unsigned macOS archive stays arm64 and keeps the packaging checks', () => 
   assert.match(image, /shasum -a 256/u)
   assert.match(job, /retention-days: 7/u)
 })
+
+test('pull requests trigger the archive only for packaging inputs', () => {
+  const workflow = readFileSync(
+    new URL('../.github/workflows/release-macos-unsigned.yml', import.meta.url),
+    'utf8',
+  )
+  const paths = workflow
+    .slice(workflow.indexOf('    paths:'), workflow.indexOf('  workflow_dispatch:'))
+    .split('\n')
+    .filter(line => line.startsWith('      - '))
+    .map(line => line.slice(8))
+
+  assert.ok(paths.includes('swift-clients/apps/macOS/project.yml'))
+  assert.ok(paths.includes('swift-clients/apps/macOS/UnsignedExportOptions.plist'))
+  assert.ok(paths.includes('.github/workflows/release-macos-unsigned.yml'))
+  for (const broad of [
+    'swift-clients/apps/macOS/**',
+    'swift-clients/apps/shared-app/**',
+    'swift-clients/core/**',
+    'swift-clients/ui/**',
+  ]) {
+    assert.equal(paths.includes(broad), false, `${broad} would run the DMG job on source edits`)
+  }
+  assert.doesNotMatch(workflow, /^ {2}merge_group:/mu)
+})
