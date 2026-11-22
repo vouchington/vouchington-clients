@@ -25,6 +25,21 @@ final class SignInLaunchSmokeSourceTests: XCTestCase {
         XCTAssertFalse(flow.contains("app.buttons[\"Sign In\"]"))
     }
 
+    func testRootShellSmokeWaitsForHittabilityThroughSnapshotStalls() throws {
+        let smoke = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTests.swift")
+        let base = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTestCase.swift")
+
+        // CI run 44980841268: a bare isHittable stalled on snapshots for 99 s and failed unlogged.
+        XCTAssertFalse(smoke.contains("XCTAssertTrue(signIn.isHittable)"))
+        XCTAssertTrue(smoke.contains("waitForHittable(signIn"))
+        XCTAssertTrue(base.contains("toleratingSnapshotTimeouts(\"Hittability wait\")"))
+        XCTAssertTrue(base.contains("element.exists && element.isHittable"))
+        XCTAssertTrue(base.contains("LaunchSmokeTiming.hittability"))
+        let timing = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeTiming.swift")
+        // Must exceed one observed ~100 s three-attempt stall so a recovered runner gets a re-check.
+        XCTAssertTrue(timing.contains("static let hittability: TimeInterval = 150"))
+    }
+
     func testTopOfScreenTapWaitsForSystemBannerAndReportsItOnFailure() throws {
         let flow = try repoSource("swift-clients/apps/shared-tests/SignInFlowTests.swift")
         let banner = try repoSource("swift-clients/apps/shared-tests/LaunchSmokeSystemBanner.swift")
