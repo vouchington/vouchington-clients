@@ -19,6 +19,7 @@ public sealed partial class ChatConversationViewModel
       var updated = await WriteTitleAsync(ConversationId, trimmed, cancellationToken).ConfigureAwait(true);
       if (currentRequest != Volatile.Read(ref requestId)) return;
       Title = updated.Conversation.Title;
+      ErrorMessage = null;
       State = LoadState.Loaded;
     }
     catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)

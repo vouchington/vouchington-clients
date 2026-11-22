@@ -114,6 +114,7 @@ public sealed partial class ChatConversationViewModel
   /// <summary>Re-sends the user's title until the saved title equals the current one; never retries an error.</summary>
   private async Task RepairTitleRaceAsync(string id, string saved, CancellationToken cancellationToken)
   {
+    var owner = Volatile.Read(ref requestId);
     while (ConversationId == id && !IsDeleted)
     {
       var current = Title;
@@ -124,8 +125,11 @@ public sealed partial class ChatConversationViewModel
       }
       catch (Exception ex) when (ex is VouchaApiException or HttpRequestException or InvalidOperationException)
       {
-        ErrorMessage = ex.Message;
-        State = LoadState.Error;
+        if (ConversationId == id && owner == Volatile.Read(ref requestId))
+        {
+          ErrorMessage = ex.Message;
+          State = LoadState.Error;
+        }
         return;
       }
       saved = current;

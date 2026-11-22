@@ -122,6 +122,41 @@ public sealed partial class ChatTitleGenerationTests
 
     Assert.Equal((LoadState.Error, "boom"), atRename);
     Assert.Equal(LoadState.Loaded, viewModel.State);
+    Assert.Null(viewModel.ErrorMessage);
+    Assert.False(viewModel.HasError);
+  }
+
+  [Fact]
+  public async Task FailedRepairAfterSwitchingConversationsDoesNotShowOnTheNewConversation()
+  {
+    var (viewModel, service, _) = await LoadAsync("Generated", ("user", "hello"));
+    var calls = 0;
+    var patch = new TaskCompletionSource<ChatConversationResponse>();
+    var repair = new TaskCompletionSource<ChatConversationResponse>();
+    var repairStarted = new TaskCompletionSource();
+    service.UpdateConversationTitleAsyncOverride = (_, _) =>
+    {
+      switch (++calls)
+      {
+        case 1: return patch.Task;
+        case 2: repairStarted.SetResult(); return repair.Task;
+        default: return Task.FromResult(service.UpdateConversationTitleResult);
+      }
+    };
+
+    var pending = viewModel.GenerateTitleAsync(TestContext.Current.CancellationToken);
+    var rename = viewModel.RenameAsync("Mine", TestContext.Current.CancellationToken);
+    patch.SetResult(service.UpdateConversationTitleResult);
+    await repairStarted.Task;
+    await viewModel.LoadAsync("conversation-2", "Other", TestContext.Current.CancellationToken);
+    repair.SetException(new HttpRequestException("boom"));
+    await pending;
+    await rename;
+
+    Assert.Equal("conversation-2", viewModel.ConversationId);
+    Assert.Null(viewModel.ErrorMessage);
+    Assert.False(viewModel.HasError);
+    Assert.Equal(LoadState.Loaded, viewModel.State);
   }
 
   [Fact]
