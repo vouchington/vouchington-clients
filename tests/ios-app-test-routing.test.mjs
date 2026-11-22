@@ -85,9 +85,11 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.ok(unpackIndex >= 0)
     assert.ok(startupIndex >= 0)
     assert.ok(waitIndex >= 0)
-    assert.ok(startupIndex < prepareIndex)
-    assert.ok(prepareIndex < waitIndex)
-    assert.ok(waitIndex < unpackIndex)
+    // The simulator boots after every download, verify, and extract step: boot-time CPU contention
+    // stretched the contract prepare to 70-225 s in runs 44984864113, 44983402902 and 44984398496.
+    assert.ok(prepareIndex < unpackIndex)
+    assert.ok(unpackIndex < startupIndex)
+    assert.ok(startupIndex < waitIndex)
     // Passing unpacks took 8 to 176 s on starved runners; a 3-minute cap failed run 44121822954.
     for (const job of [iosJob, ipadJob]) {
       const unpack = stepBlock(job, 'Verify and unpack iOS test products')
@@ -143,14 +145,19 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.match(x86Job, /\n    timeout-minutes: 12\n/u)
     assert.match(ipadJob, /\n    timeout-minutes: 15\n/u)
     const ipadPrepare = ipadJob.indexOf('uses: ./.github/actions/prepare-native-contract')
+    const ipadSelect = ipadJob.indexOf('- name: Select iPad Simulator for root-shell launch')
     const ipadBoot = ipadJob.indexOf('- name: Start iPad Simulator for root-shell launch')
     const ipadDownload = ipadJob.indexOf('- name: Download iOS test products')
     const ipadWait = ipadJob.indexOf('- name: Wait for iPad Simulator readiness')
     const ipadUnpack = ipadJob.indexOf('- name: Verify and unpack iOS test products')
     const ipadLaunch = ipadJob.indexOf('- name: Launch iPad root shell on Simulator')
-    assert.ok(ipadPrepare >= 0 && ipadBoot > ipadPrepare)
-    assert.ok(ipadDownload > ipadBoot && ipadWait > ipadDownload)
-    assert.ok(ipadUnpack > ipadWait && ipadLaunch > ipadUnpack)
+    assert.ok(ipadPrepare >= 0 && ipadSelect > ipadPrepare)
+    assert.ok(ipadDownload > ipadSelect && ipadUnpack > ipadDownload)
+    assert.ok(ipadBoot > ipadUnpack && ipadWait > ipadBoot && ipadLaunch > ipadWait)
+    assert.doesNotMatch(
+      stepBlock(ipadJob, 'Select iPad Simulator for root-shell launch'),
+      /simctl boot/u,
+    )
     assert.equal(ipadJob.split('- name: Start iPad Simulator for root-shell launch').length - 1, 1)
     assert.equal(ipadJob.split('- name: Wait for iPad Simulator readiness').length - 1, 1)
     assert.match(ipadJob, /needs: \[verify, build-ios-tests\]/u)

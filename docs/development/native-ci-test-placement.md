@@ -113,9 +113,10 @@ of one job id: the root shell, the Videos tab, and the email OTP sign-in. Each l
 job cap and a 7-minute launch step cap. The job caps were 12 minutes until the iPad sign-in leg
 passed and was then cancelled during job cleanup at 12 minutes 5 seconds. Its test took 94 seconds;
 the rest went to Simulator readiness, the artifact download, and about three minutes of cold
-`xcodebuild` startup before the first test ran. The iPhone sign-in leg had reached 11.8 minutes. Each leg boots the manifest's simulator before contract
-setup, then waits for `bootstatus` before unpacking, so the bundle extract does not compete with
-CoreSimulator. The verify-and-unpack step has a 6-minute cap on the iPhone legs and the iPad job:
+`xcodebuild` startup before the first test ran. The iPhone sign-in leg had reached 11.8 minutes. Each leg downloads, verifies the contract, and unpacks the bundle first, then boots the manifest's
+simulator and waits for `bootstatus`. Booting first made the next step 10 to 40 times slower
+(contract prepare 70 to 225 seconds instead of 3 to 5, iPad download up to 198 seconds) in runs
+44984864113, 44983402902 and 44984398496, so nothing else runs while CoreSimulator boots. The verify-and-unpack step has a 6-minute cap on the iPhone legs and the iPad job:
 passing unpacks took 8 to 176 seconds across seven recent runs, and the former 3-minute cap failed
 the iPhone News leg of run 44121822954 on a starved runner.
 After `bootstatus`, the leg installs the verified `Voucha.app` on that simulator, requires
@@ -155,8 +156,8 @@ toolbar button rather than a grouped trailing action or another Sign In label, a
 Continue with Email within the existing 20 second wait.
 The iPad job requires exactly one passed, non-skipped root-shell test on an available iPad
 Simulator. Its job cap is 15 minutes, like the iPhone legs, and its launch step cap is 9 minutes,
-raised with user approval after a passing run still crossed 9 minutes. The iPad boots after Node.js setup, the
-artifact download overlaps that boot, and the bundle extract waits until the simulator is ready.
+raised with user approval after a passing run still crossed 9 minutes. The iPad selects its simulator, downloads and
+unpacks the bundle, and only then boots and waits for readiness.
 The iPad launch then installs the same verified app, requires the same process id, and stops
 that process before `xcodebuild`, with the same 150-second gate.
 The x86_64 job stays one `xcodebuild` compile with a 12-minute job cap and a 9-minute compile
