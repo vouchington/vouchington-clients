@@ -23,7 +23,14 @@ describe('iOS Simulator boot deadline', () => {
       assert.ok(step.includes(`cat "$RUNNER_TEMP/${prefix}-boot-epoch"`))
       assert.match(step, /remaining=\$\(\(600 - /u)
       assert.match(step, /perl -e 'alarm shift; exec @ARGV' "\$remaining" xcrun simctl bootstatus/u)
-      assert.ok(job.includes(`date +%s > "$RUNNER_TEMP/${prefix}-boot-epoch"`))
+      const epoch = `date +%s > "$RUNNER_TEMP/${prefix}-boot-epoch"`
+      // The epoch is taken in the branch, right before simctl boot, not before the device list.
+      assert.ok(job.includes(`Shutdown) ${epoch}; xcrun simctl boot "$simulator_id" ;;`))
+      assert.ok(job.includes(`Booted) ${epoch} ;;`))
+      assert.equal(job.split(epoch).length - 1, 2)
+      // Past the deadline the wait fails; it never grants extra time.
+      assert.match(step, /if \(\(remaining <= 0\)\); then[\s\S]*?exit 1\n\s+fi/u)
+      assert.doesNotMatch(step, /remaining=10/u)
     })
   }
 })

@@ -37,7 +37,7 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.match(buildJob, /runtime_identifier="com\.apple\.CoreSimulator\.SimRuntime\.iOS-/u)
     assert.match(iosJob, /xcrun simctl list devices available -j/u)
     assert.match(iosJob, /if \[\[ -z "\$simulator_id" \]\]; then/u)
-    assert.match(iosJob, /Shutdown\) xcrun simctl boot "\$simulator_id"/u)
+    assert.match(iosJob, /Shutdown\) date \+%s > [^;]+; xcrun simctl boot "\$simulator_id"/u)
     assert.match(
       iosJob,
       /- name: Wait for iPhone Simulator readiness[\s\S]*?simulator_id="\$\(cat "\$RUNNER_TEMP\/ios-launch-simulator-id"\)"[\s\S]*?xcrun simctl bootstatus "\$simulator_id" -b/u,

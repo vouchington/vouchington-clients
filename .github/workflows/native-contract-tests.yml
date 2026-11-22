@@ -1713,11 +1713,10 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ios-launch-simulator-id"
-          date +%s > "$RUNNER_TEMP/ios-launch-boot-epoch"
           simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
           case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
+            Shutdown) date +%s > "$RUNNER_TEMP/ios-launch-boot-epoch"; xcrun simctl boot "$simulator_id" ;;
+            Booted) date +%s > "$RUNNER_TEMP/ios-launch-boot-epoch" ;;
             *) echo "::error::iPhone Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
           esac
       - uses: ./.github/actions/prepare-native-contract
@@ -1735,7 +1734,10 @@ jobs:
           simulator_id="$(cat "$RUNNER_TEMP/ios-launch-simulator-id")"
           boot_epoch="$(cat "$RUNNER_TEMP/ios-launch-boot-epoch")"
           remaining=$((600 - ($(date +%s) - boot_epoch)))
-          if ((remaining < 10)); then remaining=10; fi
+          if ((remaining <= 0)); then
+            echo "::error::Simulator was not ready 600s after boot; data migration outlasted the deadline" >&2
+            exit 1
+          fi
           status=0
           perl -e 'alarm shift; exec @ARGV' "$remaining" xcrun simctl bootstatus "$simulator_id" -b || status=$?
           if ((status == 142)); then
@@ -1963,11 +1965,10 @@ jobs:
           printf '%s\n' "$simulator_id" > "$RUNNER_TEMP/ipad-launch-simulator-id"
           printf '%s\n' "$ipad_name" > "$RUNNER_TEMP/ipad-launch-simulator-name"
           printf '%s\n' "platform=iOS Simulator,id=$simulator_id" > "$RUNNER_TEMP/ipad-launch-destination"
-          date +%s > "$RUNNER_TEMP/ipad-launch-boot-epoch"
           simulator_state="$(xcrun simctl list devices available -j | jq -r --arg udid "$simulator_id" '[.devices[][] | select(.udid == $udid) | .state][0] // empty')"
           case "$simulator_state" in
-            Shutdown) xcrun simctl boot "$simulator_id" ;;
-            Booted) ;;
+            Shutdown) date +%s > "$RUNNER_TEMP/ipad-launch-boot-epoch"; xcrun simctl boot "$simulator_id" ;;
+            Booted) date +%s > "$RUNNER_TEMP/ipad-launch-boot-epoch" ;;
             *) echo "::error::iPad Simulator is not bootable: $simulator_state" >&2; exit 1 ;;
           esac
       - name: Download iOS test products
@@ -1981,7 +1982,10 @@ jobs:
           simulator_id="$(cat "$RUNNER_TEMP/ipad-launch-simulator-id")"
           boot_epoch="$(cat "$RUNNER_TEMP/ipad-launch-boot-epoch")"
           remaining=$((600 - ($(date +%s) - boot_epoch)))
-          if ((remaining < 10)); then remaining=10; fi
+          if ((remaining <= 0)); then
+            echo "::error::Simulator was not ready 600s after boot; data migration outlasted the deadline" >&2
+            exit 1
+          fi
           status=0
           perl -e 'alarm shift; exec @ARGV' "$remaining" xcrun simctl bootstatus "$simulator_id" -b || status=$?
           if ((status == 142)); then
