@@ -59,6 +59,47 @@ final class FollowerDistributionViewModelTests: XCTestCase {
         XCTAssertEqual(statusCode(of: viewModel.error), 400)
     }
 
+    func testSendStaysDisabledWhileAnEarlierSelectionExceedsTheFetchedLimit() async {
+        CannedFeedURLProtocol.handlers["/api/v1/content-limits"] = (contentLimits(recipientsMax: 3), 200)
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        viewModel.sendsToAllFollowers = false
+        for index in 0 ..< 5 {
+            viewModel.toggleRecipient(recipientId(index))
+        }
+        XCTAssertTrue(viewModel.canSend)
+
+        await viewModel.loadRecipientLimit()
+
+        XCTAssertEqual(viewModel.selectedRecipientIds.count, 5)
+        XCTAssertFalse(viewModel.canSend)
+        let didSend = await viewModel.send()
+        XCTAssertFalse(didSend)
+        viewModel.toggleRecipient(recipientId(0))
+        viewModel.toggleRecipient(recipientId(1))
+        XCTAssertTrue(viewModel.canSend)
+    }
+
+    func testLimitResponseFromBeforeASheetResetIsIgnored() async {
+        let path = "/api/v1/content-limits"
+        CannedFeedURLProtocol.handlers[path] = (contentLimits(recipientsMax: 1), 200)
+        CannedFeedURLProtocol.suspendResponse(path: path)
+        defer { CannedFeedURLProtocol.releaseResponse(path: path) }
+        let viewModel = makeViewModel(protocolClasses: [CannedFeedURLProtocol.self])
+        let staleLoad = Task { await viewModel.loadRecipientLimit() }
+        guard await ModerationAppealsTestSupport.waitForSuspendedCannedFeedResponse(path: path) else {
+            XCTFail("The limit request never reached the canned protocol")
+            CannedFeedURLProtocol.releaseResponse(path: path)
+            await staleLoad.value
+            return
+        }
+
+        viewModel.resetSendSheet()
+        CannedFeedURLProtocol.releaseResponse(path: path)
+        await staleLoad.value
+
+        XCTAssertNil(viewModel.recipientLimit)
+    }
+
     func testContextChangeResetsSelectionAndSearchState() async {
         let viewModel = makeViewModel()
         viewModel.sendsToAllFollowers = false

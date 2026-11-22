@@ -49,6 +49,7 @@ public final class FollowerDistributionViewModel {
     private var nextRecipientCursor: String?
     private var searchGeneration = 0
     var contextGeneration = 0
+    var recipientLimitGeneration = 0
     private var searchTask: Task<Void, Never>?
 
     public init(client: APIClient, currentUserId: String?, target: FollowerDistributionTarget) {
@@ -58,7 +59,7 @@ public final class FollowerDistributionViewModel {
     }
 
     public var canSend: Bool {
-        sendsToAllFollowers || !selectedRecipientIds.isEmpty
+        sendsToAllFollowers || (!selectedRecipientIds.isEmpty && selectionFitsRecipientLimit)
     }
 
     public func replaceContext(currentUserId: String?, target: FollowerDistributionTarget) {
@@ -83,6 +84,7 @@ public final class FollowerDistributionViewModel {
         isSearching = false
         nextRecipientCursor = nil
         canLoadMoreRecipients = false
+        recipientLimitGeneration += 1
         recipientLimit = nil
         error = nil
     }

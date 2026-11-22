@@ -55,6 +55,43 @@ public sealed class FollowerDistributionViewModelTests
   }
 
   [Fact]
+  public async Task SubmitStaysDisabledWhileAnEarlierSelectionExceedsTheFetchedLimit()
+  {
+    var handler = new RoutingHandler(new()
+    {
+      ["/api/v1/content-limits"] = (HttpStatusCode.OK, ContentLimits(recipientsMax: 3))
+    });
+    using var viewModel = new FollowerDistributionViewModel(new Friends(), Client(handler), FollowerDistributionTargetKind.Post, "post-1");
+    viewModel.SetAudience(true);
+    foreach (var index in Enumerable.Range(0, 5)) Assert.True(viewModel.ToggleSelection($"user-{index}"));
+    Assert.True(viewModel.CanSubmit);
+
+    await viewModel.LoadRecipientLimitAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(5, viewModel.SelectedIds.Count);
+    Assert.False(viewModel.CanSubmit);
+    Assert.False(await viewModel.SubmitAsync(TestContext.Current.CancellationToken));
+    Assert.True(viewModel.ToggleSelection("user-0"));
+    Assert.True(viewModel.ToggleSelection("user-1"));
+    Assert.True(viewModel.CanSubmit);
+  }
+
+  [Fact]
+  public async Task LimitResponseFromBeforeAResetIsIgnored()
+  {
+    var handler = new GatedHandler(ContentLimits(recipientsMax: 1));
+    using var viewModel = new FollowerDistributionViewModel(new Friends(), Client(handler), FollowerDistributionTargetKind.Post, "post-1");
+    var staleLoad = viewModel.LoadRecipientLimitAsync(TestContext.Current.CancellationToken);
+    await handler.Requested.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+    viewModel.Reset("post-2");
+    handler.Release.SetResult();
+    await staleLoad;
+
+    Assert.Null(viewModel.RecipientLimit);
+  }
+
+  [Fact]
   public async Task SubmitSuppressesDuplicatesAndPreservesSelectionOnFailure()
   {
     var handler = new RecordingHandler(HttpStatusCode.InternalServerError);
@@ -175,6 +212,18 @@ public sealed class FollowerDistributionViewModelTests
     {
       var (status, body) = routes[request.RequestUri!.AbsolutePath];
       return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
+    }
+  }
+
+  private sealed class GatedHandler(string body) : HttpMessageHandler
+  {
+    public TaskCompletionSource Requested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+      Requested.TrySetResult();
+      await Release.Task.WaitAsync(cancellationToken);
+      return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
     }
   }
 

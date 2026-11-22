@@ -48,7 +48,7 @@ public sealed partial class FollowerDistributionViewModel : ObservableObject, ID
   public bool IsSearching { get => isSearching; private set => SetProperty(ref isSearching, value); }
   public bool HasMore { get => hasMore; private set => SetProperty(ref hasMore, value); }
   public Exception? Error { get => error; private set => SetProperty(ref error, value); }
-  public bool CanSubmit => !IsSending && (!IsSelectedAudience || selectedIds.Count > 0);
+  public bool CanSubmit => !IsSending && (!IsSelectedAudience || (selectedIds.Count > 0 && SelectionFitsRecipientLimit));
   public bool IsSelectedAudience { get; private set; }
 
   public void SetAudience(bool selected)
@@ -103,7 +103,7 @@ public sealed partial class FollowerDistributionViewModel : ObservableObject, ID
 
   public async Task<bool> SubmitAsync(CancellationToken cancellationToken = default)
   {
-    if (IsSending || (IsSelectedAudience && selectedIds.Count == 0)) return false;
+    if (!CanSubmit) return false;
     IsSending = true; Error = null;
     try
     {
@@ -143,6 +143,7 @@ public sealed partial class FollowerDistributionViewModel : ObservableObject, ID
     HasMore = false;
     selectedIds.Clear();
     selectedRecipients.Clear();
+    recipientLimitGeneration++;
     RecipientLimit = null;
     IsSelectedAudience = false;
     OnPropertyChanged(nameof(SelectedIds));
