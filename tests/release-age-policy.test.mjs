@@ -20,4 +20,8 @@ test('every Dependabot ecosystem entry sets a seven day cooldown', async () => {
   assert.ok(entries.length > 0)
   assert.equal(cooldowns.length, entries.length)
   for (const days of cooldowns) assert.ok(days >= sevenDays)
+  // Explicit SemVer cooldowns override default-days, so they must meet the same floor.
+  for (const [line, days] of config.matchAll(/^\s+semver-(?:major|minor|patch)-days: (\d+)$/gmu)) {
+    assert.ok(Number(days) >= sevenDays, `Dependabot override below seven days: ${line.trim()}`)
+  }
 })

@@ -253,7 +253,7 @@ test('pnpm bootstrap skips only npm advisory requests without changing package g
     const contents = read(path)
     const scoped = [
       ...contents.matchAll(
-        /uses: pnpm\/action-setup@[a-f0-9]{40}[^\n]*\n\s+env:\n\s+NPM_CONFIG_AUDIT: 'false'\n\s+with:\n\s+version: latest-12/gu,
+        /uses: pnpm\/action-setup@[a-f0-9]{40}[^\n]*\n\s+env:\n\s+NPM_CONFIG_AUDIT: 'false'\n\s+PNPM_CONFIG_MINIMUM_RELEASE_AGE: '\d+'\n\s+with:\n\s+version: latest-12/gu,
       ),
     ]
     assert.equal(scoped.length, expected, `${path} scopes every pnpm bootstrap`)
