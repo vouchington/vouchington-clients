@@ -113,12 +113,7 @@ internal static partial class MemberMcpInputSchema
     }
     if (schema.TryGetProperty("pattern", out var pattern))
     {
-      try { if (!BoundedPattern(pattern.GetString()!).IsMatch(text)) return false; }
-      catch (System.Text.RegularExpressions.RegexMatchTimeoutException)
-      {
-        // Fail closed, but as a bound violation rather than as a plain pattern mismatch.
-        throw new InvalidDataException("MCP pattern match exceeded its time bound.");
-      }
+      if (!BoundedPattern(pattern.GetString()!).IsMatch(text)) return false;
     }
     return true;
   }
