@@ -48,7 +48,7 @@ is_known_check() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --checks)
-      if [[ $# -lt 2 ]]; then
+      if [[ $# -lt 2 || -z "$2" ]]; then
         echo "Error: --checks requires an argument" >&2
         exit 1
       fi
