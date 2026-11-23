@@ -192,3 +192,40 @@ test('missing or unknown arguments print usage', async () => {
     assert.match(result.stderr, /Usage: node scripts\/contracts-diff\.mjs/)
   }
 })
+
+test('a client ref that moves during the producer fetch still stages the resolved commit', async t => {
+  const { fetchPinned: fetchProducer } = await fakeProducers(t, {
+    [shas.one]: producer(),
+    [shas.two]: producer({ 'api-fixtures/v1/responses/native.auth.new.json': '{}\n' }),
+  })
+  const gitRoot = await consumer(t, { base: shas.one, head: shas.two })
+  // Deleting the tag mid-run makes any later lookup by name fail; the resolved commit survives.
+  const fetchPinned = async pin => {
+    if (pin.commit === shas.two) git(gitRoot, 'tag', '-d', 'base')
+    return fetchProducer(pin)
+  }
+  const { report, changes } = await diffContracts({
+    base: 'base',
+    head: 'head',
+    withChanges: true,
+    gitRoot,
+    cacheRoot: '/unused',
+    fetchPinned,
+  })
+  assert.equal(report.complete, true, report.error)
+  assert.deepEqual(changes.fixtures.added, ['native.auth.new'])
+})
+
+test('a changes file that cannot be written still prints valid incomplete JSON', async t => {
+  const out = join(await scratch(t, 'voucha-diff-out-'), 'missing-dir', 'changes.json')
+  const result = await run(
+    process.execPath,
+    [script, '--base', 'no-such-revision', '--head', 'HEAD', '--changes', out],
+    { cwd: resolve(import.meta.dirname, '..') },
+  ).catch(error => error)
+  assert.equal(result.code, 1)
+  const report = JSON.parse(result.stdout)
+  assert.equal(report.complete, false)
+  assert.match(report.error, /failed to write .*missing-dir/)
+  assert.equal(report.changes, undefined)
+})

@@ -25,18 +25,29 @@ function parseArguments(argv) {
 }
 
 /** Reads and validates contracts/vouchington.json as it was at a git revision of this repo. */
+// Resolves a revision to one commit so the pin read and the archived client tree cannot diverge
+// if the ref moves while the producer is fetched.
+function resolveCommit(revision, gitRoot) {
+  if (revision.startsWith('-')) throw new Error('revision must not start with a dash')
+  return execFileSync('git', ['rev-parse', '--verify', '--quiet', `${revision}^{commit}`], {
+    cwd: gitRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
+}
+
 async function pinAt(revision, gitRoot) {
   const directory = await mkdtemp(join(tmpdir(), 'voucha-contract-pin-'))
   try {
-    if (revision.startsWith('-')) throw new Error('revision must not start with a dash')
-    const text = execFileSync('git', ['show', `${revision}:contracts/vouchington.json`], {
+    const clientCommit = resolveCommit(revision, gitRoot)
+    const text = execFileSync('git', ['show', `${clientCommit}:contracts/vouchington.json`], {
       cwd: gitRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const file = join(directory, 'vouchington.json')
     await writeFile(file, text)
-    return await readContractConfig(file)
+    return { clientCommit, pin: await readContractConfig(file) }
   } catch (error) {
     throw new Error(`no valid contract pin at ${revision}: ${error.message}`, { cause: error })
   } finally {
@@ -46,10 +57,10 @@ async function pinAt(revision, gitRoot) {
 
 // The producer exporter validates the producer's native consumer manifest against this repo's
 // product sources, so each producer commit is staged against the client tree of its own revision.
-async function exportRevision(revision, gitRoot, directory) {
+async function exportRevision(clientCommit, gitRoot, directory) {
   const archive = join(directory, 'revision.tar')
   const options = { cwd: gitRoot, stdio: ['ignore', 'ignore', 'pipe'] }
-  execFileSync('git', ['archive', '--format=tar', '--output', archive, revision], options)
+  execFileSync('git', ['archive', '--format=tar', '--output', archive, clientCommit], options)
   const consumerRoot = join(directory, 'consumer')
   await mkdir(consumerRoot)
   execFileSync('tar', ['-xf', archive, '-C', consumerRoot], options)
@@ -64,7 +75,7 @@ async function exportRevision(revision, gitRoot, directory) {
 
 // Stages each producer checkout through the same exporter as contracts:pull (generated
 // localization included), then compares the two staged roots.
-async function stagedChanges(report, gitRoot) {
+async function stagedChanges(report, clientCommits, gitRoot) {
   const stage = await mkdtemp(join(tmpdir(), 'voucha-contract-diff-'))
   try {
     const roots = []
@@ -74,7 +85,7 @@ async function stagedChanges(report, gitRoot) {
     ]) {
       const directory = join(stage, name)
       await mkdir(directory)
-      const consumerRoot = await exportRevision(side.revision, gitRoot, directory)
+      const consumerRoot = await exportRevision(clientCommits.get(side), gitRoot, directory)
       const outputRoot = join(directory, 'staged')
       await mkdir(outputRoot)
       await stageNativeContract({ vouchingtonRoot: side.root, consumerRoot, outputRoot })
@@ -107,14 +118,16 @@ export async function diffContracts({
     complete: false,
   }
   let changes = emptyChanges()
+  const clientCommits = new Map()
   try {
     for (const side of [report.base, report.head]) {
-      const pin = await pinAt(side.revision, gitRoot)
+      const { clientCommit, pin } = await pinAt(side.revision, gitRoot)
+      clientCommits.set(side, clientCommit)
       side.commit = pin.commit
       side.root = await fetchPinned(pin, cacheRoot)
     }
     if (withChanges && report.base.commit !== report.head.commit)
-      changes = await stagedChanges(report, gitRoot)
+      changes = await stagedChanges(report, clientCommits, gitRoot)
     report.complete = true
   } catch (error) {
     report.error = error.message
@@ -142,8 +155,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     withChanges: options.changes !== undefined,
   })
   if (options.changes) {
-    await writeFile(options.changes, `${JSON.stringify(changes, null, 2)}\n`)
-    report.changes = resolve(options.changes)
+    try {
+      await writeFile(options.changes, `${JSON.stringify(changes, null, 2)}\n`)
+      report.changes = resolve(options.changes)
+    } catch (error) {
+      report.complete = false
+      report.error = `failed to write ${options.changes}: ${error.message}`
+    }
   }
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
   if (!report.complete) process.exitCode = 1
