@@ -118,6 +118,19 @@ public sealed class NewsFeedsViewModelPaginationTests
   }
 
   [Fact]
+  public async Task AlwaysEmptyServerIsRequestedExactlyCapTimes()
+  {
+    var service = new PagedNewsFeedService(
+        Enumerable.Range(1, 50).Select(index => (object)EmptyPage($"empty-{index}", hasNext: true)));
+    var viewModel = new NewsFeedsViewModel(service);
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(EmptyPageContinuation.MaxConsecutiveEmptyPages, service.Cursors.Count);
+    Assert.True(viewModel.HasMore);
+  }
+
+  [Fact]
   public async Task EmptyPageWithoutNextPageIsTrueEmptyState()
   {
     var service = new PagedNewsFeedService([EmptyPage(null, hasNext: false)]);

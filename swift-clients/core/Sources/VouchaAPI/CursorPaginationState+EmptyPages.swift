@@ -6,9 +6,9 @@ public enum CursorPaginationLimits {
     public static let maxConsecutiveEmptyPages = 5
 }
 
-extension CursorPaginationState {
+public extension CursorPaginationState {
     /// True once a run of empty pages used the whole continuation budget while more remain.
-    public var needsManualContinuation: Bool {
+    var needsManualContinuation: Bool {
         hasMore && lastError == nil
             && consecutiveEmptyPages >= CursorPaginationLimits.maxConsecutiveEmptyPages
     }
@@ -16,7 +16,7 @@ extension CursorPaginationState {
     /// Starts the next page on its own when the last committed page added no rows but the server
     /// reported `has_next_page: true`. Returns nil on rows, errors, the end of the list, or once
     /// `CursorPaginationLimits.maxConsecutiveEmptyPages` empty pages have run in a row.
-    public mutating func continueThroughEmptyPage() -> CursorPageRequest? {
+    mutating func continueThroughEmptyPage() -> CursorPageRequest? {
         guard canAutomaticallyLoad, consecutiveEmptyPages > 0, !needsManualContinuation else { return nil }
         return beginPage()
     }

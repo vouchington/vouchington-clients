@@ -42,7 +42,8 @@ extension CommunityDetailViewModel {
                     throw error
                 }
                 // Rows from earlier pages stay; the Load more control retries the failed page.
-                _ = rowPagination.fail(request, error: (error as? VouchaError) ?? .unexpected(error.localizedDescription))
+                let failure = (error as? VouchaError) ?? .unexpected(error.localizedDescription)
+                _ = rowPagination.fail(request, error: failure)
                 break
             }
             guard let next = rowPagination.continueThroughEmptyPage() else { break }
