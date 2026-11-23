@@ -127,10 +127,10 @@ misread it. Unpinned, the lockfile stays one document.
 - Locally, install any pnpm 12 release and run `pnpm` from `PATH`.
 - In CI, every job or composite action that runs pnpm adds `pnpm/action-setup` directly after
   `actions/setup-node`. Its only input is `version: latest-12`, so the action runs
-  `pnpm self-update latest-12` and CI uses the newest pnpm 12 release that is at least one day old.
-  `self-update` honors pnpm's default one-day `minimumReleaseAge`: when the newest 12.x release is
-  younger than that, it installs the newest mature one instead. New 12.x releases reach CI without
-  a pull request; moving to pnpm 13 needs one.
+  `pnpm self-update latest-12` and CI uses the newest mature pnpm 12 release. `self-update` honors
+  `minimumReleaseAge`: when the newest 12.x release is younger than that, it installs the newest
+  mature one instead. The repository sets 7 days in `pnpm-workspace.yaml`; pnpm's default is one
+  day. New 12.x releases reach CI without a pull request; moving to pnpm 13 needs one.
 - Do not pass a bare `version: 12`. That range matches the pnpm the action bundles (12.3.4 in
   v6.1.0), so the action skips `self-update` and keeps it. pnpm 12.3.0 through 12.4.2 make
   `pnpm dlx` exit 1 with `ERR_PNPM_IGNORED_BUILDS` for packages with build scripts, such as
