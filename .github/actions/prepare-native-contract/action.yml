@@ -40,6 +40,7 @@ runs:
       uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       env:
         NPM_CONFIG_AUDIT: 'false'
+        PNPM_CONFIG_MINIMUM_RELEASE_AGE: '10080'
       with:
         version: latest-12
     - name: Configure isolated native paths

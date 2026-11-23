@@ -123,6 +123,20 @@ describe('pnpm 12 without a pinned version', () => {
     }
   })
 
+  it('gives every pnpm self-update the workspace release age', async () => {
+    // `pnpm self-update` ignores pnpm-workspace.yaml settings, so each setup step passes the age.
+    const [[, workspace]] = await readTracked(path => path === 'pnpm-workspace.yaml')
+    const minutes = /^minimumReleaseAge: (\d+)$/mu.exec(workspace)?.[1]
+    assert.ok(minutes, 'pnpm-workspace.yaml sets minimumReleaseAge')
+    for (const [path, step] of await pnpmSetupSteps()) {
+      assert.match(
+        step,
+        new RegExp(`^\\s+PNPM_CONFIG_MINIMUM_RELEASE_AGE: '${minutes}'$`, 'mu'),
+        `${path} must pass the workspace minimumReleaseAge to pnpm self-update`,
+      )
+    }
+  })
+
   it('uses the same action release and pnpm major at every call site', async () => {
     const steps = await pnpmSetupSteps()
     const refs = new Set(steps.map(([, step]) => step.match(/pnpm\/action-setup@[0-9a-f]{40}/u)[0]))

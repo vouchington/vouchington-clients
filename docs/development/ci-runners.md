@@ -127,10 +127,11 @@ misread it. Unpinned, the lockfile stays one document.
 - Locally, install any pnpm 12 release and run `pnpm` from `PATH`.
 - In CI, every job or composite action that runs pnpm adds `pnpm/action-setup` directly after
   `actions/setup-node`. Its only input is `version: latest-12`, so the action runs
-  `pnpm self-update latest-12` and CI uses the newest pnpm 12 release that is at least one day old.
-  `self-update` honors pnpm's default one-day `minimumReleaseAge`: when the newest 12.x release is
-  younger than that, it installs the newest mature one instead. New 12.x releases reach CI without
-  a pull request; moving to pnpm 13 needs one.
+  `pnpm self-update latest-12` and CI uses the newest mature pnpm 12 release. `self-update` ignores
+  `pnpm-workspace.yaml`, so each setup step also sets `PNPM_CONFIG_MINIMUM_RELEASE_AGE` to the
+  workspace `minimumReleaseAge` (7 days); without it pnpm's one-day default applies. When the
+  newest 12.x release is younger than that, `self-update` installs the newest mature one instead.
+  New 12.x releases reach CI without a pull request; moving to pnpm 13 needs one.
 - Do not pass a bare `version: 12`. That range matches the pnpm the action bundles (12.3.4 in
   v6.1.0), so the action skips `self-update` and keeps it. pnpm 12.3.0 through 12.4.2 make
   `pnpm dlx` exit 1 with `ERR_PNPM_IGNORED_BUILDS` for packages with build scripts, such as
@@ -142,6 +143,22 @@ misread it. Unpinned, the lockfile stays one document.
 [`tests/pnpm-setup.test.mjs`](../../tests/pnpm-setup.test.mjs) enforces these rules, including one
 action release and one `latest-<major>` across every call site. To change the major, update every
 `pnpm/action-setup` call in the same change.
+
+### Release age
+
+Automated updates wait 7 days before adoption: pnpm installs and every Dependabot ecosystem. First-party packages and dated security-fix exemptions skip the wait. Exact pins (mise tools, the .NET SDK and workload, Swift and Xcode) change only in a reviewed pull request and have no age gate of their own.
+
+| Source                                         | Gate                                                                                                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pnpm installs                                  | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml`; first-party packages, and exact security-fix versions with a removal date, are in `minimumReleaseAgeExclude` |
+| CI `pnpm self-update`                          | `PNPM_CONFIG_MINIMUM_RELEASE_AGE: '10080'` on every `pnpm/action-setup` step                                                                                      |
+| Dependabot npm, actions, NuGet, SwiftPM        | `cooldown.default-days: 7` on every entry; npm excludes its first-party packages. The other ecosystems have none to exclude                                       |
+| NuGet, SwiftPM, GitHub Actions `uses:` pins    | No install-time age gate exists; the pinned manifest plus Dependabot cooldown is the gate                                                                         |
+| mise tools, .NET SDK and workload, Xcode, curl | Pinned to exact versions; they change only through a reviewed pull request                                                                                        |
+
+[`tests/release-age-policy.test.mjs`](../../tests/release-age-policy.test.mjs) and
+[`tests/pnpm-setup.test.mjs`](../../tests/pnpm-setup.test.mjs) enforce the pnpm and
+Dependabot values. Dependabot security updates are not delayed by the cooldown.
 
 ## Android validation
 

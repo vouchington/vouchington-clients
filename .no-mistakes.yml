@@ -120,6 +120,11 @@ rules:
         - name: vouchington-tooling
           reason: First-party shared repository tooling and runner utilities.
       scopedPrefixes: ['@vouchington/']
+      temporaryGroups:
+        - reason: '@hono/node-server 2.1.11 (security fix, #785) was published 2026-11-20 and ages out of the 7-day gate on 2026-11-27; remove it then.'
+          eligibleForRemovalAt: '2026-11-27T08:43:02Z'
+          selectors:
+            - '@hono/node-server@2.1.11'
       workspaceYaml: pnpm-workspace.yaml
       dependabotPath: .github/dependabot.yml
       lockfilePath: pnpm-lock.yaml
