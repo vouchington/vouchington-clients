@@ -39,28 +39,42 @@ public sealed partial class NewsFeedsViewModel
     }
     NotifyPaginationChanged();
 
+    var current = request;
+    var firstPage = replace;
+    bool? hackerNewsReferences = null;
     try
     {
-      // A requested filter is only sent once the flag is known on; an unfiltered load never waits for it.
-      if (hackerNewsConfig is not null && hasHackerNewsReferences is not null) await hackerNewsConfig.ConfigureAwait(true);
-      var page = await LoadNewsFeedPageAsync(
-          scope,
-          sourceFeedType,
-          request.Cursor,
-          EffectiveHackerNewsReferences,
-          cancellationToken).ConfigureAwait(true);
-      if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) ||
-          !feedPages.Complete(request, (replace ? page.Items : KeepDisplayedStoryPrimaries(page.Items)).Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
-      Items = feedPages.Items;
+      // Follows has_next_page through pages that add no rows (bounded by EmptyPageContinuation), so an
+      // empty or fully filtered page does not strand the feed on its empty state.
+      while (true)
+      {
+        // A requested filter is only sent once the flag is known on; an unfiltered load never waits for it.
+        if (firstPage && hackerNewsConfig is not null && hasHackerNewsReferences is not null) await hackerNewsConfig.ConfigureAwait(true);
+        // Resolved once so a flag flip mid-continuation cannot pair a filtered cursor with an unfiltered query.
+        hackerNewsReferences ??= EffectiveHackerNewsReferences;
+        var page = await LoadNewsFeedPageAsync(
+            scope,
+            sourceFeedType,
+            current.Cursor,
+            hackerNewsReferences,
+            cancellationToken).ConfigureAwait(true);
+        if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) ||
+            !feedPages.Complete(current, (firstPage ? page.Items : KeepDisplayedStoryPrimaries(page.Items)).Select(Localized), page.PageInfo.EndCursor, page.PageInfo.HasNextPage)) return;
+        Items = feedPages.Items;
+        if (feedPages.ContinueThroughEmptyPage() is not { } next) break;
+        current = next;
+        firstPage = false;
+        NotifyPaginationChanged();
+      }
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {
-      feedPages.Cancel(request);
+      feedPages.Cancel(current);
       if (replace && requestId == Volatile.Read(ref loadRequestId)) Items = [];
     }
     catch (Exception ex)
     {
-      if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) || !feedPages.Fail(request, ex.Message)) return;
+      if (!IsCurrentFeedRequest(requestId, scope, sourceFeedType) || !feedPages.Fail(current, ex.Message)) return;
       if (replace)
       {
         Items = [];

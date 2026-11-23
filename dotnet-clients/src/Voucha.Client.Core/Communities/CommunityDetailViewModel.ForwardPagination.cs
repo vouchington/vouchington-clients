@@ -47,14 +47,12 @@ public sealed partial class CommunityDetailViewModel
         communityListEndCursor = posts.PageInfo.EndCursor;
         return true;
       case CommunityDetailSurfaceSection.News:
-        var news = await service.FetchNewsPageAsync(community, after, 25, cancellationToken).ConfigureAwait(true);
-        if (!IsCurrentCommunityPage(revision, pageRequest, community, section, threadId)) return true;
-        var rows = news.Results
-            .Select(reference => NewsRow(reference, news.RssFeedItems, news.RssFeedItemEmbeds))
-            .Where(row => row is not null)
-            .Select(row => row!);
-        News = AppendUnique(News, rows, row => row.Id);
-        communityListEndCursor = news.PageInfo.EndCursor;
+        await LoadNewsPagesAsync(
+            community,
+            after,
+            append: true,
+            () => IsCurrentCommunityPage(revision, pageRequest, community, section, threadId),
+            cancellationToken).ConfigureAwait(true);
         return true;
       case CommunityDetailSurfaceSection.Applications:
         var applications = await service.FetchApplicationsPageAsync(community, after, 20, cancellationToken).ConfigureAwait(true);

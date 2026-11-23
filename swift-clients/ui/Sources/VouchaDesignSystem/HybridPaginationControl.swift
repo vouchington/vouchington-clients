@@ -9,6 +9,7 @@ public struct HybridPaginationControl: View {
     private let isLoading: Bool
     private let hasError: Bool
     private let isDisabled: Bool
+    private let automaticLoadingPaused: Bool
     private let accessibilityIdentifier: String
     private let loadNextPage: () async -> Void
     @State
@@ -19,6 +20,7 @@ public struct HybridPaginationControl: View {
         isLoading: Bool,
         hasError: Bool,
         isDisabled: Bool = false,
+        automaticLoadingPaused: Bool = false,
         accessibilityIdentifier: String = "hybrid-pagination-control",
         loadNextPage: @escaping () async -> Void
     ) {
@@ -26,6 +28,7 @@ public struct HybridPaginationControl: View {
         self.isLoading = isLoading
         self.hasError = hasError
         self.isDisabled = isDisabled
+        self.automaticLoadingPaused = automaticLoadingPaused
         self.accessibilityIdentifier = accessibilityIdentifier
         self.loadNextPage = loadNextPage
     }
@@ -58,7 +61,7 @@ public struct HybridPaginationControl: View {
                     hasMore: hasMore,
                     isLoading: isLoading,
                     hasError: hasError,
-                    isDisabled: isDisabled
+                    isDisabled: isDisabled || automaticLoadingPaused
                 ) else { return }
                 Task { await loadNextPage() }
             }
@@ -67,7 +70,7 @@ public struct HybridPaginationControl: View {
                     hasMore: hasMore,
                     isLoading: isLoading,
                     hasError: hasError,
-                    isDisabled: isDisabled
+                    isDisabled: isDisabled || automaticLoadingPaused
                 ) else { return }
                 Task { await loadNextPage() }
             }

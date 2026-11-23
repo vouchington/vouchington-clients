@@ -1,5 +1,6 @@
 using Voucha.Client.Core.Api;
 using Voucha.Client.Core.NewsFeeds;
+using Voucha.Client.Core.Pagination;
 using Xunit;
 
 namespace Voucha.Client.Core.Tests.NewsFeeds;
@@ -58,6 +59,95 @@ public sealed class NewsFeedsViewModelPaginationTests
     Assert.Equal([25, 25], service.Limits);
     Assert.Equal([null, "source-cursor"], service.Cursors);
   }
+
+  [Fact]
+  public async Task EmptyFirstPageWithNextPageContinuesAndShowsLaterRows()
+  {
+    var service = new PagedNewsFeedService([
+      EmptyPage("empty-1", hasNext: true),
+      new NewsFeedPage([Item("story-2")], new PageInfo(null, false, null)),
+    ]);
+    var viewModel = new NewsFeedsViewModel(service);
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal([null, "empty-1"], service.Cursors);
+    Assert.Equal(["story-2"], viewModel.Items.Select(item => item.Id));
+    Assert.False(viewModel.HasMore);
+    Assert.False(viewModel.IsLoading);
+  }
+
+  [Fact]
+  public async Task EmptyLaterPageWithNextPageContinues()
+  {
+    var service = new PagedNewsFeedService([
+      new NewsFeedPage([Item("story-1")], new PageInfo("c1", true, null)),
+      EmptyPage("c2", hasNext: true),
+      new NewsFeedPage([Item("story-3")], new PageInfo(null, false, null)),
+    ]);
+    var viewModel = new NewsFeedsViewModel(service);
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal([null, "c1", "c2"], service.Cursors);
+    Assert.Equal(["story-1", "story-3"], viewModel.Items.Select(item => item.Id));
+  }
+
+  [Fact]
+  public async Task ConsecutiveEmptyPagesStopAtCapAndLeaveManualContinuation()
+  {
+    var pages = Enumerable.Range(1, EmptyPageContinuation.MaxConsecutiveEmptyPages)
+        .Select(index => (object)EmptyPage($"empty-{index}", hasNext: true))
+        .ToList();
+    pages.Add(new NewsFeedPage([Item("late")], new PageInfo(null, false, null)));
+    var service = new PagedNewsFeedService(pages);
+    var viewModel = new NewsFeedsViewModel(service);
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(EmptyPageContinuation.MaxConsecutiveEmptyPages, service.Cursors.Count);
+    Assert.Empty(viewModel.Items);
+    Assert.True(viewModel.HasMore);
+    Assert.False(viewModel.HasPaginationError);
+
+    await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal(["late"], viewModel.Items.Select(item => item.Id));
+    Assert.False(viewModel.HasMore);
+  }
+
+  [Fact]
+  public async Task EmptyPageWithoutNextPageIsTrueEmptyState()
+  {
+    var service = new PagedNewsFeedService([EmptyPage(null, hasNext: false)]);
+    var viewModel = new NewsFeedsViewModel(service);
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Single(service.Cursors);
+    Assert.Empty(viewModel.Items);
+    Assert.False(viewModel.HasMore);
+  }
+
+  [Fact]
+  public async Task FailureWhileContinuingThroughEmptyPagesStopsAndSurfacesRetry()
+  {
+    var service = new PagedNewsFeedService([
+      EmptyPage("c1", hasNext: true),
+      new InvalidOperationException("Offline."),
+    ]);
+    var viewModel = new NewsFeedsViewModel(service);
+
+    await viewModel.LoadAsync(TestContext.Current.CancellationToken);
+
+    Assert.Equal([null, "c1"], service.Cursors);
+    Assert.Equal("Offline.", viewModel.ErrorMessage);
+    Assert.Empty(viewModel.Items);
+  }
+
+  private static NewsFeedPage EmptyPage(string? cursor, bool hasNext) =>
+      new([], new PageInfo(cursor, hasNext, null));
 
   private static NewsFeedItem Item(string id) =>
       new(id, id, "Source", "Summary", null, DateTimeOffset.UtcNow);

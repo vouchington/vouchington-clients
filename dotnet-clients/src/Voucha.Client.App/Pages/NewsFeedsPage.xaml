@@ -177,6 +177,14 @@
                         <Label
                             Text="{DynamicResource native.dotnet.newsFeeds.emptyDescription}"
                             Style="{StaticResource Body}" />
+                        <!-- The Footer is not guaranteed to render while EmptyView shows, so keep a manual
+                             continue control reachable whenever the server reported more pages. -->
+                        <controls:HybridPaginationControl
+                            PaginationId="news-feeds-empty"
+                            HasMore="{Binding HasMore}"
+                            IsLoading="{Binding IsLoadingMore}"
+                            HasError="{Binding HasPaginationError}"
+                            LoadNextPageRequested="OnLoadNextPageRequested" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>

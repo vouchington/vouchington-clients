@@ -13,10 +13,10 @@ public sealed partial class CommunityDetailViewModel
   private int communityListPageRequestId;
 
   public bool CanLoadMoreCommunityList =>
-      communityListEndCursor is not null && !IsLoadingMoreCommunityList &&
+      HasCommunityListContinuation && !IsLoadingMoreCommunityList &&
       IsPagedCommunitySection && (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts || IsCurrentAgentPromptSession);
 
-  public bool HasMoreCommunityList => communityListEndCursor is not null &&
+  public bool HasMoreCommunityList => HasCommunityListContinuation &&
       IsPagedCommunitySection && (SelectedSection != CommunityDetailSurfaceSection.AgentPrompts || IsCurrentAgentPromptSession);
 
   public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList || (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && isLoadingAgentPrompts);
@@ -59,7 +59,7 @@ public sealed partial class CommunityDetailViewModel
   public async Task LoadMoreCommunityListAsync(CancellationToken cancellationToken = default)
   {
     if (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && (agentPromptDisposed || IsLoading || isLoadingAgentPrompts)) return;
-    if (communityListEndCursor is not { } after || isLoadingMoreCommunityList) return;
+    if (!HasCommunityListContinuation || communityListEndCursor is not { } after || isLoadingMoreCommunityList) return;
 
     var revision = Volatile.Read(ref communityListRevision);
     var pageRequest = Interlocked.Increment(ref communityListPageRequestId);

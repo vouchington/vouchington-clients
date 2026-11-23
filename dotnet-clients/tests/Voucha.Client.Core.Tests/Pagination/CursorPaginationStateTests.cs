@@ -115,6 +115,51 @@ public sealed class CursorPaginationStateTests
     Assert.All(state.Items, row => Assert.Equal("item-X", row.ItemId));
   }
 
+  [Fact]
+  public void EmptyPagesContinueUntilTheCapThenNeedManualContinuation()
+  {
+    var state = new CursorPaginationState<Item, string>(item => item.Id);
+    var request = Assert.IsType<CursorPageRequest>(state.BeginNextPage());
+    for (var index = 1; index <= EmptyPageContinuation.MaxConsecutiveEmptyPages; index++)
+    {
+      Assert.True(state.Complete(request, [], $"c{index}", hasNextPage: true));
+      if (index == EmptyPageContinuation.MaxConsecutiveEmptyPages) break;
+      Assert.False(state.NeedsManualContinuation);
+      request = Assert.IsType<CursorPageRequest>(state.ContinueThroughEmptyPage());
+    }
+
+    Assert.Null(state.ContinueThroughEmptyPage());
+    Assert.True(state.NeedsManualContinuation);
+
+    var manual = Assert.IsType<CursorPageRequest>(state.BeginNextPage());
+    Assert.False(state.NeedsManualContinuation);
+    Assert.True(state.Complete(manual, [new("a")], null, hasNextPage: false));
+    Assert.Null(state.ContinueThroughEmptyPage());
+  }
+
+  [Fact]
+  public void ContinuationCountsPrependAndReplacePagesAndStopsOnErrorOrReset()
+  {
+    var state = new CursorPaginationState<Item, string>(item => item.Id);
+    var first = Assert.IsType<CursorPageRequest>(state.BeginNextPage());
+    Assert.True(state.CompleteReplacing(first, [], "c1", hasNextPage: true));
+    var second = Assert.IsType<CursorPageRequest>(state.ContinueThroughEmptyPage());
+    Assert.True(state.CompletePrepending(second, [], "c2", hasNextPage: true));
+    var third = Assert.IsType<CursorPageRequest>(state.ContinueThroughEmptyPage());
+    Assert.True(state.CompleteReplacing(third, [new("a")], "c3", hasNextPage: true));
+    Assert.Null(state.ContinueThroughEmptyPage());
+
+    var empty = Assert.IsType<CursorPageRequest>(state.BeginNextPage());
+    state.Complete(empty, [], "c4", hasNextPage: true);
+    var failing = Assert.IsType<CursorPageRequest>(state.ContinueThroughEmptyPage());
+    state.Fail(failing, "offline");
+    Assert.Null(state.ContinueThroughEmptyPage());
+    Assert.False(state.NeedsManualContinuation);
+
+    state.Reset();
+    Assert.Null(state.ContinueThroughEmptyPage());
+  }
+
   private sealed record Item(string Id);
 
   private sealed record DeliveryRow(string ItemId, string DeliveryId);
