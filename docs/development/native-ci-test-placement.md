@@ -127,8 +127,12 @@ it runs out; every passing gate observed before the cap finished in under two mi
 gate pushed the sign-in leg past its former 9-minute job cap after the test had already passed.
 `simctl terminate` has its own 60-second budget, not what is left of the 150: across 140 passing
 gates it took p50 4 s, p95 37 s, max 104 s, and when it hangs it does not return. A hung terminate
-reinstalls the app (60 seconds shared by uninstall and install) and fails the step if that also
-hangs. The gate no longer erases the Simulator: erase shuts the device down, so `xcodebuild` boots
+first checks, with a 15-second `launchctl list` probe, whether the app is still running: a gone app
+logs `stopped-late` and the gate continues, while a stalled probe counts as alive. A live app is
+reinstalled (120 seconds shared by uninstall and install, raised from 60 after runs 45060434211 and
+45082704348 stalled about 2 minutes), logging which command failed and for how long, and the step
+fails if that also hangs. Worst case is 345 seconds, inside the 7-minute iPhone and 9-minute iPad
+step caps. The gate no longer erases the Simulator: erase shuts the device down, so `xcodebuild` boots
 it cold and repeats the data migration, which took the run 45036089782 iPad sign-in shard past its
 9-minute cap (the gate ran 245 s, then the test runner bootstrapped 5 minutes after `xcodebuild`
 started). A launch that returns no process id still fails. The Xcode launch timeout and a launch that reports no process id are the same readiness
