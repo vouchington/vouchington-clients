@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { isDocsOnly, mergeGroupChangedPaths } from '../scripts/docs-only-routing.mjs'
+import { mergeGroupChangedPaths } from '../scripts/changed-file-route.mjs'
+import { isDocsOnly } from '../scripts/docs-only-routing.mjs'
 import { jobBlock } from './workflow-job-block.mjs'
 
 const native = await readFile(
