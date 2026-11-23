@@ -13,8 +13,15 @@ BUDGET_SECONDS = 150
 # p95 37 s, max 104 s; when it hangs it does not return, so 60 s separates the two.
 TERMINATE_SECONDS = 60
 # One shared budget for the uninstall and install that replace a process terminate left alive.
-RECOVERY_SECONDS = 60
+# Runs 45060434211 (iPhone sign-in) and 45082704348 (iPad sign-in, ejected a queued PR) stalled the
+# Simulator for about 2 minutes and then recovered, so 60 s failed both; 120 s covers that stall.
+# Worst case: 150 install and launch + 60 terminate + 15 liveness + 120 recovery = 345 s, which
+# leaves 75 s of the 420 s iPhone step cap and 195 s of the 540 s iPad cap for xcodebuild.
+RECOVERY_SECONDS = 120
+# Its own small budget: a stalled check counts as "still alive" and keeps the gate failing closed.
+LIVENESS_SECONDS = 15
 BUNDLE_ID = "ai.voucha.ios"
+LIVENESS_MARKER = f"UIKitApplication:{BUNDLE_ID}"
 
 
 def log(message: str) -> None:
@@ -35,15 +42,53 @@ def run(args: list[str], deadline: float, *, check: bool) -> subprocess.Complete
     )
 
 
+def app_alive(simulator_id: str) -> bool:
+    """Whether the app process is still running; a stalled or failed check counts as alive."""
+    started = time.monotonic()
+    try:
+        listed = run(
+            ["xcrun", "simctl", "spawn", simulator_id, "launchctl", "list"],
+            time.monotonic() + LIVENESS_SECONDS,
+            check=True,
+        )
+    except subprocess.TimeoutExpired:
+        log(f"liveness-timeout after {time.monotonic() - started:.0f}s; assuming alive")
+        return True
+    except subprocess.CalledProcessError as error:
+        log(f"liveness-failed exit={error.returncode}; assuming alive")
+        return True
+    return LIVENESS_MARKER in listed.stdout
+
+
 def reset_app(simulator_id: str, app: str) -> bool:
     """Kill a pre-launched app that ignored terminate by removing and reinstalling it."""
     deadline = time.monotonic() + RECOVERY_SECONDS
     log("reset")
-    try:
-        run(["xcrun", "simctl", "uninstall", simulator_id, BUNDLE_ID], deadline, check=True)
-        run(["xcrun", "simctl", "install", simulator_id, app], deadline, check=True)
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
-        return False
+    for step, args in (
+        ("uninstall", ["xcrun", "simctl", "uninstall", simulator_id, BUNDLE_ID]),
+        ("install", ["xcrun", "simctl", "install", simulator_id, app]),
+    ):
+        started = time.monotonic()
+        try:
+            run(args, deadline, check=True)
+        except subprocess.TimeoutExpired:
+            elapsed = time.monotonic() - started
+            print(
+                f"::warning::spawn-gate reset {step} timed out after {elapsed:.0f}s "
+                f"of the {RECOVERY_SECONDS}s budget",
+                flush=True,
+            )
+            return False
+        except subprocess.CalledProcessError as error:
+            elapsed = time.monotonic() - started
+            detail = (error.stderr or "").strip() or "no stderr"
+            print(
+                f"::warning::spawn-gate reset {step} failed exit={error.returncode} "
+                f"after {elapsed:.0f}s: {detail}",
+                flush=True,
+            )
+            return False
+        log(f"reset-{step} {time.monotonic() - started:.0f}s")
     return True
 
 
@@ -93,6 +138,9 @@ def main() -> int:
             )
         except subprocess.TimeoutExpired:
             log("terminate-budget-exhausted")
+            if not app_alive(simulator_id):
+                log("stopped-late")
+                return 0
             if not reset_app(simulator_id, app):
                 # Erasing the device would shut it down, and xcodebuild would then cold boot it
                 # and repeat the data migration inside the same step cap. Fail closed instead.
