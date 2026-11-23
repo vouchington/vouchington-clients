@@ -65,11 +65,16 @@ def reset_app(simulator_id: str, app: str) -> bool:
         started = time.monotonic()
         try:
             run(args, deadline, check=True)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as error:
             elapsed = time.monotonic() - started
+            # TimeoutExpired carries bytes even with text=True.
+            captured = error.stderr or b""
+            if isinstance(captured, bytes):
+                captured = captured.decode(errors="replace")
+            detail = captured.strip() or "no stderr"
             print(
                 f"::warning::spawn-gate reset {step} timed out after {elapsed:.0f}s "
-                f"of the {RECOVERY_SECONDS}s budget",
+                f"of the {RECOVERY_SECONDS}s budget: {detail}",
                 flush=True,
             )
             return False
