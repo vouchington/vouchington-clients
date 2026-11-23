@@ -43,7 +43,7 @@ describe('MAUI App test diagnostics', () => {
       /if: \$\{\{ failure\(\) \|\| cancelled\(\) \}\}[\s\S]*?timeout-minutes: 2[\s\S]*?actions\/upload-artifact@[a-f0-9]{40}[\s\S]*?voucha-maui-test-results/u,
     )
     assert.match(upload, /path: \$\{\{ runner\.temp \}\}\/voucha-maui-test-results/u)
-    assert.match(upload, /retention-days: 1/u)
+    assert.match(upload, /retention-days: 7/u)
     assert.ok(
       maui.indexOf('      - name: Test rendered MAUI pages') <
         maui.indexOf('      - name: Upload failed MAUI test diagnostics'),

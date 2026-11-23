@@ -229,7 +229,7 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
   const finalUpload = stepBlock(workflow, 'Upload informational paired contract evidence')
   const finalize = jobBlock(workflow, 'finalize')
   assert.match(candidateUpload, /name: paired-native-candidate-\$\{\{ github\.run_id \}\}/u)
-  assert.match(candidateUpload, /retention-days: 1/u)
+  assert.match(candidateUpload, /retention-days: 7/u)
   assert.match(
     stepBlock(workflow, 'Recheck live identities and write exact informational evidence'),
     /GITHUB_TOKEN: \$\{\{ github\.token \}\}/u,
@@ -250,7 +250,7 @@ it('keeps candidate artifacts untrusted until a clean final job rechecks live id
     'trusted candidate-data checks must precede the authenticated live recheck',
   )
   assert.match(finalUpload, /name: paired-native-contract-\$\{\{ github\.run_id \}\}/u)
-  assert.match(finalUpload, /retention-days: 1/u)
+  assert.match(finalUpload, /retention-days: 7/u)
   assert.doesNotMatch(finalUpload, /overwrite: true/u)
   assert.doesNotMatch(
     finalize,

@@ -251,7 +251,7 @@ jobs:
           name: dependabot-dotnet-lock-repair-${{ github.event.pull_request.number }}
           overwrite: true
           path: ${{ runner.temp }}/dependabot-dotnet-lock-repair
-          retention-days: 1
+          retention-days: 7
   publish:
     needs: [gate, prepare]
     if: >-

@@ -242,7 +242,7 @@ jobs:
           name: paired-native-candidate-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           overwrite: false
 
   finalize:
@@ -356,7 +356,7 @@ jobs:
           name: paired-native-contract-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/paired-contract-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           overwrite: false
   native-linux-tests:
     name: Candidate Swift Core and .NET tests (Linux)
@@ -583,7 +583,7 @@ jobs:
           name: paired-native-apks-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/paired-apks
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           overwrite: false
 
   native-android-emulator:
@@ -673,7 +673,7 @@ jobs:
           name: paired-native-runtime-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/paired-runtime
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           overwrite: false
 
   finalize-native-tests:
@@ -764,5 +764,5 @@ jobs:
           name: paired-native-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/paired-contract/paired-native-test-evidence.json
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           overwrite: false

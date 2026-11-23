@@ -196,7 +196,7 @@ jobs:
           name: dependabot-swift-android-repair-${{ github.event.pull_request.number }}
           overwrite: true
           path: ${{ runner.temp }}/dependabot-swift-android-repair
-          retention-days: 1
+          retention-days: 7
   publish-swift-android:
     needs: prepare
     if: >-

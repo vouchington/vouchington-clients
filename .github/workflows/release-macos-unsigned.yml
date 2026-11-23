@@ -142,7 +142,7 @@ jobs:
           name: sentry-macos-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/Voucha.xcarchive/dSYMs/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   sentry-symbols:
     permissions:
