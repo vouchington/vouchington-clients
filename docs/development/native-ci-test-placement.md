@@ -75,15 +75,18 @@ workflow job uses them.
 Linux rows are the cheapest job that can run that work. They do not make a second OS optional when
 Required dual-OS says that suite also compiles a different stack.
 
-The Mac Catalyst path has two required macOS jobs that start independently after contract
-verification. The rendered-page job verifies all twelve committed NuGet locks and runs the complete
-MAUI page test suite. The app job restores the locked graph and pinned SDK, workload, Xcode, and
-host RID, then runs the unchanged full Release app build, including managed compilation, trimming,
-AOT, native linking, and bundle creation. Each job checks out and restores its own exact candidate;
-no compiled state or source timestamps are transferred between them. The aggregate Tests gate
-requires both jobs to succeed. The app job runs on pull requests and merge groups only, never on a
-`main` push. Hosted measurements must establish each job's duration and the full
-run's critical path.
+The Mac Catalyst path has two macOS jobs on pull requests and three on a merge group. The
+rendered-page job verifies all twelve committed NuGet locks and runs the complete MAUI page test
+suite. The Mac Catalyst GUI preflight builds the Debug app (no trimming, no AOT) on pull requests
+and merge groups, so a pull request already compiles the Mac Catalyst app. The Release app job
+(`dotnet-maui`) restores the locked graph and pinned SDK, workload, Xcode, and host RID, then runs
+the full Release app build, including managed compilation, trimming, AOT, native linking, and
+bundle creation. It runs on `merge_group` only: it is skipped on a pull request and on a `main`
+push. Release-only and AOT-only breakage is therefore caught in the merge queue, not on the pull
+request. The aggregate Tests gate accepts a skipped `dotnet-maui` only when the event is
+`pull_request`; a merge group still requires it to succeed. Each job checks out and restores its
+own exact candidate, and the NuGet cache key is shared and holds packages only, so no Debug and
+Release build output mixes. No compiled state or source timestamps are transferred between jobs.
 
 The macOS app smoke job builds the generated macOS app, then launches it with the existing
 root-shell XCUITest. The build stays unsigned. The launch deletes that unsigned product and signs
@@ -214,7 +217,7 @@ control assertions pass and nothing was skipped. Named assertion evidence is che
 verified native revision and producer pin; see [the evidence contract](native-shell-notification-evidence.md).
 The other five notification controls, route focus, and the
 one-announcement proof remain open. #60 stays open for those checks. The Debug fixture transport is
-compiled out of Release. The existing MAUI job still builds Release and runs linked page tests;
+compiled out of Release. The MAUI Release job builds in the merge queue and runs linked page tests;
 those are not this session.
 
 Run `pnpm test` when changing native workflow routing or selected app tests. The quality command

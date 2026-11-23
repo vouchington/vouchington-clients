@@ -94,7 +94,7 @@ changes for them):
 `dotnet-maui` and `dotnet-windows-maui` skip a `main` push. They only compiled unsigned CI binaries
 that nothing ships, saved a NuGet cache, and uploaded `voucha-dotnet@<sha>` debug files that match
 only those binaries (measured on main push run 45042094835: 437 s on macOS and 284 s on Windows).
-Pull requests and merge groups keep both builds. See
+The Mac Catalyst Release build runs on merge groups only; a pull request compiles the Debug app in `dotnet-catalyst-gui` instead. The Windows build keeps pull requests and merge groups. See
 [native Sentry releases](native-sentry-releases.md#trusted-uploads) for the .NET upload.
 
 Add a new required test to a `merge_group`-capable job without a `github.event_name != 'push'`

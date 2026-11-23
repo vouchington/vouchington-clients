@@ -118,9 +118,17 @@ describe('cancellation-aware native reporting', () => {
     const keys = [...dependencies.matchAll(/^      - ([\w-]+)$/gmu)].map(m => m[1])
     assert.ok(keys.length > 0)
     const needs = Object.fromEntries(keys.map(key => [key, { result: 'success' }]))
-    const invoke = (results, preview = 'true', maui = 'true', surface = 'true', docs = 'false') =>
+    const invoke = (
+      results,
+      preview = 'true',
+      maui = 'true',
+      surface = 'true',
+      docs = 'false',
+      event = 'merge_group',
+    ) =>
       execute(script, {
         DOCS_ONLY_ROUTE: docs,
+        EVENT_NAME: event,
         NEEDS_JSON: JSON.stringify(results),
         WINDOWS_IMAGE_PREVIEW_ROUTE: preview,
         WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: surface,
@@ -142,6 +150,9 @@ describe('cancellation-aware native reporting', () => {
     assert.notEqual(invoke(optional, 'true', 'false', 'false'), 0)
     assert.notEqual(invoke(optional, 'false', 'true', 'false'), 0)
     assert.notEqual(invoke(optional, 'false', 'false', 'true'), 0)
+    const prSkip = { ...needs, 'dotnet-maui': { result: 'skipped' } }
+    assert.equal(invoke(prSkip, 'true', 'true', 'true', 'false', 'pull_request'), 0)
+    assert.notEqual(invoke(prSkip), 0)
   })
 
   it('Tests accepts skipped native jobs only for a docs-only route', () => {
@@ -156,6 +167,7 @@ describe('cancellation-aware native reporting', () => {
     const invoke = (results, route) =>
       execute(script, {
         DOCS_ONLY_ROUTE: route,
+        EVENT_NAME: 'merge_group',
         NEEDS_JSON: JSON.stringify(results),
         WINDOWS_IMAGE_PREVIEW_ROUTE: 'true',
         WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: 'true',

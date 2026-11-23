@@ -2301,7 +2301,7 @@ jobs:
   dotnet-maui:
     name: .NET MAUI Mac Catalyst
     needs: verify
-    if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
+    if: ${{ github.event_name == 'merge_group' && needs.verify.outputs.docs-only != 'true' }}
     runs-on: macos-latest
     timeout-minutes: 30
     env:
@@ -2910,18 +2910,21 @@ jobs:
       - name: Require every native test job to succeed
         env:
           DOCS_ONLY_ROUTE: ${{ needs.verify.outputs.docs-only }}
+          EVENT_NAME: ${{ github.event_name }}
           NEEDS_JSON: ${{ toJSON(needs) }}
           WINDOWS_IMAGE_PREVIEW_ROUTE: ${{ needs.verify.outputs.windows-image-preview }}
           WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE: ${{ needs.verify.outputs.windows-language-model-surface }}
           WINDOWS_MAUI_ROUTE: ${{ needs.verify.outputs.windows-maui }}
         run: |
           set -euo pipefail
-          jq -e --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" --arg surface "$WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE" --arg docs "$DOCS_ONLY_ROUTE" '
+          jq -e --arg event "$EVENT_NAME" --arg route "$WINDOWS_IMAGE_PREVIEW_ROUTE" --arg maui "$WINDOWS_MAUI_ROUTE" --arg surface "$WINDOWS_LANGUAGE_MODEL_SURFACE_ROUTE" --arg docs "$DOCS_ONLY_ROUTE" '
             if $docs == "true" then
               (.produce.result == "success") and (.verify.result == "success") and
               all(to_entries[]; .value.result == "success" or .value.result == "skipped")
             else
-            all(to_entries[] | select(.key != "dotnet-windows-image-preview" and .key != "dotnet-windows-language-model-surface" and .key != "dotnet-windows-maui"); .value.result == "success") and
+            all(to_entries[] | select(.key != "dotnet-maui" and .key != "dotnet-windows-image-preview" and .key != "dotnet-windows-language-model-surface" and .key != "dotnet-windows-maui"); .value.result == "success") and
+            ((."dotnet-maui".result == "success") or
+             ($event == "pull_request" and ."dotnet-maui".result == "skipped")) and
             ((."dotnet-windows-image-preview".result == "success") or
              ($route == "false" and ."dotnet-windows-image-preview".result == "skipped")) and
             ((."dotnet-windows-language-model-surface".result == "success") or
