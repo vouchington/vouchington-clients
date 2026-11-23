@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
 
@@ -27,12 +26,11 @@ function uploadSteps(source) {
 }
 
 test('every artifact upload keeps artifacts for seven days', async () => {
-  const paths = execFileSync('git', ['ls-files', '.github'], {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-  })
-    .split('\n')
+  // Reads the files on disk rather than asking git, so an inherited GIT_DIR cannot select another checkout.
+  const paths = (await readdir(join(repositoryRoot, '.github'), { recursive: true }))
     .filter(path => /\.ya?ml$/u.test(path))
+    .map(path => join('.github', path))
+    .sort()
   let uploads = 0
   for (const path of paths) {
     for (const { line, step } of uploadSteps(await readFile(join(repositoryRoot, path), 'utf8'))) {
