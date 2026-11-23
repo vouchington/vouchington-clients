@@ -8,6 +8,13 @@ public sealed partial class CommunityDetailViewModel
   private bool communityNewsHasNextPage;
 
   /// <summary>
+  /// True once News followed the empty-page cap; scrolling must not start another burst, so only the
+  /// manual control continues.
+  /// </summary>
+  private bool NewsNeedsManualContinuation => SelectedSection == CommunityDetailSurfaceSection.News &&
+      newsEmptyPages.NeedsManualContinuation(HasCommunityListContinuation);
+
+  /// <summary>
   /// Whether the selected list continues. News follows the server's <c>has_next_page</c>; the other
   /// sections still continue while they hold a cursor.
   /// </summary>

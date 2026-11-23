@@ -109,12 +109,14 @@ public sealed class NewsFeedsViewModelPaginationTests
     Assert.Equal(EmptyPageContinuation.MaxConsecutiveEmptyPages, service.Cursors.Count);
     Assert.Empty(viewModel.Items);
     Assert.True(viewModel.HasMore);
+    Assert.False(viewModel.CanAutomaticallyLoadMore);
     Assert.False(viewModel.HasPaginationError);
 
     await viewModel.LoadMoreAsync(TestContext.Current.CancellationToken);
 
     Assert.Equal(["late"], viewModel.Items.Select(item => item.Id));
     Assert.False(viewModel.HasMore);
+    Assert.False(viewModel.CanAutomaticallyLoadMore);
   }
 
   [Fact]

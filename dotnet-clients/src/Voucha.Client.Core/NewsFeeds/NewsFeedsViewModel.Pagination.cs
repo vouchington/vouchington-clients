@@ -8,6 +8,12 @@ public sealed partial class NewsFeedsViewModel
   private readonly CursorPaginationState<NewsFeedItem, string> feedPages = new(item => item.FeedRowId);
 
   public bool HasMore => feedPages.HasLoadedPage && feedPages.HasMore;
+
+  /// <summary>
+  /// False once the feed followed the empty-page cap, so scrolling cannot start another burst; the
+  /// manual control still continues.
+  /// </summary>
+  public bool CanAutomaticallyLoadMore => HasMore && !feedPages.NeedsManualContinuation;
   public bool IsLoadingMore => feedPages.IsLoading && !IsLoading;
   public bool HasPaginationError => !string.IsNullOrWhiteSpace(PaginationErrorMessage);
   public string? PaginationErrorMessage => feedPages.LastError;

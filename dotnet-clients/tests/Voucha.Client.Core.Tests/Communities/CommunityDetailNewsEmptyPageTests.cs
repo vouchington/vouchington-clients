@@ -47,6 +47,7 @@ public sealed class CommunityDetailNewsEmptyPageTests
     Assert.Equal(Cap, NewsRequests(service).Count);
     Assert.True(viewModel.HasMoreCommunityList);
     Assert.True(viewModel.CanLoadMoreCommunityList);
+    Assert.False(viewModel.CanAutomaticallyLoadCommunityList);
 
     await viewModel.LoadMoreCommunityListAsync(TestContext.Current.CancellationToken);
 

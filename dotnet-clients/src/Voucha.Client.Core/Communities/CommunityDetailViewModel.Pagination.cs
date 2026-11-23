@@ -22,7 +22,7 @@ public sealed partial class CommunityDetailViewModel
   public bool IsLoadingMoreCommunityList => isLoadingMoreCommunityList || (SelectedSection == CommunityDetailSurfaceSection.AgentPrompts && isLoadingAgentPrompts);
 
   public bool CanAutomaticallyLoadCommunityList =>
-      HasMoreCommunityList && modmailThreadSurfaceId is null;
+      HasMoreCommunityList && modmailThreadSurfaceId is null && !NewsNeedsManualContinuation;
 
   private bool IsPagedCommunitySection => SelectedSection is
       CommunityDetailSurfaceSection.Members or
