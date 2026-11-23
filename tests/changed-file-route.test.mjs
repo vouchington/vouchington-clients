@@ -21,7 +21,7 @@ const native = await readFile(
 )
 
 // Runs a Windows MAUI route as the verify job would, with an isolated GITHUB_OUTPUT.
-function routeWindowsMaui({ repositoryRoot, base, revision, eventName }) {
+function routeWindowsMaui({ repositoryRoot, base, revision, eventName, mergeGroupFallback }) {
   const output = join(mkdtempSync(join(tmpdir(), 'changed-file-route-')), 'output')
   const previous = process.env.GITHUB_OUTPUT
   process.env.GITHUB_OUTPUT = output
@@ -33,6 +33,7 @@ function routeWindowsMaui({ repositoryRoot, base, revision, eventName }) {
       select: shouldRunWindowsMauiBuild,
       logLabel: 'Windows MAUI build changed-file route',
       outputKey: 'windows-maui',
+      ...(mergeGroupFallback === undefined ? {} : { mergeGroupFallback }),
     })
   } finally {
     if (previous === undefined) delete process.env.GITHUB_OUTPUT
@@ -123,6 +124,8 @@ describe('changed-file route helper', () => {
         base: windowsEntry,
         revision: notesEntry,
         eventName,
+        // A false fallback makes this pass only when the whole-ref diff succeeds.
+        mergeGroupFallback: false,
       })
     assert.equal(route('merge_group'), 'windows-maui=true\n')
     assert.equal(route('pull_request'), 'windows-maui=false\n', 'pull requests keep base..head')
