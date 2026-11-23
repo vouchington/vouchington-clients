@@ -3,7 +3,8 @@ using System.Text.Json.Serialization;
 namespace Voucha.Client.Core.Api;
 
 public sealed record NativeEmailTokenResponse(
-    [property: JsonPropertyName("email_address")] string EmailAddress);
+    [property: JsonPropertyName("email_address")] string EmailAddress,
+    [property: JsonPropertyName("resend_after_seconds")] int ResendAfterSeconds);
 
 public sealed record NativeSessionTokenPayload(
     [property: JsonPropertyName("did")] string Did,

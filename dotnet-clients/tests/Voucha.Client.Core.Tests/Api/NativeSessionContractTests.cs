@@ -21,6 +21,7 @@ public sealed class NativeSessionContractTests
 
     var tokens = Decode<NativeEmailTokenResponse>("native.auth.email-address.tokens");
     Assert.Equal("fixture@example.test", tokens.EmailAddress);
+    Assert.Equal(60, tokens.ResendAfterSeconds);
   }
 
   [Fact]
