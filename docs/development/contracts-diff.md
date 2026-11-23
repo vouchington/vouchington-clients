@@ -27,9 +27,10 @@ folder-to-changes comparison is moving into `no-mistakes changes diff --base-roo
 }
 ```
 
-On any failure (missing or invalid pin, failed fetch, failed staging) stdout is still valid JSON
-with `complete: false` and an `error` string, and the exit code is 1. Callers fall back to the
-full suite.
+On any run failure (missing or invalid pin, failed fetch, failed staging, or a changes file that
+cannot be written) stdout is still valid JSON with `complete: false` and an `error` string, and the
+exit code is 1. Callers fall back to the full suite. A usage error (missing or unknown arguments) is
+different: it prints usage to stderr, writes nothing to stdout, and exits non-zero.
 
 ## Changes file
 

@@ -2,7 +2,6 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { compareContractRoots, emptyChanges } from './contract-changes.mjs'
 import { readContractConfig } from './contract-config.mjs'
 import { defaultCacheRoot, pinnedCheckout } from './contracts-pull.mjs'
@@ -147,7 +146,7 @@ export async function diffContracts({
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   const options = parseArguments(process.argv.slice(2))
   const { report, changes } = await diffContracts({
     base: options.base,
