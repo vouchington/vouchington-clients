@@ -2,6 +2,7 @@ import Foundation
 
 public struct NativeEmailTokenResponse: Codable, Equatable, Sendable {
     public let emailAddress: String
+    public let resendAfterSeconds: Int
 }
 
 public struct NativeSessionTokenPayload: Codable, Equatable, Sendable {
