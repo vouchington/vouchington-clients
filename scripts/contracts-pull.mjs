@@ -89,6 +89,10 @@ export async function pinnedCheckout(config, cacheRoot, exec = run) {
   return final
 }
 
+export function defaultCacheRoot(env = process.env) {
+  return env.VOUCHA_CONTRACT_CACHE_DIR?.trim() || join(repositoryRoot, '.cache/vouchington')
+}
+
 /**
  * Resolves the contract root (an explicit VOUCHA_CONTRACT_ROOT, else the pinned commit), makes
  * its generated native localization available in this checkout, and returns the root. A root
@@ -98,7 +102,7 @@ export async function pinnedCheckout(config, cacheRoot, exec = run) {
 export async function pullContract({
   env = process.env,
   config = contractConfigPath,
-  cacheRoot = env.VOUCHA_CONTRACT_CACHE_DIR?.trim() || join(repositoryRoot, '.cache/vouchington'),
+  cacheRoot = defaultCacheRoot(env),
   check = false,
   contractOptions = {},
   log = message => process.stderr.write(`${message}\n`),
