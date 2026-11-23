@@ -148,13 +148,13 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 Every dependency source waits 7 days before adoption, and first-party packages are exempt.
 
-| Source                                         | Gate                                                                                                                        |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| pnpm installs                                  | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml`; first-party packages are in `minimumReleaseAgeExclude`                 |
-| CI `pnpm self-update`                          | `PNPM_CONFIG_MINIMUM_RELEASE_AGE: '10080'` on every `pnpm/action-setup` step                                                |
-| Dependabot npm, actions, NuGet, SwiftPM        | `cooldown.default-days: 7` on every entry; npm excludes its first-party packages. The other ecosystems have none to exclude |
-| NuGet, SwiftPM, GitHub Actions `uses:` pins    | No install-time age gate exists; the pinned manifest plus Dependabot cooldown is the gate                                   |
-| mise tools, .NET SDK and workload, Xcode, curl | Pinned to exact versions; they change only through a reviewed pull request                                                  |
+| Source                                         | Gate                                                                                                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pnpm installs                                  | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml`; first-party packages, and exact security-fix versions with a removal date, are in `minimumReleaseAgeExclude` |
+| CI `pnpm self-update`                          | `PNPM_CONFIG_MINIMUM_RELEASE_AGE: '10080'` on every `pnpm/action-setup` step                                                                                      |
+| Dependabot npm, actions, NuGet, SwiftPM        | `cooldown.default-days: 7` on every entry; npm excludes its first-party packages. The other ecosystems have none to exclude                                       |
+| NuGet, SwiftPM, GitHub Actions `uses:` pins    | No install-time age gate exists; the pinned manifest plus Dependabot cooldown is the gate                                                                         |
+| mise tools, .NET SDK and workload, Xcode, curl | Pinned to exact versions; they change only through a reviewed pull request                                                                                        |
 
 [`tests/release-age-policy.test.mjs`](../../tests/release-age-policy.test.mjs) and
 [`tests/pnpm-setup.test.mjs`](../../tests/pnpm-setup.test.mjs) enforce the pnpm and

@@ -7,6 +7,8 @@ strictDepBuilds: true
 engineStrict: true
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  # Security fix (ECONNRESET crash), published 2026-11-20; remove once older than 7 days (2026-11-27).
+  - '@hono/node-server@2.1.11'
   - agent-blackboard
   - coverage-check
   - no-mistakes
