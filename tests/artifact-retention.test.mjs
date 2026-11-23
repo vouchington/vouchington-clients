@@ -27,7 +27,10 @@ function uploadSteps(source) {
 }
 
 test('every artifact upload keeps artifacts for seven days', async () => {
-  const paths = execFileSync('git', ['ls-files', '.github'], { cwd: repositoryRoot, encoding: 'utf8' })
+  const paths = execFileSync('git', ['ls-files', '.github'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  })
     .split('\n')
     .filter(path => /\.ya?ml$/u.test(path))
   let uploads = 0
