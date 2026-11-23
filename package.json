@@ -48,15 +48,15 @@
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='scripts/*.mjs' --test-coverage-include-all --test-coverage-lines=70 --test-coverage-branches=70 --test-coverage-functions=80 tests/*.test.mjs"
   },
   "devDependencies": {
-    "@ast-grep/cli": "0.51.2",
+    "@ast-grep/cli": "0.51.3",
     "coverage-check": "0.18.1",
     "dependency-cruiser": "18.7.2",
     "husky": "9.1.7",
     "knip": "6.45.1",
-    "no-mistakes": "0.109.116",
+    "no-mistakes": "0.109.117",
     "oxfmt": "0.78.0",
     "oxlint": "1.93.0",
-    "vouchington-tooling": "3.6.1"
+    "vouchington-tooling": "3.6.2"
   },
   "engines": {
     "node": ">=24.0.0"
