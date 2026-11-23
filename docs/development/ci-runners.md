@@ -146,7 +146,7 @@ action release and one `latest-<major>` across every call site. To change the ma
 
 ### Release age
 
-Every dependency source waits 7 days before adoption, and first-party packages are exempt.
+Automated updates wait 7 days before adoption: pnpm installs and every Dependabot ecosystem. First-party packages and dated security-fix exemptions skip the wait. Exact pins (mise tools, the .NET SDK and workload, Swift and Xcode) change only in a reviewed pull request and have no age gate of their own.
 
 | Source                                         | Gate                                                                                                                                                              |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
