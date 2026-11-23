@@ -99,8 +99,10 @@ internal static partial class MemberMcpInputSchema
     lock (patternCacheGate)
     {
       if (patternCache.TryGetValue(pattern, out var cached)) return cached;
+      // NonBacktracking matching is linear in input length and inputs are bounded, so a wall-clock
+      // timeout can only fire on a cold start or CPU starvation and would reject valid arguments.
       var compiled = new Regex(EcmaPattern(pattern),
-          RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, TimeSpan.FromMilliseconds(100));
+          RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, Regex.InfiniteMatchTimeout);
       if (patternCache.Count == PatternCacheCapacity) patternCache.Clear();
       patternCache.Add(pattern, compiled);
       return compiled;

@@ -113,8 +113,7 @@ internal static partial class MemberMcpInputSchema
     }
     if (schema.TryGetProperty("pattern", out var pattern))
     {
-      try { if (!BoundedPattern(pattern.GetString()!).IsMatch(text)) return false; }
-      catch (System.Text.RegularExpressions.RegexMatchTimeoutException) { return false; }
+      if (!BoundedPattern(pattern.GetString()!).IsMatch(text)) return false;
     }
     return true;
   }
