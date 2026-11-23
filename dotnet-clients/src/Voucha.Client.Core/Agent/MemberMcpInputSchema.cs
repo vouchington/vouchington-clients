@@ -30,6 +30,14 @@ internal static partial class MemberMcpInputSchema
     return Check(value, schema, schema, 0, ref remainingWork);
   }
 
+  /// <summary>Like <see cref="Accepts"/> with an explicit, uncached pattern match timeout (tests).</summary>
+  internal static bool Accepts(JsonElement value, JsonElement schema, TimeSpan patternTimeout)
+  {
+    patternTimeoutOverride = patternTimeout;
+    try { return Accepts(value, schema); }
+    finally { patternTimeoutOverride = null; }
+  }
+
   private static bool HasUniqueObjectMembers(JsonElement value, int depth, ref int remainingWork)
   {
     if (depth >= MaxDepth || remainingWork-- <= 0)

@@ -8,6 +8,9 @@ namespace Voucha.Client.Core.Agent;
 internal static partial class MemberMcpInputSchema
 {
   private const int PatternCacheCapacity = 1024;
+  // Production safety bound on one pattern match. Tests override it per thread, uncached.
+  private static readonly TimeSpan PatternMatchTimeout = TimeSpan.FromMilliseconds(100);
+  [ThreadStatic] private static TimeSpan? patternTimeoutOverride;
   private static readonly Lock patternCacheGate = new();
   private static readonly Dictionary<string, Regex> patternCache = new(StringComparer.Ordinal);
   private static bool Number(JsonElement value, out decimal number)
@@ -96,16 +99,19 @@ internal static partial class MemberMcpInputSchema
   private static Regex BoundedPattern(string pattern)
   {
     if (pattern.Length > 4096) throw new ArgumentException("MCP pattern too long.", nameof(pattern));
+    if (patternTimeoutOverride is { } timeout) return CompilePattern(pattern, timeout);
     lock (patternCacheGate)
     {
       if (patternCache.TryGetValue(pattern, out var cached)) return cached;
-      var compiled = new Regex(EcmaPattern(pattern),
-          RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, TimeSpan.FromMilliseconds(100));
+      var compiled = CompilePattern(pattern, PatternMatchTimeout);
       if (patternCache.Count == PatternCacheCapacity) patternCache.Clear();
       patternCache.Add(pattern, compiled);
       return compiled;
     }
   }
+
+  private static Regex CompilePattern(string pattern, TimeSpan timeout) =>
+      new(EcmaPattern(pattern), RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, timeout);
 
   private const string EcmaWhitespace = @"\u0009-\u000D\u0020\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF";
 

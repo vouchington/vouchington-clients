@@ -150,14 +150,24 @@ public sealed class MemberMcpInputSchemaTests
     using var dot = JsonDocument.Parse("""{"type":"string","pattern":"^.$"}""");
     using var nonCapturingGroup = JsonDocument.Parse("""{"type":"string","pattern":"^(?:a|b)$"}""");
 
-    Assert.True(Accepts("\"123\"", digits));
-    Assert.False(Accepts("\"١٢٣\"", digits));
-    Assert.False(Accepts("\"123\\n\"", digits));
-    Assert.True(Accepts("\"\\u0085\"", nonWhitespace));
-    Assert.False(Accepts("\"\\u00A0\"", nonWhitespace));
-    Assert.True(Accepts("\"\\u00A0\"", whitespace));
-    Assert.False(Accepts("\"\\u2028\"", dot));
-    Assert.True(Accepts("\"a\"", nonCapturingGroup));
+    Assert.True(AcceptsUnbounded("\"123\"", digits));
+    Assert.False(AcceptsUnbounded("\"١٢٣\"", digits));
+    Assert.False(AcceptsUnbounded("\"123\\n\"", digits));
+    Assert.True(AcceptsUnbounded("\"\\u0085\"", nonWhitespace));
+    Assert.False(AcceptsUnbounded("\"\\u00A0\"", nonWhitespace));
+    Assert.True(AcceptsUnbounded("\"\\u00A0\"", whitespace));
+    Assert.False(AcceptsUnbounded("\"\\u2028\"", dot));
+    Assert.True(AcceptsUnbounded("\"a\"", nonCapturingGroup));
+  }
+
+  [Fact]
+  public void PatternMatchTimeoutIsABoundViolationNotAMismatch()
+  {
+    using var schema = JsonDocument.Parse("""{"type":"string","pattern":"^\\d+$"}""");
+    using var value = JsonDocument.Parse("\"" + new string('1', 20_000_000) + "\"");
+
+    Assert.Throws<InvalidDataException>(() =>
+        MemberMcpInputSchema.Accepts(value.RootElement, schema.RootElement, TimeSpan.FromMilliseconds(1)));
   }
 
   [Fact]
@@ -167,9 +177,9 @@ public sealed class MemberMcpInputSchemaTests
         """{"type":"array","items":{"type":"string","pattern":"^item-[0-9]+$"}}""");
     var values = Enumerable.Repeat("item-42", 512).ToArray();
 
-    Assert.True(Accepts(JsonSerializer.Serialize(values), schema));
+    Assert.True(AcceptsUnbounded(JsonSerializer.Serialize(values), schema));
     values[^1] = "item-nope";
-    Assert.False(Accepts(JsonSerializer.Serialize(values), schema));
+    Assert.False(AcceptsUnbounded(JsonSerializer.Serialize(values), schema));
   }
 
   [Fact]
@@ -293,6 +303,13 @@ public sealed class MemberMcpInputSchemaTests
       }).ToArray(),
     }));
     Assert.True(MemberMcpInputSchema.Accepts(value.RootElement, shortSchema.RootElement));
+  }
+
+  // Pattern-logic tests must not depend on runner speed, so they run without a match timeout.
+  private static bool AcceptsUnbounded(string rawValue, JsonDocument schema)
+  {
+    using var value = JsonDocument.Parse(rawValue);
+    return MemberMcpInputSchema.Accepts(value.RootElement, schema.RootElement, Timeout.InfiniteTimeSpan);
   }
 
   private static bool Accepts(string rawValue, JsonDocument schema)
