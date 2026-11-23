@@ -362,7 +362,7 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.match(needs, /^      - build-ios-x86$/mu)
 
     const expression = workflow
-      .slice(workflow.lastIndexOf('jq -e --arg route'))
+      .slice(workflow.lastIndexOf('jq -e --arg event'))
       .split("'\n")[1]
       .split("\n          '")[0]
     const baseNeeds = Object.fromEntries(
@@ -390,7 +390,11 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     baseNeeds['dotnet-windows-language-model-surface'] = { result: 'skipped' }
     baseNeeds['dotnet-windows-maui'] = { result: 'skipped' }
 
-    const routeArgs = ['route', 'maui', 'surface', 'docs'].flatMap(name => ['--arg', name, 'false'])
+    const routeArgs = ['event', 'route', 'maui', 'surface', 'docs'].flatMap(name => [
+      '--arg',
+      name,
+      'false',
+    ])
     for (const [result, succeeds] of [
       ['success', true],
       ['failure', false],

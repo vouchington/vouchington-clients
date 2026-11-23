@@ -59,7 +59,7 @@ it('fails the aggregate when a selected Windows build fails or is skipped', () =
     'utf8',
   )
   const expression = workflow
-    .slice(workflow.lastIndexOf('jq -e --arg route'))
+    .slice(workflow.lastIndexOf('jq -e --arg event'))
     .split("'\n")[1]
     .split("\n          '")[0]
   for (const [route, result, succeeds] of [
@@ -71,6 +71,7 @@ it('fails the aggregate when a selected Windows build fails or is skipped', () =
   ]) {
     const input = JSON.stringify({
       verify: { result: 'success' },
+      'dotnet-maui': { result: 'success' },
       'dotnet-windows-image-preview': { result: 'skipped' },
       'dotnet-windows-language-model-surface': { result: 'skipped' },
       'dotnet-windows-maui': { result },
@@ -81,6 +82,9 @@ it('fails the aggregate when a selected Windows build fails or is skipped', () =
         'jq',
         [
           '-e',
+          '--arg',
+          'event',
+          'merge_group',
           '--arg',
           'route',
           'false',

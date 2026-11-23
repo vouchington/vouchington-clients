@@ -97,7 +97,10 @@ describe('merge queue CI (#705)', () => {
   })
 
   it('skips test-only jobs on a main push and keeps only warm or Sentry jobs', () => {
-    const kept = jobs.filter(name => !header(name).includes("github.event_name != 'push'"))
+    const skipsPush = name =>
+      header(name).includes("github.event_name != 'push'") ||
+      header(name).includes("github.event_name == 'merge_group'")
+    const kept = jobs.filter(name => !skipsPush(name))
     assert.deepEqual([...kept].sort(), [...warmOnPush].sort())
   })
 
@@ -138,7 +141,8 @@ describe('merge queue CI (#705)', () => {
     assert.equal(jobs.filter(name => name.startsWith('sentry-dotnet')).length, 0)
     for (const name of ['dotnet-maui', 'dotnet-windows-maui']) {
       const block = jobBlock(native, name)
-      assert.ok(header(name).includes("github.event_name != 'push'"), name)
+      const gate = name === 'dotnet-maui' ? "== 'merge_group'" : "!= 'push'"
+      assert.ok(header(name).includes(`github.event_name ${gate}`), name)
       assert.doesNotMatch(block, /actions\/cache\/save|VOUCHA_SENTRY_|artifact-attempt/u, name)
       assert.doesNotMatch(block, /event_name == 'push'/u, name)
     }
