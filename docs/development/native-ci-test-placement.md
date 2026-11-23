@@ -300,6 +300,11 @@ See [CI runners](ci-runners.md) for the hosted label allowlist.
 
 The Windows MAUI app compiles on `windows-latest` when .NET source, dependency or toolchain files change. This checks the actual `#if WINDOWS` and WinUI build graph; portable Core tests remain Linux-only. It uses committed Windows RID locks and the mise-managed SDK/workload set, with signing and packaging disabled. It runs on pull requests and merge groups only, never on a `main` push.
 
+The Windows image preview, MAUI, and language-model surface routes share
+`scripts/changed-file-route.mjs`. A pull request routes on its verified `base_sha..revision_sha`
+range; a merge group routes on `merge-base(origin/main, head)..head`, the same whole-ref range as
+the docs-only route below, and runs the Windows job when that diff cannot be computed.
+
 ## Docs-only changes
 
 A pull request or merge group whose diff touches only `*.md` files or paths under `docs/` skips every

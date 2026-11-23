@@ -353,6 +353,7 @@ jobs:
         working-directory: candidate-clients
         env:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/windows-image-preview-test-routing.mjs "$BASE_SHA" "$REVISION_SHA"
       - name: Route Windows MAUI build from the exact candidate diff
@@ -360,6 +361,7 @@ jobs:
         working-directory: candidate-clients
         env:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/windows-maui-test-routing.mjs "$BASE_SHA" "$REVISION_SHA"
       - name: Route Windows language-model surface probe from the exact candidate diff
@@ -367,6 +369,7 @@ jobs:
         working-directory: candidate-clients
         env:
           BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
           REVISION_SHA: ${{ steps.identity.outputs.revision_sha }}
         run: node scripts/windows-language-model-surface-routing.mjs "$BASE_SHA" "$REVISION_SHA"
   dotnet-portable:
