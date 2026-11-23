@@ -143,6 +143,20 @@ misread it. Unpinned, the lockfile stays one document.
 action release and one `latest-<major>` across every call site. To change the major, update every
 `pnpm/action-setup` call in the same change.
 
+### Release age
+
+Every dependency source waits 7 days before adoption, and first-party packages are exempt.
+
+| Source                                         | Gate                                                                                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| pnpm installs and `pnpm self-update`           | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml`; first-party packages are in `minimumReleaseAgeExclude`                 |
+| Dependabot npm, actions, NuGet, SwiftPM        | `cooldown.default-days: 7` on every entry; npm excludes its first-party packages. The other ecosystems have none to exclude |
+| NuGet, SwiftPM, GitHub Actions `uses:` pins    | No install-time age gate exists; the pinned manifest plus Dependabot cooldown is the gate                                   |
+| mise tools, .NET SDK and workload, Xcode, curl | Pinned to exact versions; they change only through a reviewed pull request                                                  |
+
+[`tests/release-age-policy.test.mjs`](../../tests/release-age-policy.test.mjs) enforces the pnpm and
+Dependabot values. Dependabot security updates are not delayed by the cooldown.
+
 ## Android validation
 
 Swift Android native compilation and APK assembly run in one macOS job that executes
