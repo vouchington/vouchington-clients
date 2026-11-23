@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Install and spawn the iOS launch-smoke app, then stop it, with a budget per operation."""
 
+import os
 import subprocess
 import sys
 import time
@@ -15,13 +16,10 @@ TERMINATE_SECONDS = 60
 # One shared budget for the uninstall and install that replace a process terminate left alive.
 # Runs 45060434211 (iPhone sign-in) and 45082704348 (iPad sign-in, ejected a queued PR) stalled the
 # Simulator for about 2 minutes and then recovered, so 60 s failed both; 120 s covers that stall.
-# Worst case: 150 install and launch + 60 terminate + 15 liveness + 120 recovery = 345 s, which
-# leaves 75 s of the 420 s iPhone step cap and 195 s of the 540 s iPad cap for xcodebuild.
+# Worst case: 150 install and launch + 60 terminate + 120 recovery = 330 s, which leaves 90 s of
+# the 420 s iPhone step cap and 210 s of the 540 s iPad cap for xcodebuild.
 RECOVERY_SECONDS = 120
-# Its own small budget: a stalled check counts as "still alive" and keeps the gate failing closed.
-LIVENESS_SECONDS = 15
 BUNDLE_ID = "ai.voucha.ios"
-LIVENESS_MARKER = f"UIKitApplication:{BUNDLE_ID}"
 
 
 def log(message: str) -> None:
@@ -42,22 +40,18 @@ def run(args: list[str], deadline: float, *, check: bool) -> subprocess.Complete
     )
 
 
-def app_alive(simulator_id: str) -> bool:
-    """Whether the app process is still running; a stalled or failed check counts as alive."""
-    started = time.monotonic()
+def app_alive(pid: int) -> bool:
+    """Whether the host process behind `simctl launch` still exists; any doubt counts as alive."""
+    if pid <= 1:
+        return True
     try:
-        listed = run(
-            ["xcrun", "simctl", "spawn", simulator_id, "launchctl", "list"],
-            time.monotonic() + LIVENESS_SECONDS,
-            check=True,
-        )
-    except subprocess.TimeoutExpired:
-        log(f"liveness-timeout after {time.monotonic() - started:.0f}s; assuming alive")
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        # PermissionError means the process exists; anything else is unknown, so fail closed.
         return True
-    except subprocess.CalledProcessError as error:
-        log(f"liveness-failed exit={error.returncode}; assuming alive")
-        return True
-    return LIVENESS_MARKER in listed.stdout
+    return True
 
 
 def reset_app(simulator_id: str, app: str) -> bool:
@@ -138,9 +132,10 @@ def main() -> int:
             )
         except subprocess.TimeoutExpired:
             log("terminate-budget-exhausted")
-            if not app_alive(simulator_id):
+            if not app_alive(int(pid)):
                 log("stopped-late")
                 return 0
+            log(f"alive pid={pid}")
             if not reset_app(simulator_id, app):
                 # Erasing the device would shut it down, and xcodebuild would then cold boot it
                 # and repeat the data migration inside the same step cap. Fail closed instead.

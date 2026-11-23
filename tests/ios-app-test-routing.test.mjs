@@ -150,9 +150,10 @@ describe('iOS Simulator launch, presentation, feed-flow, sign-in, and News fan-i
     assert.match(spawnGate, /BUDGET_SECONDS = 150/u)
     assert.match(spawnGate, /TERMINATE_SECONDS = 60/u)
     assert.match(spawnGate, /RECOVERY_SECONDS = 120/u)
-    assert.match(spawnGate, /LIVENESS_SECONDS = 15/u)
+    assert.doesNotMatch(spawnGate, /LIVENESS/u)
     assert.match(spawnGate, /45060434211[\s\S]*45082704348/u)
-    assert.match(spawnGate, /"launchctl", "list"/u)
+    assert.match(spawnGate, /os\.kill\(pid, 0\)/u)
+    assert.doesNotMatch(spawnGate, /launchctl/u)
     assert.match(spawnGate, /stopped-late/u)
     assert.match(
       spawnGate,

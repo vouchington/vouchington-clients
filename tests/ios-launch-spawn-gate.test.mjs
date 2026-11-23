@@ -2,10 +2,10 @@ import assert from 'node:assert/strict'
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { describe, it } from 'node:test'
 
-function run(terminateBehavior, uninstallExit, launchBehavior = 'true', spawnBehavior = 'exit 0') {
+function run(terminateBehavior, uninstallExit, launchBehavior = 'true', pid = 4242) {
   const dir = mkdtempSync(join(tmpdir(), 'spawn-gate-'))
   const bin = join(dir, 'bin')
   mkdirSync(bin)
@@ -18,9 +18,8 @@ function run(terminateBehavior, uninstallExit, launchBehavior = 'true', spawnBeh
     `#!/bin/sh
 echo "$2" >> "${log}"
 case "$2" in
-  launch) ${launchBehavior}; echo "ai.voucha.ios: 4242" ;;
+  launch) ${launchBehavior}; echo "ai.voucha.ios: ${pid}" ;;
   terminate) ${terminateBehavior} ;;
-  spawn) ${spawnBehavior} ;;
   uninstall) echo 'uninstall boom' >&2; exit ${uninstallExit} ;;
 esac
 exit 0
@@ -51,7 +50,14 @@ exec(compile(text, "gate", "exec"))
   return { ...result, calls: readFileSync(log, 'utf8').trim().split('\n') }
 }
 
-const alive = 'echo "123\t0\tUIKitApplication:ai.voucha.ios[abcd][rb-legacy]"'
+function startChild() {
+  return spawn('sleep', ['60'], { stdio: 'ignore' })
+}
+
+function deadPid() {
+  const child = spawnSync('true')
+  return child.pid
+}
 
 describe('ios launch spawn gate', () => {
   it('stops the app when terminate succeeds', () => {
@@ -60,49 +66,50 @@ describe('ios launch spawn gate', () => {
     assert.match(result.stdout, /stopped/u)
   })
 
-  it('resets the app when terminate hangs and the app is still alive', () => {
-    const result = run('sleep 30', 0, 'true', alive)
-    assert.equal(result.status, 0, result.stderr)
-    assert.match(result.stdout, /terminate-budget-exhausted/u)
-    assert.match(result.stdout, /reset/u)
-    assert.deepEqual(result.calls, [
-      'install',
-      'launch',
-      'terminate',
-      'spawn',
-      'uninstall',
-      'install',
-    ])
+  it('resets the app when terminate hangs and the host process is still alive', () => {
+    const child = startChild()
+    try {
+      const result = run('sleep 30', 0, 'true', child.pid)
+      assert.equal(result.status, 0, result.stderr)
+      assert.match(result.stdout, /terminate-budget-exhausted/u)
+      assert.match(result.stdout, new RegExp(`alive pid=${child.pid}`, 'u'))
+      assert.match(result.stdout, /reset-install/u)
+      assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall', 'install'])
+    } finally {
+      child.kill()
+    }
   })
 
-  it('continues when terminate hangs but the app is gone', () => {
-    const result = run('sleep 30', 1, 'true', 'echo "-\t0\tcom.apple.other"')
+  it('continues when terminate hangs but the host process is gone', () => {
+    const result = run('sleep 30', 1, 'true', deadPid())
     assert.equal(result.status, 0, result.stderr)
     assert.match(result.stdout, /stopped-late/u)
-    assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'spawn'])
+    assert.deepEqual(result.calls, ['install', 'launch', 'terminate'])
   })
 
-  it('fails closed when the liveness check stalls', () => {
-    const result = run('sleep 30', 1, 'true', 'sleep 30')
+  it('fails closed when the process cannot be signalled', { skip: process.getuid() === 0 }, () => {
+    // pid 1 exists but an unprivileged caller gets EPERM, which must count as alive.
+    const result = run('sleep 30', 1, 'true', 1)
     assert.equal(result.status, 1)
-    assert.match(result.stdout, /liveness-timeout/u)
     assert.doesNotMatch(result.stdout, /stopped-late/u)
-    assert.deepEqual(
-      result.calls,
-      ['install', 'launch', 'terminate', 'spawn', 'uninstall'].slice(0, 6),
-    )
+    assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall'])
   })
 
-  it('fails closed without erasing the device when terminate hangs and the app reset fails', () => {
-    const result = run('sleep 30', 1, 'true', alive)
-    assert.equal(result.status, 1)
-    assert.match(result.stderr, /Could not stop the pre-launched app/u)
-    assert.match(
-      result.stdout,
-      /::warning::spawn-gate reset uninstall failed exit=1 after \ds: uninstall boom/u,
-    )
-    assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'spawn', 'uninstall'])
-    assert.doesNotMatch(result.stdout, /erase/u)
+  it('fails closed and logs the failing command when recovery fails', () => {
+    const child = startChild()
+    try {
+      const result = run('sleep 30', 1, 'true', child.pid)
+      assert.equal(result.status, 1)
+      assert.match(result.stderr, /Could not stop the pre-launched app/u)
+      assert.match(
+        result.stdout,
+        /::warning::spawn-gate reset uninstall failed exit=1 after \ds: uninstall boom/u,
+      )
+      assert.deepEqual(result.calls, ['install', 'launch', 'terminate', 'uninstall'])
+      assert.doesNotMatch(result.stdout, /erase/u)
+    } finally {
+      child.kill()
+    }
   })
 
   it('gives terminate its own budget when install and launch used the shared one', () => {
