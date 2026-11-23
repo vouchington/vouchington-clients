@@ -98,9 +98,12 @@ public sealed class HackerNewsFilterTests
 
   private static string Page(string? cursor) => JsonSerializer.Serialize(new
   {
-    results = Array.Empty<object>(),
+    // A page that continues carries one row, so the view model does not follow it through as an empty page.
+    results = cursor is null ? Array.Empty<object>() : new object[] { new { id = cursor, entity_id = cursor } },
     page_info = new { has_next_page = cursor is not null, end_cursor = cursor },
-    rss_feed_items = new Dictionary<string, object>(),
+    rss_feed_items = cursor is null
+        ? new Dictionary<string, object>()
+        : new Dictionary<string, object> { [cursor] = new { id = cursor, title = cursor, published_at = "2026-01-01T00:00:00Z" } },
   });
 
   private sealed class PageHandler(params string[] pages) : HttpMessageHandler

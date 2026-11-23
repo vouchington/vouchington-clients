@@ -116,10 +116,12 @@ public sealed class NewsFeedsViewModelSuccessfulHideFeedRaceTests
     await viewModel.ToggleHideAsync(viewModel.Items[0], cancellation.Token);
     Assert.DoesNotContain(viewModel.Items, item => item.Id == "primary");
 
-    await viewModel.LoadAsync(cancellation.Token);
+    // The reloaded first page is empty after suppression but reports more pages, so the load follows it.
+    var reload = viewModel.LoadAsync(cancellation.Token);
+    await service.ContinuationStarted.Task.WaitAsync(cancellation.Token);
     Assert.Empty(viewModel.Items);
     service.ReleaseContinuation(Page(Primary()));
-    await viewModel.LoadMoreAsync(cancellation.Token);
+    await reload;
 
     Assert.Single(viewModel.Items, item => item.Id == "primary");
   }

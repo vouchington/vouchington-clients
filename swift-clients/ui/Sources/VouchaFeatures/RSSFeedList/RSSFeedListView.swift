@@ -72,11 +72,22 @@ public struct RSSFeedListView: View {
                 await viewModel.refresh()
             }
         default:
-            EmptyStateView(
-                icon: "tray",
-                title: viewModel.contentType.emptyTitle,
-                message: viewModel.contentType.emptyMessage
-            )
+            if viewModel.hasMore {
+                // The view model already followed `has_next_page` through several empty pages.
+                // Keep the feed reachable instead of showing a terminal empty state.
+                Button(UiMessages.string(.nativeSwiftCommonLoadMore, locale: nativeUiLocale)) {
+                    Task { await viewModel.loadNextPage() }
+                }
+                .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityIdentifier("rss-feed-load-more")
+            } else {
+                EmptyStateView(
+                    icon: "tray",
+                    title: viewModel.contentType.emptyTitle,
+                    message: viewModel.contentType.emptyMessage
+                )
+            }
         }
     }
 

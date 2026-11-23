@@ -16,6 +16,7 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
   private int generation;
   private int sequence;
   private CursorPageRequest? inFlightRequest;
+  private readonly EmptyPageContinuation emptyPages = new();
   private bool loadedPage;
 
   public CursorPaginationState(Func<T, TId> idSelector, IEnumerable<T>? items = null)
@@ -32,13 +33,29 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
   public string? EndCursor { get; private set; }
   public string? LastError { get; private set; }
   public bool CanAutomaticallyLoad => HasMore && !IsLoading && LastError is null;
+  public bool NeedsManualContinuation => LastError is null && emptyPages.NeedsManualContinuation(HasMore);
 
   public CursorPageRequest? BeginInitialPageIfNeeded() =>
       loadedPage || LastError is not null ? null : BeginNextPage();
 
+  /// <summary>Starts a user- or view-initiated page and re-arms the empty-page continuation budget.</summary>
   public CursorPageRequest? BeginNextPage()
   {
     if (inFlightRequest is not null || !HasMore) return null;
+    emptyPages.Restart();
+    return BeginPage();
+  }
+
+  /// <summary>
+  /// Starts the next page on its own when the last committed page added no rows but the server
+  /// reported <c>has_next_page: true</c>. Null on rows, errors, the end of the list, or once
+  /// <see cref="EmptyPageContinuation.MaxConsecutiveEmptyPages"/> empty pages ran in a row.
+  /// </summary>
+  public CursorPageRequest? ContinueThroughEmptyPage() =>
+      CanAutomaticallyLoad && emptyPages.ShouldContinue(HasMore) ? BeginPage() : null;
+
+  private CursorPageRequest BeginPage()
+  {
     var request = new CursorPageRequest(EndCursor, generation, unchecked(++sequence));
     inFlightRequest = request;
     LastError = null;
@@ -59,7 +76,9 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
   {
     if (!IsCurrent(request)) return false;
     var existingIds = Items.Select(idSelector).ToHashSet();
+    var previousCount = Items.Count;
     Items = [.. Items, .. Unique(items).Where(item => existingIds.Add(idSelector(item)))];
+    emptyPages.Record(Items.Count > previousCount);
     EndCursor = endCursor;
     HasMore = hasNextPage;
     loadedPage = true;
@@ -77,7 +96,9 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
     if (!IsCurrent(request)) return false;
     var incoming = Unique(items);
     var incomingIds = incoming.Select(idSelector).ToHashSet();
+    var previousCount = Items.Count;
     Items = [.. incoming, .. Items.Where(item => !incomingIds.Contains(idSelector(item)))];
+    emptyPages.Record(Items.Count > previousCount);
     EndCursor = endCursor;
     HasMore = hasNextPage;
     loadedPage = true;
@@ -94,6 +115,7 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
   {
     if (!IsCurrent(request)) return false;
     Items = Unique(items);
+    emptyPages.Record(Items.Count > 0);
     EndCursor = endCursor;
     HasMore = hasNextPage;
     loadedPage = true;
@@ -126,6 +148,7 @@ public sealed class CursorPaginationState<T, TId> where TId : notnull
     EndCursor = null;
     LastError = null;
     inFlightRequest = null;
+    emptyPages.Restart();
   }
 
   public void InvalidateRequestsPreservingPage()

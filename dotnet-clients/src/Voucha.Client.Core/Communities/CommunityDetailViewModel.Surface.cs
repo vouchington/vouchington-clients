@@ -141,14 +141,7 @@ public sealed partial class CommunityDetailViewModel
       switch (SelectedSection)
       {
         case CommunityDetailSurfaceSection.News:
-          var newsResponse = await service.FetchNewsPageAsync(communityIdOrSlug, null, 25, cancellationToken).ConfigureAwait(true);
-          News = newsResponse.Results
-              .Select(reference => NewsRow(reference, newsResponse.RssFeedItems, newsResponse.RssFeedItemEmbeds))
-              .Where(row => row is not null)
-              .Select(row => row!)
-              .ToArray();
-          communityListEndCursor = newsResponse.PageInfo.EndCursor;
-          OnPropertyChanged(nameof(CanLoadMoreCommunityList));
+          await LoadInitialNewsAsync(cancellationToken).ConfigureAwait(true);
           break;
         case CommunityDetailSurfaceSection.PinnedPosts:
           PinnedPosts = (await service.FetchPinnedPostsAsync(communityIdOrSlug, cancellationToken).ConfigureAwait(true)).PinnedPosts

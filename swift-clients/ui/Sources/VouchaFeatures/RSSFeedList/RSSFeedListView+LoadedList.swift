@@ -69,7 +69,8 @@ extension RSSFeedListView {
             HybridPaginationControl(
                 hasMore: viewModel.hasMore,
                 isLoading: viewModel.isLoading,
-                hasError: viewModel.hasPaginationError
+                hasError: viewModel.hasPaginationError,
+                automaticLoadingPaused: viewModel.pagination.needsManualContinuation
             ) {
                 await viewModel.loadNextPage()
             }

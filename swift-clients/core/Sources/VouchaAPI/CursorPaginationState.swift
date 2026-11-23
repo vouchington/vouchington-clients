@@ -34,6 +34,7 @@ public struct CursorPaginationState<Item: Identifiable & Sendable>: Sendable
     private var sequence = 0
     private var inFlightRequest: CursorPageRequest?
     private var loadedPage: Bool
+    public private(set) var consecutiveEmptyPages = 0
 
     public init(items: [Item] = []) {
         self.items = Self.unique(items)
@@ -64,8 +65,14 @@ public struct CursorPaginationState<Item: Identifiable & Sendable>: Sendable
         return beginNextPage()
     }
 
+    /// Starts a user- or view-initiated page and re-arms the empty-page continuation budget.
     public mutating func beginNextPage() -> CursorPageRequest? {
         guard inFlightRequest == nil, hasMore || !loadedPage else { return nil }
+        consecutiveEmptyPages = 0
+        return beginPage()
+    }
+
+    mutating func beginPage() -> CursorPageRequest {
         let requestSequence = sequence + 1
         sequence = requestSequence
         let request = CursorPageRequest(cursor: endCursor, generation: generation, sequence: requestSequence)
@@ -91,7 +98,9 @@ public struct CursorPaginationState<Item: Identifiable & Sendable>: Sendable
         position: CursorPagePosition = .append
     ) -> Bool {
         guard isCurrent(request) else { return false }
+        let previousCount = items.count
         items = Self.merge(existing: items, incoming: newItems, position: position)
+        consecutiveEmptyPages = items.count > previousCount ? 0 : consecutiveEmptyPages + 1
         self.endCursor = endCursor
         hasMore = hasNextPage
         loadedPage = true
@@ -124,6 +133,7 @@ public struct CursorPaginationState<Item: Identifiable & Sendable>: Sendable
         endCursor = nil
         inFlightRequest = nil
         loadedPage = !items.isEmpty
+        consecutiveEmptyPages = 0
     }
 
     public mutating func invalidateRequestsPreservingPage() {

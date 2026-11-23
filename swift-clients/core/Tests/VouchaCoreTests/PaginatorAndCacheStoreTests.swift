@@ -29,6 +29,46 @@ final class CursorPaginationStateTests: XCTestCase {
         XCTAssertTrue(state.hasMore)
     }
 
+    func testEmptyPagesContinueUntilTheCapThenNeedManualContinuation() throws {
+        var state = CursorPaginationState<TestItem>()
+        var request = try XCTUnwrap(state.beginNextPage())
+        let cap = CursorPaginationLimits.maxConsecutiveEmptyPages
+        for index in 1 ... cap {
+            XCTAssertTrue(state.complete(request, items: [], endCursor: "c\(index)", hasNextPage: true))
+            XCTAssertEqual(state.consecutiveEmptyPages, index)
+            guard index < cap else { break }
+            XCTAssertFalse(state.needsManualContinuation)
+            request = try XCTUnwrap(state.continueThroughEmptyPage())
+        }
+
+        XCTAssertNil(state.continueThroughEmptyPage())
+        XCTAssertTrue(state.needsManualContinuation)
+
+        let manual = try XCTUnwrap(state.beginNextPage())
+        XCTAssertEqual(state.consecutiveEmptyPages, 0)
+        state.complete(manual, items: [TestItem(id: "one")], endCursor: nil, hasNextPage: false)
+        XCTAssertNil(state.continueThroughEmptyPage())
+        XCTAssertFalse(state.needsManualContinuation)
+    }
+
+    func testContinuationStopsWithoutMorePagesAfterAnErrorOrOnRows() throws {
+        var state = CursorPaginationState<TestItem>()
+        let empty = try XCTUnwrap(state.beginNextPage())
+        state.complete(empty, items: [], endCursor: "c1", hasNextPage: false)
+        XCTAssertNil(state.continueThroughEmptyPage())
+
+        state.reset()
+        let first = try XCTUnwrap(state.beginNextPage())
+        state.complete(first, items: [], endCursor: "c1", hasNextPage: true)
+        let second = try XCTUnwrap(state.continueThroughEmptyPage())
+        state.fail(second, error: .unexpected("offline"))
+        XCTAssertNil(state.continueThroughEmptyPage())
+        XCTAssertFalse(state.needsManualContinuation)
+
+        state.reset()
+        XCTAssertEqual(state.consecutiveEmptyPages, 0)
+    }
+
     func testRejectsConcurrentAndStaleRequestsAfterReset() throws {
         var state = CursorPaginationState<TestItem>()
         let staleRequest = try XCTUnwrap(state.beginNextPage())

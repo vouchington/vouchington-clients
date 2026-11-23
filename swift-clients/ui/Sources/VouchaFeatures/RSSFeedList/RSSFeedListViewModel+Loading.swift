@@ -5,20 +5,31 @@ import VouchaModels
 extension RSSFeedListViewModel {
     func loadIfNeeded() async {
         guard let request = pagination.beginInitialPageIfNeeded() else { return }
-        await loadFeedPage(request)
+        await loadFeedPages(startingWith: request)
     }
 
     func loadNextFeedPage() async {
         guard let request = pagination.beginNextPage() else { return }
-        await loadFeedPage(request)
+        await loadFeedPages(startingWith: request)
     }
 
-    private func loadFeedPage(_ request: CursorPageRequest) async {
+    /// Follows `has_next_page: true` through pages that add no rows, up to
+    /// `CursorPaginationLimits.maxConsecutiveEmptyPages`, so an empty or fully filtered page does not
+    /// strand the feed on its empty state.
+    private func loadFeedPages(startingWith first: CursorPageRequest) async {
+        var request = first
+        while await loadFeedPage(request), let next = pagination.continueThroughEmptyPage() {
+            request = next
+        }
+    }
+
+    /// Returns true when the page was committed to the feed.
+    private func loadFeedPage(_ request: CursorPageRequest) async -> Bool {
         do {
             let page: RssFeedPage = try await client.send(feedEndpoint(after: request.cursor))
-            guard pagination.isCurrent(request) else { return }
+            guard pagination.isCurrent(request) else { return false }
             let newItems = mergeSidecarsAndBuildItems(page: page)
-            pagination.complete(
+            return pagination.complete(
                 request,
                 items: newItems,
                 endCursor: page.pageInfo.endCursor,
@@ -37,6 +48,7 @@ extension RSSFeedListViewModel {
                 pagination.fail(request, error: .api(statusCode: 0, preconditionCode: nil))
             }
         }
+        return false
     }
 
     private func mergeSidecarsAndBuildItems(page: RssFeedPage) -> [RssFeedListRow] {

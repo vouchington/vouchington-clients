@@ -89,7 +89,8 @@ struct CommunityWorkspaceSurface: View {
                     HybridPaginationControl(
                         hasMore: viewModel.rowPagination.hasLoadedPage && viewModel.rowPagination.hasMore,
                         isLoading: viewModel.rowPagination.isLoading,
-                        hasError: viewModel.rowPagination.lastError != nil
+                        hasError: viewModel.rowPagination.lastError != nil,
+                        automaticLoadingPaused: viewModel.rowPagination.needsManualContinuation
                     ) {
                         await viewModel.loadMoreRows()
                     }

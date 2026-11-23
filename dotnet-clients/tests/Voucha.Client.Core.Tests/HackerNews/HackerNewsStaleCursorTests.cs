@@ -142,7 +142,10 @@ public sealed class HackerNewsStaleCursorTests
       else
       {
         FeedPaths.Add(path);
-        body = $$"""{"results":[],"rss_feed_items":{},"rss_feeds":{},"page_info":{{page}}}""";
+        // A continuing page carries one row, so the view model does not follow it through as an empty page.
+        var row = cursor is null ? "" : $$"""{"id":"{{cursor}}","entity_id":"{{cursor}}"}""";
+        var item = cursor is null ? "" : "\"" + cursor + "\":{\"id\":\"" + cursor + "\",\"title\":\"" + cursor + "\",\"published_at\":\"2026-01-01T00:00:00Z\"}";
+        body = $$"""{"results":[{{row}}],"rss_feed_items":{{{item}}},"rss_feeds":{},"page_info":{{page}}}""";
       }
       return Task.FromResult(Json(body));
     }
