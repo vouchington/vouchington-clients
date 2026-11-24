@@ -126,7 +126,7 @@ describe('Dependabot repair workflow contracts', () => {
       assert.match(workflow, /git diff --raw --full-index -z --find-renames/u)
       assert.match(workflow, /BASE_SHA\.\.\.\$EXPECTED_HEAD_SHA/u)
       assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
-      assert.match(workflow, /retention-days: 1/u)
+      assert.match(workflow, /retention-days: 7/u)
       assert.match(workflow, /if-no-files-found: error/u)
       assert.match(workflow, /git commit-tree/u)
       assert.match(workflow, /git push --force-with-lease=/u)

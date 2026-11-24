@@ -454,7 +454,7 @@ describe('native contract workflow boundary', () => {
       workflow,
       /run-name: >-\n\s+Native contract tests for \$\{\{ github\.event\.pull_request\.number.*format\('main at \{0\}', github\.sha\) \}\}/u,
     )
-    assert.match(workflow, /retention-days: 1/u)
+    assert.match(workflow, /retention-days: 7/u)
     assert.match(workflow, /run-id: \$\{\{ github\.run_id \}\}/u)
     assert.match(workflow, /--expected-producer-run-attempt/u)
     assert.match(

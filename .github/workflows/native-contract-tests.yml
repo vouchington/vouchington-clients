@@ -212,7 +212,7 @@ jobs:
           name: native-contract-${{ github.run_id }}
           path: ${{ steps.artifact.outputs.path }}
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           overwrite: true
   verify:
     name: Verify native contract handoff
@@ -455,7 +455,7 @@ jobs:
         with:
           name: dotnet-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
           path: candidate-clients/dotnet-clients/TestResults/core/lcov.info
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
       - name: Enforce Core patch coverage
         if: ${{ github.event_name != 'push' }}
@@ -628,7 +628,7 @@ jobs:
         with:
           name: swift-core-lcov-${{ github.run_id }}-${{ github.run_attempt }}
           path: candidate-clients/coverage/core/lcov.info
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
       - name: Test Swift DTO fixture parity separately
         id: swift-dto-fixture-parity
@@ -815,7 +815,7 @@ jobs:
           name: android-cookie-apks-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/android-cookie-apks
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
       - name: Save Gradle user home from main
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.android-gradle-cache.outputs.cache-hit != 'true') && steps.warm.outputs.cache-hit != 'true' }}
@@ -1082,7 +1082,7 @@ jobs:
         with:
           name: android-host-crash-reports-${{ needs.verify.outputs.revision-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/android-host-crash-reports
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
   test-swift-android-cookie:
     name: Swift Android Skip
@@ -1168,7 +1168,7 @@ jobs:
             ${{ runner.temp }}/voucha-cookie-runtime.txt
             ${{ runner.temp }}/voucha-cookie-emulator-failure-tail.log
           if-no-files-found: ignore
-          retention-days: 1
+          retention-days: 7
   build-swift-ui-tests:
     name: Swift UI build for testing
     if: ${{ github.event_name != 'push' && needs.verify.outputs.docs-only != 'true' }}
@@ -1224,7 +1224,7 @@ jobs:
             ${{ runner.temp }}/swift-ui-test-products.tar.gz
             ${{ runner.temp }}/swift-ui-test-products.json
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
   test-swift-ui:
     name: Swift UI tests and coverage
     if: ${{ github.event_name != 'push' }}
@@ -1304,7 +1304,7 @@ jobs:
           overwrite: true
           name: swift-ui-crash-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/swift-ui-crash-reports
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: ignore
       - name: Export deterministic UI LCOV
         timeout-minutes: 3
@@ -1315,7 +1315,7 @@ jobs:
         with:
           name: swift-ui-lcov-${{ github.run_id }}-${{ github.run_attempt }}
           path: candidate-clients/coverage/ui/lcov.info
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
       - name: Shadow test plan (advisory)
         if: ${{ github.event_name == 'pull_request' && !cancelled() }}
@@ -1636,7 +1636,7 @@ jobs:
             ${{ runner.temp }}/ios-test-products.sha256
             ${{ runner.temp }}/ios-test-manifest.json
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   build-ios-x86:
     name: Swift iOS Simulator x86_64 build
@@ -2286,7 +2286,7 @@ jobs:
         with:
           name: maui-test-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/voucha-maui-test-results
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
       - name: Shadow test plan (advisory)
         if: ${{ github.event_name == 'pull_request' && !cancelled() }}
@@ -2641,7 +2641,7 @@ jobs:
         with:
           name: catalyst-gui-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/catalyst-gui-diagnostics
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
 
   dotnet-windows-image-preview:
