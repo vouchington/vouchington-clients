@@ -44,7 +44,11 @@ public sealed class CommunityAgentPromptPageTests
     var reload = model.LoadAgentPromptsAsync(TestContext.Current.CancellationToken);
     if (readCompletesFirst) await reload;
     postGate.SetResult();
-    await WaitAsync(() => genericFailure ? model.HasError : model.HasReachedAgentPromptLimit);
+    // The failed create settles on a thread-pool continuation that sets the limit flag before it
+    // notifies the label, so wait for the label rather than the flag.
+    await WaitAsync(() => genericFailure
+        ? model.HasError
+        : model.HasReachedAgentPromptLimit && Find<Label>(page, "community-agent-prompt-creation-error").Text is not null);
     if (genericFailure) Assert.Equal("Create temporarily unavailable", model.ErrorMessage);
     else Assert.Equal("Prompt creation limit reached for this community", Find<Label>(page, "community-agent-prompt-creation-error").Text);
     Assert.Equal("My unsubmitted draft", Find<Entry>(page, "community-agent-prompt-draft").Text);
