@@ -59,6 +59,11 @@ else
           exit 1
         fi
         IFS=',' read -ra requested_checks <<< "$2"
+        # A value such as a lone newline yields no fields; bash 3.2 treats that empty array as unbound.
+        if [[ ${#requested_checks[@]} -eq 0 ]]; then
+          echo "Error: --checks requires an argument" >&2
+          exit 1
+        fi
         for requested_check in "${requested_checks[@]}"; do
           case " ${ALL_CHECKS[*]} " in
             *" $requested_check "*) ;;
