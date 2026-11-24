@@ -53,6 +53,11 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       IFS=',' read -ra CHECKS <<< "$2"
+      # A value such as a lone newline yields no fields; bash 3.2 treats that empty array as unbound.
+      if [[ ${#CHECKS[@]} -eq 0 ]]; then
+        echo "Error: --checks requires an argument" >&2
+        exit 1
+      fi
       shift 2
       ;;
     *)
