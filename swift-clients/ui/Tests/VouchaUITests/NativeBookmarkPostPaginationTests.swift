@@ -33,10 +33,10 @@ final class NativeBookmarkPostPaginationTests: NativeRouteSurfaceViewModelTestCa
             (postPage(ids: ["post-2"], cursor: nil, hasNextPage: false), 200, 0)
         ]
         let viewModel = try await loadedSavedPostsViewModel()
-        CannedFeedURLProtocol.suspendResponse(path: path)
+        let suspended = expectSuspendedResponse(path)
 
         async let first: Void = viewModel.loadMoreBookmarkRows()
-        await waitForSuspendedResponse(path)
+        await fulfillment(of: [suspended], timeout: 5)
         async let second: Void = viewModel.loadMoreBookmarkRows()
         await Task.yield()
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(path), 2)
@@ -72,12 +72,12 @@ final class NativeBookmarkPostPaginationTests: NativeRouteSurfaceViewModelTestCa
             (postPage(ids: ["post-3"], cursor: nil, hasNextPage: false), 200, 0)
         ]
         CannedFeedURLProtocol.handlers[removalPath] = (Data("{}".utf8), 500)
-        CannedFeedURLProtocol.suspendResponse(path: removalPath)
+        let suspended = expectSuspendedResponse(removalPath)
         let viewModel = try await loadedSavedPostsViewModel()
         let highestRankedRow = try XCTUnwrap(viewModel.bookmarkRows.last)
 
         let removal = Task { await viewModel.removeBookmarkRow(highestRankedRow) }
-        await waitForSuspendedResponse(removalPath)
+        await fulfillment(of: [suspended], timeout: 5)
         await viewModel.loadMoreBookmarkRows()
 
         XCTAssertEqual(CannedFeedURLProtocol.capturedPathCount(pagePath), 1)
@@ -128,10 +128,10 @@ final class NativeBookmarkPostPaginationTests: NativeRouteSurfaceViewModelTestCa
         ]
         let viewModel = try await loadedSavedPostsViewModel()
         let originalCollection = try XCTUnwrap(viewModel.currentBookmarkCollection)
-        CannedFeedURLProtocol.suspendResponse(path: path)
+        let suspended = expectSuspendedResponse(path)
 
         let request = Task { await viewModel.loadMoreBookmarkRows() }
-        await waitForSuspendedResponse(path)
+        await fulfillment(of: [suspended], timeout: 5)
         viewModel.currentBookmarkCollection = nil
         viewModel.bookmarkPagination.reset()
         viewModel.currentBookmarkCollection = originalCollection
@@ -222,11 +222,12 @@ final class NativeBookmarkPostPaginationTests: NativeRouteSurfaceViewModelTestCa
         )
     }
 
-    private func waitForSuspendedResponse(_ path: String) async {
-        for _ in 0 ..< 100 where !CannedFeedURLProtocol.hasSuspendedResponse(path: path) {
-            await Task.yield()
-        }
-        XCTAssertTrue(CannedFeedURLProtocol.hasSuspendedResponse(path: path))
+    /// Fulfilled by the URL protocol once the request is parked, so the test waits for that event
+    /// instead of a number of yields; the timeout only bounds a request that never arrives.
+    private func expectSuspendedResponse(_ path: String) -> XCTestExpectation {
+        let suspended = expectation(description: "Response suspended at \(path)")
+        CannedFeedURLProtocol.suspendResponse(path: path) { suspended.fulfill() }
+        return suspended
     }
 
     private func queryValue(_ name: String, in url: URL) -> String? {
