@@ -24,8 +24,8 @@ importers:
         specifier: 6.45.1
         version: 6.45.1
       no-mistakes:
-        specifier: 0.109.119
-        version: 0.109.119
+        specifier: 0.109.120
+        version: 0.109.120
       oxfmt:
         specifier: 0.79.0
         version: 0.79.0
@@ -34,7 +34,7 @@ importers:
         version: 1.94.0
       vouchington-tooling:
         specifier: 3.7.0
-        version: 3.7.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.119)(supports-color@7.2.0)(zod@4.6.7)
+        version: 3.7.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.120)(supports-color@7.2.0)(zod@4.6.7)
 
 packages:
 
@@ -1809,30 +1809,30 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  no-mistakes-darwin-arm64@0.109.119:
-    resolution: {integrity: sha512-/8wSBKUmw0pHzyfqpKY5/19YBUgL2VvcPoNMC9OyYII4OleMa8qtQp8oWCq1Oo5TmC0wEuaLAysziox3lgjh9A==}
+  no-mistakes-darwin-arm64@0.109.120:
+    resolution: {integrity: sha512-3YPpkT7B7/hKMBo1h7QiwGFM4Dyvia6ZfMAEVH275WvAVQdToPqCD8HqoPbSnJ/iFsMANrQJd9qb1c/o9rHaAg==}
     cpu: [arm64]
     os: [darwin]
 
-  no-mistakes-linux-arm64-gnu@0.109.119:
-    resolution: {integrity: sha512-Ug5aNqae48YDI7f7A+jHEKJh9ZZrRvDGrvgCCmRVWfhJrz8gGhXhlSLKlgbyAF5wpIxSEFMY64IhN2VCrqGsQA==}
+  no-mistakes-linux-arm64-gnu@0.109.120:
+    resolution: {integrity: sha512-lUrTTje4VOKZmjlDt9Rl+MresIBkkPUQn78Fd7q9PK7RgDKZbWJK4hR3H758StuvgCFz4BAJilqxaRWKsW8Eeg==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  no-mistakes-linux-x64-gnu@0.109.119:
-    resolution: {integrity: sha512-NNkWWEywQSZeXQ3zqTDiFEk/a1rgso8WQw543+YjWFsFQs9pFVHSttNbjS2L5jD3F0Fn1xxXzXBikmoBKL5EKw==}
+  no-mistakes-linux-x64-gnu@0.109.120:
+    resolution: {integrity: sha512-gZroOMNy2bm7nfslQBmQxc3l+S2VA74xFB3Dd3KujLTvVQr4QIMWVRvD7Au5BbZLimJ2tGIQYmcdVZZu2mvbIw==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  no-mistakes-win32-x64-msvc@0.109.119:
-    resolution: {integrity: sha512-BUQ+OLVU4iGlFtfng4EXKI6SVhctm6BzWVoOd0ENoGzpK6V7kb2AqBthjwMJRAZT3agDccYzxhV9o5wwA7yXjg==}
+  no-mistakes-win32-x64-msvc@0.109.120:
+    resolution: {integrity: sha512-MUHtiGx6fSL1c068kXfSDY5s6eHvsZaj7XpH2Nr/fFdggmb0N/N8HrQ0WuSabIYPmNeaBYmDXf2JQkBUr3G8rw==}
     cpu: [x64]
     os: [win32]
 
-  no-mistakes@0.109.119:
-    resolution: {integrity: sha512-qEV66Y7LoHY49Xuz1zUwNhelsV7fPr4H1sKk1H4W/7Ekt1RzoPmz+YnkUXLYHC1MQmB8cm91RlSwHnJB5c4s2A==}
+  no-mistakes@0.109.120:
+    resolution: {integrity: sha512-Q9nOfl50mJpIQH+iBXf+Sa/S8SJqHTVfvcgXGgLWaIi6OqLP8Ws4qo/GmNrcAc6B+QpR0ZcIxArKCWy+BPkGmQ==}
     hasBin: true
     peerDependencies:
       vitest: ^5.0.3
@@ -2217,6 +2217,7 @@ packages:
       no-mistakes: '*'
       pg: '>=8'
       react: '>=18'
+      typescript: '>=5'
       vitest: '>=5'
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
@@ -2234,6 +2235,8 @@ packages:
       pg:
         optional: true
       react:
+        optional: true
+      typescript:
         optional: true
       vitest:
         optional: true
@@ -4117,24 +4120,24 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  no-mistakes-darwin-arm64@0.109.119:
+  no-mistakes-darwin-arm64@0.109.120:
     optional: true
 
-  no-mistakes-linux-arm64-gnu@0.109.119:
+  no-mistakes-linux-arm64-gnu@0.109.120:
     optional: true
 
-  no-mistakes-linux-x64-gnu@0.109.119:
+  no-mistakes-linux-x64-gnu@0.109.120:
     optional: true
 
-  no-mistakes-win32-x64-msvc@0.109.119:
+  no-mistakes-win32-x64-msvc@0.109.120:
     optional: true
 
-  no-mistakes@0.109.119:
+  no-mistakes@0.109.120:
     optionalDependencies:
-      no-mistakes-darwin-arm64: 0.109.119
-      no-mistakes-linux-arm64-gnu: 0.109.119
-      no-mistakes-linux-x64-gnu: 0.109.119
-      no-mistakes-win32-x64-msvc: 0.109.119
+      no-mistakes-darwin-arm64: 0.109.120
+      no-mistakes-linux-arm64-gnu: 0.109.120
+      no-mistakes-linux-x64-gnu: 0.109.120
+      no-mistakes-win32-x64-msvc: 0.109.120
 
   node-stream-zip@1.16.0: {}
 
@@ -4577,7 +4580,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@3.7.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.119)(supports-color@7.2.0)(zod@4.6.7):
+  vouchington-tooling@3.7.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.120)(supports-color@7.2.0)(zod@4.6.7):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
@@ -4597,7 +4600,7 @@ snapshots:
       '@libpg-query/parser': 18.0.0
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.6.7)
       '@typescript/typescript6': 6.0.2
-      no-mistakes: 0.109.119
+      no-mistakes: 0.109.120
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - '@typescript/native'
