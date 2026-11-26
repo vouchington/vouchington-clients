@@ -1,10 +1,10 @@
 // Temporary file-level comparison of two staged contract roots. The general folder-to-changes
 // comparison is moving into `no-mistakes changes diff --base-root <dir> --head-root <dir>`,
 // which replaces this module; delete it (and its use in contracts-diff.mjs) when that lands.
-import { createHash } from 'node:crypto'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { contractDataPaths, localizationPaths } from './contract-config.mjs'
+import { sha256 } from './sha256.mjs'
 
 const fixtureBodies = /^api-fixtures\/v1\/responses\/([^/]+)\.json$/u
 const contractsPrefix = 'api-contracts/v1/'
@@ -15,10 +15,7 @@ async function hashTree(root) {
     const entries = await readdir(join(root, path), { recursive: true, withFileTypes: true })
     for (const entry of entries.filter(candidate => candidate.isFile())) {
       const file = join(entry.parentPath, entry.name)
-      const digest = createHash('sha256')
-        .update(await readFile(file))
-        .digest('hex')
-      files.set(relative(root, file).split(sep).join('/'), digest)
+      files.set(relative(root, file).split(sep).join('/'), sha256(await readFile(file)))
     }
   }
   return files

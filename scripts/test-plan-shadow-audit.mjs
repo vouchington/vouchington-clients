@@ -1,9 +1,8 @@
 import { spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { sha256 } from './sha256.mjs'
 
-const sha256 = text => createHash('sha256').update(text).digest('hex')
 export const run = (cmd, args) =>
   spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 1 << 28, timeout: 60_000 })
 
