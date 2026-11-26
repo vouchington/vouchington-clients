@@ -1,6 +1,7 @@
 import { cp, lstat, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { within } from './path-within.mjs'
 import { prefixedFailure } from './prefixed-failure.mjs'
 import {
   contractConfigPath,
@@ -39,8 +40,7 @@ async function directory(path, label) {
 async function descendantDirectory(root, path, label) {
   await directory(root, 'client checkout root')
   const child = relative(root, path)
-  if (child === '' || child === '..' || child.startsWith(`..${sep}`) || isAbsolute(child))
-    fail(`${label} must be inside the client checkout root: ${path}`)
+  if (!within(root, path)) fail(`${label} must be inside the client checkout root: ${path}`)
   let current = root
   for (const component of child.split(sep).filter(Boolean)) {
     current = join(current, component)
