@@ -21,11 +21,11 @@ importers:
         specifier: 9.1.7
         version: 9.1.7
       knip:
-        specifier: 6.46.0
-        version: 6.46.0
+        specifier: 6.46.1
+        version: 6.46.1
       no-mistakes:
-        specifier: 0.109.121
-        version: 0.109.121
+        specifier: 0.109.122
+        version: 0.109.122
       oxfmt:
         specifier: 0.79.0
         version: 0.79.0
@@ -33,8 +33,8 @@ importers:
         specifier: 1.94.0
         version: 1.94.0
       vouchington-tooling:
-        specifier: 3.9.0
-        version: 3.9.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.121)(supports-color@7.2.0)(zod@4.6.7)
+        specifier: 3.10.0
+        version: 3.10.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.122)(supports-color@7.2.0)(zod@4.6.7)
 
 packages:
 
@@ -1619,8 +1619,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  knip@6.46.0:
-    resolution: {integrity: sha512-Ms9cSOHL27A3uSG5IG0BR/Xd6ArXWtqg7PmZib2upe52C3Ka08jMtGIWG9ROBiTMUUaeZJD6HrU8g/b7VA82cQ==}
+  knip@6.46.1:
+    resolution: {integrity: sha512-5/ajqjZfmuv8O74+McrKBOSArKG6tsUgy6yJird36VZh9HiUq75qY4U39uqf9wjchEUOLrStuOZpFP057CZFRw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -1814,30 +1814,30 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  no-mistakes-darwin-arm64@0.109.121:
-    resolution: {integrity: sha512-rClS4u2tPoanp0znHiZs/LnYKfH75W1rvcKaglH4nmMgyTP1cAJf/awrvgz+fFTWq+iB/9y1liDfgkn+PkSLeA==}
+  no-mistakes-darwin-arm64@0.109.122:
+    resolution: {integrity: sha512-yzU7YL5JcmDW2RAhCVAOULNg8k86WPoon7Fryk7DEAJUvUfNmfiQmxiFWkdAPZdAKJLGt11csvgB6qI3bHKc+A==}
     cpu: [arm64]
     os: [darwin]
 
-  no-mistakes-linux-arm64-gnu@0.109.121:
-    resolution: {integrity: sha512-OjhBzsWmxOa1XBP0wNItANQo5C8RMwOA2210Rgf0Qd+3z0OByySWREXNvx5+O/oF1fxCX2eX6WYH02z3QUCGvg==}
+  no-mistakes-linux-arm64-gnu@0.109.122:
+    resolution: {integrity: sha512-Icom98627uBZMFEOaLSboyo2LlzF4QgsnKeazf1O8vFIJXMLifRK7ksuStSTVAqtHMywpyvpRSCSucKjcrbBjQ==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  no-mistakes-linux-x64-gnu@0.109.121:
-    resolution: {integrity: sha512-ISPQPzk0HO1AZNwzOXxzu/5QzdwPFfw6TJs1NrCUptF5H7hTwIKtnv9LOPwUEu9IhJAG6FTUtVTzmUgTEWGSZw==}
+  no-mistakes-linux-x64-gnu@0.109.122:
+    resolution: {integrity: sha512-Ki65++CLfQW5EY2oIzfo0Vn/Tydi9xzKXotCXlu6uvpVwgdZF+OwcQYY0RYviT6D7k13ZUW0BmnheoF5D4d20g==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  no-mistakes-win32-x64-msvc@0.109.121:
-    resolution: {integrity: sha512-4w9Y/VE2D2RZ4p1vJl9NFV0+baMWPK1RoX0yE8kZzgxQs0ldaoTJ3KB8Y+xJabwi6hnw+8BC2L326nYwQCxKlg==}
+  no-mistakes-win32-x64-msvc@0.109.122:
+    resolution: {integrity: sha512-cGvP8kLL9TpHYW209jnLpcrvoaS9VN6R7ieP8bYqnDpxKYEEiUC0RWqWgzikdu9CUWDdaYpIWM6eLuWp+3YSug==}
     cpu: [x64]
     os: [win32]
 
-  no-mistakes@0.109.121:
-    resolution: {integrity: sha512-aQIGwfX2EGl+n4RqPYSN3HI47jqMqujnOIfja2HDP3zDafXDAr4sB8PtYeXPoVUfXHv4FLKyayQ1ms0R4KR7+w==}
+  no-mistakes@0.109.122:
+    resolution: {integrity: sha512-kTUz6lIVx/BhNeCnxmT43MMvbd84UC1SIf3PREXrPa74OoPvR2s/03EhVnYr3hXLsaQCDyEMXFLADt1ucgF36Q==}
     hasBin: true
     peerDependencies:
       vitest: ^5.0.3
@@ -2209,8 +2209,8 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vouchington-tooling@3.9.0:
-    resolution: {integrity: sha512-zgk/9vzctKBRoairCcm47h+C8XENjwMgzu8W3rhsLRXnZclxN8nSEpw2lebsql3chF+X087WMf+yzd1jBtphaw==}
+  vouchington-tooling@3.10.0:
+    resolution: {integrity: sha512-d4fN2pL9rJGeqsocqAAre59ApKaNiX9W6qhZu/ghRlq4m/ttzasfNIsM2LFXgO4fyNezR24mI3z/xloYRt9wpQ==}
     engines: {node: '>=24.0.0'}
     hasBin: true
     peerDependencies:
@@ -3735,7 +3735,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  knip@6.46.0:
+  knip@6.46.1:
     dependencies:
       formatly: 0.11.4
       get-tsconfig: 4.14.3
@@ -4125,24 +4125,24 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  no-mistakes-darwin-arm64@0.109.121:
+  no-mistakes-darwin-arm64@0.109.122:
     optional: true
 
-  no-mistakes-linux-arm64-gnu@0.109.121:
+  no-mistakes-linux-arm64-gnu@0.109.122:
     optional: true
 
-  no-mistakes-linux-x64-gnu@0.109.121:
+  no-mistakes-linux-x64-gnu@0.109.122:
     optional: true
 
-  no-mistakes-win32-x64-msvc@0.109.121:
+  no-mistakes-win32-x64-msvc@0.109.122:
     optional: true
 
-  no-mistakes@0.109.121:
+  no-mistakes@0.109.122:
     optionalDependencies:
-      no-mistakes-darwin-arm64: 0.109.121
-      no-mistakes-linux-arm64-gnu: 0.109.121
-      no-mistakes-linux-x64-gnu: 0.109.121
-      no-mistakes-win32-x64-msvc: 0.109.121
+      no-mistakes-darwin-arm64: 0.109.122
+      no-mistakes-linux-arm64-gnu: 0.109.122
+      no-mistakes-linux-x64-gnu: 0.109.122
+      no-mistakes-win32-x64-msvc: 0.109.122
 
   node-stream-zip@1.16.0: {}
 
@@ -4585,7 +4585,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vouchington-tooling@3.9.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.121)(supports-color@7.2.0)(zod@4.6.7):
+  vouchington-tooling@3.10.0(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(no-mistakes@0.109.122)(supports-color@7.2.0)(zod@4.6.7):
     dependencies:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
@@ -4605,7 +4605,7 @@ snapshots:
       '@libpg-query/parser': 18.0.0
       '@modelcontextprotocol/sdk': 1.32.1(supports-color@7.2.0)(zod@4.6.7)
       '@typescript/typescript6': 6.0.2
-      no-mistakes: 0.109.121
+      no-mistakes: 0.109.122
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - '@typescript/native'
